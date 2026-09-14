@@ -57,7 +57,7 @@ jobs:
         with:
           path: app
 
-      - name: Checkout das ferramentas (vssh-sdk: scripts, api, runtime)
+      - name: Checkout das ferramentas do vssh-sdk (scripts, api, runtime)
         uses: actions/checkout@v5
         with:
           repository: colabhd/vssh-sdk

@@ -34,12 +34,22 @@ jobs:
           # O glob de `node --test` exige runner >= 22.
           node-version: '24'
 
+      # As libs de cada template vêm do mesmo `installCommand` que o servidor roda. Sem as do
+      # Node, o caso de `tests/template-galeria.test.js` que confere o que o backend injeta se
+      # pula dizendo o comando; sem as do Python, `tests/python/test_template.py` inteiro.
+      - name: Libs do template Node, como o servidor as instala
+        shell: bash
+        working-directory: templates/hello-vssh-app-node
+        run: |
+          set -euo pipefail
+          CMD="$(python3 -c 'import json;print(json.load(open("vssh-app.json"))["backend"]["installCommand"])')"
+          echo "${CMD}"
+          bash -c "${CMD}"
+
       - name: Testes Node
         shell: bash
         run: npm test
 
-      # As libs do template Python vêm do mesmo `installCommand` que o servidor roda; sem elas o
-      # `backend/main.py` não importa, e `tests/python/test_template.py` se pula dizendo isso.
       # Sem `setup-python`: um app Python roda com o interpretador que o servidor tem, e o do
       # runner é o do sistema, como lá.
       - name: Libs do template Python, como o servidor as instala
