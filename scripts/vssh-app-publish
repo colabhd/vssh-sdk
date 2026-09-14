@@ -1,0 +1,525 @@
+#!/usr/bin/env bash
+# vssh-app-publish: empacota um vssh-app e o publica no Worker do repositório.
+# Uso: vssh-app-publish <diretorio|git-url> [--version X] [--repo-api URL] [--token TOKEN] [--icon PATH]
+#
+# Lê VSSH_REPO_API e VSSH_REPO_PUBLISH_TOKEN do ambiente (ou das flags). Valida o vssh-app.json
+# contra `api/vssh-app.schema.json` deste repositório, empacota, confere o sha256 e faz
+# POST /v1/publish/app (e o ícone, se houver). Roda no CI do repositório do app, pelo
+# `_publish-app-reusable.yml`, e na máquina de quem desenvolve.
+#
+# Empacotamento: quando a fonte é um repositório git, entram só os arquivos rastreados
+# (`git archive`), então um `vendor/` ou `node_modules` commitado viaja no tarball e o que o
+# `.gitignore` exclui fica de fora, sem lista de padrões para manter. Fora de um repositório git,
+# o `tar` exclui só metadados e cache.
+set -euo pipefail
+
+SRC="" VERSION_OVERRIDE="" ICON_OVERRIDE=""
+REPO_API="${VSSH_REPO_API:-}"
+TOKEN="${VSSH_REPO_PUBLISH_TOKEN:-}"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --version)  VERSION_OVERRIDE="$2"; shift 2 ;;
+    --repo-api) REPO_API="$2"; shift 2 ;;
+    --token)    TOKEN="$2"; shift 2 ;;
+    --icon)     ICON_OVERRIDE="$2"; shift 2 ;;
+    -h|--help)  grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *)          [ -z "${SRC}" ] && SRC="$1" || { echo "Argumento inesperado: $1" >&2; exit 1; }; shift ;;
+  esac
+done
+
+[ -n "${SRC}" ]      || { echo "ERRO: informe <diretorio|git-url>." >&2; exit 1; }
+[ -n "${REPO_API}" ] || { echo "ERRO: VSSH_REPO_API (ou --repo-api) não definido." >&2; exit 1; }
+[ -n "${TOKEN}" ]    || { echo "ERRO: VSSH_REPO_PUBLISH_TOKEN (ou --token) não definido." >&2; exit 1; }
+
+WORKDIR="$(mktemp -d)"
+trap 'rm -rf "${WORKDIR}"' EXIT
+PKG="${WORKDIR}/pkg"
+
+# Avisos que aparecem ONDE SE OLHA.
+#
+# Num log corrido, um aviso é uma linha entre mil — e isso não é hipótese: foi exatamente assim que
+# o `aviso: schema não encontrado` passou despercebido em vários repos de app, que publicaram por
+# meses com validação mínima achando que estavam validando (ver docs/decisoes/publicacao.md).
+# No GitHub Actions, `::warning::` sobe para o resumo do run e para a
+# aba de anotações do PR; fora dele, stderr é o lugar certo mesmo.
+anotar() {   # anotar <warning|notice> <título> <mensagem...>
+  local nivel="$1" titulo="$2"; shift 2
+  if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+    # `%0A` é como uma anotação carrega quebra de linha; um \n cru encerraria o comando.
+    printf '::%s title=%s::%s\n' "${nivel}" "${titulo}" "$(printf '%s' "$*" | sed ':a;N;$!ba;s/\n/%0A/g')"
+  else
+    printf '%s: %s\n' "${titulo}" "$*" >&2
+  fi
+}
+
+# ── 1. Materializa a fonte ─────────────────────────────────────────────────────
+case "${SRC}" in
+  *.git|git@*|https://*.git) git clone --depth 1 "${SRC}" "${PKG}" ;;
+  *) [ -d "${SRC}" ] || { echo "ERRO: '${SRC}' não é diretório nem git-url." >&2; exit 1; }
+     cp -a "${SRC}" "${PKG}" ;;
+esac
+
+MANIFEST="${PKG}/vssh-app.json"
+[ -f "${MANIFEST}" ] || { echo "ERRO: vssh-app.json não encontrado na raiz do pacote." >&2; exit 1; }
+
+# ── 2. Valida e (se pedido) reescreve a version no manifest do pacote ──────────
+SCHEMA="$(cd "$(dirname "$0")/.." && pwd)/api/vssh-app.schema.json"
+INFO="$(VSSH_MANIFEST_PATH="${MANIFEST}" VSSH_VERSION_OVERRIDE="${VERSION_OVERRIDE}" VSSH_SCHEMA_PATH="${SCHEMA}" python3 <<'PYEOF'
+import json, os, re, sys
+# ⚠ **O encoding vai DECLARADO nas três pontas, e nenhuma delas é hipotética.**
+#
+# Este bloco lê um manifesto com acento, REESCREVE esse manifesto com `ensure_ascii=False` (a
+# linha do `--version`, que roda em toda publicação do CI), e imprime mensagens de erro em
+# português. Sem declarar, as três herdam a codificação do locale — e num locale que não seja
+# UTF-8 a do meio é a cara: o `name` e a `description` do app sairiam corrompidos DENTRO do
+# pacote publicado, sem erro nenhum e sem volta.
+#
+# Foi a terceira ponta que denunciou as outras: três testes de `publish-validacao` reprovavam no
+# Windows há meses comparando `vers�o` com `versão`, e a leitura fácil era "ruído de
+# plataforma". Era o mesmo defeito, no lugar mais barato de vê-lo.
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
+p = os.environ['VSSH_MANIFEST_PATH']
+m = json.load(open(p, encoding='utf-8'))
+app_id = m.get('id', '')
+if not re.match(r'^[a-z0-9-]+$', app_id or ''):
+    print('ERROR=id_invalido'); sys.exit(0)
+override = os.environ.get('VSSH_VERSION_OVERRIDE') or ''
+if override:
+    m['version'] = override
+    json.dump(m, open(p, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+version = m.get('version', '')
+if not re.match(r'^[0-9A-Za-z][0-9A-Za-z.\-+_]*$', version or ''):
+    print('ERROR=version_ausente'); sys.exit(0)
+b = m.get('backend', {})
+if b.get('runtime') not in ('python3', 'node', 'binary'):
+    print('ERROR=runtime_invalido'); sys.exit(0)
+if not b.get('entrypoint'):
+    print('ERROR=entrypoint_ausente'); sys.exit(0)
+
+# `requiredPackages` tem checagem PRÓPRIA, além da do schema, porque este campo é diferente dos
+# outros: o valor dele chega a um gerenciador de pacotes rodando no servidor do usuário. Um nome
+# com metacaractere de shell é injeção, e o gate de publicação é onde isso se recusa — depois já
+# é tarde, e o portal teria de desconfiar de um manifesto que passou por aqui.
+#
+# O erro nomeia o valor reprovado: "pacote inválido" sozinho manda quem publica conferir a lista
+# inteira à mão.
+#
+# Cada item é uma EXIGÊNCIA, e uma exigência pode ter ALTERNATIVAS separadas por '|' — o idioma do
+# `Depends: a | b` do Debian, e pelo mesmo motivo: "preciso de um navegador do tipo chromium" é uma
+# exigência que três pacotes diferentes satisfazem, e declarar só um recusa a instalação em
+# servidores onde o app rodaria perfeitamente. O '|' é o ÚNICO metacaractere admitido, e ele nunca
+# atravessa como shell: quem confere separa as alternativas antes de montar comando nenhum.
+_ALT = r'[a-z0-9][a-z0-9+.\-]*'
+pkgs = m.get('requiredPackages')
+if pkgs is not None:
+    if not isinstance(pkgs, list):
+        print('ERROR=requiredPackages_nao_e_lista'); sys.exit(0)
+    for nome in pkgs:
+        if not isinstance(nome, str) or not re.match(r'^%s( *\| *%s)*$' % (_ALT, _ALT), nome):
+            # Um '|' presente mas com uma alternativa torta é o erro provável desta sintaxe — e
+            # dizer só "pacote inválido" mandaria conferir a linha inteira em vez do pedaço.
+            ruim = next((a for a in str(nome).split('|')
+                         if not re.match(r'^%s$' % _ALT, a.strip())), None) if isinstance(nome, str) and '|' in nome else None
+            print(f'ERROR=pacote_invalido:{nome!r}' + (f'; a alternativa {ruim.strip()!r} não é nome de pacote' if ruim else ''))
+            sys.exit(0)
+
+# `resources` pelo MESMO motivo que `requiredPackages`, e não por simetria: cada valor daqui vira
+# um `-p Propriedade=<valor>` numa linha de comando de `systemd-run` rodando como o usuário. O
+# schema já casa o padrão, mas o schema é o gate de forma — este é o gate de destino, e ele nomeia
+# o campo reprovado em vez de mandar conferir o bloco inteiro.
+_RES = {
+    'memoryHigh': r'^(none|[0-9]+(\.[0-9]+)?(K|M|G|T|%)?)$',
+    'memoryMax':  r'^(none|[0-9]+(\.[0-9]+)?(K|M|G|T|%)?)$',
+    'cpuQuota':   r'^(none|[0-9]+%)$',
+    'tasksMax':   r'^(none|[0-9]+%?)$',
+}
+res = m.get('resources')
+if res is not None:
+    if not isinstance(res, dict):
+        print('ERROR=resources_nao_e_objeto'); sys.exit(0)
+    for campo, valor in res.items():
+        if campo not in _RES:
+            print(f'ERROR=resource_desconhecido:{campo!r}'); sys.exit(0)
+        if not isinstance(valor, str) or not re.match(_RES[campo], valor):
+            print(f'ERROR=resource_invalido:{campo}={valor!r}'); sys.exit(0)
+
+# `gpu` é booleano e SÓ booleano. Um `"true"` em texto passaria pelo schema como tipo errado, mas o
+# erro genérico não diria o que está errado — e o servidor trata só `True` como pedido, então um
+# manifesto com `"true"` rodaria SEM GPU e o autor não saberia por quê.
+gpu = m.get('gpu')
+if gpu is not None and not isinstance(gpu, bool):
+    print(f'ERROR=gpu_nao_e_booleano:{gpu!r}'); sys.exit(0)
+
+# `secrets` declara NOMES, nunca valores. O nome vira um `export <nome>=` avaliado pelo shell no
+# servidor do usuário — é a mesma classe de destino do `requiredPackages`, e por isso o mesmo gate.
+segredos = m.get('secrets')
+if segredos is not None:
+    if not isinstance(segredos, list):
+        print('ERROR=secrets_nao_e_lista'); sys.exit(0)
+    vistos = set()
+    for s in segredos:
+        if not isinstance(s, dict):
+            print(f'ERROR=secret_nao_e_objeto:{s!r}'); sys.exit(0)
+        nome = s.get('name')
+        if not isinstance(nome, str) or not re.match(r'^[A-Z][A-Z0-9_]{0,63}$', nome):
+            print(f'ERROR=secret_invalido:{nome!r}'); sys.exit(0)
+        # Declarar o mesmo nome duas vezes não é erro de forma, é erro de sentido: a tela mostraria
+        # dois campos para uma variável só, e o segundo apagaria o primeiro sem dizer nada.
+        if nome in vistos:
+            print(f'ERROR=secret_duplicado:{nome!r}'); sys.exit(0)
+        vistos.add(nome)
+        # Um manifesto com o VALOR dentro é o erro que este campo existe para tornar impossível:
+        # ele seria commitado, publicado e distribuído a todo servidor que instalasse o app.
+        for proibido in ('value', 'valor', 'default'):
+            if proibido in s:
+                print(f'ERROR=secret_com_valor:{nome!r}'); sys.exit(0)
+
+# `provides` tem checagem própria por um motivo diferente do `requiredPackages`: o valor daqui não
+# vai para lugar nenhum perigoso — vira chave de busca. O que ele precisa é de uma mensagem que
+# diga o que fazer, porque os dois erros prováveis têm conserto óbvio e o erro do schema não os
+# distingue: esquecer a versão (`llm` em vez de `llm/v1`) e declarar a mesma capacidade duas vezes.
+#
+# A versão é obrigatória e é o ponto do campo. Uma capacidade é contrato entre repositórios que não
+# se conhecem; sem versão, mudá-la é quebrar alguém em silêncio.
+caps = m.get('provides')
+if caps is not None:
+    if not isinstance(caps, list):
+        print('ERROR=provides_nao_e_lista'); sys.exit(0)
+    vistas = set()
+    for c in caps:
+        if not isinstance(c, str) or not re.match(r'^[a-z][a-z0-9-]*/v[0-9]+$', c):
+            falta_versao = isinstance(c, str) and re.match(r'^[a-z][a-z0-9-]*$', c)
+            print(f'ERROR=capacidade_invalida:{c!r}' + ('; falta a versão (ex.: %r)' % (c + '/v1') if falta_versao else ''))
+            sys.exit(0)
+        # Declarar duas vezes não é erro de forma, é erro de sentido — e some na resolução, que
+        # trabalha com conjunto. Recusar aqui é o único lugar onde alguém vê.
+        if c in vistas:
+            print(f'ERROR=capacidade_duplicada:{c!r}'); sys.exit(0)
+        vistas.add(c)
+
+# `contributes.browserExtension` aponta para uma extensão do outro catálogo. O validador genérico
+# confere o schema, mas ele NÃO implementa maxLength — e a `razao` vai para um diálogo do shell, onde
+# uma frase de dez mil caracteres é um problema de tela. O `id` ganha mensagem própria porque o
+# engano previsível é pôr aqui a URL do bundle ou o nome de exibição, e o erro do schema diria só
+# "pattern".
+be = (m.get('contributes') or {}).get('browserExtension')
+if be is not None:
+    if not isinstance(be, dict):
+        print('ERROR=browserExtension_nao_e_objeto'); sys.exit(0)
+    ext_id = be.get('id')
+    if not isinstance(ext_id, str) or not re.match(r'^[a-z0-9-]+$', ext_id):
+        print(f'ERROR=browserExtension_id_invalido:{ext_id!r}; é o `id` da extensão no catálogo '
+              '(o mesmo do vssh-ext.json dela), não a URL do bundle nem o nome de exibição')
+        sys.exit(0)
+    razao = be.get('razao')
+    if razao is not None and (not isinstance(razao, str) or not 1 <= len(razao) <= 120):
+        print(f'ERROR=browserExtension_razao_invalida; uma frase de até 120 caracteres, e veio '
+              f'{len(razao) if isinstance(razao, str) else type(razao).__name__}')
+        sys.exit(0)
+
+# `minShellVersion` é conferido pelo PORTAL na instalação — ele sabe a versão do shell que serve.
+# Aqui só a forma, e nomeando o valor: um `"^4.0"` ou um `"v4"` copiado de outro ecossistema passaria
+# como string qualquer e só falharia no servidor de outra pessoa.
+msv = m.get('minShellVersion')
+if msv is not None and (not isinstance(msv, str) or not re.match(r'^[0-9]+(\.[0-9]+){0,2}$', msv)):
+    print(f'ERROR=minShellVersion_invalida:{msv!r}'); sys.exit(0)
+
+# Validação completa contra api/vssh-app.schema.json, o contrato do manifesto que o sistema gera
+# neste repositório. Este é o portão de entrada no repositório de artefatos, e por isso o rigor
+# fica aqui; o vssh-app-install roda offline no servidor e valida só o mínimo
+# (id/runtime/entrypoint).
+#
+# Validador do subconjunto de JSON Schema que o arquivo usa (type, required, properties, enum,
+# pattern, items, minimum/maximum, additionalProperties:false). Sem dependência: este repositório
+# não tem node_modules, e o script precisa rodar em qualquer runner.
+# "campo desconhecido: requiredPackage" está correto e não ajuda: quem publica olha para o próprio
+# manifesto, vê o campo escrito lá, e o erro parece dizer que o schema é que está velho. Nomear o
+# vizinho resolve o caso que motivou fechar a raiz — o `s` que faltou — sem inventar nada: se
+# nenhum campo conhecido estiver perto, a mensagem continua sendo só o nome reprovado.
+def _perto(alvo, conhecidos):
+    # Damerau, e não Levenshtein simples, por um caso concreto: `widht` por `width`. Trocar dois
+    # vizinhos de lugar é o erro de digitação mais comum que existe, e a distância simples o cobra
+    # como DOIS erros — então justamente o typo mais provável ficava sem sugestão.
+    def dist(a, b):
+        la, lb = len(a), len(b)
+        d = [[0] * (lb + 1) for _ in range(la + 1)]
+        for i in range(la + 1): d[i][0] = i
+        for j in range(lb + 1): d[0][j] = j
+        for i in range(1, la + 1):
+            for j in range(1, lb + 1):
+                d[i][j] = min(d[i-1][j] + 1, d[i][j-1] + 1, d[i-1][j-1] + (a[i-1] != b[j-1]))
+                if i > 1 and j > 1 and a[i-1] == b[j-2] and a[i-2] == b[j-1]:
+                    d[i][j] = min(d[i][j], d[i-2][j-2] + 1)
+        return d[la][lb]
+    if not conhecidos: return None
+    melhor = min(conhecidos, key=lambda c: (dist(alvo.lower(), c.lower()), c))
+    # Teto proporcional: num nome curto ('gpu') dois erros já são outra palavra; num longo
+    # ('requiredPackages') dois erros ainda são o mesmo campo mal digitado.
+    return melhor if dist(alvo.lower(), melhor.lower()) <= max(1, len(melhor) // 5) else None
+
+def _validate(node, schema, path='', errors=None):
+    if errors is None: errors = []
+    t = schema.get('type')
+    types = t if isinstance(t, list) else ([t] if t else [])
+    def bad(msg): errors.append(f"{path or '<raiz>'}: {msg}")
+    if node is None and 'null' in types: return errors
+    if types:
+        ok = any(
+            (ty == 'object' and isinstance(node, dict)) or
+            (ty == 'array' and isinstance(node, list)) or
+            (ty == 'string' and isinstance(node, str)) or
+            (ty == 'integer' and isinstance(node, int) and not isinstance(node, bool)) or
+            (ty == 'boolean' and isinstance(node, bool)) or
+            (ty == 'null' and node is None)
+            for ty in types)
+        if not ok:
+            bad(f"esperava {'/'.join(types)}, veio {type(node).__name__}"); return errors
+    if 'enum' in schema and node not in schema['enum']:
+        bad(f"valor inválido {node!r}; esperado um de {schema['enum']}")
+    if isinstance(node, str) and 'pattern' in schema and not re.search(schema['pattern'], node):
+        bad(f"{node!r} não casa com {schema['pattern']}")
+    if isinstance(node, int) and not isinstance(node, bool):
+        if 'minimum' in schema and node < schema['minimum']: bad(f"{node} < mínimo {schema['minimum']}")
+        if 'maximum' in schema and node > schema['maximum']: bad(f"{node} > máximo {schema['maximum']}")
+    if isinstance(node, dict):
+        for req in schema.get('required', []):
+            if req not in node: bad(f"campo obrigatório ausente: {req}")
+        props = schema.get('properties', {})
+        if schema.get('additionalProperties') is False:
+            for k in node:
+                if k not in props:
+                    vizinho = _perto(k, list(props))
+                    bad(f"campo desconhecido: {k}" + (f" (você quis dizer {vizinho}?)" if vizinho else ''))
+        for k, sub in props.items():
+            if k in node: _validate(node[k], sub, f"{path}.{k}" if path else k, errors)
+    if isinstance(node, list) and 'items' in schema:
+        for i, item in enumerate(node):
+            _validate(item, schema['items'], f"{path}[{i}]", errors)
+    return errors
+
+schema_path = os.environ.get('VSSH_SCHEMA_PATH') or ''
+if schema_path and os.path.isfile(schema_path):
+    try:
+        problems = _validate(m, json.load(open(schema_path, encoding='utf-8')))
+    except Exception as e:
+        problems = []
+        print(f"aviso: não foi possível validar contra o schema ({e})", file=sys.stderr)
+    if problems:
+        print('ERROR=schema:' + '; '.join(problems[:6])); sys.exit(0)
+else:
+    # Checkout sem `api/` (um sparse checkout que trouxe só scripts/) ou execução fora de um
+    # clone: as checagens mínimas acima valem, em vez de recusar a publicação por falta do schema.
+    # `WARN=` em vez de só stderr: o bash o transforma em anotação do Actions, que aparece no
+    # resumo do run. Uma linha no meio do log passa meses sem ninguém ler.
+    print('WARN=schema não encontrado neste checkout; o manifesto foi validado SÓ no mínimo (id/runtime/entrypoint)')
+
+print(f"ID={app_id}")
+print(f"VERSION={version}")
+print("ICON=" + (m.get('icon') or ''))
+PYEOF
+)"
+
+APP_ID="" VERSION="" ICON="" ERR="" WARN=""
+INFO="${INFO//$'\r'/}"   # robustez: python em Windows emite \r\n; header do curl não pode ter \r
+while IFS='=' read -r k v; do
+  case "${k}" in ERROR) ERR="${v}";; ID) APP_ID="${v}";; VERSION) VERSION="${v}";; ICON) ICON="${v}";; WARN) WARN="${v}";; esac
+done <<< "${INFO}"
+[ -z "${WARN}" ] || anotar warning "validação parcial" "${WARN}"
+[ -z "${ERR}" ] || { echo "ERRO: vssh-app.json inválido (${ERR})." >&2; exit 1; }
+
+# ── 2b. As libs que o app leva são desta geração? ──────────────────────────────
+#
+# As libs de backend chegam ao app pelo gerenciador de pacotes do runtime dele
+# (`npm i github:colabhd/vssh-app-toolkit#v4`, ou o `pip install` do `installCommand`). O que esta
+# seção lê é o que o gerenciador instalou dentro do pacote: o `package.json` do `node_modules` ou
+# o `.dist-info` do `vendor/py`, números que o próprio instalador escreveu.
+#
+# A versão de REFERÊNCIA, contra a qual o app é comparado, é lida de `runtime/package.json` deste
+# repositório: é o diretório em que o sistema publica as libs. Enquanto ele não existe (as libs
+# ainda vêm do `vssh-app-toolkit`, ver MIGRATION.md), a conferência é pulada e dita em voz alta,
+# porque uma conferência que se acha feita sem ter sido é pior que nenhuma.
+#
+# Divergência de MAJOR recusa; o resto avisa. O major das libs só sobe com mudança incompatível,
+# então publicar um app com libs de outra major é publicar contra um contrato que mudou. Menor e
+# patch são compatíveis por definição, e recusar ali só ensinaria a ignorar o portão.
+HERE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# O `|| true` segura o script: sem o arquivo o `sed` sai 2, e sob `set -euo pipefail` esse 2 seria
+# o exit do script inteiro, com o `2>/dev/null` engolindo a única pista. O aviso "não conferi as
+# libs" logo abaixo é justamente o caso que a ausência do arquivo produz.
+NOSSA_LIB="$(sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
+  "${HERE_ROOT}/runtime/package.json" 2>/dev/null | head -1 || true)"
+
+# Uma cópia das libs feita à mão (o marcador `.vssh-lib-version` da era do `vssh-app-lib-sync`)
+# é erro, e não aviso: um `vendor/vssh/` no pacote é código morto que o app pode estar carregando
+# no lugar das libs instaladas, e duas cópias com o mesmo nome é o defeito.
+LEGADO="$(find "${PKG}" -name .vssh-lib-version -not -path '*/.git/*' 2>/dev/null | head -1 || true)"
+if [ -n "${LEGADO}" ]; then
+  anotar error "libs copiadas à mão" \
+    "${LEGADO#${PKG}/}: a cópia vendorizada saiu na v4 das libs. Instale-as pelo gerenciador de pacotes do runtime
+(npm i github:colabhd/vssh-app-toolkit#v4, ou o pip do installCommand) e troque os
+require('./vendor/vssh/node/<x>') por require('vssh-app-toolkit/<x>'). Ver MIGRATION.md."
+  exit 1
+fi
+
+if [ -z "${NOSSA_LIB}" ]; then
+  anotar warning "libs não conferidas" \
+    "Este checkout não tem runtime/package.json (as libs ainda vêm do vssh-app-toolkit), então a versão das libs do app NÃO foi conferida."
+else
+  # O que VAI no tarball: cada cópia instalada pelo npm dentro do pacote.
+  INSTALADAS="$(find "${PKG}" -path '*/node_modules/vssh-app-toolkit/package.json' -not -path '*/.git/*' 2>/dev/null || true)"
+  # O que o app DECLARA: qualquer package.json dele que cite o toolkit (o do repo ou o do backend).
+  DECLARA="$(grep -rl '"vssh-app-toolkit"' --include=package.json "${PKG}" 2>/dev/null \
+    | grep -v '/node_modules/' | head -1 || true)"
+
+  # ── E o mesmo, do lado PYTHON ────────────────────────────────────────────────
+  #
+  # As libs existem nos dois runtimes desde que o template Python passou a usá-las, e este portão
+  # só sabia perguntar ao npm. A consequência não era um furo teórico: um app Python que dependesse
+  # das libs recebia *"O app não depende das libs deste toolkit"* — o portão AFIRMANDO o contrário
+  # do que era verdade, que é a pior forma de uma conferência falhar.
+  #
+  # A versão instalada vem do nome do `.dist-info`, que é o que o `pip install --target` escreve.
+  # Não é heurística: o nome do diretório é normativo (PEP 376), e ele existe justamente para
+  # responder "que versão está aqui?" sem abrir arquivo nenhum.
+  INSTALADAS_PY="$(find "${PKG}" -type d -name 'vssh_app_toolkit-*.dist-info' -not -path '*/.git/*' 2>/dev/null || true)"
+  # O app DECLARA em Python se o installCommand (ou um requirements) cita este pacote. Um app
+  # Python não tem `package.json` para consultar — é o installCommand que carrega a dependência.
+  DECLARA_PY=""
+  if grep -qE 'vssh[-_]app[-_]toolkit' "${PKG}/vssh-app.json" 2>/dev/null; then
+    DECLARA_PY="vssh-app.json (installCommand)"
+  elif grep -rlE 'vssh[-_]app[-_]toolkit' --include='requirements*.txt' --include='pyproject.toml' \
+        "${PKG}" 2>/dev/null | grep -v '/vendor/' | head -1 > /dev/null 2>&1; then
+    DECLARA_PY="$(grep -rlE 'vssh[-_]app[-_]toolkit' --include='requirements*.txt' --include='pyproject.toml' \
+      "${PKG}" 2>/dev/null | grep -v '/vendor/' | head -1)"
+    DECLARA_PY="${DECLARA_PY#${PKG}/}"
+  fi
+
+  # Um app Python que declara e não leva as libs está no MESMO caso do Node que instala no alvo: o
+  # `installCommand` resolve no servidor, e daqui não dá para conferir a versão. Dizer isso em voz
+  # alta é o contrato desta seção — conferência que se acha feita sem ter sido é pior que nenhuma.
+  if [ -z "${INSTALADAS_PY}" ] && [ -n "${DECLARA_PY}" ]; then
+    anotar notice "libs Python instaladas no servidor" \
+      "${DECLARA_PY} declara o toolkit e o pacote não leva vendor/py — o installCommand vai instalar no alvo. A versão NÃO foi conferida aqui."
+  fi
+
+  while IFS= read -r di; do
+    [ -n "${di}" ] || continue
+    # `vssh_app_toolkit-4.12.0.dist-info` → `4.12.0`
+    DELE_PY="$(basename "${di}")"; DELE_PY="${DELE_PY#vssh_app_toolkit-}"; DELE_PY="${DELE_PY%.dist-info}"
+    ONDE_PY="${di#${PKG}/}"
+    [ "${DELE_PY}" = "${NOSSA_LIB}" ] && continue
+    if [ "${DELE_PY%%.*}" != "${NOSSA_LIB%%.*}" ]; then
+      anotar error "libs de outra major" \
+        "${ONDE_PY} traz o toolkit ${DELE_PY} e este é ${NOSSA_LIB}.
+Atualize:  pip install --target vendor/py \"https://github.com/colabhd/vssh-app-toolkit/archive/refs/tags/v${NOSSA_LIB%%.*}.tar.gz\""
+      exit 1
+    fi
+    anotar warning "libs desatualizadas" \
+      "${ONDE_PY} traz o toolkit ${DELE_PY}; este é ${NOSSA_LIB}. Compatível, mas vale atualizar."
+  done <<< "${INSTALADAS_PY}"
+
+  if [ -z "${INSTALADAS}" ]; then
+    if [ -n "${DECLARA_PY}" ] || [ -n "${INSTALADAS_PY}" ]; then
+      : # o lado Python já respondeu acima; não repetir "sem libs" sobre um app que as usa
+    elif [ -z "${DECLARA}" ]; then
+      anotar notice "sem libs do toolkit" "O app não depende das libs deste toolkit."
+    else
+    # A pergunta é "este app instala as libs no alvo?", e ela não se responde no TEXTO do
+    # manifesto: um `installCommand` legítimo é `bash backend/install.sh`, e o npm mora lá dentro.
+    # A primeira versão desta guarda fazia `grep -q 'npm ' vssh-app.json` e recusava exatamente esse
+    # caso — acusando o app de um defeito que era da própria pergunta. Agora ela SEGUE o comando:
+    # todo token do installCommand que seja um arquivo do pacote entra na busca, um nível.
+    ROTEIROS="${PKG}/vssh-app.json"
+    CMD_INSTALL="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1], encoding="utf-8")).get("backend",{}).get("installCommand","") or "")' "${PKG}/vssh-app.json" 2>/dev/null || true)"
+    for tok in ${CMD_INSTALL}; do
+      if [ -f "${PKG}/${tok}" ]; then ROTEIROS="${ROTEIROS} ${PKG}/${tok}"; fi
+    done
+    # shellcheck disable=SC2086
+    if grep -q 'npm ' ${ROTEIROS}; then
+      # node_modules fora do tarball é escolha legítima: o `installCommand` instala no servidor, e
+      # é o que o scramjet-wisp já faz em produção. Só não dá para conferir a versão daqui.
+      anotar notice "libs instaladas no servidor" \
+        "${DECLARA#${PKG}/} declara o toolkit e o pacote não leva node_modules — o installCommand vai instalar no alvo. A versão NÃO foi conferida aqui."
+    else
+      anotar error "libs declaradas e ausentes" \
+        "${DECLARA#${PKG}/} depende de vssh-app-toolkit, o tarball não leva node_modules e nada no installCommand (nem nos scripts que ele chama) roda npm.
+O backend morreria no primeiro require. Escolha um: tire node_modules do .gitignore, declare
+  \"installCommand\": \"npm ci --omit=dev\"
+ou ponha o npm dentro do script que o installCommand já chama."
+      exit 1
+    fi
+    fi
+  fi
+
+  while IFS= read -r pj; do
+    [ -n "${pj}" ] || continue
+    DELE="$(sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "${pj}" | head -1)"
+    ONDE="${pj#${PKG}/}"
+    [ "${DELE}" = "${NOSSA_LIB}" ] && continue
+    if [ "${DELE%%.*}" != "${NOSSA_LIB%%.*}" ]; then
+      # Este é `error` e não `warning` porque ele PARA a publicação: major diferente carrega
+      # breaking change real (ver o `//version` do package.json).
+      anotar error "libs de outra major" \
+        "${ONDE} traz o toolkit ${DELE} e este é ${NOSSA_LIB}.
+Atualize:  npm i github:colabhd/vssh-app-toolkit#v${NOSSA_LIB%%.*}   (e commite o package-lock.json)"
+      exit 1
+    fi
+    anotar warning "libs desatualizadas" \
+      "${ONDE} traz o toolkit ${DELE}; este é ${NOSSA_LIB}. Compatível, mas vale atualizar."
+  done <<< "${INSTALADAS}"
+fi
+
+# ── 3. Empacota (só o que está versionado, quando é repo git) ──────────────────
+TARBALL="${WORKDIR}/app.tar.gz"
+# `--version` reescreveu o vssh-app.json no PKG acima; para o `git archive` levar essa versão (e
+# quaisquer node_modules/vendor NÃO rastreados no clone raso) o commitamos numa árvore efêmera.
+if git -C "${PKG}" rev-parse --git-dir >/dev/null 2>&1; then
+  git -C "${PKG}" add -A
+  # commit efêmero só para snapshotar a árvore de trabalho (inclui vendorizados rastreados +
+  # a version reescrita); identidade fixa para não depender de config global do runner.
+  GIT_AUTHOR_NAME=vssh GIT_AUTHOR_EMAIL=vssh@localhost \
+  GIT_COMMITTER_NAME=vssh GIT_COMMITTER_EMAIL=vssh@localhost \
+    git -C "${PKG}" commit -q --no-verify -m "publish snapshot" >/dev/null 2>&1 || true
+  git -C "${PKG}" archive --format=tar HEAD | gzip -n > "${TARBALL}"
+else
+  tar -czf "${TARBALL}" \
+    --exclude="./.git" --exclude="./data" --exclude="./__pycache__" --exclude="*.pyc" \
+    -C "${PKG}" .
+fi
+SHA256="$(sha256sum "${TARBALL}" | cut -d' ' -f1)"
+MANIFEST_B64="$(base64 < "${MANIFEST}" | tr -d '\n')"
+BUILT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+echo "Publicando app ${APP_ID}@${VERSION} (${SHA256}, $(stat -c%s "${TARBALL}" 2>/dev/null || wc -c < "${TARBALL}") bytes)"
+
+# ── 4. POST do tarball ─────────────────────────────────────────────────────────
+curl -fsS -X POST "${REPO_API}/v1/publish/app" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/gzip" \
+  -H "X-Vssh-App-Id: ${APP_ID}" \
+  -H "X-Vssh-Version: ${VERSION}" \
+  -H "X-Vssh-Build-Id: ${GITHUB_SHA:-${VERSION}}" \
+  -H "X-Vssh-Ref: ${GITHUB_REF_NAME:-}" \
+  -H "X-Vssh-Built-At: ${BUILT_AT}" \
+  -H "X-Vssh-Sha256: ${SHA256}" \
+  -H "X-Vssh-Manifest: ${MANIFEST_B64}" \
+  --data-binary "@${TARBALL}"
+echo
+
+# ── 5. Ícone (opcional) ────────────────────────────────────────────────────────
+ICON_PATH=""
+[ -n "${ICON_OVERRIDE}" ] && ICON_PATH="${ICON_OVERRIDE}"
+[ -z "${ICON_PATH}" ] && [ -n "${ICON}" ] && [ -f "${PKG}/${ICON}" ] && ICON_PATH="${PKG}/${ICON}"
+if [ -n "${ICON_PATH}" ] && [ -f "${ICON_PATH}" ]; then
+  case "${ICON_PATH,,}" in
+    *.png) CT=image/png ;; *.svg) CT=image/svg+xml ;; *.ico) CT=image/x-icon ;;
+    *.jpg|*.jpeg) CT=image/jpeg ;; *) CT=application/octet-stream ;;
+  esac
+  echo "Publicando ícone (${CT})"
+  curl -fsS -X POST "${REPO_API}/v1/publish/app/${APP_ID}/${VERSION}/icon" \
+    -H "Authorization: Bearer ${TOKEN}" \
+    -H "X-Vssh-Content-Type: ${CT}" \
+    --data-binary "@${ICON_PATH}"
+  echo
+fi
+echo "✅ ${APP_ID}@${VERSION} publicado."

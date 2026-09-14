@@ -1,0 +1,91 @@
+name: Publish apps
+
+# Publica os vssh-apps DESTE repositório no Worker do repositório de artefatos, para que fiquem
+# instaláveis por `sudo vssh-app-install <id> --force` ou pela aba admin "Repositório". Dispara a
+# cada push em main que toque um deles, e à mão.
+#
+# ── Dois diretórios, com papéis diferentes ───────────────────────────────────
+#
+#   templates/   ponto de PARTIDA. Copie, troque o id, apague o que não usa.
+#   examples/    implementações de referência de capacidades que o sistema define, feitas para
+#                serem INSTALADAS. Outra implementação da mesma capacidade é bem-vinda, e o
+#                ambiente a encontra do mesmo jeito, pelo `provides`.
+#
+# Pré-requisitos (uma vez), neste repositório (Settings, Secrets and variables, Actions):
+#   - secret VSSH_REPO_PUBLISH_TOKEN: token escopado `kind:app` (ou mestre), que cobre todos os ids.
+#   - var    VSSH_REPO_API: base URL do Worker (ex. https://vssh-repo.colabh.org).
+#
+# ── A VERSÃO É DERIVADA DO HISTÓRICO ──────────────────────────────────────────
+#
+# O Worker faz ON CONFLICT(kind,name,channel,version) DO UPDATE, e o vssh-app-install compara a
+# versão instalada com a resolvida: com o mesmo número, o conteúdo novo sobrescreve o antigo no
+# repositório e o servidor pula a atualização por "já está nessa versão". Publica, e não chega.
+#
+# Por isso o PATCH é o número de commits que tocaram aquele app: monotônico, semver de verdade, e
+# sem passo manual. `major.minor` continua no manifesto, sob controle humano; é lá que se declara
+# "isto quebrou compatibilidade".
+#
+# Isto vale para os apps DESTE repositório. Um vssh-app externo continua responsável pela própria
+# versão: o mecanismo aqui é conveniência deste repositório.
+
+on:
+  push:
+    branches: [main]
+    paths: ['templates/**', 'examples/**']
+  workflow_dispatch:
+    inputs:
+      app:
+        description: "Caminho do app (ex. examples/print-engine, templates/hello-vssh-app) ou 'all'"
+        type: string
+        default: 'all'
+
+jobs:
+  publish:
+    name: Publish apps no repositório de artefatos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          # Histórico completo: o patch da versão é contagem de commits por app, e num clone raso
+          # ela daria 1 para sempre, publicando 1.0.1 a cada push, com o servidor pulando todos a
+          # partir do segundo por "já está nessa versão".
+          fetch-depth: 0
+
+      - name: Publicar
+        env:
+          VSSH_REPO_API: ${{ vars.VSSH_REPO_API }}
+          VSSH_REPO_PUBLISH_TOKEN: ${{ secrets.VSSH_REPO_PUBLISH_TOKEN }}
+          APP_INPUT: ${{ github.event.inputs.app || 'all' }}
+        run: |
+          set -euo pipefail
+          # Falha alto em vez de publicar número errado: um clone raso aqui é o modo de falha que
+          # este mecanismo inteiro existe para evitar.
+          [ "$(git rev-parse --is-shallow-repository)" = "false" ] \
+            || { echo "ERRO: clone raso; o patch da versão sairia errado. Ver fetch-depth acima." >&2; exit 1; }
+
+          publish_dir() {
+            local dir="$1" base patch
+            [ -f "${dir}/vssh-app.json" ] || { echo "Pulando ${dir} (sem vssh-app.json)"; return; }
+            # major.minor vêm do manifesto (decisão humana); patch é derivado do histórico.
+            base=$(python3 -c "import json,re,sys;v=json.load(open('${dir}/vssh-app.json')).get('version','');m=re.match(r'^(\d+)\.(\d+)(\.|$)',v);sys.exit('version inválida: '+repr(v)) if not m else print(m.group(1)+'.'+m.group(2))")
+            patch=$(git rev-list --count HEAD -- "${dir}")
+            # Um `base` vazio (python3 ausente, manifesto torto) publicaria ".3", que o
+            # vssh-app-publish rejeitaria lá na frente como "version_ausente", mensagem que não
+            # aponta para cá.
+            case "${base}.${patch}" in
+              [0-9]*.[0-9]*.[0-9]*) : ;;
+              *) echo "ERRO: versão derivada inválida para ${dir}: '${base}.${patch}'" >&2; exit 1 ;;
+            esac
+            echo "== ${dir}: ${base}.${patch} =="
+            bash scripts/vssh-app-publish "${dir}" --version "${base}.${patch}"
+          }
+          if [ "${APP_INPUT}" = "all" ]; then
+            for d in templates/*/ examples/*/; do [ -d "$d" ] && publish_dir "${d%/}"; done
+          else
+            # Aceita o caminho inteiro (`examples/print-engine`) e, para template, o nome solto.
+            case "${APP_INPUT}" in
+              */*) publish_dir "${APP_INPUT}" ;;
+              *)   publish_dir "templates/${APP_INPUT}" ;;
+            esac
+          fi

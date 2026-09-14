@@ -1,0 +1,17 @@
+{
+  "name": "vssh-sdk",
+  "private": true,
+  "//private": "Este repositório não é um pacote npm: o que um app instala são as libs de backend, que hoje vêm do `vssh-app-toolkit` (`npm i github:colabhd/vssh-app-toolkit#v4`) e que o sistema passa a publicar em `runtime/` numa etapa seguinte. Este arquivo existe pelos scripts abaixo, e por mais nada.",
+  "description": "O SDK do VSSH: o que o autor de um vssh-app usa para escrever, buildar e publicar",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "//engines": "O >=22 é do runner de teste (o glob abaixo só existe a partir dessa versão). Os templates rodam no Node que o servidor-alvo tem, e o CI os sobe em 24.",
+  "scripts": {
+    "//test": "Glob entre aspas: quem expande é o Node, e não o shell, senão quebra no cmd.exe do Windows. Sem dependência npm neste repositório: a suíte é `node --test` sobre a biblioteca padrão.",
+    "test": "node --test \"tests/**/*.test.js\"",
+    "//test:py": "O template Python e os apps Python de `examples/`. Fica fora do `test` porque `node --test` não sabe rodá-lo e porque a ausência de `python3` não pode reprovar quem só mexeu em JavaScript. Um diretório novo de teste tem de ser ACRESCENTADO aqui: `discover` não desce sozinho por `examples/*/test`.",
+    "test:py": "python3 -m unittest discover -s tests/python && python3 -m unittest discover -s examples/palco/test"
+  }
+}

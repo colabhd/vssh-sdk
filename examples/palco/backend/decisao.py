@@ -1,0 +1,320 @@
+"""O que o arquivo é, o que a máquina aceita, e o que fazer com a diferença.
+
+    sondar(ffprobe_json, nome) -> Sonda      o que o arquivo é
+    decidir(sonda, perfil)     -> Decisao    direto | remux | audio | transcode
+
+⚠ **O servidor NÃO decide sozinho, e é a correção central deste módulo.** Quem sabe o que consegue
+decodificar é o cliente, e isso varia por máquina, por sistema e por versão do navegador: medido em
+Chrome 151 headless, `hvc1` é falso; num Chrome de mesa com decodificação por hardware costuma ser
+verdadeiro. Uma tabela fixa aqui transcodificaria a 180% de CPU para metade das máquinas — e ainda
+entregaria a elas vídeo pior que o original.
+
+─── A ordem de preferência, e ela é INVERTIDA em relação à web normal ───────
+
+Na web, o servidor é compartilhado e o cliente é a máquina forte. Aqui o vssh existe justamente
+para dar uma estação remota potente: o cliente pode ser um laptop magro, e já está renderizando um
+desktop inteiro.
+
+    1. cliente nativo/hardware      de graça
+    2. servidor remux (`-c copy`)   ~2%
+    3. servidor transcode VAAPI     GPU, quase de graça
+    4. servidor CPU                 último, e a interface diz que está trabalhando
+
+⚠ Falta o quinto degrau — decodificação WASM no cliente (hevc.js), que caberia entre 3 e 4 quando o
+servidor não tem GPU. Ele não está aqui de propósito: exige a biblioteca vendorizada no pacote, o
+que é da Fase 7. A costura é o `Perfil`: um cliente que carregue o hevc.js declara `hevc` em
+`video` e este módulo já responde `remux` sem mudar uma linha.
+
+Nada aqui executa `ffprobe` nem toca em arquivo: entra JSON, sai decisão.
+"""
+
+import os
+from dataclasses import dataclass, field
+from typing import List, Optional, Set
+
+# ⚠ `format_name` do ffprobe é uma LISTA de demuxers, não um nome: `.mkv` e `.webm` respondem os
+# dois `matroska,webm`, e o navegador abre o segundo e não o primeiro. Quem desempata é a extensão.
+# Ignorar isto remuxaria todo `.webm` à toa, ou serviria todo `.mkv` quebrado.
+_POR_EXTENSAO = {
+    ".mp4": "mp4", ".m4v": "mp4", ".m4a": "mp4",
+    ".webm": "webm",
+    ".mkv": "matroska", ".mka": "matroska",
+    ".mov": "mov", ".avi": "avi", ".wmv": "asf", ".flv": "flv", ".ts": "mpegts",
+    ".mp3": "mp3", ".flac": "flac", ".ogg": "ogg", ".opus": "ogg", ".wav": "wav",
+}
+
+
+# ⚠ Legenda de IMAGEM não vira texto. PGS (Blu-ray) e VobSub (DVD) são bitmaps: converter para VTT
+# exigiria OCR, e o `ffmpeg -f webvtt` sobre elas devolve nada — sem erro. Sem esta lista, a
+# interface ofereceria faixas que, escolhidas, simplesmente não aparecem na tela.
+_LEGENDA_DE_IMAGEM = {"hdmv_pgs_subtitle", "dvd_subtitle", "dvb_subtitle", "xsub"}
+
+
+# ⚠ **Containers que não guardam a ordem de EXIBIÇÃO dos quadros** — e este é o achado mais caro
+# desta lista inteira, porque o sintoma não se parece nada com a causa.
+#
+# O AVI só guarda ordem de decodificação: ele não tem PTS, apenas DTS. Com B-frames, as duas ordens
+# são DIFERENTES, e a informação que as liga não está no arquivo — está só dentro do fluxo H.264,
+# onde só um decodificador chega. Um `-c:v copy` então escreve `pts == dts` em todo quadro, e o
+# navegador exibe na ordem errada.
+#
+# O que se vê é reprodução "meio travada". O que os números dizem (medido em Chrome 152, o mesmo
+# arquivo, MP4 comum servido de disco, sem cano nenhum no meio):
+#
+#     `-c:v copy`               25,8% dos quadros descartados   pts != dts em   0 de 901
+#     `-fflags +genpts`         25,8%                           pts != dts em 901 de 901
+#     `+genpts+igndts`          25,0%                           pts != dts em 901 de 901
+#     reencodando o vídeo        0,0%                           pts != dts em 700 de 901
+#
+# ⚠ O `genpts` é a armadilha: ele produz a caixa `ctts` e faz `pts != dts` em TODOS os quadros, o
+# que passa em qualquer conferência estrutural — mas é um deslocamento uniforme, não uma
+# reordenação. A reordenação de verdade é 700 de 901, e ela só existe depois de decodificar.
+#
+# Ou seja: **não há opção de remux que conserte isto**. Para este caso o vídeo tem de ser
+# recodificado, e é a única situação em que gastamos CPU sem o cliente ter pedido.
+#
+# A lista tem UM item de propósito. MP4, MOV e Matroska guardam a ordem de exibição; MPEG-TS tem
+# PTS. Pôr outro container aqui sem medir trocaria 2% de CPU por 100% em cima de um palpite.
+_SEM_ORDEM_DE_EXIBICAO = {"avi"}
+
+
+@dataclass
+class Faixa:
+    indice: int
+    codec: str
+    largura: int = 0
+    altura: int = 0
+    canais: int = 0
+    padrao: bool = False    # `disposition.default` — a que o navegador vai tocar sozinho
+    idioma: Optional[str] = None
+    titulo: Optional[str] = None
+    # Só de vídeo. Quantos quadros o decodificador precisa segurar antes de poder exibir — ou seja,
+    # se a ordem de EXIBIÇÃO difere da de DECODIFICAÇÃO. Ver `_SEM_ORDEM_DE_EXIBICAO`.
+    b_frames: int = 0
+
+    @property
+    def e_texto(self):
+        """Só vale para legenda: dá para virar VTT, ou é imagem?"""
+        return self.codec not in _LEGENDA_DE_IMAGEM
+
+
+@dataclass
+class Sonda:
+    container: str = ""
+    duracao: Optional[float] = None
+    video: Optional[Faixa] = None
+    audios: List[Faixa] = field(default_factory=list)
+    legendas: List[Faixa] = field(default_factory=list)
+
+
+@dataclass
+class Perfil:
+    """O que o cliente relatou que toca. Vocabulário curto, igual dos dois lados.
+
+    O frontend pergunta em RFC 6381 (`avc1.640028`) e traduz para o nome curto antes de mandar —
+    que é o mesmo nome que o `ffprobe` usa (`h264`). Um vocabulário só evita a tabela de tradução
+    no meio, que é onde este tipo de código costuma apodrecer.
+
+    ⚠ **`containers` vem de `video.canPlayType()`, e NÃO de `MediaSource.isTypeSupported()`.** São
+    duas perguntas diferentes, e trocá-las erra a decisão inteira:
+
+        canPlayType(t)            "eu demuxo isto sozinho?"   → o caminho DIRETO, que é `<video src>`
+        MediaSource.isType…(t)    "eu aceito isto por MSE?"   → para onde um remux teria de ir
+
+    O caminho direto não passa por MSE em nenhum momento. Medido em Chrome 151, as duas respostas
+    discordam em metade dos containers que importam:
+
+        matroska    demuxa ✓   MSE ✗     ← o `.mkv` toca DIRETO; era o caso que eu dava como caro
+        flac        demuxa ✓   MSE ✗
+        ogg/opus    demuxa ✓   MSE ✗
+        mpegts      demuxa ✗   MSE ✓     ← o `.ts` é o inverso: só por MSE
+        mov / avi   demuxa ✗   MSE ✗
+
+    ⚠ E tomamos o navegador ao pé da letra, inclusive quando ele parece pessimista: `video/quicktime`
+    responde "não" embora o demuxer de MP4 costume dar conta de um `.mov`. Confiar no "não" custa 2%
+    de um núcleo; confiar num "sim" errado custa uma tela preta, e quem assiste não sabe a diferença.
+    """
+    containers: Set[str] = field(default_factory=set)
+    video: Set[str] = field(default_factory=set)
+    audio: Set[str] = field(default_factory=set)
+
+
+# O que todo navegador toca desde sempre. É o que vale quando o cliente não relatou nada — uma
+# versão velha do frontend, ou uma requisição que não passou pela página.
+#
+# ⚠ Ele erra para o lado de GASTAR CPU, e não para o lado da tela preta. O primeiro custa dinheiro;
+# o segundo parece o app quebrado, e quem assiste não tem como saber a diferença. Por isso `mp4`
+# sozinho, e não a lista medida acima: o mínimo é o que vale em toda máquina, não nesta.
+PERFIL_MINIMO = Perfil(containers={"mp4"}, video={"h264"}, audio={"aac", "mp3"})
+
+
+def perfil_de(bruto):
+    """O JSON que o cliente mandou → `Perfil`, ou `None` para "use o mínimo".
+
+    ⚠ **Perfil PARCIAL é pior que perfil nenhum**, e é por isso que os três campos são exigidos
+    juntos: um cliente que mandasse `{"containers": [...], "video": [], "audio": [...]}` por um bug
+    de sondagem receberia transcodificação de tudo, para sempre, sem nada indicando o motivo.
+    Cair no mínimo quando falta um campo é o comportamento previsível — e o mínimo toca.
+    """
+    if not isinstance(bruto, dict):
+        return None
+    try:
+        conjuntos = [set(map(str, bruto.get(k) or [])) for k in ("containers", "video", "audio")]
+    except TypeError:
+        return None
+    return Perfil(*conjuntos) if all(conjuntos) else None
+
+
+@dataclass
+class Decisao:
+    modo: str                            # direto | remux | audio | transcode | desconhecido
+    video: str = "nenhum"                # copiar | recodificar | nenhum
+    audio: str = "nenhum"                # copiar | recodificar | nenhum
+    faixa_audio: Optional[int] = None    # o índice que o `-map` do ffmpeg vai usar
+    # ⚠ O codec da faixa escolhida viaja junto porque **copiar não é só copiar**: um AAC vindo de
+    # AVI ou de MPEG-TS está em enquadramento ADTS, e o muxer de MP4 exige ASC. Sem saber o codec
+    # aqui, `midia.py` não teria como decidir o filtro de bitstream — e a falha é do tipo que só
+    # aparece com o arquivo na mão.
+    codec_audio: Optional[str] = None
+    motivo: str = ""
+
+
+def sondar(bruto, nome=""):
+    """A saída de `ffprobe -show_format -show_streams -print_format json`, normalizada.
+
+    Tolera JSON torto: arquivo corrompido, extensão mentindo, `ffprobe` sem streams. A resposta é
+    uma sonda vazia — nunca uma exceção subindo pelo handler.
+    """
+    bruto = bruto if isinstance(bruto, dict) else {}
+    formato = bruto.get("format") or {}
+    streams = bruto.get("streams") or []
+
+    ext = os.path.splitext(nome or "")[1].lower()
+    container = _POR_EXTENSAO.get(ext) or (str(formato.get("format_name") or "").split(",")[0])
+
+    try:
+        duracao = float(formato.get("duration"))
+    except (TypeError, ValueError):
+        duracao = None
+
+    video = None
+    audios = []
+    legendas = []
+    for s in streams:
+        codec = s.get("codec_name")
+        if not codec:
+            continue
+        tags = s.get("tags") or {}
+        disp = s.get("disposition") or {}
+        comum = dict(
+            indice=int(s.get("index", 0)), codec=codec, padrao=bool(disp.get("default")),
+            # O idioma e o título são o que torna o seletor utilizável: sem eles a lista diz
+            # "Faixa 1, Faixa 2", e ninguém escolhe entre original e dublagem por número.
+            idioma=tags.get("language") or None, titulo=tags.get("title") or None,
+        )
+        tipo = s.get("codec_type")
+        if tipo == "video":
+            # ⚠ A capa do álbum é um stream de VÍDEO. Um MP3 com capa traz `mjpeg` com
+            # `attached_pic: 1`, e sem filtrar isso toda música com capa vira "vídeo em MJPEG" e
+            # cai em transcode — a 100% de CPU para tocar o que sairia direto.
+            if disp.get("attached_pic"):
+                continue
+            if video is None:
+                video = Faixa(largura=int(s.get("width") or 0), altura=int(s.get("height") or 0),
+                              b_frames=int(s.get("has_b_frames") or 0), **comum)
+        elif tipo == "audio":
+            audios.append(Faixa(canais=int(s.get("channels") or 0), **comum))
+        elif tipo == "subtitle":
+            legendas.append(Faixa(**comum))
+
+    return Sonda(container=container, duracao=duracao, video=video, audios=audios,
+                 legendas=legendas)
+
+
+def decidir(sonda, perfil=None):
+    """Do encontro entre o arquivo e a máquina, o modo."""
+    p = perfil or PERFIL_MINIMO
+
+    if sonda.video is None and not sonda.audios:
+        return Decisao(modo="desconhecido",
+                       motivo="o ffprobe não achou faixa de vídeo nem de áudio neste arquivo")
+
+    # ── O vídeo ──────────────────────────────────────────────────────────────
+    #
+    # Duas razões para não poder copiar, e a segunda não é sobre o CODEC: é sobre o container de
+    # origem não guardar a ordem de exibição (ver `_SEM_ORDEM_DE_EXIBICAO`). Ela tem de vir DEPOIS,
+    # porque quando a máquina já não decodifica o codec a conversa acabou de qualquer jeito, e o
+    # motivo que a pessoa lê deve ser esse.
+    if sonda.video is None:
+        acao_video, video_ok, porque_video = "nenhum", True, None
+    elif sonda.video.codec not in p.video:
+        acao_video, video_ok = "recodificar", False
+        porque_video = f"esta máquina não decodifica {sonda.video.codec}"
+    elif sonda.container in _SEM_ORDEM_DE_EXIBICAO and sonda.video.b_frames > 0:
+        acao_video, video_ok = "recodificar", False
+        porque_video = (f"o container {sonda.container} não guarda a ordem de exibição dos quadros, "
+                        "e este vídeo tem quadros reordenados")
+    else:
+        acao_video, video_ok, porque_video = "copiar", True, None
+
+    # ── O áudio, e QUAL faixa ────────────────────────────────────────────────
+    #
+    # ⚠ Duas regras diferentes, e a segunda só aparece quando se olha o modo direto de perto.
+    #
+    # 1. Pegar a primeira faixa é o reflexo, e custa caro: um MKV de filme costuma trazer AC3 em
+    #    primeiro (o original) e AAC em segundo. Recodificar havendo uma faixa de graça ao lado é
+    #    trabalho puro.
+    # 2. Mas **no modo direto quem escolhe a faixa é o navegador**, não nós — o arquivo vai inteiro
+    #    e ele toca a `default`. Se a padrão for a que ele não decodifica, o resultado é vídeo com
+    #    imagem e sem som: o pior tipo de defeito, porque nada falha e ninguém sabe o que houve.
+    #    Então existir uma faixa boa não basta; ela tem de ser a padrão. Não sendo, um `-c copy`
+    #    que a põe na frente resolve por ~2%.
+    padrao = next((f for f in sonda.audios if f.padrao), sonda.audios[0] if sonda.audios else None)
+    tocavel = next((f for f in sonda.audios if f.codec in p.audio), None)
+
+    reordenar = False
+    escolhida = None
+    if padrao is None:
+        acao_audio, faixa, audio_ok = "nenhum", None, True
+    elif padrao.codec in p.audio:
+        acao_audio, faixa, audio_ok, escolhida = "copiar", padrao.indice, True, padrao
+    elif tocavel is not None:
+        acao_audio, faixa, audio_ok, reordenar = "copiar", tocavel.indice, True, True
+        escolhida = tocavel
+    else:
+        acao_audio, faixa, audio_ok, escolhida = "recodificar", padrao.indice, False, padrao
+    codec_audio = escolhida.codec if escolhida else None
+
+    # ── O encontro ───────────────────────────────────────────────────────────
+    #
+    # O vídeo manda: se ele precisa ser recodificado, o resto vai junto e não há economia a fazer.
+    # É o único caso caro, e é por isso que a interface avisa que está trabalhando.
+    if not video_ok:
+        # ⚠ O áudio segue a decisão DELE, e não a do vídeo. Antes esta linha forçava `recodificar`
+        # sempre que o vídeo era recodificado — mas os dois problemas são independentes, e um AAC
+        # que o cliente toca não fica intocável só porque o vídeo ao lado precisa passar pelo x264.
+        # Era CPU gasta a mais no caso que já é o mais caro de todos.
+        return Decisao(modo="transcode", video=acao_video, audio=acao_audio,
+                       faixa_audio=faixa, codec_audio=codec_audio, motivo=porque_video)
+
+    container_ok = sonda.container in p.containers
+
+    if container_ok and audio_ok and not reordenar:
+        return Decisao(modo="direto", video=acao_video, audio=acao_audio, faixa_audio=faixa,
+                       codec_audio=codec_audio,
+                       motivo="o arquivo sai do portal como está, com Range nativo")
+
+    if audio_ok:
+        # Só a embalagem. `-c copy` nos dois lados: ~2% de um núcleo, e o vídeo passa intacto.
+        return Decisao(
+            modo="remux", video=acao_video, audio=acao_audio, faixa_audio=faixa,
+            codec_audio=codec_audio,
+            motivo=(f"a faixa de áudio padrão ({padrao.codec}) não toca aqui, e há outra que toca"
+                    if reordenar else f"esta máquina não abre o container {sonda.container}"))
+
+    # ⚠ O modo que desmancha o pior caso. `MKV + H.264 + AC3` parecia transcode de 180%; é
+    # embalagem errada (barata) mais áudio sem decodificador (barato), e o vídeo — que é onde estão
+    # os bytes — passa intacto.
+    return Decisao(modo="audio", video=acao_video, audio=acao_audio, faixa_audio=faixa,
+                   codec_audio=codec_audio,
+                   motivo=f"o vídeo passa direto; só o áudio {sonda.audios[0].codec} não toca aqui")

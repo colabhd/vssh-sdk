@@ -1,0 +1,85 @@
+name: Publish App (reusable)
+
+# Workflow reutilizável que o CI de um repositório de app chama, de uma org ou de uma conta
+# pessoal: este repositório é público, então o `uses:` entre donos diferentes funciona e o
+# checkout do script sai no `github.token` do chamador, sem PAT.
+#
+#   jobs:
+#     publish:
+#       uses: colabhd/vssh-sdk/.github/workflows/_publish-app-reusable.yml@main
+#       with:
+#         app_dir: "."
+#         repo_api: "https://vssh-repo.colabh.org"
+#       secrets:
+#         publish_token: ${{ secrets.VSSH_REPO_PUBLISH_TOKEN }}   # token escopado app:<id>
+#
+# Faz checkout do repositório do app (o chamador) e deste (só `scripts/`, `api/` e `runtime/`),
+# e roda o `vssh-app-publish`.
+#
+# POR QUE `main`:
+#   O que o publish valida é o `api/vssh-app.schema.json`, e esse arquivo é gerado pelo sistema a
+#   partir do portal que está no ar (ver README.md). A ponta de `main` responde "o portal de hoje
+#   aceita este manifesto?", que é a pergunta de quem publica; uma tag congelaria um contrato que
+#   o portal já deixou para trás, e ninguém a moveria, porque quem escreve `api/` é um robô. O
+#   `tools_ref` continua existindo para quem precisar fixar uma revisão.
+
+on:
+  workflow_call:
+    inputs:
+      app_dir:
+        description: 'Diretório do app dentro do repo chamador'
+        type: string
+        default: '.'
+      version:
+        description: 'Sobrescreve a version do manifest (opcional)'
+        type: string
+        default: ''
+      repo_api:
+        description: 'Base URL do Worker do repositório'
+        type: string
+        required: true
+      tools_ref:
+        description: 'Ref deste repositório de onde puxar o script de publish (precisa conter api/)'
+        type: string
+        default: 'main'
+    secrets:
+      publish_token:
+        description: 'Token de publicação escopado (app:<id> ou kind:app)'
+        required: true
+
+jobs:
+  publish:
+    name: Publish app no repositório de artefatos
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do app (repo chamador)
+        uses: actions/checkout@v5
+        with:
+          path: app
+
+      - name: Checkout das ferramentas (vssh-sdk: scripts, api, runtime)
+        uses: actions/checkout@v5
+        with:
+          repository: colabhd/vssh-sdk
+          ref: ${{ inputs.tools_ref }}
+          # `api` junto de `scripts`: o vssh-app-publish valida o manifesto contra
+          # api/vssh-app.schema.json. Sem ele o script cai nas checagens mínimas
+          # (id/runtime/entrypoint) e diz isso numa anotação do run, em vez de recusar a
+          # publicação.
+          # `runtime` junto: é de `runtime/package.json` que o script lê a versão de referência
+          # das libs. Enquanto o diretório não existe, a conferência é pulada e dita em voz alta.
+          sparse-checkout: |
+            scripts
+            api
+            runtime
+          path: _tools
+          # Repositório público: o github.token do chamador o enxerga sem PAT.
+
+      - name: Publicar
+        env:
+          VSSH_REPO_API: ${{ inputs.repo_api }}
+          VSSH_REPO_PUBLISH_TOKEN: ${{ secrets.publish_token }}
+        run: |
+          ARGS=()
+          [ -n "${{ inputs.version }}" ] && ARGS+=(--version "${{ inputs.version }}")
+          bash _tools/scripts/vssh-app-publish "app/${{ inputs.app_dir }}" "${ARGS[@]}"

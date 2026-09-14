@@ -1,0 +1,345 @@
+"""ffprobe e ffmpeg — o argv, e a execução fina em cima dele.
+
+    argv_de_sonda(caminho)                  -> ffprobe … -print_format json
+    argv_de_fluxo(decisao, caminho, …)      -> ffmpeg … pipe:1, ou None no modo direto
+    argv_de_legenda(caminho, indice)        -> ffmpeg … -f webvtt pipe:1
+    sondar_arquivo(caminho)                 executa o ffprobe e devolve a Sonda
+    achar_gpu()                             -> (Gpu | None, motivo) — a placa que CODIFICA, provada
+
+⚠ **Um ffmpeg mal montado não falha.** Ele roda, escreve bytes, sai com zero, e o `<video>` do
+outro lado não toca nada — sem stderr para ler e sem status para conferir. Por isso o argv é
+construído aqui, num lugar só, com teste: é a única forma de esses erros terem onde ser presos.
+
+⚠ **Sempre lista, nunca string de shell.** O caminho vem do sistema de arquivos de quem usa e pode
+conter espaço, aspas e `$(...)`. Como elemento de argv isso é um nome de arquivo; interpolado numa
+string de shell, é execução de comando.
+"""
+
+import json
+import os
+import subprocess
+import threading
+from dataclasses import dataclass
+from typing import Optional
+
+from decisao import sondar
+
+
+@dataclass(frozen=True)
+class Gpu:
+    """Uma placa que codifica, e o CAMINHO pelo qual ela codifica.
+
+    ⚠ **O caminho não é detalhe, e a primeira versão só conhecia um.** Ela guardava o render node
+    e montava `h264_vaapi` em cima — e num servidor NVIDIA de verdade, com `vainfo` instalado e a
+    libva respondendo, todo transcode morria em "Failed to initialise VAAPI connection". O driver
+    proprietário da NVIDIA **não fala VA-API** (o `nvidia-vaapi-driver` que existe por fora só
+    decodifica); ali o caminho é o NVENC, que não usa render node nenhum — o ffmpeg abre
+    `/dev/nvidiactl` sozinho.
+
+        via = "vaapi"   Intel e AMD, pelo render node do DRM (`no` = /dev/dri/renderD*)
+        via = "nvenc"   NVIDIA, sem `no`
+    """
+    via: str
+    no: Optional[str] = None
+
+    def __str__(self):
+        return f"{self.via} em {self.no}" if self.no else self.via
+
+# Os três `movflags` que fazem um MP4 existir num CANO. ⚠ **Medido** em `test_ffmpeg_real.py`, e a
+# medição desmentiu o que eu tinha escrito aqui antes:
+#
+#   frag_keyframe       é o que torna o cano possível. Um MP4 normal guarda o índice (`moov`) e o
+#                       ffmpeg volta ao começo para escrevê-lo — num cano não há como voltar, e SEM
+#                       movflags nenhum ele RECUSA, alto: "muxer does not support non seekable
+#                       output", status 127, zero byte. (Eu havia escrito que ele saía com status
+#                       zero e entregava lixo. Não sai: falha, e diz o motivo.)
+#   empty_moov          é o que faz aparecerem caixas `moof`. Sem ele o cano flui igual — primeiro
+#                       byte em 0,03 s nos dois casos —, mas a saída não é fMP4 de verdade, e fMP4
+#                       é o que o MSE exige. É para lá que a Fase 7, com dash.js, vai.
+#   default_base_moof   offsets relativos ao fragmento, que é a forma que o MSE espera ler.
+_MOVFLAGS = "+frag_keyframe+empty_moov+default_base_moof"
+
+# ⚠ **O teto de tempo do fragmento, e ele é o que separa "toca" de "toca aos trancos".**
+#
+# `frag_keyframe` sozinho corta só em keyframe, então o fragmento tem o tamanho do GOP — e o player
+# não desenha nada antes de o fragmento FECHAR. Num encode de acervo (GOP de 250 quadros, ~8 s) isso
+# significa esperar o GOP inteiro para o primeiro quadro, e esperar de novo a cada trecho. Num filme
+# a 5 Mbps são ~6 MB de espera por trecho: o vídeo toca um pedaço, para, toca outro.
+#
+# Medido sobre um AVI 1280x720 de 20 s com GOP de 250:
+#
+#     sem frag_duration    1º quadro após 318 KB   ·   maior lacuna 317 KB
+#     2 s                             95 KB        ·                97 KB   (+0,16%)
+#     1 s                             60 KB        ·                62 KB   (+0,43%)
+#     0,5 s                           43 KB        ·                44 KB   (+0,96%)
+#
+# 1 s é onde a curva vira: metade da espera de 2 s por menos de meio por cento de bytes, e daí para
+# baixo o retorno cai. Os timestamps não mudam em nenhum dos casos — 600 pacotes, nenhum fora de
+# ordem, mesma duração —, ou seja, o preço é só cabeçalho de fragmento.
+#
+# `frag_keyframe` FICA: os dois juntos cortam no que vier primeiro, e manter o corte alinhado com
+# keyframe é o que a Fase 7 (dash.js sobre MSE) vai precisar.
+_FRAG_DURACAO = "1000000"   # microssegundos
+
+# O `-preset veryfast` não é preguiça: transcodificar em CPU é o último recurso da lista, e ali o
+# que importa é o vídeo começar. `crf 23` é o padrão visualmente transparente do x264.
+_X264 = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23"]
+
+# O equivalente no NVENC: `p4` é o meio da escala p1–p7, e `-rc vbr -cq 23 -b:v 0` é a qualidade
+# constante — sem o `-b:v 0` o `-cq` vira só um teto por cima da taxa padrão de 2 Mbps, e um 1080p
+# sai borrado sem nenhum erro para ler.
+_NVENC = ["-c:v", "h264_nvenc", "-preset", "p4", "-rc", "vbr", "-cq", "23", "-b:v", "0"]
+
+
+def argv_de_sonda(caminho):
+    """`ffprobe` respondendo JSON, e mais nada."""
+    return [
+        "ffprobe", "-v", "quiet",
+        "-print_format", "json",
+        "-show_format", "-show_streams",
+        caminho,
+    ]
+
+
+def argv_de_fluxo(decisao, caminho, inicio=0, gpu=None):
+    """A linha do ffmpeg para servir este arquivo — ou `None` quando não há o que fazer.
+
+    ⚠ `None` no modo **direto** é a resposta certa, e devolver um argv ali seria o pior tipo de
+    defeito silencioso: o servidor gastaria CPU remuxando um arquivo que o navegador abre sozinho,
+    e nada na tela mudaria.
+    """
+    if decisao.modo not in ("remux", "audio", "transcode"):
+        return None
+
+    argv = ["ffmpeg", "-hide_banner", "-loglevel", "error"]
+
+    # ── A busca ──────────────────────────────────────────────────────────────
+    #
+    # ⚠ `-ss` **antes** do `-i` é busca de ENTRADA: o ffmpeg salta pelo índice do arquivo e começa
+    # a ler dali. Depois do `-i` viraria busca de saída — decodificar desde o começo e jogar fora
+    # tudo até o ponto —, e buscar aos 40 min de um filme passaria de instantâneo a minutos de CPU,
+    # por espectador.
+    #
+    # E `-ss 0` não é inofensivo: ele faz o ffmpeg procurar keyframe e pode cortar o primeiro
+    # quadro. Não pedir é diferente de pedir zero.
+    if inicio and inicio > 0:
+        argv += ["-ss", str(int(inicio))]
+
+    if decisao.modo == "transcode" and gpu:
+        # A decodificação também vai para a GPU: subir quadro por quadro para a placa só para
+        # codificar desperdiça a metade barata do trabalho.
+        if gpu.via == "vaapi":
+            argv += ["-vaapi_device", gpu.no, "-hwaccel", "vaapi", "-hwaccel_output_format", "vaapi"]
+        else:
+            # NVDEC. Sem `-hwaccel_output_format cuda`, DE PROPÓSITO: o quadro desce para a memória
+            # de sistema e o `format=nv12` abaixo roda em CPU. Custa uma cópia por quadro, e compra
+            # o caso que a versão "tudo na placa" perde — um HEVC de 10 bits decodificado vira
+            # p010, o `h264_nvenc` não aceita 10 bits em H.264 na maioria das placas, e o
+            # `scale_cuda` que converteria não existe no ffmpeg do apt (exige nvcc no build).
+            argv += ["-hwaccel", "cuda"]
+
+    argv += ["-i", caminho]
+
+    # ── O que sai ────────────────────────────────────────────────────────────
+    #
+    # ⚠ Sem `-map`, o ffmpeg escolhe sozinho — e escolhe a faixa "melhor", que costuma ser
+    # justamente a de seis canais que o navegador não decodifica. Toda a escolha do `decisao.py`
+    # se perderia na última linha.
+    argv += ["-map", "0:v:0"]
+    if decisao.faixa_audio is not None and decisao.audio != "nenhum":
+        argv += ["-map", f"0:{decisao.faixa_audio}"]
+
+    if decisao.video == "copiar":
+        argv += ["-c:v", "copy"]
+    elif gpu and gpu.via == "vaapi":
+        argv += ["-vf", "scale_vaapi=format=nv12", "-c:v", "h264_vaapi"]
+    elif gpu:
+        argv += ["-vf", "format=nv12", *_NVENC]
+    else:
+        argv += _X264
+
+    if decisao.audio == "copiar":
+        argv += ["-c:a", "copy"]
+        # ⚠ **Copiar AAC não é copiar.** Num AVI ou num MPEG-TS o AAC vem em enquadramento ADTS —
+        # cada quadro com o próprio cabeçalho —, e o muxer de MP4 quer ASC, com a configuração numa
+        # caixa e os quadros crus. Sem o filtro ele RECUSA: "Malformed AAC bitstream detected".
+        #
+        # Foi o defeito que derrubou o primeiro `.avi` de verdade. E ele é traiçoeiro por duas
+        # razões: o ffmpeg escreve o cabeçalho e alguns quadros ANTES de recusar (24 KB no caso
+        # medido, o suficiente para o navegador desenhar um quadro), e as versões novas do ffmpeg
+        # inserem o filtro sozinhas em ALGUNS containers — de modo que a mesma linha de comando
+        # funciona na máquina de quem desenvolve e falha na de quem instalou.
+        #
+        # Medido: com o filtro, a saída de um AAC que já estava em ASC (de MKV, de MP4) é byte a
+        # byte a mesma — ele é inócuo onde não é preciso. Mas sobre áudio que NÃO é AAC ele mata o
+        # ffmpeg com EINVAL e zero byte, e é por isso que a condição olha o codec e não o container.
+        if decisao.codec_audio == "aac":
+            argv += ["-bsf:a", "aac_adtstoasc"]
+    elif decisao.audio == "recodificar":
+        # ⚠ `-ac 2` é onde se evita "não escuto o diálogo". O canal central de um 5.1 carrega a
+        # fala, e uma soma ingênua de seis canais para dois a enterra. O rebaixamento do ffmpeg é
+        # o bom — pedi-lo é uma bandeira, não pedi-lo é uma reclamação.
+        argv += ["-c:a", "aac", "-b:a", "192k", "-ac", "2"]
+
+    # ⚠ Nada de `-copyts`: os timestamps saem começando em zero, e é o frontend que soma o
+    # deslocamento (`opcoes.tempo` da TuffMidia). Com `-copyts` o tempo mostrado ficaria dobrado, e
+    # o sintoma — a linha do tempo andando rápido demais — não apontaria para cá.
+    argv += ["-frag_duration", _FRAG_DURACAO, "-movflags", _MOVFLAGS, "-f", "mp4", "pipe:1"]
+    return argv
+
+
+def argv_de_legenda(caminho, indice):
+    """Uma faixa de legenda embutida, convertida para o único formato que o `<track>` lê."""
+    return [
+        "ffmpeg", "-hide_banner", "-loglevel", "error",
+        "-i", caminho,
+        "-map", f"0:{indice}",
+        "-f", "webvtt", "pipe:1",
+    ]
+
+
+# ── A execução, que é fina de propósito ──────────────────────────────────────
+
+
+# A sonda de cada arquivo, guardada. ⚠ **A chave inclui `mtime` e tamanho**, e não só o caminho:
+# um arquivo que ainda está sendo copiado ou baixado muda de duração enquanto se olha para ele, e
+# uma memória por caminho serviria a duração antiga para sempre — com a linha do tempo mentindo e
+# a busca caindo no lugar errado. Mudou qualquer um dos dois, sonda de novo.
+#
+# Ela existe porque a sonda era feita DUAS vezes por abertura (`/api/abrir` e `/api/fluxo`) e mais
+# uma a cada busca — cada uma um processo novo, ~37 ms medidos numa máquina rápida e mais num
+# servidor compartilhado. É trabalho por uma resposta que não mudou.
+_MEMORIA = {}
+_MEMORIA_TETO = 64
+_TRAVA = threading.Lock()
+
+
+def sondar_arquivo(caminho, tempo_limite=20):
+    """Roda o `ffprobe` e devolve a `Sonda`. Falha vira sonda vazia, nunca exceção.
+
+    O modo `desconhecido` que sai daí é uma resposta que a interface sabe mostrar; uma exceção
+    subindo pelo handler viraria 500 numa tela que não explica nada.
+    """
+    try:
+        st = os.stat(caminho)
+        chave = (caminho, st.st_mtime_ns, st.st_size)
+    except OSError:
+        chave = None
+
+    if chave is not None:
+        with _TRAVA:
+            guardada = _MEMORIA.get(chave)
+        if guardada is not None:
+            return guardada
+
+    try:
+        saida = subprocess.run(argv_de_sonda(caminho), capture_output=True, timeout=tempo_limite,
+                               check=True)
+        sonda = sondar(json.loads(saida.stdout.decode("utf-8", "replace")), os.path.basename(caminho))
+    except (subprocess.SubprocessError, OSError, ValueError):
+        # ⚠ A falha NÃO é guardada. Um `ffprobe` que estourou o prazo porque o disco estava ocupado
+        # deixaria o arquivo marcado como "desconhecido" até o processo reiniciar — e a pessoa não
+        # teria como desfazer isso a não ser reabrindo o app.
+        return sondar({}, os.path.basename(caminho))
+
+    if chave is not None:
+        with _TRAVA:
+            if len(_MEMORIA) >= _MEMORIA_TETO:
+                # Teto simples e sem política: quem usa isto abre dezenas de arquivos por sessão,
+                # não milhares, e uma LRU de verdade seria mecanismo para um problema que não há.
+                _MEMORIA.clear()
+            _MEMORIA[chave] = sonda
+    return sonda
+
+
+def argv_de_teste(gpu):
+    """Codificar meio segundo de nada. É o menor trabalho que prova a placa."""
+    fonte = ["-f", "lavfi", "-i", "testsrc=size=320x240:rate=25:duration=0.5"]
+    if gpu.via == "vaapi":
+        return [
+            "ffmpeg", "-hide_banner", "-loglevel", "error",
+            "-vaapi_device", gpu.no, *fonte,
+            # `format=nv12,hwupload` é obrigatório: sem subir o quadro para a placa, o `h264_vaapi`
+            # recusa a entrada e o teste falharia por motivo errado — dizendo "não tem GPU" onde tem.
+            "-vf", "format=nv12,hwupload", "-c:v", "h264_vaapi",
+            "-f", "null", "-",
+        ]
+    # NVENC sobe o quadro sozinho: nada de `hwupload`, nada de dispositivo.
+    return ["ffmpeg", "-hide_banner", "-loglevel", "error", *fonte,
+            "-vf", "format=nv12", "-c:v", "h264_nvenc", "-f", "null", "-"]
+
+
+def achar_gpu(tempo_limite=20):
+    """O nó de render que CODIFICA — e `(None, motivo)` quando não há nenhum.
+
+    ⚠ **A versão anterior perguntava se o dispositivo EXISTE, e essa é a pergunta errada.** O
+    comentário dela já dizia isso e mesmo assim a listagem ficou, o que é o formato mais teimoso de
+    dívida: o defeito estava escrito ao lado do código que o causava.
+
+    O que aconteceu num servidor de verdade: `/dev/dri/renderD128` existia, o app anunciou GPU, e
+    todo transcode morreu na largada com
+
+        libva: virtio_gpu_drv_video.so init failed
+        Failed to initialise VAAPI connection: 2 (resource allocation failed)
+
+    Uma **GPU virtual** — ela existe para desenhar tela, não para codificar vídeo. Nenhum pacote
+    resolve, e num ambiente virtualizado ela é o caso comum, não a exceção. Ou seja: enumerar
+    `/dev/dri` acerta justamente onde não importa e erra onde dói.
+
+    Medir custa meio segundo, uma vez, no boot. É o mesmo método do `benchmark_gpu` do template, e
+    pela mesma razão que está escrita lá: um inventário não diz se a placa serve para alguma coisa.
+    """
+    return escolher_gpu(candidatos(), _codifica_mesmo(tempo_limite))
+
+
+def candidatos():
+    """As placas que PODEM codificar, na ordem de tentativa — antes de provar qualquer uma.
+
+    NVENC primeiro: numa máquina com NVIDIA dedicada mais a integrada da CPU, é a NVIDIA que se
+    quer. E ela não aparece em `/dev/dri` como codificadora — o que a denuncia é `/dev/nvidiactl`,
+    que é o que o ffmpeg vai abrir.
+    """
+    lista = []
+    if os.path.exists("/dev/nvidiactl"):
+        lista.append(Gpu("nvenc"))
+    try:
+        nos = sorted(os.path.join("/dev/dri", n)
+                     for n in os.listdir("/dev/dri") if n.startswith("renderD"))
+    except OSError:
+        nos = []
+    return lista + [Gpu("vaapi", n) for n in nos]
+
+
+def _codifica_mesmo(tempo_limite):
+    """A prova de fogo de uma candidata: `(ok, motivo)`."""
+    def testar(gpu):
+        try:
+            p = subprocess.run(argv_de_teste(gpu), capture_output=True, timeout=tempo_limite)
+        except (OSError, subprocess.SubprocessError) as e:
+            return False, str(e)
+        if p.returncode == 0:
+            return True, f"codifica por {gpu.via}"
+        return False, p.stderr.decode("utf-8", "replace").strip()[-300:]
+    return testar
+
+
+def escolher_gpu(candidatas, testar):
+    """A primeira candidata que passa no teste, ou `(None, motivo)`.
+
+    Separada de `achar_gpu` porque a REGRA — "só vale se codificar" — é o que precisa de teste, e
+    ela não pode depender de a máquina que roda a suíte ter uma placa. É o mesmo arranjo de
+    `decisao.py` e `fluxo.py`: entra dado, sai decisão, nada abre o sistema.
+    """
+    if not candidatas:
+        return None, "nenhum render node em /dev/dri, e sem /dev/nvidiactl"
+
+    ultimo = None
+    for gpu in candidatas:
+        ok, motivo = testar(gpu)
+        if ok:
+            return gpu, f"{gpu}: {motivo}"
+        ultimo = f"{gpu}: {motivo}"
+
+    # ⚠ Falhar aqui é NORMAL e não é erro — é a resposta certa para a maioria dos servidores. O
+    # transcode cai na CPU, que é o último degrau da lista e sempre existiu.
+    return None, ultimo or "nenhuma candidata respondeu"

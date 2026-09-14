@@ -1,0 +1,12 @@
+# Nada de dependência nem artefato de desenvolvimento vazando para o repositório público.
+node_modules/
+.venv/
+__pycache__/
+*.pyc
+*.log
+.dev.vars
+
+# As libs que o `installCommand` de um template Python instala dentro dele (`pip --target`).
+# O que sobe no tarball de um app é o que está versionado; aqui elas são só bancada.
+templates/*/vendor/
+examples/*/vendor/py/

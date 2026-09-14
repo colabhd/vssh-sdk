@@ -1,0 +1,8 @@
+{
+  "shellVersion": "4.19.3",
+  "artifacts": {
+    "api/vssh-app.schema.json": {
+      "sha256": "f95226f6e26eb6fe3f258c413ed89da421769918e0ed988f8185fd5bcd622d09"
+    }
+  }
+}

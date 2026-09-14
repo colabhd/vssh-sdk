@@ -1,0 +1,218 @@
+name: CI
+
+# O que este repositório publica é o que um app novo copia (`templates/`), o que o CI dele chama
+# (`scripts/vssh-app-publish` e o reusable) e o contrato que ele valida (`api/`). O CI mede as
+# três coisas juntas: a suíte Node, a suíte Python, e os dois templates subindo de verdade num
+# socket, com as libs instaladas pelo mesmo `installCommand` que o servidor roda.
+#
+# SEM DEPENDÊNCIA NPM, e é decisão: a suíte é `node --test` sobre a biblioteca padrão, e o
+# validador do publish é Python da biblioteca padrão. Cada dependência aqui seria mais uma coisa a
+# faltar num runner ou na máquina de quem desenvolve.
+#
+# SÓ LINUX, e é decisão de custo: o alvo de um vssh-app é sempre um servidor Linux. A suíte tem
+# de passar no Windows também, e quem verifica isso é quem desenvolve nele, rodando `npm test`.
+#
+# `api/` entra nos gatilhos porque ele muda por commit de robô (o canal de publicação do
+# `vssh-sso`), e um schema que o validador do publish não soubesse ler só apareceria na publicação
+# de outra pessoa.
+
+on:
+  push:
+    branches: [main]
+    paths: ['api/**', 'scripts/**', 'templates/**', 'examples/**', 'tests/**', 'package.json', '.github/workflows/ci.yml']
+  pull_request:
+    paths: ['api/**', 'scripts/**', 'templates/**', 'examples/**', 'tests/**', 'package.json', '.github/workflows/ci.yml']
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          # O glob de `node --test` exige runner >= 22.
+          node-version: '24'
+
+      - name: Testes Node
+        shell: bash
+        run: npm test
+
+      # As libs do template Python vêm do mesmo `installCommand` que o servidor roda; sem elas o
+      # `backend/main.py` não importa, e `tests/python/test_template.py` se pula dizendo isso.
+      # Sem `setup-python`: um app Python roda com o interpretador que o servidor tem, e o do
+      # runner é o do sistema, como lá.
+      - name: Libs do template Python, como o servidor as instala
+        shell: bash
+        working-directory: templates/hello-vssh-app
+        run: |
+          set -euo pipefail
+          python3 --version
+          CMD="$(python3 -c 'import json;print(json.load(open("vssh-app.json"))["backend"]["installCommand"])')"
+          echo "${CMD}"
+          bash -c "${CMD}"
+
+      - name: Testes Python
+        shell: bash
+        run: npm run test:py
+
+  smoke-template-node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          # 24 de propósito: é o Node que os servidores-alvo tendem a ter, e o smoke existe para
+          # provar que o template sobe lá.
+          node-version: '24'
+
+      # O `installCommand` do manifesto: o smoke prova que o que o servidor executa produz um app
+      # que sobe, e um comando escrito aqui poderia divergir dele. O lock do template fixa o
+      # commit das libs.
+      - name: Libs do template, como o servidor as instala
+        working-directory: templates/hello-vssh-app-node
+        run: |
+          set -euo pipefail
+          CMD="$(python3 -c 'import json;print(json.load(open("vssh-app.json"))["backend"]["installCommand"])')"
+          echo "${CMD}"
+          bash -c "${CMD}"
+
+      # Exercita o template como um app real: sobe o backend NO SOCKET que o portal daria, e
+      # confere healthcheck, API, index servido pelo static-spa e SSE chegando sem buffer.
+      - name: Smoke do template Node
+        run: |
+          cd templates/hello-vssh-app-node
+          SOCK="${RUNNER_TEMP}/hwn.sock"
+          # `curl --unix-socket` ignora o host da URL; ele existe só para a URL ser válida.
+          #
+          # Um script executável: `timeout` é um binário que faz `exec` no que recebe, então ele
+          # enxerga o `PATH` e não enxerga uma função de shell. Enquanto `q` for executável, toda
+          # forma de chamá-lo funciona.
+          printf '#!/bin/sh\nexec curl --unix-socket "%s" "$@"\n' "${SOCK}" > "${RUNNER_TEMP}/q"
+          chmod +x "${RUNNER_TEMP}/q"
+          PATH="${RUNNER_TEMP}:${PATH}"
+          VSSH_APP_SOCKET="${SOCK}" VSSH_APP_ID=hello-world-node \
+            VSSH_APP_DATA_DIR="${RUNNER_TEMP}/hwn" node backend/server.js &
+          for i in $(seq 1 20); do q -fsS http://app/healthz >/dev/null 2>&1 && break; sleep 0.5; done
+          q -fsS http://app/healthz | grep -q ok
+          q -fsS http://app/api/ping | grep -q '"pong":true'
+          q -fsS http://app/ | grep -q '<!DOCTYPE html>'
+          timeout 3 q -sN http://app/api/events | grep -q 'event: tick'
+          test -s "${RUNNER_TEMP}/hwn/app.log"
+
+          # ── A ponte com o desktop ──────────────────────────────────────────────────────────
+          #
+          # O defeito mora ENTRE duas asserções: a tag é injetada, ninguém serve o arquivo, a
+          # página carrega inteira e `vssh` simplesmente não existe, sem erro que ligue uma coisa
+          # à outra. Por isso a checagem varre TODAS as tags injetadas (script e folha de estilo)
+          # e busca cada uma, com o carimbo de conteúdo na URL: sem carimbo, uma reinstalação
+          # serviria a versão velha do cache.
+          srcs=$(q -fsS http://app/ \
+            | grep -oE '<script src="[^"]*"|<link rel="stylesheet" href="[^"]*"' \
+            | sed -E 's/.*="([^"]*)"$/\1/')
+          test -n "$srcs"
+          for s in $srcs; do
+            q -fsS "http://app/${s}" >/dev/null \
+              || { echo "injetado mas NÃO servido: ${s}"; exit 1; }
+            case "$s" in
+              *\?v=*) ;;
+              *) echo "injetado sem carimbo de conteúdo: ${s}"; exit 1 ;;
+            esac
+          done
+          echo "$srcs" | grep -q 'vssh-app-shim.js'
+          echo "$srcs" | grep -q 'galeria.js'
+          q -fsS http://app/_vssh/vssh-app-shim.js | grep -q 'window.vssh'
+
+          # ── A galeria: um backend, N janelas ───────────────────────────────────────────────
+          #
+          # Duas conexões, e quem incrementa NÃO é quem escuta: é essa assimetria que a peça
+          # afirma. Medir a resposta do POST em vez do stream passaria sem difusão nenhuma.
+          ( timeout 5 q -sN http://app/api/events > "${RUNNER_TEMP}/sse.txt" & )
+          sleep 1
+          q -fsS -X POST http://app/api/estado/incrementar >/dev/null
+          sleep 1
+          grep -q '"contador":1' "${RUNNER_TEMP}/sse.txt" \
+            || { echo "a mudança de estado não chegou a quem não clicou"; exit 1; }
+          q -fsS http://app/api/estado | grep -q '"contador":1'
+
+  # O MESMO roteiro do smoke acima, no outro runtime. A promessa "os dois templates são o mesmo
+  # app" só vale enquanto os dois SOBEM; as guardas de paridade comparam texto, este passo executa.
+  smoke-template-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # `--target vendor/py` é literalmente o que o `installCommand` do manifesto faz no servidor,
+      # e é o que o `backend/main.py` põe no `sys.path`. Rodar o comando do manifesto é o que
+      # impede o CI e o servidor de divergirem.
+      - name: Libs do template, como o servidor as instala
+        working-directory: templates/hello-vssh-app
+        run: |
+          set -euo pipefail
+          CMD="$(python3 -c 'import json;print(json.load(open("vssh-app.json"))["backend"]["installCommand"])')"
+          echo "${CMD}"
+          bash -c "${CMD}"
+
+      - name: Smoke do template Python
+        run: |
+          cd templates/hello-vssh-app
+          SOCK="${RUNNER_TEMP}/hwp.sock"
+          # Um script executável: `timeout` faz `exec` no que recebe, então ele enxerga o PATH e
+          # não enxerga uma função de shell.
+          printf '#!/bin/sh\nexec curl --unix-socket "%s" "$@"\n' "${SOCK}" > "${RUNNER_TEMP}/q"
+          chmod +x "${RUNNER_TEMP}/q"
+          PATH="${RUNNER_TEMP}:${PATH}"
+          VSSH_APP_SOCKET="${SOCK}" VSSH_APP_ID=hello-world \
+            VSSH_APP_DATA_DIR="${RUNNER_TEMP}/hwp" python3 backend/main.py &
+          for i in $(seq 1 20); do q -fsS http://app/healthz >/dev/null 2>&1 && break; sleep 0.5; done
+          q -fsS http://app/healthz | grep -q ok
+          q -fsS http://app/api/ping | grep -q '"pong":true'
+          q -fsS http://app/ | grep -q '<!DOCTYPE html>'
+          timeout 3 q -sN http://app/api/events | grep -q 'event: tick'
+          test -s "${RUNNER_TEMP}/hwp/app.log"
+
+          # ── A ponte com o desktop ──────────────────────────────────────────────────────────
+          #
+          # Aqui o defeito tem uma causa a mais que no Node: as libs de navegador viajam DENTRO do
+          # pacote Python instalado, e um empacotamento que as deixasse de fora só apareceria
+          # assim. A folha de estilo entra na varredura junto com os scripts: sem ela o sintoma
+          # no servidor é "o app Python é feio", que não aponta para arquivo nenhum.
+          srcs=$(q -fsS http://app/ \
+            | grep -oE '<script src="[^"]*"|<link rel="stylesheet" href="[^"]*"' \
+            | sed -E 's/.*="([^"]*)"$/\1/')
+          test -n "$srcs"
+          for s in $srcs; do
+            q -fsS "http://app/${s}" >/dev/null \
+              || { echo "injetado mas NÃO servido: ${s}"; exit 1; }
+            case "$s" in
+              *\?v=*) ;;
+              *) echo "injetado sem carimbo de conteúdo: ${s}"; exit 1 ;;
+            esac
+          done
+          echo "$srcs" | grep -q 'vssh-app-shim.js'
+          echo "$srcs" | grep -q 'galeria.js'
+          q -fsS http://app/_vssh/vssh-app-shim.js | grep -q 'window.vssh'
+
+          # ── A galeria: um backend, N janelas ───────────────────────────────────────────────
+          ( timeout 5 q -sN http://app/api/events > "${RUNNER_TEMP}/sse.txt" & )
+          sleep 1
+          q -fsS -X POST http://app/api/estado/incrementar >/dev/null
+          sleep 1
+          grep -q '"contador":1' "${RUNNER_TEMP}/sse.txt" \
+            || { echo "a mudança de estado não chegou a quem não clicou"; exit 1; }
+          q -fsS http://app/api/estado | grep -q '"contador":1'
+
+          # ── O filesystem privado, e o confinamento ─────────────────────────────────────────
+          #
+          # A fuga de raiz é medida no smoke, e não só na bancada: aqui ela passa pelo servidor
+          # inteiro (URL, parse, handler), que é onde um `..` decodificado cedo demais escaparia.
+          q -fsS -X POST -H 'Content-Type: application/json' \
+            -d '{"op":"write-file","path":"n.txt","content":"oi"}' http://app/api/privado | grep -q '"ok":true'
+          q -fsS -X POST -H 'Content-Type: application/json' \
+            -d '{"op":"read-file","path":"n.txt"}' http://app/api/privado | grep -q '"content":"oi"'
+          q -s -X POST -H 'Content-Type: application/json' \
+            -d '{"op":"read-file","path":"../../../../etc/passwd"}' http://app/api/privado | grep -q 'EACCES'
+
+          # ── A bandeja pelo BACKEND ─────────────────────────────────────────────────────────
+          q -fsS -X POST http://app/api/bandeja | grep -q '"ok":true'
+          test -s "${RUNNER_TEMP}/hwp/../tray.json" || { echo "o tray.json não foi escrito"; exit 1; }

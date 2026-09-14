@@ -1,0 +1,36 @@
+# Normaliza a detecção de arquivo de texto.
+* text=auto
+
+# Scripts rodam em Linux (CI e servidores) e precisam de EOL LF mesmo num checkout Windows, senão
+# o shebang vira "#!/usr/bin/env bash\r" e quebra. `vssh-app-publish` não tem extensão, então
+# entra pelo nome.
+*.sh                       text eol=lf
+scripts/vssh-app-publish   text eol=lf
+
+# `api/` é gerado pelo canal de publicação do sistema, e o `build-info.json` de lá carrega o hash
+# de cada artefato calculado sobre o conteúdo em LF. Um checkout que reescrevesse esses arquivos
+# em CRLF faria o gerador comparar bytes que ele nunca escreveu; com EOL fixo, o que está no
+# disco é o que está no hash. Só as extensões de texto: uma fonte ou imagem que um dia pouse aqui
+# fica nas regras de binário abaixo.
+api/**/*.json  text eol=lf
+api/**/*.js    text eol=lf
+api/**/*.ts    text eol=lf
+api/**/*.css   text eol=lf
+api/**/*.md    text eol=lf
+
+# Binários, sem conversão.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.ico   binary
+*.svg   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+
+# As bibliotecas de terceiro vendorizadas no pacote de um app são TEXTO, e o `text=auto` acima as
+# converteria, destruindo a única propriedade que torna um arquivo vendorizado conferível: ser
+# byte a byte o que o upstream publicou. A procedência fica em `PROCEDENCIA.md` ao lado, com a
+# versão e o sha256, e ela só vale enquanto o arquivo não muda.
+examples/*/frontend/vendor/*.js binary

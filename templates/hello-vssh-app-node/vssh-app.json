@@ -1,0 +1,56 @@
+{
+  "id": "hello-world-node",
+  "name": "Hello World (Node)",
+  "version": "4.0.0",
+  "icon": "icon.svg",
+  "category": "Utility",
+  "description": "Template de vssh-app com backend Node e galeria das capacidades do ambiente — ponte com o desktop, File System Access, bandeja, som, impressão, duas janelas sobre um backend só, e o que o ambiente decide por um app: limite de recurso, GPU e cofre de segredos.",
+  "requiredPackages": [
+    "ffmpeg"
+  ],
+  "gpu": true,
+  "resources": {
+    "memoryMax": "512M",
+    "tasksMax": "128"
+  },
+  "secrets": [
+    {
+      "name": "HELLO_SEGREDO",
+      "description": "Qualquer texto. Serve só para demonstrar o cofre: guarde aqui, reinicie o app, e a galeria mostra que ele chegou — sem nunca mostrar o valor.",
+      "required": false
+    }
+  ],
+  "opens": {
+    "extensions": [
+      "hello"
+    ]
+  },
+  "handles": "editor",
+  "contributes": {
+    "settings": "configuracoes.js",
+    "contextMenu": [
+      {
+        "id": "painel",
+        "superficie": "icone-do-app",
+        "rotulo": "Abrir o painel",
+        "acao": "abrirRota",
+        "rota": "?painel=1",
+        "ordem": 12
+      }
+    ]
+  },
+  "minShellVersion": "4.1.0",
+  "backend": {
+    "runtime": "node",
+    "transport": "socket",
+    "entrypoint": "backend/server.js",
+    "installCommand": "( [ \"${VSSH_APP_REBUILD:-}\" != 1 ] && test -d node_modules ) || npm ci --omit=dev",
+    "healthcheckPath": "/healthz",
+    "aoFechar": "encerrar"
+  },
+  "window": {
+    "title": "Hello World (Node)",
+    "width": 900,
+    "height": 640
+  }
+}
