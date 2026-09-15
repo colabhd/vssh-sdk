@@ -26,6 +26,7 @@
 //     process.exit(e.code === 'JA_ESCUTANDO' ? 0 : 1);
 //   });
 
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const net = require('node:net');
 const path = require('node:path');
@@ -184,6 +185,19 @@ function responderJson(res, status, obj, cabecalhos = {}) {
 }
 
 /**
+ * O token que veio no cabeçalho é o do ambiente? A comparação leva o mesmo tempo para qualquer
+ * palpite: um `!==` sai no primeiro byte diferente, e o tempo de resposta contaria ao vizinho de
+ * loopback quantos bytes do token ele já acertou. Tamanhos diferentes são recusados antes, porque
+ * `timingSafeEqual` exige buffers do mesmo tamanho, e o tamanho do token não é segredo.
+ */
+function mesmoToken(recebido, esperado) {
+  if (typeof recebido !== 'string') return false;
+  const a = Buffer.from(recebido, 'utf8');
+  const b = Buffer.from(esperado, 'utf8');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+/**
  * O portão na frente do handler do app: recusa quem não traz o token, responde o `/saude`, e
  * entrega o resto a `atender(req, res)`.
  *
@@ -199,7 +213,7 @@ function portao(atender, opcoes = {}) {
   const fixos = opcoes.cabecalhos || {};
   const recusa = opcoes.recusa || 'Sem autorização.';
   return (req, res) => {
-    if (token && req.headers['x-vssh-app-token'] !== token) {
+    if (token && !mesmoToken(req.headers['x-vssh-app-token'], token)) {
       responderJson(res, 403, { error: recusa }, { ...fixos, 'X-Vssh-Token': 'recusado' });
       return;
     }

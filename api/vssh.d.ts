@@ -156,9 +156,10 @@ declare namespace vssh {
     function escrever(caminho: string, conteudo: string): Promise<unknown>;
     /**
      * Grava bytes num arquivo, criando ou substituindo. É a rota de um binário: um PNG passado por
-     * `escrever` sairia corrompido sem aviso, porque aquela rota é de texto.
+     * `escrever` sairia corrompido sem aviso, porque aquela rota é de texto. O SDK codifica os
+     * bytes em base64 para o fio; uma string já é base64 e passa como veio.
      */
-    function escreverBytes(caminho: string, base64: string): Promise<unknown>;
+    function escreverBytes(caminho: string, bytes: Uint8Array | ArrayBuffer | string): Promise<unknown>;
     /** Cria uma pasta. */
     function criarPasta(caminho: string): Promise<unknown>;
     /**

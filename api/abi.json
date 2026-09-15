@@ -432,9 +432,9 @@
               "tipo": "string"
             },
             {
-              "nome": "base64",
+              "nome": "bytes",
               "fio": "base64",
-              "tipo": "string"
+              "tipo": "Uint8Array | ArrayBuffer | string"
             }
           ],
           "responde": true,
@@ -442,7 +442,7 @@
           "caminhos": [
             "path"
           ],
-          "descricao": "Grava bytes num arquivo, criando ou substituindo. É a rota de um binário: um PNG passado por `escrever` sairia corrompido sem aviso, porque aquela rota é de texto."
+          "descricao": "Grava bytes num arquivo, criando ou substituindo. É a rota de um binário: um PNG passado por `escrever` sairia corrompido sem aviso, porque aquela rota é de texto. O SDK codifica os bytes em base64 para o fio; uma string já é base64 e passa como veio."
         },
         "criarPasta": {
           "fio": {

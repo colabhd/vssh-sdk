@@ -97,7 +97,8 @@
         reject(new Error(`sem resposta do shell para ${nome}`));
       }, prazo);
       pendentes.set(requestId, { nome, resolve, reject, timer });
-      window.parent.postMessage({ vsshApp: true, requestId, ...mensagem }, ORIGEM_DO_SHELL);
+      const m = PEDIDOS[nome] ? PEDIDOS[nome](mensagem) : mensagem;
+      window.parent.postMessage({ vsshApp: true, requestId, ...m }, ORIGEM_DO_SHELL);
     });
   }
 
@@ -169,13 +170,25 @@
     return new Promise((resolve) => resolve(f(mensagem)));
   }
 
-  // O que muda de forma entre o fio e o app. Bytes viajam em base64 porque um `ArrayBuffer` não
-  // atravessa o `postMessage` entre os dois documentos sem cópia; o app recebe `Uint8Array`.
+  // O que muda de forma entre o fio e o app, nos dois sentidos. Bytes viajam em base64 porque um
+  // `ArrayBuffer` não atravessa o `postMessage` entre os dois documentos sem cópia; o app entrega
+  // e recebe `Uint8Array`. A codificação vai em blocos porque `String.fromCharCode(...u8)` estoura
+  // a pilha num arquivo grande. Uma string em `escreverBytes` já é base64 e passa como veio.
   const bytesDe = (base64) => {
     const bin = atob(String(base64 || ''));
     const out = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
     return out;
+  };
+  const paraBase64 = (bytes) => {
+    if (typeof bytes === 'string') return bytes;
+    const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+    let bin = '';
+    for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+    return btoa(bin);
+  };
+  const PEDIDOS = {
+    'arquivos.escreverBytes': (m) => ({ ...m, base64: paraBase64(m.base64) }),
   };
   const RESPOSTAS = {
     'arquivos.lerBytes': (r) => bytesDe(r && r.base64),
@@ -292,8 +305,8 @@
     lerBytes: (caminho) => ponte.chamar('arquivos.lerBytes', { type: 'fs', op: 'readBytes', path: caminho }, 5000),
     // Grava texto num arquivo, criando ou substituindo.
     escrever: (caminho, conteudo) => ponte.chamar('arquivos.escrever', { type: 'fs', op: 'write', path: caminho, content: conteudo }, 5000),
-    // Grava bytes num arquivo, criando ou substituindo. É a rota de um binário: um PNG passado por `escrever` sairia corrompido sem aviso, porque aquela rota é de texto.
-    escreverBytes: (caminho, base64) => ponte.chamar('arquivos.escreverBytes', { type: 'fs', op: 'writeBytes', path: caminho, base64: base64 }, 5000),
+    // Grava bytes num arquivo, criando ou substituindo. É a rota de um binário: um PNG passado por `escrever` sairia corrompido sem aviso, porque aquela rota é de texto. O SDK codifica os bytes em base64 para o fio; uma string já é base64 e passa como veio.
+    escreverBytes: (caminho, bytes) => ponte.chamar('arquivos.escreverBytes', { type: 'fs', op: 'writeBytes', path: caminho, base64: bytes }, 5000),
     // Cria uma pasta.
     criarPasta: (caminho) => ponte.chamar('arquivos.criarPasta', { type: 'fs', op: 'mkdir', path: caminho }, 5000),
     // Apaga de vez um arquivo ou uma pasta com o conteúdo dela. A lixeira fica de fora; quem quer o caminho com desfazer usa o gerenciador de arquivos.
@@ -964,14 +977,6 @@
   const ehNativo = (x, Classe) =>
     typeof Classe === 'function' && x != null && Object.prototype.isPrototypeOf.call(Classe.prototype, x);
 
-  // Bytes para o fio: `escreverBytes` recebe base64, em blocos porque
-  // `String.fromCharCode(...u8)` estoura a pilha num arquivo grande.
-  function paraBase64(bytes) {
-    const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-    let bin = '';
-    for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
-    return btoa(bin);
-  }
 
   // ── Handles ───────────────────────────────────────────────────────────────────────────────
   //
@@ -1173,7 +1178,7 @@
       const commit = async () => {
         if (chunks.every((c) => typeof c === 'string')) return arquivos.escrever(path, chunks.join(''));
         const buf = await new Blob(chunks).arrayBuffer();
-        return arquivos.escreverBytes(path, paraBase64(new Uint8Array(buf)));
+        return arquivos.escreverBytes(path, new Uint8Array(buf));
       };
 
       let writer = null;

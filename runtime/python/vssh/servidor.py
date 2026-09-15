@@ -31,6 +31,7 @@ o Python do Windows não tem `AF_UNIX`, e é de lá que os testes sobem o app.
     sys.exit(servidor.escutar(Pedido, sys.argv[1:]))
 """
 
+import hmac
 import http.server
 import json
 import os
@@ -247,7 +248,9 @@ class Pedido(http.server.BaseHTTPRequestHandler):
         token = getattr(self.server, 'token', None)
         if token is None:
             token = os.environ.get('VSSH_APP_TOKEN', '')
-        if token and self.headers.get('X-Vssh-App-Token', '') != token:
+        # `compare_digest` leva o mesmo tempo para qualquer palpite; um `!=` sairia no primeiro
+        # byte diferente e contaria ao vizinho de loopback quantos bytes ele já acertou.
+        if token and not hmac.compare_digest(self.headers.get('X-Vssh-App-Token', ''), token):
             self.responder_json(403, {'error': self.recusa}, {'X-Vssh-Token': 'recusado'})
             return
         if metodo == 'GET' and self.path.partition('?')[0] == '/saude':

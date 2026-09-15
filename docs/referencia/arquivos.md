@@ -15,7 +15,7 @@ Ler e escrever com o consentimento do usuário, escolher, vigiar, abrir, abrir c
 | [`vssh.arquivos.ler(caminho)`](#ler) | sim, em até 5 s |
 | [`vssh.arquivos.lerBytes(caminho)`](#lerbytes) | sim, em até 5 s |
 | [`vssh.arquivos.escrever(caminho, conteudo)`](#escrever) | sim, em até 5 s |
-| [`vssh.arquivos.escreverBytes(caminho, base64)`](#escreverbytes) | sim, em até 5 s |
+| [`vssh.arquivos.escreverBytes(caminho, bytes)`](#escreverbytes) | sim, em até 5 s |
 | [`vssh.arquivos.criarPasta(caminho)`](#criarpasta) | sim, em até 5 s |
 | [`vssh.arquivos.apagar(caminho)`](#apagar) | sim, em até 5 s |
 | [`vssh.arquivos.existe(caminho)`](#existe) | sim, em até 5 s |
@@ -115,10 +115,11 @@ No fio: `type: "fs", op: "write"`.
 
 ### `escreverBytes`
 
-`vssh.arquivos.escreverBytes(caminho, base64)`
+`vssh.arquivos.escreverBytes(caminho, bytes)`
 
 Grava bytes num arquivo, criando ou substituindo. É a rota de um binário: um PNG passado por
-`escrever` sairia corrompido sem aviso, porque aquela rota é de texto.
+`escrever` sairia corrompido sem aviso, porque aquela rota é de texto. O SDK codifica os bytes em
+base64 para o fio; uma string já é base64 e passa como veio.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
 Consentimento: o shell confere `caminho` contra o que o usuário concedeu a este app.
@@ -127,7 +128,7 @@ No fio: `type: "fs", op: "writeBytes"`.
 | argumento | tipo | opcional | no fio |
 |---|---|---|---|
 | `caminho` | `string` | não | `path` |
-| `base64` | `string` | não | `base64` |
+| `bytes` | `Uint8Array \| ArrayBuffer \| string` | não | `base64` |
 
 ### `criarPasta`
 
