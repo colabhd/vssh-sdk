@@ -19,25 +19,10 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const { createRequire } = require('node:module');
 const path = require('node:path');
 
 const APP = path.join(__dirname, '..', 'templates', 'hello-vssh-app-node');
 
-/**
- * As libs do template, resolvidas de dentro dele (`node_modules/vssh-app-toolkit`), como o
- * `backend/server.js` as resolve. Elas chegam pelo `installCommand` do manifesto (`npm ci`), e
- * um checkout sem esse passo não as tem: o caso que precisa delas se pula dizendo o comando.
- */
-function libsDoTemplate() {
-  try {
-    return createRequire(path.join(APP, 'package.json'))('vssh-app-toolkit/web');
-  } catch {
-    return null;
-  }
-}
-const LIBS = libsDoTemplate();
-const semLibs = { skip: LIBS ? false : 'sem as libs do template: rode `npm ci` em templates/hello-vssh-app-node' };
 // `\r\n` → `\n` na leitura. Um checkout Windows (`core.autocrlf=true`, padrão do Git for Windows)
 // traz CRLF, e qualquer recorte por `\n}\n` devolve −1 ali: o `slice` vai até o fim do arquivo,
 // o `new Function` compila meio repositório e o erro que aparece é sobre um símbolo que não tem
@@ -102,47 +87,11 @@ test('toda peça tem onde escrever a resposta', () => {
   }
 });
 
-test('o que o backend injeta existe em disco, e a ordem importa', semLibs, () => {
-  const lista = SERVER.match(/injectScripts:\s*\[([\s\S]*?)\],/)?.[1];
-  assert.ok(lista, 'não achei mais o injectScripts — o teste ficou obsoleto');
-
-  // O erro clássico, e o mais caro de descobrir: a tag injetada aponta para um arquivo que
-  // ninguém serve. A página carrega inteira, `vssh` simplesmente não existe, e não há erro
-  // nenhum ligando uma coisa à outra.
-  //
-  // As libs de navegador vêm do `node_modules`, fora da raiz do frontend por construção, então
-  // "existe sob frontend/" deixou de ser a pergunta certa. A pergunta é se cada src cai numa das
-  // duas coisas que o static-spa serve: a raiz, ou um `mounts`.
-  const prefixo = SERVER.match(/mounts:\s*\{\s*'([^']+)':\s*WEB_DIR\s*\}/)?.[1];
-  assert.ok(prefixo, 'o backend não monta mais o WEB_DIR: as libs de navegador viram 404 silencioso');
-
-  const { WEB_DIR, SHIMS } = LIBS;
-  assert.ok(new RegExp(`SHIMS\\.map\\(\\(s\\) => \`${prefixo.slice(1)}\\$\\{s\\}\``).test(lista),
-    `o injectScripts não aponta mais os SHIMS para o prefixo montado ('${prefixo}')`);
-  for (const s of SHIMS) {
-    assert.ok(fs.existsSync(path.join(WEB_DIR, s)),
-      `SHIMS declara '${s}', que não existe nas libs instaladas: a tag injetada vira 404`);
-  }
-
-  const iShim = SHIMS.indexOf('vssh-app-shim.js');
-  const iFsa = SHIMS.indexOf('fsa-polyfill.js');
-  assert.ok(iShim >= 0, 'o shim saiu da injeção — nada da ponte funciona');
-  assert.ok(iFsa < 0 || iFsa > iShim,
-    'o polyfill de FSA é injetado ANTES do shim: ele depende do `vssh`, e a falha é um showDirectoryPicker que não existe');
-
-  const srcs = [...lista.matchAll(/'([^']+)'/g)].map((m) => m[1]);
-  for (const src of srcs) {
-    assert.ok(fs.existsSync(path.join(APP, 'frontend', src)),
-      `injectScripts aponta para '${src}', que não existe sob frontend/: a tag vira 404 silencioso`);
-  }
-
-  // O código do app entra na injeção pelo carimbo: só o que é injetado ganha o hash do conteúdo na
-  // URL, e é o carimbo que garante que uma reinstalação não sirva a versão velha de cache nenhum.
-  assert.ok(srcs.includes('galeria.js'),
-    'galeria.js saiu da injeção: volta a depender de revalidação por Last-Modified, que é o elo fraco de "atualizei o app e nada mudou"');
-  assert.ok(!/<script[^>]+galeria\.js/.test(HTML),
-    'galeria.js está injetado E com tag no HTML: ele seria carregado duas vezes, e a segunda sem carimbo');
-});
+// O que o backend injeta (o SDK em `_sdk/vssh.js`, o Tuff, o `galeria.js` carimbado) não é
+// medido aqui. Ler a lista do fonte diria só que uma linha existe; o que importa é o HTML servido,
+// e quem o mede é `tests/browser/template-fora-do-ambiente.test.js`, com o backend de pé e um
+// Chrome aberto na página, e o smoke do `ci.yml`, que sobe os dois templates num socket e lê as
+// tags com `curl`.
 
 test('o que o backend IMPORTA do toolkit, ele CHAMA', () => {
   // O defeito que esta guarda existe para impedir, e que já aconteceu: `keepLiveAlive` e
@@ -160,9 +109,9 @@ test('o que o backend IMPORTA do toolkit, ele CHAMA', () => {
   assert.ok(importados.length >= 7, 'o backend parou de importar as libs — o teste ficou obsoleto');
 
   for (const nome of importados) {
-    // MAIÚSCULAS é a convenção de VALOR neste repositório (`WEB_DIR`, `SHIMS`): eles se usam por
-    // referência, e exigir `NOME(` deles acusaria um uso correto. Para o resto, o que se mede é a
-    // CHAMADA — um `require` que só aparece no próprio `require` não faz nada por ninguém.
+    // MAIÚSCULAS é a convenção de valor neste repositório: um valor se usa por referência, e
+    // exigir `NOME(` dele acusaria um uso correto. Para o resto, o que se mede é a chamada: um
+    // `require` que só aparece no próprio `require` não faz nada por ninguém.
     const ehValor = nome === nome.toUpperCase();
     const usos = SERVER.match(new RegExp(ehValor ? `\\b${nome}\\b` : `\\b${nome}\\s*\\(`, 'g')) || [];
     assert.ok(usos.length >= 1 && (!ehValor || usos.length > 1),
@@ -195,7 +144,7 @@ test('a janela extra abre a rota que o próprio app sabe atender', () => {
   // decide o que fazer com ela. Renomeie um dos dois e a janela extra abre… a galeria inteira de
   // novo. Nada falha, nada avisa, e a demonstração passa a provar o contrário do que afirma —
   // porque uma cópia é exatamente o que ela existe para NÃO ser.
-  const pedido = JS.match(/vssh\.window\.abrir\('\?([a-z]+)=/)?.[1];
+  const pedido = JS.match(/vssh\.janela\.abrir\('\?([a-z]+)=/)?.[1];
   assert.ok(pedido, 'ninguém mais pede a janela extra — o botão perdeu o que demonstrar');
   assert.match(JS, new RegExp(`URLSearchParams\\(location\\.search\\)\\.has\\('${pedido}'\\)`),
     `a galeria pede '?${pedido}=' e não trata esse parâmetro: a janela extra abriria uma cópia`);

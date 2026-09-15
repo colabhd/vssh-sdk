@@ -110,28 +110,41 @@ jobs:
           timeout 3 q -sN http://app/api/events | grep -q 'event: tick'
           test -s "${RUNNER_TEMP}/hwn/app.log"
 
-          # ── A ponte com o desktop ──────────────────────────────────────────────────────────
+          # ── A ponte com o ambiente ─────────────────────────────────────────────────────────
           #
-          # O defeito mora ENTRE duas asserções: a tag é injetada, ninguém serve o arquivo, a
-          # página carrega inteira e `vssh` simplesmente não existe, sem erro que ligue uma coisa
-          # à outra. Por isso a checagem varre TODAS as tags injetadas (script e folha de estilo)
-          # e busca cada uma, com o carimbo de conteúdo na URL: sem carimbo, uma reinstalação
-          # serviria a versão velha do cache.
+          # O SDK web e o Tuff vêm do sistema, no espaço `_sdk/` do app, e este backend só injeta
+          # as tags. Duas coisas se conferem em cada uma: o que é do sistema sai sem carimbo (o
+          # arquivo não está no disco do app, e a URL é a que o portal responde) e não é servido
+          # por este backend, porque um `_sdk/` respondido pelo app seria uma cópia vendorizada;
+          # o que é do app (`galeria.js`) tem de ser servido, com o carimbo de conteúdo na URL,
+          # senão uma reinstalação serviria a versão velha do cache. E o SDK vem antes de tudo,
+          # porque os outros scripts o chamam.
           srcs=$(q -fsS http://app/ \
             | grep -oE '<script src="[^"]*"|<link rel="stylesheet" href="[^"]*"' \
             | sed -E 's/.*="([^"]*)"$/\1/')
           test -n "$srcs"
+          primeiro=$(echo "$srcs" | grep -E '\.js(\?|$)' | head -1)
+          [ "$primeiro" = "_sdk/vssh.js" ] \
+            || { echo "o SDK não é o primeiro script injetado: ${primeiro}"; exit 1; }
           for s in $srcs; do
-            q -fsS "http://app/${s}" >/dev/null \
-              || { echo "injetado mas NÃO servido: ${s}"; exit 1; }
             case "$s" in
-              *\?v=*) ;;
-              *) echo "injetado sem carimbo de conteúdo: ${s}"; exit 1 ;;
+              _sdk/*)
+                case "$s" in
+                  *\?v=*) echo "caminho do sistema com carimbo: ${s}"; exit 1 ;;
+                esac
+                [ "$(q -s -o /dev/null -w '%{http_code}' "http://app/${s}")" = 404 ] \
+                  || { echo "o app respondeu um caminho do sistema: ${s}"; exit 1; } ;;
+              *)
+                q -fsS "http://app/${s}" >/dev/null \
+                  || { echo "injetado mas NÃO servido: ${s}"; exit 1; }
+                case "$s" in
+                  *\?v=*) ;;
+                  *) echo "injetado sem carimbo de conteúdo: ${s}"; exit 1 ;;
+                esac ;;
             esac
           done
-          echo "$srcs" | grep -q 'vssh-app-shim.js'
-          echo "$srcs" | grep -q 'galeria.js'
-          q -fsS http://app/_vssh/vssh-app-shim.js | grep -q 'window.vssh'
+          echo "$srcs" | grep -q '^galeria.js'
+          echo "$srcs" | grep -q '^_sdk/tuff/'
 
           # ── A galeria: um backend, N janelas ───────────────────────────────────────────────
           #
@@ -181,27 +194,36 @@ jobs:
           timeout 3 q -sN http://app/api/events | grep -q 'event: tick'
           test -s "${RUNNER_TEMP}/hwp/app.log"
 
-          # ── A ponte com o desktop ──────────────────────────────────────────────────────────
+          # ── A ponte com o ambiente ─────────────────────────────────────────────────────────
           #
-          # Aqui o defeito tem uma causa a mais que no Node: as libs de navegador viajam DENTRO do
-          # pacote Python instalado, e um empacotamento que as deixasse de fora só apareceria
-          # assim. A folha de estilo entra na varredura junto com os scripts: sem ela o sintoma
-          # no servidor é "o app Python é feio", que não aponta para arquivo nenhum.
+          # O mesmo contrato do smoke do Node, lido do outro backend: o `_sdk/` sem carimbo e
+          # fora do app, o `galeria.js` servido e carimbado, e o SDK como primeiro script.
           srcs=$(q -fsS http://app/ \
             | grep -oE '<script src="[^"]*"|<link rel="stylesheet" href="[^"]*"' \
             | sed -E 's/.*="([^"]*)"$/\1/')
           test -n "$srcs"
+          primeiro=$(echo "$srcs" | grep -E '\.js(\?|$)' | head -1)
+          [ "$primeiro" = "_sdk/vssh.js" ] \
+            || { echo "o SDK não é o primeiro script injetado: ${primeiro}"; exit 1; }
           for s in $srcs; do
-            q -fsS "http://app/${s}" >/dev/null \
-              || { echo "injetado mas NÃO servido: ${s}"; exit 1; }
             case "$s" in
-              *\?v=*) ;;
-              *) echo "injetado sem carimbo de conteúdo: ${s}"; exit 1 ;;
+              _sdk/*)
+                case "$s" in
+                  *\?v=*) echo "caminho do sistema com carimbo: ${s}"; exit 1 ;;
+                esac
+                [ "$(q -s -o /dev/null -w '%{http_code}' "http://app/${s}")" = 404 ] \
+                  || { echo "o app respondeu um caminho do sistema: ${s}"; exit 1; } ;;
+              *)
+                q -fsS "http://app/${s}" >/dev/null \
+                  || { echo "injetado mas NÃO servido: ${s}"; exit 1; }
+                case "$s" in
+                  *\?v=*) ;;
+                  *) echo "injetado sem carimbo de conteúdo: ${s}"; exit 1 ;;
+                esac ;;
             esac
           done
-          echo "$srcs" | grep -q 'vssh-app-shim.js'
-          echo "$srcs" | grep -q 'galeria.js'
-          q -fsS http://app/_vssh/vssh-app-shim.js | grep -q 'window.vssh'
+          echo "$srcs" | grep -q '^galeria.js'
+          echo "$srcs" | grep -q '^_sdk/tuff/'
 
           # ── A galeria: um backend, N janelas ───────────────────────────────────────────────
           ( timeout 5 q -sN http://app/api/events > "${RUNNER_TEMP}/sse.txt" & )

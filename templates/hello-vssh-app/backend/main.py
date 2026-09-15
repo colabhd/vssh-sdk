@@ -5,11 +5,14 @@
 `frontend/galeria.js` é byte a byte idêntico ao de lá, e há um teste que reprova a divergência
 (`tests/galeria-paridade.test.js`). A escolha entre os dois templates é de LINGUAGEM, e mais nada.
 
-Uma dependência, e ela é o toolkit:
+Uma dependência, e ela é o toolkit, de onde vêm as libs de backend (endereço, log, SPA, SSE,
+filesystem privado, bandeja, notificação, atividade):
 
     pip install "https://github.com/colabhd/vssh-app-toolkit/archive/refs/tags/v4.tar.gz"
 
-Quem instala no servidor é o `installCommand` do manifesto. O resto é stdlib.
+Quem instala no servidor é o `installCommand` do manifesto. O resto é stdlib. O SDK web (`vssh`)
+e a biblioteca de UI não viajam no pacote: o sistema os serve em `_sdk/` dentro do espaço de URL
+do app, e o backend só injeta as tags (ver `criar_spa_estatica` abaixo).
 
 O que este template já faz por você, e que a primeira versão de todo app esquece:
   - log estruturado em $VSSH_APP_DATA_DIR desde a primeira linha (é o que salva a depuração
@@ -67,7 +70,21 @@ from vssh_app_toolkit.notify import notificar  # noqa: E402
 from vssh_app_toolkit.spa import criar_spa_estatica  # noqa: E402
 from vssh_app_toolkit.sse import abrir_stream_sse  # noqa: E402
 from vssh_app_toolkit.tray import definir_bandeja, limpar_bandeja, limpar_bandeja_ao_sair  # noqa: E402
-from vssh_app_toolkit.web import DIRETORIO_WEB, SHIMS, ESTILOS, SCRIPTS  # noqa: E402
+
+# O que o sistema serve no espaço `_sdk/` do app, e este backend só injeta. Os caminhos são
+# relativos à raiz do app, sem carimbo: o arquivo não existe no disco deste pacote, o sistema
+# responde com `no-cache` e ETag, e a versão que chega é a do shell que está no ar.
+#
+#   `_sdk/vssh.js`  o SDK web: a ponte `vssh.*` e o polyfill de File System Access, num arquivo.
+#   `_sdk/tuff/…`   a biblioteca de UI. Tokens antes da base, e a base antes dos componentes,
+#                   porque cada folha lê o que a anterior declara; os ícones antes de `tuff.js`,
+#                   porque a gaveta tem um por item e um `<use>` que resolve depois da primeira
+#                   pintura pisca.
+#
+# Adotar o Tuff é escolha deste app: um app com identidade visual própria injeta só o SDK.
+SDK_WEB = ["_sdk/vssh.js"]
+TUFF_ESTILOS = ["_sdk/tuff/tuff-tokens.css", "_sdk/tuff/tuff-base.css", "_sdk/tuff/tuff.css"]
+TUFF_SCRIPTS = ["_sdk/tuff/tuff-icones.js", "_sdk/tuff/tuff.js"]
 
 APP_ID = os.environ.get("VSSH_APP_ID") or "hello-world"
 APP_TOKEN = os.environ.get("VSSH_APP_TOKEN") or None
@@ -101,27 +118,22 @@ servir_privado = criar_handler_fs(
 
 spa = criar_spa_estatica(
     root=os.path.join(_AQUI, "..", "frontend"),
-    # A PONTE COM O DESKTOP, em dois passos — esquecer o primeiro é o erro clássico:
-    #   1. o navegador é quem carrega a lib, então alguém tem de SERVI-LA. Ela mora dentro do
-    #      pacote instalado, fora da raiz do frontend, e é o `mounts` abaixo que a põe numa URL;
-    #   2. `inject_scripts` só acrescenta a tag <script> antes do </head> do index.
-    # Sem o mount a página carrega normalmente, a tag aponta para 404 e o `vssh` simplesmente não
-    # existe — sem erro nenhum ligando uma coisa à outra.
+    # A ponte com o ambiente entra por uma tag, e a tag é tudo que este backend faz por ela:
+    # `inject_scripts` acrescenta o `<script src="_sdk/vssh.js">` antes do `</head>` do index, e
+    # quem responde esse caminho é o sistema, sem `mounts` nenhum. O caminho é relativo à raiz do
+    # app, e numa rota profunda do `spa_fallback` o `<base href>` que a lib injeta o resolve.
+    # Fora do ambiente (o backend rodando solto na sua máquina) ninguém serve `_sdk/`, e a galeria
+    # diz isso na peça "Ambiente".
     #
-    # **As libs de navegador NÃO têm versão Python, e não precisam ter.** É o mesmo shim, servido
-    # ao mesmo navegador; o que muda entre um app Node e um app Python é só quem o serve.
-    mounts={"/_vssh/": DIRETORIO_WEB},
-    # `galeria.js` — o código DESTE app — entra na mesma lista, e não como uma `<script src>` no
-    # index, para ganhar o carimbo de conteúdo na URL: só o que é injetado é carimbado, e o carimbo
-    # é o que garante que uma reinstalação não sirva a versão velha de nenhum cache do caminho.
-    # A aparência do ambiente. Listas SEPARADAS do `SHIMS` de propósito: adotar a biblioteca de UI é
-    # escolha deste app, e não consequência de atualizar o toolkit — um app com identidade visual
-    # própria não pode ser reestilizado por um `pip install`.
+    # `galeria.js`, o código deste app, entra na mesma lista, e não como uma `<script src>` no
+    # index, para ganhar o carimbo de conteúdo na URL: só o que é injetado e existe no disco é
+    # carimbado, e o carimbo é o que garante que uma reinstalação não sirva a versão velha de
+    # nenhum cache do caminho. Ele vem depois do SDK, porque é o SDK que ele chama.
     #
     # As folhas saem antes dos scripts no `<head>`: um `<link>` bloqueia a primeira pintura, então
     # descobri-lo cedo é o que evita a página aparecer sem estilo por um quadro.
-    inject_styles=[f"_vssh/{f}" for f in ESTILOS],
-    inject_scripts=[f"_vssh/{s}" for s in SHIMS] + [f"_vssh/{s}" for s in SCRIPTS] + ["galeria.js"],
+    inject_styles=TUFF_ESTILOS,
+    inject_scripts=SDK_WEB + TUFF_SCRIPTS + ["galeria.js"],
     # Descomente se o seu app usa roteamento HTML5 (History API) em vez de fragmento:
     # spa_fallback=True,
     missing_bundle_hint="Rode o build do frontend antes de subir o backend.",

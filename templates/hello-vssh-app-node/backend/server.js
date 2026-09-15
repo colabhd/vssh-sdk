@@ -2,10 +2,13 @@
 
 // Hello World (Node) — template de partida para um vssh-app com backend Node.
 //
-// Uma dependência npm, e ela é o toolkit: `npm i github:colabhd/vssh-app-toolkit#v4`. O resto é
-// stdlib do Node. Quem instala no servidor é o `installCommand` do manifesto (`npm ci --omit=dev`),
-// e o lock commitado é o que fixa a versão — medido: o `npm ci` resolve o pacote pelo tarball do
-// codeload, sem precisar de `git` nem de chave SSH no alvo.
+// Uma dependência npm, e ela é o toolkit, de onde vêm as libs de backend (endereço, log, SPA, SSE,
+// filesystem privado, bandeja, notificação, atividade): `npm i github:colabhd/vssh-app-toolkit#v4`.
+// O resto é stdlib do Node. Quem instala no servidor é o `installCommand` do manifesto
+// (`npm ci --omit=dev`), e o lock commitado é o que fixa a versão; medido, o `npm ci` resolve o
+// pacote pelo tarball do codeload, sem precisar de `git` nem de chave SSH no alvo. O SDK web
+// (`vssh`) e a biblioteca de UI não viajam no pacote: o sistema os serve em `_sdk/` dentro do
+// espaço de URL do app, e o backend só injeta as tags (ver `createStaticSpa` abaixo).
 //
 // O que este template já faz por você, e que a primeira versão de todo app esquece:
 //   - log estruturado em $VSSH_APP_DATA_DIR desde a primeira linha (é o que salva a depuração
@@ -22,7 +25,6 @@ const { createStaticSpa } = require('vssh-app-toolkit/spa');
 const { createAppLog } = require('vssh-app-toolkit/log');
 const { openSseStream } = require('vssh-app-toolkit/sse');
 const { escutar } = require('vssh-app-toolkit/listen');
-const { WEB_DIR, SHIMS, ESTILOS, SCRIPTS } = require('vssh-app-toolkit/web');
 // As duas vozes de um app SEM janela. Elas dizem coisas diferentes, e trocar uma pela outra é o
 // erro que enche o sino de quem usa o ambiente:
 //
@@ -30,9 +32,9 @@ const { WEB_DIR, SHIMS, ESTILOS, SCRIPTS } = require('vssh-app-toolkit/web');
 //   live      uma CONDIÇÃO que é verdade AGORA. Some quando deixa de ser, sem deixar rastro.
 const { notify } = require('vssh-app-toolkit/notify');
 const { setLive, clearLive, keepLiveAlive, clearLiveOnExit } = require('vssh-app-toolkit/live');
-// A bandeja do app SEM janela. O par do `vssh.tray.*` do shim, e não um substituto: aquele é
-// síncrono e morre com a janela; este escreve um arquivo que o portal lê, e o clique volta como
-// POST — porque a rede é assimétrica (o portal alcança o app; o app não alcança o portal).
+// A bandeja do app SEM janela. O par do `vssh.avisos.bandeja` do SDK web, e não um substituto:
+// aquele morre com a janela; este escreve um arquivo que o portal lê, e o clique volta como POST,
+// porque a rede é assimétrica (o portal alcança o app; o app não alcança o portal).
 const { setTray, clearTray, clearTrayOnExit } = require('vssh-app-toolkit/tray');
 // O filesystem PRIVADO do app: uma raiz confinada, servida por HTTP ao próprio frontend. Não
 // confundir com os arquivos do usuário, que são a File System Access — ver a peça na galeria.
@@ -46,6 +48,22 @@ const { createAppFs, createFsHandler } = require('vssh-app-toolkit/fs');
 // roteamento ao transporte sem necessidade: num socket unix não existe porta, `${PORT}` vira `NaN`
 // e o `new URL` estoura em toda requisição. O host aqui nunca vai à rede.
 const BASE_URL = 'http://vssh-app.invalid';
+
+// O que o sistema serve no espaço `_sdk/` do app, e este backend só injeta. Os caminhos são
+// relativos à raiz do app, sem carimbo: o arquivo não existe no disco deste pacote, o sistema
+// responde com `no-cache` e ETag, e a versão que chega é a do shell que está no ar.
+//
+//   `_sdk/vssh.js`  o SDK web: a ponte `vssh.*` e o polyfill de File System Access, num arquivo.
+//   `_sdk/tuff/…`   a biblioteca de UI. Tokens antes da base, e a base antes dos componentes,
+//                   porque cada folha lê o que a anterior declara; os ícones antes de `tuff.js`,
+//                   porque a gaveta tem um por item e um `<use>` que resolve depois da primeira
+//                   pintura pisca.
+//
+// Adotar o Tuff é escolha deste app: um app com identidade visual própria injeta só o SDK.
+const SDK_WEB = ['_sdk/vssh.js'];
+const TUFF_ESTILOS = ['_sdk/tuff/tuff-tokens.css', '_sdk/tuff/tuff-base.css', '_sdk/tuff/tuff.css'];
+const TUFF_SCRIPTS = ['_sdk/tuff/tuff-icones.js', '_sdk/tuff/tuff.js'];
+
 const APP_ID = process.env.VSSH_APP_ID || 'hello-world-node';
 const APP_TOKEN = process.env.VSSH_APP_TOKEN || null;
 
@@ -94,37 +112,24 @@ const servirPrivado = createFsHandler({
 const spa = createStaticSpa({
   root: path.join(__dirname, '..', 'frontend'),
 
-  // A PONTE COM O DESKTOP, em dois passos — esquecer o primeiro é o erro clássico:
-  //   1. o navegador é quem carrega a lib, então alguém tem de SERVI-LA. Ela mora no
-  //      `node_modules`, fora da raiz do bundle, e é o `mounts` abaixo que a põe numa URL;
-  //   2. `injectScripts` só acrescenta a tag <script> antes do </head> do index — quem serve o
-  //      arquivo é este mesmo `createStaticSpa`.
-  // Sem o mount a página carrega normalmente, a tag aponta para 404 e o `vssh` simplesmente não
-  // existe — sem erro nenhum que ligue uma coisa à outra.
-  // A ORDEM importa, e por isso ela vem pronta em `SHIMS`: o polyfill de File System Access
-  // depende do `vssh` que o shim publica. Trocar a ordem não dá erro nenhum — dá um
-  // `showDirectoryPicker` que não existe, que é bem pior de descobrir.
-  mounts: { '/_vssh/': WEB_DIR },
+  // A ponte com o ambiente entra por uma tag, e a tag é tudo que este backend faz por ela:
+  // `injectScripts` acrescenta o `<script src="_sdk/vssh.js">` antes do `</head>` do index, e
+  // quem responde esse caminho é o sistema, sem `mounts` nenhum. O caminho é relativo à raiz do
+  // app, e numa rota profunda do `spaFallback` o `<base href>` que a lib injeta o resolve. Fora
+  // do ambiente (o backend rodando solto na sua máquina) ninguém serve `_sdk/`, e a galeria diz
+  // isso na peça "Ambiente".
   //
-  // O polyfill é injetado porque este template é também a GALERIA: a seção "Arquivos do usuário"
-  // usa a API padrão do W3C, e é assim que um app real alcança a home. Se o seu app não mexe em
-  // arquivo do usuário, tire a segunda linha — ela não custa nada em runtime (o polyfill só age
-  // quando alguém chama um seletor), mas o que não se usa não se serve.
-  //
-  // `galeria.js` — o código DESTE app — entra na mesma lista, e não como uma `<script src>` no
-  // index, para ganhar o carimbo de conteúdo na URL: só o que é injetado é carimbado, e o carimbo
-  // é o que garante que uma reinstalação não sirva a versão velha de nenhum cache do caminho.
-  // Quem tem build (Vite e afins) já recebe um nome com hash e não precisa disto.
-  // A aparência do ambiente. Listas SEPARADAS do `SHIMS` de propósito: adotar a biblioteca de UI é
-  // escolha deste app, e não consequência de atualizar o toolkit — um app com identidade visual
-  // própria (ou que sirva conteúdo de terceiros) não pode ser reestilizado por um `npm i`.
+  // `galeria.js`, o código deste app, entra na mesma lista, e não como uma `<script src>` no
+  // index, para ganhar o carimbo de conteúdo na URL: só o que é injetado e existe no disco é
+  // carimbado, e o carimbo é o que garante que uma reinstalação não sirva a versão velha de
+  // nenhum cache do caminho. Ele vem depois do SDK, porque é o SDK que ele chama. Quem tem build
+  // (Vite e afins) já recebe um nome com hash e não precisa disto.
   //
   // As folhas saem antes dos scripts no `<head>`, e é o `injectStyles` que garante isso: um `<link>`
   // bloqueia a primeira pintura, então descobri-lo cedo é o que evita a página aparecer sem estilo
-  // por um quadro. Escrevê-los à mão no HTML funcionaria e perderia o carimbo de conteúdo — e uma
-  // folha velha de cache não parece cache, parece decisão de design.
-  injectStyles: ESTILOS.map((f) => `_vssh/${f}`),
-  injectScripts: [...SHIMS.map((s) => `_vssh/${s}`), ...SCRIPTS.map((s) => `_vssh/${s}`), 'galeria.js'],
+  // por um quadro.
+  injectStyles: TUFF_ESTILOS,
+  injectScripts: [...SDK_WEB, ...TUFF_SCRIPTS, 'galeria.js'],
 
   // Descomente se o seu app usa roteamento HTML5 (History API) em vez de fragmento:
   // spaFallback: true,

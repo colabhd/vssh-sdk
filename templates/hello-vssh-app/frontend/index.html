@@ -97,10 +97,11 @@
     <section id="c-ambiente" class="tuff-painel larga">
       <h2>Ambiente</h2>
       <p class="tuff-sec-desc">
-        <strong>Leia esta peça primeiro</strong> — ela explica todas as outras. Shell e apps são
-        publicados à parte, então <em>versão dessincronizada é a regra</em>: um app instalado hoje
-        roda contra o shim vendorizado nele e contra o shell que estiver no servidor. Quando algo
-        aqui embaixo não existir, é aqui que se vê por quê.
+        <strong>Leia esta peça primeiro</strong>: ela explica todas as outras. O SDK
+        (<code>_sdk/vssh.js</code>) é servido pelo shell do servidor, então a versão que roda aqui é
+        a de lá, e <code>capacidades()</code> traz a lista de verbos que esse shell atende. Um app
+        instalado hoje pergunta a essa lista antes de usar uma peça, e é aqui que se vê por que
+        algo lá embaixo não respondeu.
       </p>
       <pre class="saida" id="ambiente">—</pre>
     </section>
@@ -225,30 +226,31 @@
         deles deixa rastro.</strong>
       </p>
       <p class="tuff-sec-desc">
-        <code>toast</code> é a frase que se lê e se esquece (&ldquo;copiado&rdquo;, &ldquo;salvo&rdquo;).
-        <code>notify</code> é um <em>fato</em> que a pessoa vai querer reencontrar — um caminho,
-        um id, um erro. <code>live</code> é uma <em>condição</em> que ainda é verdade, e some
+        <code>avisar</code> é a frase que se lê e se esquece (&ldquo;copiado&rdquo;, &ldquo;salvo&rdquo;).
+        <code>notificar</code> é um <em>fato</em> que a pessoa vai querer reencontrar: um caminho,
+        um id, um erro. <code>atividade</code> é uma <em>condição</em> que ainda é verdade, e some
         quando deixa de ser. A regra: <strong>um aviso é para o que não deixa rastro na tela.</strong>
       </p>
       <div class="tuff-acoes">
-        <button class="tuff-btn" id="toast">vssh.toast — some sem deixar nada</button>
-        <button class="tuff-btn" id="notify">vssh.notify — fica no sino</button>
-        <button class="tuff-btn" id="notify-acao">notify com ação e prioridade alta</button>
+        <button class="tuff-btn" id="toast">avisos.avisar: some sem deixar nada</button>
+        <button class="tuff-btn" id="notify">avisos.notificar: fica no sino</button>
+        <button class="tuff-btn" id="notify-acao">notificar com ação e prioridade alta</button>
       </div>
       <p class="tuff-sec-desc">
-        Os cinco diálogos <strong>bloqueiam e devolvem valor</strong> — é a diferença entre eles e
-        um aviso. <code>alert</code> e <code>error</code> só informam (o segundo com a cor de
-        erro); <code>confirm</code> devolve booleano; <code>prompt</code> e <code>password</code>
-        devolvem texto, ou <code>null</code> quando a pessoa desiste — e <em>desistir é resposta</em>,
-        não falha. Fora do desktop os cinco degradam para o equivalente do navegador em vez de
-        lançar, então o app não precisa de <code>if</code> nenhum.
+        Os cinco diálogos de <code>vssh.dialogos</code> <strong>bloqueiam e devolvem valor</strong>,
+        e é isso que os separa de um aviso. <code>mostrar</code> e <code>erro</code> só informam (o
+        segundo com a cor de erro); <code>confirmar</code> devolve booleano; <code>perguntar</code>
+        e <code>senha</code> devolvem texto, ou <code>null</code> quando a pessoa desiste, e
+        <em>desistir é resposta</em>, não falha. Fora do ambiente os cinco degradam para o
+        equivalente do navegador em vez de lançar, então o app não precisa de <code>if</code>
+        nenhum.
       </p>
       <div class="tuff-acoes">
-        <button class="tuff-btn" id="dialog-alert">alert</button>
-        <button class="tuff-btn" id="dialog-error">error</button>
-        <button class="tuff-btn" id="confirm">confirm</button>
-        <button class="tuff-btn" id="dialog-prompt">prompt</button>
-        <button class="tuff-btn" id="dialog-password">password</button>
+        <button class="tuff-btn" id="dialog-alert">mostrar</button>
+        <button class="tuff-btn" id="dialog-error">erro</button>
+        <button class="tuff-btn" id="confirm">confirmar</button>
+        <button class="tuff-btn" id="dialog-prompt">perguntar</button>
+        <button class="tuff-btn" id="dialog-password">senha</button>
       </div>
       <pre class="saida" id="bridge">—</pre>
     </section>
@@ -326,22 +328,23 @@
     <section class="tuff-painel">
       <h2>Bandeja do sistema</h2>
       <p class="tuff-sec-desc">
-        Um ícone do app ao lado do relógio, com badge e menu. Chamar <code>set</code> de novo
-        <em>atualiza</em> o mesmo ícone — o badge muda e ele não pula de lugar.
+        Um ícone do app ao lado do relógio, com badge e menu. Chamar <code>bandeja</code> de novo
+        <em>atualiza</em> o mesmo ícone: o badge muda e ele não pula de lugar. O clique e a
+        escolha no menu voltam pelo evento <code>acaoNaBandeja</code>.
       </p>
       <div class="tuff-acoes">
-        <button class="tuff-btn" id="tray-on">vssh.tray.set</button>
+        <button class="tuff-btn" id="tray-on">avisos.bandeja</button>
         <button class="tuff-btn" id="tray-bump">badge +1</button>
         <button class="tuff-btn" id="tray-off">remover</button>
       </div>
       <pre class="saida" id="tray">—</pre>
       <p class="tuff-sec-desc">
         <strong>Há dois caminhos até o mesmo ícone, e eles não são alternativas.</strong> Os botões
-        acima usam <code>vssh.tray.*</code>, que é síncrono e só existe com uma janela aberta. O de
-        baixo usa a lib do <em>backend</em> (<code>vssh-app-toolkit/tray</code>), que escreve um
-        <code>tray.json</code> e funciona com o app <strong>sem janela nenhuma</strong> — é o
-        caminho de um <code>kind:"service"</code>. O clique volta como um <code>POST</code> no seu
-        próprio backend, e não como uma função: função não atravessa arquivo.
+        acima usam <code>vssh.avisos.bandeja</code>, que só existe com uma janela aberta. O de
+        baixo usa a lib do <em>backend</em>, que escreve um <code>tray.json</code> e funciona com o
+        app <strong>sem janela nenhuma</strong>: é o caminho de um <code>kind:"service"</code>. O
+        clique volta como um <code>POST</code> no seu próprio backend, e não como uma função,
+        porque função não atravessa arquivo.
       </p>
       <div class="tuff-acoes">
         <button class="tuff-btn" id="tray-backend">pela lib do backend (sem janela)</button>
@@ -377,8 +380,8 @@
     <section class="tuff-painel larga">
       <h2>Arquivos do usuário — File System Access</h2>
       <p class="tuff-sec-desc">
-        A API padrão do W3C, servida pelo <code>fsa-polyfill</code>: um app que já usa FSA roda
-        aqui <strong>sem fork</strong>. Escolher no seletor <em>é</em> o consentimento — não há
+        A API padrão do W3C, respondida pelo polyfill que entra junto com <code>_sdk/vssh.js</code>:
+        um app que já usa FSA roda aqui <strong>sem fork</strong>. Escolher no seletor <em>é</em> o consentimento — não há
         segunda confirmação —, e o acesso <strong>sobrevive à sessão</strong>, que é o par
         necessário de guardar o handle no IndexedDB. Revogar é no menu de contexto da janela →
         <em>Permissões de arquivo</em>.
@@ -396,69 +399,68 @@
     </section>
 
     <section class="tuff-painel larga">
-      <h2>A ponte <code>vssh.fs</code>, por caminho</h2>
+      <h2>A ponte <code>vssh.arquivos</code>, por caminho</h2>
       <p class="tuff-sec-desc">
-        O caminho de baixo, para quem não fala FSA. <code>exists</code> devolve três respostas em
-        vez de duas: só o 404 vira <code>false</code>, e "não tenho permissão" lança em vez de
-        virar "não existe". <code>watch</code> avisa quando algo muda <strong>por fora</strong> do
-        app — e devolve a função que cancela, porque cada assinatura segura um vigia vivo no
-        servidor.
+        O caminho de baixo, para quem não fala FSA. <code>existe</code> responde
+        <code>{ exists }</code>, e só o 404 vira <code>false</code>: "não tenho permissão" lança em
+        vez de virar "não existe". <code>acompanhar</code> avisa quando algo muda <strong>por
+        fora</strong> do app, e devolve a função que cancela, porque cada assinatura segura um
+        vigia vivo no servidor.
       </p>
       <div class="tuff-acoes">
         <button class="tuff-btn" id="fs-pick">escolher um arquivo</button>
-        <button class="tuff-btn" id="fs-exists" disabled>exists</button>
-        <button class="tuff-btn" id="fs-stat" disabled>stat</button>
-        <button class="tuff-btn" id="fs-read" disabled>read</button>
-        <button class="tuff-btn" id="fs-bytes" disabled>readBytes</button>
-        <button class="tuff-btn" id="fs-copy" disabled>copy → .bak</button>
-        <button class="tuff-btn" id="fs-rename" disabled>rename do .bak</button>
-        <button class="tuff-btn" id="fs-watch" disabled>watch</button>
+        <button class="tuff-btn" id="fs-exists" disabled>existe</button>
+        <button class="tuff-btn" id="fs-stat" disabled>consultar</button>
+        <button class="tuff-btn" id="fs-read" disabled>ler</button>
+        <button class="tuff-btn" id="fs-bytes" disabled>lerBytes</button>
+        <button class="tuff-btn" id="fs-copy" disabled>copiar para .bak</button>
+        <button class="tuff-btn" id="fs-rename" disabled>renomear o .bak</button>
+        <button class="tuff-btn" id="fs-watch" disabled>acompanhar</button>
       </div>
       <pre class="saida" id="fs">—</pre>
       <p class="tuff-sec-desc">
-        A outra metade: <strong>escrever</strong>. <code>mkdir</code> → <code>write</code> →
-        <code>list</code> → <code>writeBytes</code> → <code>delete</code>, numa pasta que o próprio
-        ciclo cria e apaga dentro do que você escolher. <code>write</code> é para
-        <em>texto</em> e <code>writeBytes</code> para <em>binário</em> — texto-encodar bytes os
+        A outra metade: <strong>escrever</strong>. <code>criarPasta</code>, <code>escrever</code>,
+        <code>escreverBytes</code>, <code>listar</code> e <code>apagar</code>, numa pasta que o
+        próprio ciclo cria dentro do que você escolher. <code>escrever</code> é para <em>texto</em>
+        e <code>escreverBytes</code> para <em>binário</em>, em base64: texto-encodar bytes os
         corrompe, e é por isso que são duas funções e não um parâmetro.
       </p>
       <div class="tuff-acoes">
         <button class="tuff-btn" id="fs-dir">escolher a pasta de trabalho</button>
-        <button class="tuff-btn" id="fs-ciclo" disabled>mkdir → write → list → delete</button>
+        <button class="tuff-btn" id="fs-ciclo" disabled>criarPasta, escrever, listar, apagar</button>
         <button class="tuff-btn" id="fs-url" disabled>urlFor num &lt;img&gt;</button>
       </div>
       <pre class="saida" id="fs-escrita">—</pre>
       <div id="fs-imagem"></div>
       <p class="tuff-sec-desc">
-        <strong>Permissão tem três respostas, e a terceira decide o oposto da segunda.</strong>
-        <code>isGranted()</code> devolve <code>true</code>, <code>false</code> ou
-        <code>null</code> — e <code>null</code> é <em>"não obtive resposta"</em> (shell antigo, erro,
-        timeout), que manda <em>seguir</em>, enquanto <code>false</code> manda desistir. Tratar os
-        dois como um só é como um app deixa de funcionar num servidor mais velho sem nunca dizer
-        por quê. <code>grantedPaths()</code> é síncrona e lista o que este app já pode tocar sem
-        abrir seletor nenhum — inclusive de sessões anteriores e de outra máquina, porque o grant
-        mora no usuário.
+        <strong>Quem decide a permissão é o shell.</strong> <code>permissoes(caminho)</code>
+        pergunta a ele e devolve <code>true</code> ou <code>false</code>; fora do ambiente não há a
+        quem perguntar, e a resposta é <code>null</code>. Um shell mudo faz a promessa rejeitar
+        depois do prazo, e "não pude perguntar" pede do app o oposto de "não pode": tentar, em
+        vez de desistir. <code>concedidos()</code> é síncrona e lista o que este app já pode tocar
+        sem abrir seletor nenhum, inclusive o que foi concedido em sessões anteriores e em outra
+        máquina, porque o grant mora no usuário.
       </p>
       <div class="tuff-acoes">
-        <button class="tuff-btn" id="fs-grants">isGranted + grantedPaths</button>
+        <button class="tuff-btn" id="fs-grants">permissoes + concedidos</button>
       </div>
       <pre class="saida" id="grants">—</pre>
     </section>
 
     <section class="tuff-painel">
-      <h2>Seletores do desktop</h2>
+      <h2>Seletores do ambiente</h2>
       <p class="tuff-sec-desc">
         Três, e a diferença entre eles é o que o usuário vê: abrir, salvar (com nome sugerido) e
         escolher pasta. Todos devolvem o <strong>caminho absoluto no servidor</strong>, ou
-        <code>null</code> quando a pessoa cancela — e <code>null</code> também fora do desktop, onde
-        não há caminho de servidor que faça sentido. <strong>Escolher é consentir:</strong> é o
-        seletor que concede o acesso do <code>vssh.fs</code> àquele caminho, e não há segunda
-        confirmação.
+        <code>null</code> quando a pessoa cancela, e <code>null</code> também fora do ambiente,
+        onde não há caminho de servidor que faça sentido. <strong>Escolher é consentir:</strong> é
+        o seletor que concede o acesso de <code>vssh.arquivos</code> àquele caminho, e não há
+        segunda confirmação.
       </p>
       <div class="tuff-acoes">
-        <button class="tuff-btn" id="pick-file">pickFile</button>
-        <button class="tuff-btn" id="pick-save">pickSave</button>
-        <button class="tuff-btn" id="pick-dir">pickDirectory</button>
+        <button class="tuff-btn" id="pick-file">escolherArquivo</button>
+        <button class="tuff-btn" id="pick-save">escolherDestino</button>
+        <button class="tuff-btn" id="pick-dir">escolherPasta</button>
       </div>
       <pre class="saida" id="picks">—</pre>
     </section>
@@ -509,23 +511,24 @@
       <h2>Abrir no ambiente</h2>
       <p class="tuff-sec-desc">
         O app não abre PDF, nem vídeo, nem pasta: ele <strong>manda o caminho</strong> e o ambiente
-        escolhe o visualizador pela extensão. <code>openWith</code> devolve o rótulo que o usuário
-        escolheu; os outros não devolvem nada, porque não há o que responder.
+        escolhe o visualizador pela extensão. <code>abrirCom</code> devolve o rótulo que o usuário
+        escolheu; <code>abrir</code> e <code>abrirPasta</code> não devolvem nada, porque não há o
+        que responder.
       </p>
       <p class="tuff-sec-desc">
-        <code>openUrl</code> é o que mais engana: o link abre no navegador <strong>do
-        ambiente</strong>, que resolve a rede a partir do servidor Linux — então
-        <code>http://localhost:3000</code> ali é o loopback <em>do servidor</em>, não o da sua
-        máquina. Só <code>http</code>/<code>https</code>; o resto é recusado. E o link comum ao
-        lado prova a outra metade: <code>window.open</code> e <code>target="_blank"</code> são
-        <strong>desviados sozinhos</strong> pelo shim — o app não faz nada e mesmo assim não abre
-        aba no navegador hospedeiro.
+        <code>abrirLink</code> é o que mais engana: o link abre no navegador <strong>do
+        ambiente</strong>, que resolve a rede a partir do servidor Linux, então
+        <code>http://localhost:3000</code> ali é o loopback <em>do servidor</em>, e não o da sua
+        máquina. Só <code>http</code>/<code>https</code>; o resto é recusado. O link comum ao lado
+        prova a outra metade: <code>window.open</code> e <code>target="_blank"</code> são
+        <strong>desviados sozinhos</strong> pelo SDK, e o app não faz nada para não abrir aba no
+        navegador hospedeiro.
       </p>
       <div class="tuff-acoes">
-        <button class="tuff-btn" id="abrir-arquivo">openFile (escolhe e abre)</button>
-        <button class="tuff-btn" id="abrir-pasta">openFolder</button>
-        <button class="tuff-btn" id="abrir-com">openWith</button>
-        <button class="tuff-btn" id="abrir-url">openUrl</button>
+        <button class="tuff-btn" id="abrir-arquivo">abrir (escolhe e abre)</button>
+        <button class="tuff-btn" id="abrir-pasta">abrirPasta</button>
+        <button class="tuff-btn" id="abrir-com">abrirCom</button>
+        <button class="tuff-btn" id="abrir-url">abrirLink</button>
         <a id="link-alvo" href="https://example.org" target="_blank" rel="noreferrer">um link comum</a>
       </div>
       <pre class="saida" id="abrir">—</pre>
@@ -534,19 +537,20 @@
     <section class="tuff-painel larga">
       <h2>Voltar no lugar certo, e ser aberto com um arquivo</h2>
       <p class="tuff-sec-desc">
-        <code>vssh.lembrarRota()</code> guarda <strong>uma rota, e só</strong> — um ponteiro, não um
-        armazém. Quando a sessão é restaurada, a janela reabre nela, sem código de restauração
+        <code>vssh.app.lembrarRota()</code> guarda <strong>uma rota, e só</strong>: um ponteiro, e
+        não um armazém. Quando a sessão é restaurada, a janela reabre nela, sem código de restauração
         nenhum do seu lado. O que não couber num endereço vai para o backend do seu app: o teto é
         512 caracteres, sem esquema, sem barra inicial e sem <code>..</code>.
       </p>
       <p class="tuff-sec-desc">
-        <code>onOpenContext()</code> é o outro lado: <em>&ldquo;abra assim&rdquo;</em>. Chega o
-        <code>path</code> de um &ldquo;Abrir Terminal Aqui&rdquo;, o arquivo que alguém abriu com
-        este app (é o que <code>opens</code> declara no manifesto), ou uma <code>rota</code>, quando
-        clicam num item da <strong>jump list</strong> — o menu do botão direito no ícone do app, que
-        este manifesto declara em <code>contributes.contextMenu</code>. Com o app fechado a rota
-        entra na URL; com ele aberto, chega por aqui. Sem tratar isto, o item da jump list funciona
-        só na primeira abertura.
+        O evento <code>abertura</code> (<code>vssh.app.ao('abertura', cb)</code>) é o outro lado:
+        <em>&ldquo;abra assim&rdquo;</em>. Chega o <code>caminho</code> de um &ldquo;Abrir Terminal
+        Aqui&rdquo;, o arquivo que alguém abriu com este app (é o que <code>opens</code> declara no
+        manifesto), ou uma <code>rota</code>, quando clicam num item da <strong>jump list</strong>,
+        o menu do botão direito no ícone do app, que este manifesto declara em
+        <code>contributes.contextMenu</code>. Com o app fechado a rota entra na URL; com ele
+        aberto, chega por aqui. Sem tratar isto, o item da jump list funciona só na primeira
+        abertura.
       </p>
       <div class="tuff-acoes">
         <button class="tuff-btn" id="rota-lembrar">lembrar “?painel=1”</button>
@@ -559,8 +563,8 @@
       <h2>Armazenamento privado (OPFS)</h2>
       <p class="tuff-sec-desc">
         <code>navigator.storage.getDirectory()</code> é por <em>origem</em>, e todo vssh-app vive na
-        mesma. Sem isolamento, um app leria — e sobrescreveria — o banco do vizinho. O shim
-        confina cada app na sua raiz; o nome dela aparece abaixo.
+        mesma. Sem isolamento, um app leria, e sobrescreveria, o banco do vizinho. O SDK confina
+        cada app na sua raiz; o nome dela aparece abaixo.
       </p>
       <div class="tuff-acoes">
         <button class="tuff-btn" id="opfs-escrever">gravar</button>
@@ -583,11 +587,11 @@
     <section class="tuff-painel larga">
       <h2>Som</h2>
       <p class="tuff-sec-desc">
-        Este app obedece ao mixer da barra <strong>sem chamar nada</strong> — quem cuida disso é o
-        shim. São dois botões porque <code>&lt;audio&gt;</code> e Web Audio não se alcançam pelo
-        mesmo lugar: o desktop enxerga o primeiro de fora, e o segundo só é controlável porque o
-        shim envolve <code>AudioNode.connect</code>. Um app que toca por <code>AudioContext</code>
-        e não carrega o shim <em>nem aparece</em> no mixer.
+        Este app obedece ao mixer da barra <strong>sem chamar nada</strong>: quem cuida disso é o
+        SDK. São dois botões porque <code>&lt;audio&gt;</code> e Web Audio não se alcançam pelo
+        mesmo lugar: o ambiente enxerga o primeiro de fora, e o segundo só é controlável porque o
+        SDK envolve <code>AudioNode.connect</code>. Um app que toca por <code>AudioContext</code> e
+        não carrega o SDK <em>nem aparece</em> no mixer.
       </p>
       <div class="tuff-acoes">
         <button class="tuff-btn" id="som-media">tocar um &lt;audio&gt;</button>
@@ -613,9 +617,9 @@
 
   </div>
 
-  <!-- O comportamento está em `galeria.js`, que NÃO tem tag aqui: ele é injetado pelo
-       `static-spa` junto com o shim, para ganhar o carimbo de conteúdo na URL. Ver o cabeçalho
-       do arquivo e a lista de scripts injetados no backend deste app. -->
+  <!-- O comportamento está em `galeria.js`, que não tem tag aqui: ele é injetado pelo
+       `static-spa` depois de `_sdk/vssh.js`, para ganhar o carimbo de conteúdo na URL. Ver o
+       cabeçalho do arquivo e a lista de scripts injetados no backend deste app. -->
     </div>
 
   </div>
