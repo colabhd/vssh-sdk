@@ -27,7 +27,7 @@
       "youtube.com", "*.youtube.com", "youtu.be", "youtube-nocookie.com"
     ]
   },
-  "minShellVersion": "4.1.0",
+  "minShellVersion": "5.0.0",
   "backend": {
     "runtime": "python3",
     "transport": "socket",

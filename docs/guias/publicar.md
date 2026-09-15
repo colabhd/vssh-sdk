@@ -111,6 +111,10 @@ não pelo `vssh-app-install`, que roda offline. Quando a instalação parte da a
 portal lê o campo do catálogo do repositório e recusa antes de mandar o comando ao servidor, com o
 motivo; um Worker anterior ao campo não responde, e aí não há recusa ("não conferido" é diferente
 de "está tudo bem"). Uma instalação feita à mão no servidor não passa por essa conferência.
+O campo só aceita números (`5.0.0`, e nunca `5.0.0-rc0`): o rótulo de pré-lançamento é do shell,
+e um shell `5.0.0-rc0` conta como `5.0.0` na conferência, então um app escrito para o SDK 5
+declara `5.0.0` e instala no candidato. Os templates deste repositório já declaram isso, porque
+o `_sdk/vssh.js` que eles carregam só existe a partir do shell 5.
 
 Pela aba Repositório do portal, o admin vê, por servidor, o que está disponível no repositório e o
 que está instalado, sem rodar os scripts, e instala ou atualiza com um botão; o botão de atualizar

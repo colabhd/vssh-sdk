@@ -1,5 +1,5 @@
 {
-  "shellVersion": "4.19.3",
+  "shellVersion": "5.0.0-rc0",
   "artifacts": {
     "api/abi.json": {
       "sha256": "46d1ce34012e892941e5149114b3c25a4753d2893f23f63a61bd3e1123a1577f"
