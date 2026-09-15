@@ -9,14 +9,14 @@
  *
  * Daí saem dois caminhos, e eles são MUITO diferentes:
  *
- *   direto   `vssh.fs.urlFor(caminho)` → o portal serve com Range, busca nativa, zero CPU.
+ *   direto   `vssh.arquivos.urlFor(caminho)` → o portal serve com Range, busca nativa, zero CPU.
  *            O backend não vê um byte.
  *   cano     `api/fluxo` → ffmpeg. Sem Content-Length, sem Range, sem busca do navegador. A régua
  *            verdadeira vem do `ffprobe` e entra na `TuffMidia` por `opcoes.tempo`; buscar é
  *            reiniciar o cano com `?t=`.
  *
  * ⚠ **Nada roda até o `DOMContentLoaded`**, e não é zelo: `criar_spa_estatica` injeta os scripts
- * antes de `</head>` e **sem `defer`** — de propósito, porque o shim precisa existir antes dos
+ * antes de `</head>` e **sem `defer`** — de propósito, porque o SDK precisa existir antes dos
  * scripts diferidos de qualquer bundle. O efeito é que este arquivo executa com o `<body>` ainda
  * vazio: `getElementById` devolve `null` e a primeira linha que ligar um ouvinte lança. O app
  * inteiro morre ali, e o sintoma é uma janela que aparece e não faz nada.
@@ -276,7 +276,7 @@ function montarPalco() {
     } else {
       video.preload = 'metadata';
       mostrarPreparando(false);
-      video.src = vssh.fs.urlFor(caminho);
+      video.src = vssh.arquivos.urlFor(caminho);
       if (de) video.addEventListener('loadedmetadata', () => { video.currentTime = de; },
                                     { once: true });
     }
@@ -287,10 +287,7 @@ function montarPalco() {
     // Aqui o ambiente conseguiria adivinhar — o caminho está na URL do cano —, mas declarar custa
     // uma linha e tira a adivinhação do caminho: a pasta é um subtítulo melhor que o título da
     // janela, que repete o nome do arquivo que já está na linha de cima.
-    vssh.media?.agora?.({
-      titulo: r.nome,
-      subtitulo: pastaDe(r.caminho),
-    });
+    vssh.midia.agora(r.nome, pastaDe(r.caminho));
     aplicarLegendas(r);
     carregarVizinhos(caminho, minha);
     porMediaSession(r);
@@ -390,7 +387,7 @@ function montarPalco() {
       const c = e.corpo || {};
       avisar([c.erro || 'Não consegui abrir este vídeo do YouTube.', c.conserto]
         .filter(Boolean).join(' '));
-      vssh.openUrl(url, { destino: 'navegador' });
+      vssh.arquivos.abrirLink(url, 'navegador');
       return;
     }
     if (minha !== geracao) return;
@@ -402,7 +399,7 @@ function montarPalco() {
       // Playlist, canal e busca ainda não têm tela. Devolver é o caminho honesto — e é o que
       // impede o deeplink de virar beco.
       mostrarPreparando(false);
-      vssh.openUrl(url, { destino: 'navegador' });
+      vssh.arquivos.abrirLink(url, 'navegador');
       return;
     }
 
@@ -475,7 +472,7 @@ function montarPalco() {
     //     dash.js, o `seek` não acontece, e o vídeo reinicia do zero. É o "do nada ele parou e
     //     voltou pro começo";
     //   · no caminho NORMAL a exceção rejeita `abrirYoutube` e mata tudo que vem depois — legendas,
-    //     `mostrarRetomar`, `porMediaSession`, `vssh.media.agora` e a fila. Sem uma linha na tela.
+    //     `mostrarRetomar`, `porMediaSession`, `vssh.midia.agora` e a fila. Sem uma linha na tela.
     //     Só não mordia sempre porque só acontece quando há um `&t=` no link ou uma marca gravada.
     //
     // A saída é a própria API: `initialize(view, source, autoPlay, startTime)` — o quarto parâmetro
@@ -520,12 +517,8 @@ function montarPalco() {
     // ⚠ **Declarar é obrigatório aqui, e não cortesia.** A fonte deste `<video>` é um `blob:` do
     // MediaSource — não há nome de arquivo em URL nenhuma para o ambiente ler. Sem esta linha a
     // central de mídia mostrava o UUID do blob como título, com o nome de verdade caindo na linha
-    // de baixo. Ver `vssh.media.agora` no shim.
-    vssh.media?.agora?.({
-      titulo: r.titulo,
-      subtitulo: r.canal,
-      capa: `api/yt/miniatura?v=${r.id}`,
-    });
+    // de baixo. Ver `vssh.midia.agora` na referência do SDK.
+    vssh.midia.agora(r.titulo, r.canal, `api/yt/miniatura?v=${r.id}`);
 
     // ⚠ A fila vem DEPOIS de o vídeo já estar tocando, e nunca antes: carregar uma playlist de
     // trinta itens é outra ida ao YouTube, e fazê-la primeiro adiaria a imagem por esse tempo para
@@ -766,7 +759,7 @@ function montarPalco() {
 
   async function menu(botao, itens) {
     const r = botao.getBoundingClientRect();
-    const escolha = await vssh.contextMenu(r.left, r.bottom, itens);
+    const escolha = await vssh.dialogos.menuDeContexto(r.left, r.bottom, itens);
     if (escolha) executar(escolha);
   }
 
@@ -878,7 +871,7 @@ function montarPalco() {
     // O `healthz` é texto de linhas `chave: valor`. A primeira é o `ok` que o supervisor lê, e
     // ela não diz nada a quem abriu este diálogo.
     const linhas = texto.split('\n').filter((l) => l && l !== 'ok');
-    vssh.dialog.alert(linhas.join('\n') || texto, 'Sobre o Palco');
+    vssh.dialogos.mostrar(linhas.join('\n') || texto, 'Sobre o Palco');
   }
 
   // ⚠ Sete valores, com o 1× no meio. Ciclar num botão só exigia quatro cliques para chegar ao
@@ -902,13 +895,13 @@ function montarPalco() {
     }
     if (id.startsWith('pasta:')) {
       const alvo = vizinhos[parseInt(id.slice(6), 10)];
-      if (alvo) vssh.openFolder(alvo.caminho.replace(/[^/\\]+$/, ''));
+      if (alvo) vssh.arquivos.abrirPasta(alvo.caminho.replace(/[^/\\]+$/, ''));
       return undefined;
     }
 
     const acoes = {
       abrir: escolherArquivo,
-      fechar: () => vssh.window.close(),
+      fechar: () => vssh.janela.fechar(),
       anterior: () => indice > 0 && abrirVizinho(vizinhos[indice - 1]),
       proximo: () => indice >= 0 && indice + 1 < vizinhos.length
                 && abrirVizinho(vizinhos[indice + 1]),
@@ -921,7 +914,7 @@ function montarPalco() {
       tela: telaCheia,
       pip: janelaFlutuante,
       info: informacoes,
-      mostrar: () => atual && vssh.openFolder(atual.caminho.replace(/[^/\\]+$/, '')),
+      mostrar: () => atual && vssh.arquivos.abrirPasta(atual.caminho.replace(/[^/\\]+$/, '')),
       esquecer: () => {
         // A MESMA chave de `marcar()`. Duas formas de nomear a mesma coisa dariam um "esquecer"
         // que apaga uma entrada que ninguém gravou, deixando a de verdade no lugar.
@@ -946,7 +939,7 @@ function montarPalco() {
   // primeiro num player de desktop, e o VLC, o mpv e o Windows Media Player têm todos o mesmo. Sem
   // ele, cada troca de velocidade ou de legenda custava uma viagem até a barra de menu no topo.
   //
-  // Quem DESENHA continua sendo o ambiente, pelo mesmo `vssh.contextMenu` da barra de menu — então
+  // Quem DESENHA continua sendo o ambiente, pelo mesmo `menuDeContexto` da barra de menu — então
   // o menu do Palco se parece com o do gerenciador de arquivos porque é o mesmo menu. E o conteúdo
   // depende de ONDE o clique caiu: um menu único para a janela inteira ofereceria "Mostrar no
   // gerenciador" sobre um cartão do YouTube.
@@ -955,7 +948,7 @@ function montarPalco() {
   // menu do navegador (colar, selecionar tudo) é melhor que qualquer coisa que façamos aqui.
 
   function menuEm(x, y, itens) {
-    vssh.contextMenu(x, y, itens).then((escolha) => { if (escolha) executar(escolha); });
+    vssh.dialogos.menuDeContexto(x, y, itens).then((escolha) => { if (escolha) executar(escolha); });
   }
 
   /** O menu do palco: o que se faz com o que está tocando. */
@@ -1026,7 +1019,7 @@ function montarPalco() {
 
   $('btn-veloc').addEventListener('click', (e) => {
     const r = e.currentTarget.getBoundingClientRect();
-    vssh.contextMenu(r.left, r.top, [
+    vssh.dialogos.menuDeContexto(r.left, r.top, [
       { header: 'Velocidade' },
       ...VELOCIDADES.map((v) => ({ id: String(v), label: rotuloVelocidade(v),
                                    checked: video.playbackRate === v })),
@@ -1053,7 +1046,7 @@ function montarPalco() {
     }
     if (!itens.length) itens.push({ label: 'Este arquivo tem uma faixa só', disabled: true });
     const r = e.currentTarget.getBoundingClientRect();
-    vssh.contextMenu(r.left, r.top, itens).then((x) => x && executar(x));
+    vssh.dialogos.menuDeContexto(r.left, r.top, itens).then((x) => x && executar(x));
   });
 
   // Tri-estado, e o ícone TROCA no terceiro: cor sozinha distingue dois, não três.
@@ -1177,11 +1170,11 @@ function montarPalco() {
           + 'foi desenhar, e a causa pode ser o arquivo ou esta máquina.'
         : 'Abaixo de 5% a reprodução é considerada lisa.') : null,
     ].filter((x) => x !== null);
-    await vssh.dialog.alert(linhas.join('\n'), 'Informações do arquivo');
+    await vssh.dialogos.mostrar(linhas.join('\n'), 'Informações do arquivo');
   }
 
   async function escolherArquivo() {
-    const p = await vssh.pickFile();
+    const p = await vssh.arquivos.escolherArquivo();
     if (p) abrir(p);
   }
   $('btn-abrir-arquivo').addEventListener('click', escolherArquivo);
@@ -1226,13 +1219,9 @@ function montarPalco() {
   // sem declarar, ele não desenha anterior/próximo, que é a resposta certa para quem abriu um
   // arquivo solto. Declarar de novo a cada abertura é o ponto: a pasta muda, e com ela a resposta.
   function porCentralDeMidia() {
-    if (!vssh.media) return;   // shell antigo: o player continua inteiro, sem os dois botões
-    vssh.media.transporte({
-      anterior: indice > 0,
-      proximo: indice >= 0 && indice + 1 < vizinhos.length,
-    });
+    vssh.midia.transporte(indice > 0, indice >= 0 && indice + 1 < vizinhos.length);
   }
-  vssh.media?.aoAgir((acao) => executar(acao === 'anterior' ? 'anterior' : 'proximo'));
+  vssh.midia.ao('acao', ({ acao }) => executar(acao === 'anterior' ? 'anterior' : 'proximo'));
 
   function porMediaSession(r) {
     if (!('mediaSession' in navigator)) return;
@@ -1318,7 +1307,7 @@ function montarPalco() {
       p.classList.toggle('painel--ativo', p.id === `painel-${nome}`);
     }
     // O shell devolve a janela nesta rota quando a sessão é restaurada.
-    vssh.lembrarRota?.(nome === 'reproduzindo' ? '' : nome);
+    vssh.app.lembrarRota(nome === 'reproduzindo' ? '' : nome);
   }
   for (const b of document.querySelectorAll('.aba')) {
     b.addEventListener('click', () => irPara(b.dataset.aba));
@@ -1329,10 +1318,10 @@ function montarPalco() {
   // É por aqui que o Palco recebe o arquivo que alguém mandou abrir com ele — o duplo-clique no
   // gerenciador de arquivos, o "Abrir com", e (a partir da Fase 3) o link roteado.
 
-  vssh.onOpenContext((ctx) => {
+  vssh.app.ao('abertura', (ctx) => {
     if (ctx.tipo === 'pasta') return;          // pasta é a Biblioteca de outro dia
     // ⚠ `tipo: 'url'` é o que o roteamento de link entrega (Fase 3). Ele já chega hoje por
-    // `vssh.openUrl` de outro app; o que ainda não acontece é o Palco ser ELEITO para os hosts do
+    // `vssh.arquivos.abrirLink` de outro app; o que ainda não acontece é o Palco ser ELEITO para os hosts do
     // YouTube, e isso segue desligado de propósito — `opens.urls` só entra quando a aba cobrir
     // playlist, canal e busca, senão o link vira beco.
     if (ctx.tipo === 'url' && ctx.url) {
@@ -1345,7 +1334,7 @@ function montarPalco() {
       abrirYoutube(ctx.url);
       return;
     }
-    if (ctx.path) { irPara('reproduzindo'); abrir(ctx.path); return; }
+    if (ctx.caminho) { irPara('reproduzindo'); abrir(ctx.caminho); return; }
     if (ctx.rota) irPara(ctx.rota);
   });
 

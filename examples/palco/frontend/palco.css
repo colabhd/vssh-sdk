@@ -4,7 +4,7 @@
    Quatro coisas separam um programa de reprodução de uma página com vídeo, e nenhuma é pintura:
 
      1. o TRANSPORTE é permanente — ele não some ao ir à Biblioteca, porque o vídeo não parou;
-     2. existe BARRA DE MENU, e cada nome chama `vssh.contextMenu()`: quem desenha é o AMBIENTE.
+     2. existe BARRA DE MENU, e cada nome chama `vssh.dialogos.menuDeContexto()`: quem desenha é o AMBIENTE.
         O menu do Palco se parece com o do gerenciador de arquivos porque É o mesmo menu;
      3. a biblioteca é TABELA densa com colunas — cartão é vitrine, tabela é ferramenta;
      4. há BARRA DE ESTADO embaixo, em frases e sem jargão.

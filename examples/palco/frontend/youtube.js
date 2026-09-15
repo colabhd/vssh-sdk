@@ -181,14 +181,14 @@ function montarYoutube(palco) {
     const item = itens.find((x) => x.id === no.dataset.id);
     if (!item) return;
     const url = `https://www.youtube.com/watch?v=${item.id}`;
-    vssh.contextMenu(e.clientX, e.clientY, [
+    vssh.dialogos.menuDeContexto(e.clientX, e.clientY, [
       { id: 'assistir', label: 'Assistir aqui' },
       { id: 'navegador', label: 'Abrir no YouTube' },
     ]).then((escolha) => {
       if (escolha === 'assistir') {
         palco.abrirYoutube(url, { fila: itens.map((x) => ({ nome: x.titulo, videoId: x.id })) });
       } else if (escolha === 'navegador') {
-        vssh.openUrl(url, { destino: 'navegador' });
+        vssh.arquivos.abrirLink(url, 'navegador');
       }
     });
   });

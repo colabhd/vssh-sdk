@@ -6,7 +6,7 @@ O que ele substitui: hoje um vídeo aberto no ambiente vira uma aba do navegador
 
 ─── A decisão que manda no arquivo inteiro ──────────────────────────────────
 
-⚠ **O backend não serve bytes quando não precisa.** `vssh.fs.urlFor(path)` já devolve uma URL do
+⚠ **O backend não serve bytes quando não precisa.** `vssh.arquivos.urlFor(caminho)` já devolve uma URL do
 portal com Range: um arquivo que o navegador abre sozinho toca dali, com busca nativa e **zero** CPU
 no servidor. O ffmpeg só entra quando o cliente disser que não dá conta — e quem diz é o cliente,
 porque a resposta muda por máquina, por sistema e por versão.
@@ -58,7 +58,6 @@ from vssh_app_toolkit.listen import ErroDeEndereco, VSSH_APP_JA_ESCUTANDO, criar
 from vssh_app_toolkit.log import criar_log_do_app  # noqa: E402
 from vssh_app_toolkit.spa import criar_spa_estatica  # noqa: E402
 from vssh_app_toolkit.tray import limpar_bandeja_ao_sair  # noqa: E402
-from vssh_app_toolkit.web import DIRETORIO_WEB, ESTILOS, ESTILOS_MIDIA, SCRIPTS, SCRIPTS_MIDIA, SHIMS  # noqa: E402
 
 from dash import montar_mpd  # noqa: E402
 from listas import URL_DA_MINIATURA, como_json  # noqa: E402
@@ -114,15 +113,19 @@ VERSAO = _versao_do_app()
 GPU, GPU_MOTIVO = achar_gpu()
 log("boot", {"gpu": str(GPU) if GPU else "sem GPU", "motivo": GPU_MOTIVO})
 
+# O que o sistema serve no espaço `_sdk/` do app, e este backend só injeta: o SDK web (a ponte
+# `vssh.*` e o polyfill de File System Access) e o Tuff, sem carimbo, porque nenhum deles está no
+# disco deste pacote. `tuff-midia` é o que traz a `TuffMidia`: sem ela não há trilha, nem
+# timecode, nem o chrome que some. É a peça inteira deste app, e ela é opt-in de propósito.
+_SDK_WEB = ["_sdk/vssh.js"]
+_TUFF_ESTILOS = ["_sdk/tuff/tuff-tokens.css", "_sdk/tuff/tuff-base.css", "_sdk/tuff/tuff.css",
+                 "_sdk/tuff/tuff-midia.css"]
+_TUFF_SCRIPTS = ["_sdk/tuff/tuff-icones.js", "_sdk/tuff/tuff.js", "_sdk/tuff/tuff-midia.js"]
+
 spa = criar_spa_estatica(
     root=os.path.join(_AQUI, "..", "frontend"),
-    mounts={"/_vssh/": DIRETORIO_WEB},
-    inject_styles=([f"_vssh/{f}" for f in ESTILOS] + [f"_vssh/{f}" for f in ESTILOS_MIDIA]
-                   + ["palco.css"]),
-    # `SCRIPTS_MIDIA` é o que traz a `TuffMidia` — sem ela não há trilha, nem timecode, nem o
-    # chrome que some. É a peça inteira deste app, e ela é opt-in de propósito.
-    inject_scripts=([f"_vssh/{s}" for s in SHIMS] + [f"_vssh/{s}" for s in SCRIPTS]
-                    + [f"_vssh/{s}" for s in SCRIPTS_MIDIA]
+    inject_styles=_TUFF_ESTILOS + ["palco.css"],
+    inject_scripts=(_SDK_WEB + _TUFF_SCRIPTS
                     # ⚠ `youtube.js` ANTES de `palco.js`: ele só define `montarYoutube`, e é o
                     # `palco.js` que a chama no fim do próprio boot. Na ordem inversa a função
                     # ainda não existiria, e a aba ficaria inerte — sem erro nenhum.
@@ -570,7 +573,7 @@ class Handler(BaseHTTPRequestHandler):
         if argv is None:
             # ⚠ Modo direto: pedir o cano aqui é um bug do frontend, e responder com bytes
             # esconderia esse bug atrás de CPU gasta em silêncio. 409 nomeia o que aconteceu.
-            return self._json(409, {"erro": "este arquivo toca direto; use vssh.fs.urlFor",
+            return self._json(409, {"erro": "este arquivo toca direto; use vssh.arquivos.urlFor",
                                     "modo": d.modo})
         # A mesma linha sem a placa. Só é USADA se a primeira morrer sem escrever nada — e o teste
         # do boot já reprovou as placas que nunca funcionam, então isto cobre o que sobra: falhar em
@@ -696,7 +699,7 @@ class Handler(BaseHTTPRequestHandler):
         """O endereço → o que ele é, e (sendo vídeo) tudo que a tela precisa para tocar.
 
         ⚠ `analisar` devolvendo `None` **não é erro**, e a resposta diz isso com todas as letras:
-        quem chama tem de devolver o link com `vssh.openUrl(url, {destino:'navegador'})`. É a regra
+        quem chama tem de devolver o link com `vssh.arquivos.abrirLink(url, 'navegador')`. É a regra
         que impede o deeplink de virar beco — a pessoa clicou num link e tem de chegar a algum
         lugar, mesmo que não seja aqui.
         """

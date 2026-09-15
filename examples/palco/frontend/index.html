@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Palco</title>
   <!--
-    ⚠ Nenhuma tag <script> ou <link> das libs aqui. Quem injeta o shim, o Tuff e o `palco.css`/`.js`
+    ⚠ Nenhuma tag <script> ou <link> das libs aqui. Quem injeta o SDK, o Tuff e o `palco.css`/`.js`
     é `criar_spa_estatica` no backend — e por um motivo prático: só o que é injetado ganha carimbo
     de conteúdo na URL, e é o carimbo que garante que uma reinstalação não sirva a versão velha de
     algum cache do caminho.
@@ -20,7 +20,7 @@
 <div class="janela">
 
   <!-- ── A barra de menu ──────────────────────────────────────────────────────
-       Cada nome chama `vssh.contextMenu()`, e **quem desenha a lista é o AMBIENTE**. O menu do
+       Cada nome chama `vssh.dialogos.menuDeContexto()`, e **quem desenha a lista é o AMBIENTE**. O menu do
        Palco se parece com o menu do gerenciador de arquivos porque É o mesmo menu. -->
   <div class="menubar" id="menubar">
     <button data-menu="midia">Mídia</button>
