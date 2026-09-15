@@ -22,9 +22,11 @@ queira em `api/` se faz na fonte, no `vssh-sso`. `tests/docs-links.test.js` só 
 para dentro desses diretórios quando o diretório existe: um checkout anterior à primeira rodada do
 canal não os tem, e a documentação autorada já aponta para eles.
 
-`runtime/` hoje tem só um README: as libs de backend ainda vêm do `vssh-app-toolkit`, e é isso que
-o `installCommand` dos templates e dos exemplos declara. Quando o canal passar a publicá-las aqui,
-o que muda está descrito em [MIGRATION.md](MIGRATION.md).
+`runtime/` é o pacote `vssh` em Node e em Python, copiado de `infra/sdk/` do sistema a cada
+rodada: as libs de backend que todo servidor tem em `/opt/vssh/sdk`, e que os templates importam.
+`scripts/ambiente-de-dev.{sh,ps1}` põem a cópia daqui no `NODE_PATH` e no `PYTHONPATH` de quem
+desenvolve, e a ação composta `.github/actions/preparar-sdk` faz o mesmo no CI de um app. O que
+muda para um app escrito contra o `vssh-app-toolkit` está em [MIGRATION.md](MIGRATION.md).
 
 ## O SDK web não viaja no pacote de um app
 
@@ -40,19 +42,19 @@ ter. Fora do ambiente ninguém serve `_sdk/`, e a galeria dos templates diz isso
 
 ```bash
 npm test            # a suíte Node (tests/); sem python3 os testes do validador se pulam
-npm run test:py     # o template Python e os exemplos Python; pede as libs em vendor/py (abaixo)
+npm run test:py     # o template Python e os exemplos Python
 ```
 
-`tests/browser/template-fora-do-ambiente.test.js` sobe o backend do template Node num socket unix,
-serve `api/vssh.js` e `api/tuff/` na frente dele como o sistema faz, e abre a página num Chrome
-headless. Sem Chrome, sem `api/vssh.js` ou sem socket unix ele se pula dizendo o que falta;
-`VSSH_SDK_WEB`, `VSSH_SDK_TUFF` e `VSSH_TEMPLATE_URL` apontam para outras cópias e para um backend
-já de pé (um relay de dentro do WSL, no Windows).
+Os testes que sobem um template ou importam o backend dele leem o runtime `vssh` do `NODE_PATH` e
+do `PYTHONPATH` quando há um (`source scripts/ambiente-de-dev.sh`, ou a fonte em `infra/sdk/` de
+um checkout do sistema), e da cópia gerada em `runtime/` quando não há. Um checkout esparso sem
+nenhum dos dois pula esses testes dizendo o que falta.
 
-As libs de um template se instalam pelo `installCommand` do manifesto dele, que é o que o
-servidor roda. Para o Python: `cd templates/hello-vssh-app && bash -c "$(python3 -c 'import json;print(json.load(open("vssh-app.json"))["backend"]["installCommand"])')"`.
-Para o Node, `npm ci` em `templates/hello-vssh-app-node`. Sem elas, os testes que as usam se
-pulam dizendo o comando.
+`tests/browser/template-fora-do-ambiente.test.js` sobe o backend do template Node numa porta de
+bancada (`--tcp 127.0.0.1:0`), serve `api/vssh.js` e `api/tuff/` na frente dele como o sistema
+faz, e abre a página num Chrome headless. Sem Chrome ou sem `api/vssh.js` ele se pula dizendo o
+que falta; `VSSH_SDK_WEB`, `VSSH_SDK_TUFF` e `VSSH_TEMPLATE_URL` apontam para outras cópias e para
+um backend já de pé.
 
 Não há dependência npm neste repositório, e é regra: a suíte é `node --test` sobre a biblioteca
 padrão, e o validador do `vssh-app-publish` é Python da biblioteca padrão. Cada dependência seria

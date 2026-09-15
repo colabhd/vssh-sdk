@@ -16,7 +16,9 @@ repositório de app, de uma organização ou de uma conta pessoal, e o script é
 | Caminho | O que é | Quem escreve |
 |---|---|---|
 | [`api/`](api/) | O contrato: o schema do manifesto (`vssh-app.schema.json`), o SDK web (`vssh.js`, o mesmo arquivo que o sistema serve a cada app em `_sdk/vssh.js`), a tabela da ponte (`abi.json`), os typings (`vssh.d.ts`), a biblioteca de UI (`tuff/`) e o `build-info.json` com a versão do shell e o hash de cada artefato. | O sistema. Um job de CI do repositório privado do VSSH gera estes arquivos depois de cada deploy e os commita aqui. Uma edição à mão é sobrescrita na rodada seguinte, e o gerador recusa rodar sobre um arquivo que ele não escreveu. |
-| [`runtime/`](runtime/) | As libs de backend (Node e Python), para o emulador e para o editor; em produção elas vêm do servidor. | O sistema. Enquanto o canal não as publica, o diretório tem só o README e as libs vêm do `vssh-app-toolkit` (ver abaixo). |
+| [`runtime/`](runtime/) | As libs de backend, o pacote `vssh` em Node e em Python, para a máquina de quem escreve e para o CI; em produção elas vêm do servidor, em `/opt/vssh/sdk`. | O sistema, copiando de `infra/sdk/` a cada rodada. |
+| [`scripts/ambiente-de-dev.sh`](scripts/ambiente-de-dev.sh), [`.ps1`](scripts/ambiente-de-dev.ps1) | Para `source`: `VSSH_SDK`, `NODE_PATH` e `PYTHONPATH` apontando para o `runtime/` deste checkout. | Pessoas. |
+| [`.github/actions/preparar-sdk/`](.github/actions/preparar-sdk/action.yml) | A ação composta que o CI de um app chama antes de `npm test`, para importar `vssh` como no servidor. | Pessoas. |
 | [`docs/`](docs/) | Os conceitos e os guias de quem escreve um app, e a referência da API, gerada em `docs/referencia/`. | Pessoas, e o sistema na referência. |
 | [`templates/hello-vssh-app/`](templates/hello-vssh-app/) | Template Python e galeria de capacidades do ambiente. Copie e adapte. | Pessoas. |
 | [`templates/hello-vssh-app-node/`](templates/hello-vssh-app-node/) | O mesmo app, em Node. A escolha entre os dois é de linguagem, e de mais nada: `tests/galeria-paridade.test.js` reprova qualquer deriva entre eles. | Pessoas. |
@@ -97,40 +99,41 @@ exclui fica de fora), confere o sha256 e faz `POST /v1/publish/app`. Ver `--help
 ```
 
 No `<head>`, antes dos scripts do app, relativo à raiz dele; o sistema responde esse caminho para
-cada app, no portal e no cliente de desktop, e nada viaja no pacote. Com o SPA das libs de backend
-a tag entra por `injectScripts: ['_sdk/vssh.js']` (Node) ou `inject_scripts=["_sdk/vssh.js"]`
-(Python), sem `mounts`; a biblioteca de UI vem de `_sdk/tuff/` pelo mesmo caminho. Os nomes
-(`vssh.app.capacidades()`, `vssh.avisos.notificar(...)`, `vssh.app.ao('abertura', cb)`) estão na
-referência gerada em `docs/referencia/`, e os typings em `api/vssh.d.ts`.
+cada app, no portal e no cliente de desktop, e nada viaja no pacote. Com o `web.spa` do runtime a
+tag entra sozinha (`web.spa(raiz)` no Node, `web.spa(raiz)` no Python), e `tuff: true` acrescenta a
+biblioteca de UI, de `_sdk/tuff/`, pelo mesmo caminho. Os nomes (`vssh.app.capacidades()`,
+`vssh.avisos.notificar(...)`, `vssh.app.ao('abertura', cb)`) estão na referência gerada em
+`docs/referencia/`, e os typings em `api/vssh.d.ts`.
 
-## As libs de backend, e de onde elas vêm hoje
+## As libs de backend
 
-O backend de um app usa oito peças (endereço, log, SPA, SSE, filesystem privado, bandeja,
-notificação, atividade), iguais em Node e em Python. Elas são instaladas pelo gerenciador de
-pacotes do runtime do app, e por enquanto vêm do repositório
-[`colabhd/vssh-app-toolkit`](https://github.com/colabhd/vssh-app-toolkit):
+O backend de um app importa `vssh`: `const { servidor, web, eventos, dados, avisos, app, gpu } =
+require('vssh')` no Node, `from vssh import servidor, web, ...` no Python. É o runtime que todo
+servidor VSSH tem em `/opt/vssh/sdk/{node,python}` e que o lançador põe no `NODE_PATH` e no
+`PYTHONPATH` do app antes de subi-lo; o app não o instala, não o vendoriza e não o declara. Os
+sete módulos: o endereço, o portão de token, o `/saude` e o log (`servidor`); a SPA com o SDK web
+e o Tuff injetados (`web`); SSE e difusão (`eventos`); o filesystem privado do app (`dados`);
+notificação, atividade e bandeja para um app sem janela (`avisos`); quem sou e onde guardo as
+coisas (`app`); e a GPU que o lançador concedeu (`gpu`).
 
-```bash
-npm i github:colabhd/vssh-app-toolkit#v4                                                # Node
-pip install "https://github.com/colabhd/vssh-app-toolkit/archive/refs/tags/v4.tar.gz"  # Python
-```
-
-Os templates já vêm com isso ligado, no `installCommand` do manifesto. O sistema passa a
-publicá-las aqui, em `runtime/`, numa etapa seguinte; o [`MIGRATION.md`](MIGRATION.md) diz o que
-muda quando isso acontece.
+A cópia gerada em [`runtime/`](runtime/) é a mesma coisa, para a máquina de quem escreve e para o
+CI: `source scripts/ambiente-de-dev.sh` a põe no caminho dos dois interpretadores, e o
+[guia do ambiente de desenvolvimento](docs/guias/ambiente-de-desenvolvimento.md) mostra o resto.
+Um app escrito contra o `vssh-app-toolkit` troca as libs pela tabela do
+[`MIGRATION.md`](MIGRATION.md).
 
 ## Verificar
 
 ```bash
-npm test          # a suíte Node: o validador do publish, o portão de versão, os templates
-npm run test:py   # o template Python e os exemplos Python (pede as libs em vendor/py; ver ci.yml)
+npm test          # a suíte Node: o validador do publish, o portão de libs, os templates
+npm run test:py   # o template Python e os exemplos Python
 ```
 
-Sem `python3` os testes do validador se pulam; sem as libs instaladas no template, os do backend
-Python também. O CI instala as libs pelo `installCommand` de cada manifesto e sobe os dois
-templates num socket, como o servidor faz. `tests/browser/` abre o template Node num Chrome de
-verdade com o SDK de `api/vssh.js` na frente do backend, e se pula sem Chrome, sem o artefato ou
-sem socket unix (no Windows, `VSSH_TEMPLATE_URL` aponta para um backend já de pé).
+Sem `python3` os testes do validador se pulam. Os testes que sobem um template leem o runtime
+`vssh` do `NODE_PATH` e do `PYTHONPATH` quando há um, e da cópia em `runtime/` quando não há. O CI
+faz `source scripts/ambiente-de-dev.sh` e sobe os dois templates num socket, como o servidor faz.
+`tests/browser/` abre o template Node num Chrome de verdade com o SDK de `api/vssh.js` na frente
+do backend, numa porta de bancada, e se pula sem Chrome ou sem o artefato.
 
 ## Vindo do `vssh-app-toolkit`
 

@@ -2,11 +2,12 @@
 
 Ao terminar este guia você tem um app Python de pé na sua máquina, instalado num servidor VSSH e
 aberto pelo menu do ambiente, com log estruturado, healthcheck e a ponte com o shell carregada. O
-ponto de partida é o template `templates/hello-vssh-app/` do toolkit, que já nasce com tudo isso
-ligado; o guia mostra o que cada peça faz para você poder tirar o que não for seu.
+ponto de partida é o template [`templates/hello-vssh-app/`](../../templates/hello-vssh-app/)
+deste repositório, que já nasce com tudo isso ligado; o guia mostra o que cada peça faz para você
+poder tirar o que não for seu.
 
-Os nomes de verbo deste guia seguem a [nota sobre os nomes](../README.md#sobre-os-nomes-dos-verbos):
-o SDK que os expõe chega com a sub-etapa 5.2, e o shim de hoje fala os nomes antigos.
+Os nomes de verbo deste guia são os da [referência gerada](../referencia/README.md), a mesma que
+o SDK servido pelo sistema expõe.
 
 ## 1. O pacote
 
@@ -23,8 +24,8 @@ meu-app/
 Copie o template e troque a identidade:
 
 ```bash
-git clone https://github.com/colabhd/vssh-app-toolkit
-cp -r vssh-app-toolkit/templates/hello-vssh-app ~/meu-app && cd ~/meu-app
+git clone https://github.com/colabhd/vssh-sdk
+cp -r vssh-sdk/templates/hello-vssh-app ~/meu-app && cd ~/meu-app
 ```
 
 O `id` é imutável: vira caminho, endereço e sentinel do menu, e trocá-lo é publicar outro app.
@@ -41,102 +42,75 @@ O mínimo que um app Python declara:
   "version": "1.0.0",
   "icon": "icon.svg",
   "category": "Utility",
-  "requiredPackages": ["python3-pip"],
   "backend": {
     "runtime": "python3",
     "entrypoint": "backend/main.py",
-    "installCommand": "( [ \"${VSSH_APP_REBUILD:-}\" != 1 ] && test -d vendor/py ) || python3 -m pip install --no-cache-dir --target vendor/py \"https://github.com/colabhd/vssh-app-toolkit/archive/refs/tags/v4.tar.gz\"",
-    "healthcheckPath": "/healthz"
+    "healthcheckPath": "/saude"
   },
   "window": { "title": "Meu App", "width": 900, "height": 640 }
 }
 ```
 
-Três decisões estão nesse bloco:
+Duas decisões estão nesse bloco:
 
-- `python3-pip` em `requiredPackages`. Sem ele, um servidor sem pip só se descobre quando a
-  primeira pessoa abre o app: a segunda execução do `installCommand` falha, e o app não sobe para
-  aquela pessoa;
-- o `installCommand` instala o toolkit em `vendor/py`, dentro do próprio pacote, o equivalente do
-  `node_modules`. O guard `test -d vendor/py` o torna idempotente, e `VSSH_APP_REBUILD` é a
-  variável que o `vssh-app-install` exporta só na invocação como root, para uma reinstalação com
-  `--force` refazer a etapa;
-- `healthcheckPath` aponta para uma rota que responde sem depender de nada estar pronto. A
-  sondagem segura o clique de quem abriu o app.
+- não há `installCommand`. O backend importa `vssh`, o runtime que todo servidor VSSH tem em
+  `/opt/vssh/sdk/python` e que o lançador põe no `PYTHONPATH` do app; o resto é biblioteca
+  padrão. Um app com dependências próprias declara `python3-pip` em `requiredPackages` e um
+  `installCommand` como `( [ "${VSSH_APP_REBUILD:-}" != 1 ] && test -d vendor/py ) || python3 -m
+  pip install --target vendor/py -r requirements.txt`, idempotente porque roda uma vez como root
+  no install e uma por usuário no primeiro run;
+- `healthcheckPath` aponta para o `/saude` que o portão do runtime responde antes de chamar o
+  app. A sondagem segura o clique de quem abriu o app, e vai com o token.
 
 ## 3. O backend
 
-O toolkit resolve as quatro coisas que todo app erra na primeira vez: onde escutar, onde logar,
-como servir o frontend sob o prefixo do proxy, e como carregar a ponte. O esqueleto:
+O runtime resolve as quatro coisas que todo app erra na primeira vez: onde escutar, quem atender,
+onde logar, e como servir o frontend sob o prefixo do proxy com a ponte carregada. O esqueleto:
 
 ```python
-import os, sys
-from http.server import BaseHTTPRequestHandler
+import os
+import sys
+
+from vssh import servidor, web
 
 _AQUI = os.path.dirname(os.path.abspath(__file__))
-_VENDOR = os.path.join(_AQUI, "..", "vendor", "py")
-if os.path.isdir(_VENDOR):
-    sys.path.insert(0, os.path.abspath(_VENDOR))
 
-from vssh_app_toolkit.listen import ErroDeEndereco, VSSH_APP_JA_ESCUTANDO, criar_servidor
-from vssh_app_toolkit.log import criar_log_do_app
-from vssh_app_toolkit.spa import criar_spa_estatica
-from vssh_app_toolkit.web import DIRETORIO_WEB, SHIMS
+log = servidor.criar_log()
+spa = web.spa(os.path.join(_AQUI, "..", "frontend"), tuff=True, ao_avisar=log)
 
-APP_ID = os.environ.get("VSSH_APP_ID") or "meu-app"
-log = criar_log_do_app(app_id=APP_ID)
 
-spa = criar_spa_estatica(
-    root=os.path.join(_AQUI, "..", "frontend"),
-    mounts={"/_vssh/": DIRETORIO_WEB},
-    inject_scripts=[f"_vssh/{s}" for s in SHIMS],
-)
-
-class Handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        if self.path == "/healthz":
-            corpo = b"ok\n"
-            self.send_response(200)
-            self.send_header("Content-Type", "text/plain")
-            self.send_header("Content-Length", str(len(corpo)))
-            self.end_headers()
-            self.wfile.write(corpo)
-            return
+class Pedido(servidor.Pedido):
+    def atender(self, metodo):
+        # O portão de token e o `GET /saude` já passaram quando isto é chamado.
         if spa(self):
             return
-        self.send_response(404)
-        self.end_headers()
+        self.responder_json(404, {"error": "Rota desconhecida."})
 
-def main():
-    try:
-        servidor = criar_servidor(Handler)
-    except ErroDeEndereco as err:
-        if err.codigo == VSSH_APP_JA_ESCUTANDO:
-            raise SystemExit(0)
-        log("listen-failed", {"message": str(err)})
-        raise SystemExit(1)
-    log("listening", {**servidor.endereco_vssh, "appId": APP_ID})
-    servidor.serve_forever()
 
 if __name__ == "__main__":
-    main()
+    sys.exit(servidor.escutar(Pedido, sys.argv[1:]))
 ```
 
 O que cada peça faz:
 
-- `criar_servidor` lê `$VSSH_APP_SOCKET`, limpa um socket órfão por tentativa de conexão (um
-  arquivo que existe pode ser de um processo morto), põe o modo `0600` e falha alto quando não
-  veio endereço nenhum. `VSSH_APP_JA_ESCUTANDO` quer dizer que outra instância já atende, e sair
-  em silêncio é o contrato do ciclo de vida;
-- `criar_log_do_app` escreve em `$VSSH_APP_DATA_DIR/app.log`, uma linha por evento. Comece por
-  ele: numa depuração remota, é a linha com operação e caminho que responde, e o frame minificado
-  do console só sustenta hipótese;
-- `criar_spa_estatica` serve o `frontend/` sob o prefixo do proxy, e a ponte com o shell em dois
-  passos. O `mounts` põe o diretório das libs de navegador numa URL (`/_vssh/`), e o
-  `inject_scripts` acrescenta a tag `<script>` antes do `</head>`. Esquecer o primeiro é o erro
-  clássico: a página carrega normalmente, a tag aponta para 404, e o objeto `vssh` não existe,
-  sem erro nenhum ligando uma coisa à outra. Cada script injetado sai com o hash do conteúdo na
-  URL, para uma reinstalação nunca servir a versão velha de nenhum cache do caminho.
+- `servidor.escutar(Pedido, argv)` lê `$VSSH_APP_SOCKET`, limpa um socket órfão por tentativa de
+  conexão (um arquivo que existe pode ser de um processo morto), põe o modo `0600`, anuncia
+  `[<id>] versão <v> escutando em <onde>` no stdout e atende até o processo acabar. O código de
+  saída é dele: `0` no fim normal e também quando outra instância já atende, que o ciclo de vida
+  lê como "está de pé"; `2` quando não há onde escutar;
+- `servidor.Pedido` é o handler base: HTTP/1.1 com keep-alive, log calado por pedido, o portão
+  que recusa o pedido sem o `X-Vssh-App-Token` do ambiente (403 com `X-Vssh-Token: recusado`, em
+  tempo constante) e o `GET /saude` com `{ok, versao, pid}`. O app herda e implementa
+  `atender(metodo)`;
+- `servidor.criar_log()` escreve em `$VSSH_APP_DATA_DIR/app.log`, uma linha por evento. Comece
+  por ele: numa depuração remota, é a linha com operação e caminho que responde, e o frame
+  minificado do console só sustenta hipótese;
+- `web.spa(raiz, tuff=True)` serve o `frontend/` sob o prefixo do proxy e injeta no `<head>` do
+  index a tag do SDK web (`_sdk/vssh.js`) e as do Tuff (`_sdk/tuff/…`). Quem responde esses
+  caminhos é o sistema, de dentro do espaço de URL do app; o backend não os serve, e um pedido a
+  `_sdk/` recebe `False` como qualquer rota que não é da SPA. Cada script do próprio app injetado
+  por `scripts=[...]` sai com o hash do conteúdo na URL, para uma reinstalação nunca servir a
+  versão velha de nenhum cache do caminho.
 
 O frontend usa `fetch()` com URL relativa (`fetch('api/ping')`, sem a barra inicial), para
 funcionar sob `/proxy/app/<id>/` sem alteração. Só recorra a `VSSH_APP_BASE_PATH` se o backend
@@ -144,23 +118,26 @@ emitir URLs absolutas, e lembre que ela não inclui o `serverId`.
 
 ## 4. Rodar na sua máquina
 
-O backend precisa de três variáveis, e nada no mecanismo exige um servidor VSSH:
+O backend precisa do runtime no `PYTHONPATH` e de uma porta de bancada, e nada no mecanismo
+exige um servidor VSSH:
 
 ```bash
-SOCK=/tmp/meu-app.sock
-VSSH_APP_SOCKET=$SOCK VSSH_APP_ID=meu-app VSSH_APP_DATA_DIR=/tmp/meu-app-data \
-  python3 backend/main.py
+source vssh-sdk/scripts/ambiente-de-dev.sh          # NODE_PATH e PYTHONPATH apontando para runtime/
+VSSH_APP_ID=meu-app VSSH_APP_DATA_DIR=/tmp/meu-app-data python3 backend/main.py --tcp 127.0.0.1:0
+# [meu-app] versão dev escutando em 127.0.0.1:53017
 
-curl -fsS --unix-socket $SOCK http://app/healthz
+curl -fsS http://127.0.0.1:53017/saude
 ```
 
-Um socket não tem URL. Para ver a página num navegador, `socat TCP-LISTEN:8080,fork
-UNIX-CONNECT:$SOCK` dá uma porta local, na sua máquina, que é onde uma porta não é problema. No
-Windows isso não roda, porque o Python não abre socket unix lá; use o WSL ou um container.
+O `--tcp` é da bancada: o servidor usa o socket unix de `VSSH_APP_SOCKET`, e é o que
+`servidor.escutar` abre sem a opção. Roda no Windows também, onde o Python não tem `AF_UNIX`.
+Acrescente `VSSH_APP_TOKEN=segredo` para exercitar o portão.
 
-Fora do ambiente o shim degrada em vez de lançar: um diálogo vira `window.confirm`, um seletor
-devolve `null`. Você desenvolve o resto sem `if`. O que precisa do shell do outro lado
-(consentimento de arquivos, bandeja, cofre) só se exercita instalado.
+Fora do ambiente o SDK web degrada em vez de lançar: um diálogo vira `window.confirm`, um
+seletor devolve `None`. Você desenvolve o resto sem `if`. O que precisa do shell do outro lado
+(consentimento de arquivos, bandeja, cofre) só se exercita instalado. O
+[guia do ambiente de desenvolvimento](ambiente-de-desenvolvimento.md) tem o resto: como servir o
+SDK web na frente do backend, e o mesmo arranjo no CI.
 
 ## 5. Instalar no servidor
 
@@ -182,7 +159,7 @@ usuário, acontece aqui) e a janela abre quando o healthcheck responde.
 
 ## 6. A primeira chamada ao ambiente
 
-No `frontend/index.html`, com o shim carregado, a primeira pergunta de um app é onde ele está:
+No `frontend/index.html`, com o SDK carregado, a primeira pergunta de um app é onde ele está:
 
 ```html
 <script>
@@ -212,8 +189,8 @@ caso mais comum num app novo é `000`: o processo morreu antes do `listen()`, e 
 
 ## O que fazer em seguida
 
-O template traz mais do que este guia usa: gate do `X-Vssh-App-Token` com comparação resistente a
-timing, SSE com os headers que sobrevivem ao proxy, filesystem privado do app, bandeja e
-notificação pelo backend, e a galeria, uma peça por capacidade do ambiente. Ao copiá-lo para um
-app seu, apague `frontend/galeria.js`, as peças do `index.html` e as rotas `api/*` que não forem
-suas; o que sobra é o mínimo deste guia.
+O template traz mais do que este guia usa: SSE por `eventos.Difusor`, o filesystem privado por
+`dados`, bandeja, notificação e atividade por `avisos`, a GPU concedida por `gpu`, e a galeria,
+uma peça por capacidade do ambiente. Ao copiá-lo para um app seu, apague `frontend/galeria.js`,
+as peças do `index.html` e as rotas `api/*` que não forem suas; o que sobra é o mínimo deste
+guia.

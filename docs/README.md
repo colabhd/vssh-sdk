@@ -34,8 +34,9 @@ descrição do verbo, na tabela do sistema, e chega aqui na rodada seguinte.
 
 | página | o que ela promete |
 |---|---|
-| [O primeiro app em Python](guias/o-primeiro-app-python.md) | Um app Python de pé no servidor e aberto no menu do ambiente, com log e healthcheck, a partir do template do toolkit. |
+| [O primeiro app em Python](guias/o-primeiro-app-python.md) | Um app Python de pé no servidor e aberto no menu do ambiente, com log e healthcheck, a partir do template deste repositório. |
 | [O primeiro app em Node](guias/o-primeiro-app-node.md) | O mesmo app, em Node. |
+| [O ambiente de desenvolvimento](guias/ambiente-de-desenvolvimento.md) | Rodar e testar o backend de um app fora do servidor: o runtime no caminho, a porta de bancada, o token e o `/saude`, o SDK web sem o shell, e o mesmo arranjo no CI. |
 | [Uma janela](guias/uma-janela.md) | Título, tamanho, controles, várias janelas sobre um backend, restauração de sessão e a barra de título desenhada pelo app. |
 | [Arquivos com consentimento](guias/arquivos-com-consentimento.md) | Ler e gravar na home do usuário pela File System Access API, reabrir o que já foi concedido, vigiar mudanças e arrastar arquivos nas duas direções. |
 | [Avisos e atividades](guias/avisos-e-atividades.md) | Escolher entre notificação, aviso efêmero e atividade, e emitir cada um com janela aberta ou de um backend sem janela. |
@@ -62,6 +63,6 @@ hoje, e nenhum guia depende deles.
 
 O sistema é o repositório privado `vssh-sso`; o autor de app enxerga o que o sistema gera aqui
 (`api/`, `runtime/`, `referencia/`) e o que as pessoas escrevem aqui: os dois templates, os
-exemplos, o script de publicação e estas páginas. As libs de backend ainda vêm do toolkit público
-[`colabhd/vssh-app-toolkit`](https://github.com/colabhd/vssh-app-toolkit), e o `MIGRATION.md` diz
-quando isso muda.
+exemplos, o script de publicação e estas páginas. As libs de backend são o runtime `vssh` de
+`runtime/`, que todo servidor tem em `/opt/vssh/sdk`; o que muda para um app escrito contra o
+toolkit antigo está no [`MIGRATION.md`](../MIGRATION.md).

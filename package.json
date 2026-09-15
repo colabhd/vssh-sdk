@@ -1,7 +1,7 @@
 {
   "name": "vssh-sdk",
   "private": true,
-  "//private": "Este repositório não é um pacote npm: o que um app instala são as libs de backend, que hoje vêm do `vssh-app-toolkit` (`npm i github:colabhd/vssh-app-toolkit#v4`) e que o sistema passa a publicar em `runtime/` numa etapa seguinte. Este arquivo existe pelos scripts abaixo, e por mais nada.",
+  "//private": "Este repositório não é um pacote npm, e um app não instala nada dele: as libs de backend são o runtime `vssh` que todo servidor tem em /opt/vssh/sdk, com a cópia gerada em `runtime/` para a máquina de quem escreve (`source scripts/ambiente-de-dev.sh`). Este arquivo existe pelos scripts abaixo, e por mais nada.",
   "description": "O SDK do VSSH: o que o autor de um vssh-app usa para escrever, buildar e publicar",
   "license": "MIT",
   "engines": {

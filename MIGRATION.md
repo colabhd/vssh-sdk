@@ -28,25 +28,49 @@ O reusable do toolkit continua funcionando enquanto o repositório dele existir,
 contra o schema autorado de lá, que deixa de acompanhar o portal. Troque a linha na próxima vez
 que abrir o arquivo.
 
-### As libs: nada muda, por enquanto
+### As libs de backend: o runtime do servidor
 
-As libs de backend continuam vindo do toolkit, pelo gerenciador de pacotes do runtime:
+As libs de backend deixaram de ser uma dependência do app. Todo servidor VSSH tem o runtime
+`vssh` instalado em `/opt/vssh/sdk/{node,python}`, e o lançador o põe em `NODE_PATH` e
+`PYTHONPATH` antes de subir o app: o backend faz `require('vssh')` ou `from vssh import ...` e
+nada viaja no pacote. A cópia gerada em [`runtime/`](runtime/) é a mesma coisa, para a máquina de
+quem escreve e para o CI ([o ambiente de desenvolvimento](docs/guias/ambiente-de-desenvolvimento.md)).
 
-```bash
-npm i github:colabhd/vssh-app-toolkit#v4                                                # Node
-pip install "https://github.com/colabhd/vssh-app-toolkit/archive/refs/tags/v4.tar.gz"  # Python
-```
+O que sai do seu app: a dependência `vssh-app-toolkit` do `package.json` (e o lock que a fixava),
+o `vendor/py` com o `pip install` do tarball, e o `installCommand` que os instalava, se não
+sobrar dependência sua. O que entra: `version: "5.0.0"` e `minShellVersion: "5.0.0"` no
+manifesto, e `healthcheckPath: "/saude"` se o backend adotar o portão do runtime. Num backend
+Node escrito em ESM, `import 'vssh'` não consulta `NODE_PATH`; o caminho é
+`createRequire(import.meta.url)('vssh')`.
 
-O `installCommand` dos templates e dos exemplos deste repositório declara exatamente isso, e um
-app copiado deles não precisa mexer em nada. A história das gerações das libs (v1 a v4: o socket
-unix no lugar da porta, o portão de major, o `mounts` para as libs de navegador) está no
-[`MIGRATION.md` do toolkit](https://github.com/colabhd/vssh-app-toolkit/blob/main/MIGRATION.md),
-que continua sendo a referência delas até o sistema publicá-las aqui.
+O pacote é um barril preguiçoso, `const { servidor, web, eventos, dados, avisos, app, gpu } =
+require('vssh')`, e a correspondência com o toolkit é esta (os nomes em Python seguem a mesma
+tabela, em `snake_case`):
 
-O portão de versão do `vssh-app-publish` lê a versão de referência das libs de
-`runtime/package.json`. Enquanto esse diretório não existe, o script avisa numa anotação do run
-("libs não conferidas") que a versão das libs do seu app não foi comparada com nada. O aviso é
-verdadeiro, e some quando `runtime/` chegar.
+| toolkit (`vssh-app-toolkit/<sub>`) | runtime (`vssh.<espaco>.<fn>`) | o que muda |
+|---|---|---|
+| `listen.escutar(server, {env?, modo?})`, que resolve `{transporte, endereco}` | `servidor.escutar(server, {argv?, env?, modo?, nome?})` | lê `--tcp host:porta` do `argv` para bancadas; imprime `[<nome>] versão <v> escutando em <onde>`; os erros têm `code` `JA_ESCUTANDO`, `SEM_ENDERECO`, `SERVIDOR_ANTIGO` (constantes exportadas; antes `VSSH_APP_JA_ESCUTANDO` etc.). Em Python, `servidor.escutar(Pedido, argv)` atende até o fim e devolve o código de saída |
+| `listen.enderecoDoAmbiente(env)`, que devolve `{transporte, caminho}` | `servidor.enderecoDoAmbiente(env)`, que devolve o caminho do socket | |
+| `listen.limparSocketOrfao(caminho)` | `servidor.limparSocketOrfao(caminho)` | igual: `'vivo'`, `'removido'` ou `'inexistente'` |
+| o portão de token escrito à mão, mais `/healthz` | `servidor.portao(atender, {saude?, cabecalhos?, recusa?, env?})`; em Python, herdar de `servidor.Pedido` e implementar `atender(metodo)` | lê `VSSH_APP_TOKEN`; 403 com `X-Vssh-Token: recusado`; responde `GET /saude` com `{ok, versao, pid, ...saude()}`; o manifesto declara `healthcheckPath: "/saude"` |
+| `log.createAppLog({appId, dataDir, file, stdout})`, com `log.path` | `servidor.criarLog({arquivo?, stdout?, env?})`, com `log.caminho` | a pasta é `VSSH_APP_DATA_DIR` (ou `~/.vssh-apps/<id>/data`); o mesmo NDJSON |
+| `spa.createStaticSpa({root, indexFile, injectScripts, injectStyles, aliasPrefixes, mounts, spaFallback, missingBundleHint, onWarn})` | `web.spa(raiz, {indice, scripts, folhas, apelidos, montagens, rotasProfundas, dica, aoAvisar, sdk, tuff})` | renomes 1:1; injeta `_sdk/vssh.js` por padrão (`sdk: false` desliga); `tuff: true` injeta `web.TUFF`, e uma lista como `[...web.TUFF, web.TUFF_BASE, web.TUFF_ICONES]` escolhe os arquivos; `raiz` relativa resolve contra a pasta do `vssh-app.json`; `aoAvisar(evento, detalhe)` recebe `index-ausente` e `carimbo-falhou`; um pedido a `/_sdk/` devolve `false` |
+| `spa.contentTypeFor` | `web.tipoDeConteudo` | |
+| `web.WEB_DIR`, `SHIMS`, `mounts: {'/_vssh/': WEB_DIR}` | nada | o sistema serve o SDK; o `fsa-polyfill.js` está dentro de `_sdk/vssh.js` |
+| `sse.openSseStream(res, {retryMs, keepAliveMs})`, com `{send, comment, close, closed}` | `eventos.abrir(res, {reconexaoMs, keepaliveMs})`, com `{enviar, comentar, fechar, aoFechar, fechado}`; `new eventos.Difusor()` com `assinar`, `atender`, `publicar`, `fechar` | o mesmo fio |
+| `notify(body, {title, level, key, actions, persistent, path})` | `avisos.notificar(corpo, {titulo, nivel, chave, acoes, persistente, rota})` | o mesmo journal |
+| `live.setLive`, `clearLive`, `keepLiveAlive`, `clearLiveOnExit` | `avisos.atividade`, `limparAtividade`, `manterAtividadesVivas`, `limparAtividadesAoSair` | |
+| `tray.setTray`, `clearTray`, `clearTrayOnExit` | `avisos.bandeja`, `limparBandeja`, `limparBandejaAoSair` | |
+| `fs.createAppFs({root, ...})`, `createFsHandler({fs, mountPath, requireToken})` | `dados.abrir(raiz?, {...})`, `dados.rotas(dados, {prefixo, arquivos})` | o mesmo contrato de wire; o token fica no portão do `servidor`, e não nas rotas |
+| ler `VSSH_APP_ID` e `VSSH_APP_DATA_DIR` do ambiente | `app.ident()`, `app.dados()`, `app.raiz()`, `app.manifesto()`, `app.versao()` | |
+| varrer `/sys/class/drm` por conta própria | `gpu.concedida()` | o que o lançador decidiu, com os dispositivos que este processo abre e o motivo de uma negativa |
+
+A referência de cada função é o próprio fonte, curto e comentado: um arquivo por módulo em
+`runtime/node/vssh/` e `runtime/python/vssh/`.
+
+O portão do `vssh-app-publish` passa a avisar, numa anotação do run, quando o `package.json` ou o
+`installCommand` de um app ainda cita o `vssh-app-toolkit`, nomeando a versão e dizendo que o
+runtime do servidor a substitui. Sem a citação não há o que conferir, e ele não diz nada.
 
 ### O schema: gerado, e em outro caminho
 
@@ -84,9 +108,9 @@ coisa para o sistema manter e para o autor de app aprender.
 
 A cópia de `lib/web` que o backend servia pelo `mounts` do SPA. O `vssh-app-shim.js`, o
 `fsa-polyfill.js`, os shims de Electron e Tauri e o Tuff não são mais lidos do pacote instalado;
-o `mounts` continua existindo para o que o app quiser servir, e o que sai é a obrigação de levar
-essas libs junto. A dependência do toolkit no `package.json` ou no `installCommand` continua, pelas
-libs de backend (ver abaixo).
+o `montagens` do `web.spa` continua existindo para o que o app quiser servir, e o que sai é a
+obrigação de levar essas libs junto. A dependência do toolkit no `package.json` ou no
+`installCommand` sai também, pelas libs de backend (ver acima).
 
 O marcador `.vssh-lib-version` da era da cópia à mão. O `vssh-app-publish` deixou de procurá-lo e
 de recusar um pacote por ele; quem ainda tem um `vendor/vssh/` no repositório do app o apaga por
@@ -108,14 +132,13 @@ hospedagens, no portal e no cliente de desktop:
 <script src="_sdk/tauri.js"></script>
 ```
 
-Com o SPA das libs de backend a tag entra pela injeção, e é o caminho dos templates:
-`injectScripts: ['_sdk/vssh.js']` no Node, `inject_scripts=["_sdk/vssh.js"]` no Python, sem
-`mounts`. Numa rota profunda servida pelo fallback de SPA o relativo precisa de um `<base href>`
-na raiz do app, e `createStaticSpa` e `criar_spa_estatica` já o injetam. O Tuff entra na mesma
-forma: `injectStyles: ['_sdk/tuff/tuff-tokens.css', '_sdk/tuff/tuff-base.css',
-'_sdk/tuff/tuff.css']` e `_sdk/tuff/tuff-icones.js`, `_sdk/tuff/tuff.js` nos scripts; as peças de
-mídia são `_sdk/tuff/tuff-midia.css` e `_sdk/tuff/tuff-midia.js`. `VSSH_APP_BASE_PATH` não entra
-na conta.
+Com o `web.spa` do runtime a tag entra sozinha, e é o caminho dos templates: `web.spa(raiz)`
+injeta `_sdk/vssh.js` por padrão, e `sdk: false` deixa isso para quem escreve a tag à mão. Numa
+rota profunda servida por `rotasProfundas` o relativo precisa de um `<base href>` na raiz do app,
+e o `web.spa` já o injeta. O Tuff entra pela mesma opção: `tuff: true` injeta `web.TUFF`
+(`tuff-tokens.css`, `tuff.css`, `tuff.js`), e uma lista escolhe os arquivos, com `web.TUFF_BASE`
+(o reset da página), `web.TUFF_ICONES` (o sprite) e `web.TUFF_MIDIA` (trilha, volume, grade,
+visor) à disposição. `VSSH_APP_BASE_PATH` não entra na conta.
 
 O polyfill de File System Access vem dentro de `_sdk/vssh.js`, depois do runtime: não há uma
 segunda tag para ele, e a ordem que o toolkit pedia (shim antes do polyfill) deixou de ser uma
@@ -213,23 +236,22 @@ emulador vai servir.
 Para o editor, os typings ficam em `api/vssh.d.ts`, gerados da mesma tabela; a tabela em si está
 em `api/abi.json`, para quem quiser ler a lista de verbos sem abrir o navegador.
 
-### O que ainda não muda
+### O CI do seu app, de novo
 
-O backend continua nas libs v4 do toolkit, pelo `installCommand` de sempre: o `npm i
-github:colabhd/vssh-app-toolkit#v4` ou o `pip install` do tarball. O SPA, o SSE, o log, o
-filesystem privado, a bandeja e a notificação por arquivo funcionam como funcionam, e o
-`vssh-app-publish` continua conferindo a versão delas enquanto forem vendorizadas. A troca pelo
-runtime instalado no servidor (`import vssh`, em `/opt/vssh/sdk/{python,node}`) vem quando
-[`runtime/`](runtime/) estiver publicado, e ganha a própria seção aqui.
+Um app que roda a própria suíte no CI precisa do runtime no caminho ali também. A ação composta
+deste repositório faz isso num passo, antes do `npm test` ou do `python -m unittest`:
+
+```yaml
+- uses: colabhd/vssh-sdk/.github/actions/preparar-sdk@main
+```
+
+Ela faz o checkout esparso de `runtime`, `api` e `scripts` em `_sdk/` no workspace e grava
+`VSSH_SDK`, `NODE_PATH` e `PYTHONPATH` em `GITHUB_ENV`. A publicação continua no reusable, num
+job à parte; quem precisa fixar uma revisão deste repositório passa `ref` à ação.
 
 ## O que vai mudar, e quando
 
-Duas coisas mudam nas próximas etapas, e cada uma chega com uma seção nova nesta página.
-
-As libs de backend passam a ser publicadas em [`runtime/`](runtime/), e a dependência do seu app
-passa a apontar para cá em vez de para o toolkit. É uma troca de linha no `package.json` e no
-`installCommand`, e o portão do `vssh-app-publish` passa a comparar a versão do seu app com a
-daqui.
-
 O [`emulador/`](emulador/) chega para desenvolver e testar um app sem servidor VSSH por perto, e
-é ele que serve `_sdk/` na máquina de quem escreve.
+é ele que serve `_sdk/` na máquina de quem escreve. Até lá, o
+[guia do ambiente de desenvolvimento](docs/guias/ambiente-de-desenvolvimento.md) diz como servir
+`api/vssh.js` na frente do backend à mão.

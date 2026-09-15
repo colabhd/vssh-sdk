@@ -132,27 +132,29 @@ um comando por servidor cobrindo todos os usuários, e só enquanto alguém tive
 ~/.vssh-notifications/live/<chave>.json   a atividade acontecendo agora
 ```
 
-As bibliotecas do toolkit escrevem os três, nos dois runtimes:
+O módulo `avisos` do runtime escreve os três, nas duas linguagens:
 
 ```python
-from vssh_app_toolkit.notify import notificar
-from vssh_app_toolkit.live import definir_live, limpar_live, manter_live_vivo, limpar_live_ao_sair
-from vssh_app_toolkit.tray import definir_bandeja, limpar_bandeja_ao_sair
+from vssh import avisos
 
-manter_live_vivo(); limpar_live_ao_sair(); limpar_bandeja_ao_sair()
+avisos.manter_atividades_vivas(); avisos.limpar_atividades_ao_sair(); avisos.limpar_bandeja_ao_sair()
 
-notificar('Backup concluído: 4,2 GB em 12 min', title='Backup', level='success')
-notificar('Disco quase cheio', chave=f'disco-{hoje}')    # avisar uma vez só, mesmo rodando de hora em hora
+avisos.notificar('Backup concluído: 4,2 GB em 12 min', titulo='Backup', nivel='success')
+avisos.notificar('Disco quase cheio', chave=f'disco-{hoje}')    # avisar uma vez só, mesmo rodando de hora em hora
 
-definir_live('sync', {'titulo': 'Sincronizando', 'formato': 'progresso',
-                      'progresso': {'feito': 3, 'total': 12}})
-limpar_live('sync', registrar={'titulo': 'Sincronização concluída', 'texto': '12 arquivos'})
+avisos.atividade('sync', {'titulo': 'Sincronizando', 'formato': 'progresso',
+                          'progresso': {'feito': 3, 'total': 12}})
+avisos.limpar_atividade('sync', registrar={'titulo': 'Sincronização concluída', 'texto': '12 arquivos'})
 ```
 
 ```js
-const { notify } = require('vssh-app-toolkit/notify');
-const { setLive, clearLive, keepLiveAlive, clearLiveOnExit } = require('vssh-app-toolkit/live');
-const { setTray, clearTrayOnExit } = require('vssh-app-toolkit/tray');
+const { avisos } = require('vssh');
+
+avisos.manterAtividadesVivas(); avisos.limparAtividadesAoSair(); avisos.limparBandejaAoSair();
+
+avisos.notificar('Backup concluído: 4,2 GB em 12 min', { titulo: 'Backup', nivel: 'success' });
+avisos.atividade('sync', { titulo: 'Sincronizando', formato: 'progresso', progresso: { feito: 3, total: 12 } });
+avisos.limparAtividade('sync', { registrar: { titulo: 'Sincronização concluída', texto: '12 arquivos' } });
 ```
 
 Três coisas que a lib faz por você, e que valem saber para quem escreve o formato cru:
@@ -163,8 +165,8 @@ Três coisas que a lib faz por você, e que valem saber para quem escreve o form
   processo, que reinicia junto. `at` (epoch ms) é a hora do evento; sem ele, a hora exibida é a da
   entrega, que para algo que aconteceu com o desktop fechado é a hora errada;
 - o `at` do `live/<chave>.json` precisa ser renovado. Um arquivo chamado `live` sobrevive a um
-  `kill -9`, e o portal descarta o que passa de 60 s sem renovar; `manter_live_vivo` e
-  `keepLiveAlive` renovam sozinhos enquanto a atividade fica parada esperando rede. O portal lê no
+  `kill -9`, e o portal descarta o que passa de 60 s sem renovar; `manter_atividades_vivas` e
+  `manterAtividadesVivas` renovam sozinhos enquanto a atividade fica parada esperando rede. O portal lê no
   máximo 32 arquivos de `live/` por usuário; quem precisa de mais quer uma atividade com contador;
 - o clique na bandeja e a ação de uma notificação chegam ao backend como `POST` no caminho que o
   arquivo declarou (`onClick: { path: '/tray' }`, `onAction: { path: 'api/notificacao' }`), pela
