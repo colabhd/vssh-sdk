@@ -1,10 +1,12 @@
 # runtime
 
-Este diretório é gerado pelo sistema, como `api/`, e ninguém o edita à mão. Nele o canal de
-publicação vai depositar as libs de backend de um vssh-app (Node e Python), para o emulador e para
-o editor de quem escreve um app; em produção elas vêm do próprio servidor VSSH.
+Diretório gerado pelo canal de publicação do sistema (`scripts/gerar-sdk.js` do `vssh-sso`), como
+`api/`; ninguém o edita, e o [`api/build-info.json`](../api/build-info.json) carrega o hash de
+cada arquivo daqui.
 
-Enquanto o canal não as publica aqui, as libs continuam sendo instaladas do `vssh-app-toolkit`,
-pelo gerenciador de pacotes do runtime do app: é o que os templates e os exemplos deste
-repositório declaram no `installCommand`. O `vssh-app-publish` lê deste diretório a versão de
-referência das libs (`runtime/package.json`); sem ele, o portão de versão avisa que não conferiu.
+O que há: as libs de backend de um vssh-app, o pacote `vssh` em Python (`python/vssh/`) e em Node
+(`node/vssh/`), copiadas de `infra/sdk/` do sistema como estavam na rodada. Em produção elas vêm
+instaladas no servidor, em `/opt/vssh/sdk`, e o lançador as põe no `PYTHONPATH` e no `NODE_PATH`
+do app; a cópia daqui serve ao emulador e ao editor de quem escreve um app
+(`PYTHONPATH=runtime/python`, `NODE_PATH=runtime/node`). O que cada variável e cada arquivo do
+ambiente significam está em [`docs/referencia/ambiente.md`](../docs/referencia/ambiente.md).

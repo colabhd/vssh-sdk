@@ -1,0 +1,8 @@
+{
+  "name": "vssh",
+  "private": true,
+  "description": "O runtime de backend do VSSH para apps em Node: servidor, SPA com o SDK web, eventos por SSE, o filesystem privado do app, avisos, identidade do app e a GPU concedida. Instalado pelo portal em /opt/vssh/sdk/node e alcançado pelo NODE_PATH que o vssh-app-run exporta.",
+  "type": "commonjs",
+  "main": "index.js",
+  "license": "MIT"
+}

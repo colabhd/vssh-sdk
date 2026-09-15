@@ -1,8 +1,146 @@
 {
   "shellVersion": "4.19.3",
   "artifacts": {
+    "api/abi.json": {
+      "sha256": "46d1ce34012e892941e5149114b3c25a4753d2893f23f63a61bd3e1123a1577f"
+    },
+    "api/electron.js": {
+      "sha256": "802402efad47701fd6b50d90404fd04aae3b477820a720224ddd8ed3fa148269"
+    },
+    "api/tauri.js": {
+      "sha256": "0bf07c92217fe6ef27c9653a262e2476ae97bcb40a519f31c574652e974ef593"
+    },
+    "api/tuff/docs/componentes.html": {
+      "sha256": "dc0ca823e84673089a95b1bfae7040f1e9e6b35808f72cca9261e7134c77d3c3"
+    },
+    "api/tuff/fonts/OFL.txt": {
+      "sha256": "bf4dc6d13a8cccd4807133c77a1ee9619a16b92cb23322258725ab6731c2f6e5"
+    },
+    "api/tuff/fonts/instrument-sans-latin-ext.woff2": {
+      "sha256": "c4fcfea41f2c1cfeea9211fa43679845454a1d0e0d7e95e069c7e73c4ae302d2"
+    },
+    "api/tuff/fonts/instrument-sans-latin.woff2": {
+      "sha256": "2ee17598a98d8a59e4df8152d015bec9ab8e4d5672cc0ab42bef806b568e3971"
+    },
+    "api/tuff/tuff-base.css": {
+      "sha256": "e17babd26529d20b7d59cb9c983566d30aade025def7325e754f4a85dae046df"
+    },
+    "api/tuff/tuff-icones.js": {
+      "sha256": "56c91b31b8b8a13a5cb3c7dbeefe00765f276398cfeaa77b9c6bf6a812cd1535"
+    },
+    "api/tuff/tuff-midia.css": {
+      "sha256": "afe01b05ee0d8ba2bb0164b8988114dc69dea837c801f6f6c509919a6ceaaaac"
+    },
+    "api/tuff/tuff-midia.js": {
+      "sha256": "03b946e49fbeae2288baa0f524b5cb4af39c25bb5b86a9756cf1b657c27f294b"
+    },
+    "api/tuff/tuff-tokens.css": {
+      "sha256": "8c440775ccc1e8490d875e3354739f1700b4871f6a77eab108e7b21cb07e8454"
+    },
+    "api/tuff/tuff.css": {
+      "sha256": "afbd6a8e28c1ae01ad281d224cc473b6512fd3e70dde55d41650c50ec614e3e2"
+    },
+    "api/tuff/tuff.js": {
+      "sha256": "01cc5ffbb59fbd94615dcef470ca6972278653089a84a8af7b94faa3a40297d4"
+    },
     "api/vssh-app.schema.json": {
-      "sha256": "f95226f6e26eb6fe3f258c413ed89da421769918e0ed988f8185fd5bcd622d09"
+      "sha256": "927661a8a493de44df833f715574a878fd6c87ec0e17ff08db503d02181c7e35"
+    },
+    "api/vssh.d.ts": {
+      "sha256": "83e4f22e941b571bd568e972896cb9f23287d7868ab4faac895f1e09f946f329"
+    },
+    "api/vssh.js": {
+      "sha256": "fd6bbb695ac5eb2ea27c6588536e735c5498b8d1cd66c5bc9a5efcd6d8365a7e"
+    },
+    "docs/referencia/README.md": {
+      "sha256": "72f7418c00d43ca0cfe54c73cd21bcad2be248e4647255f0f72eba0b611143aa"
+    },
+    "docs/referencia/ambiente.md": {
+      "sha256": "a68bccf75ce133033588e7bcd3fbbfba0d101c10356099c4591b2cbff056e36c"
+    },
+    "docs/referencia/app.md": {
+      "sha256": "063a04d3ca07ae8fdccab180884b94886d9f5cd325546cf766c28aa50a3864c3"
+    },
+    "docs/referencia/arquivos.md": {
+      "sha256": "ea1753f4402e038b25a79446ba242e694dcd1ffead66e1c505c13d64b8b19b3d"
+    },
+    "docs/referencia/avisos.md": {
+      "sha256": "1fac4b5033bc140f566880254173830d2495520c4c2c8523476e78d5aae4af00"
+    },
+    "docs/referencia/dialogos.md": {
+      "sha256": "67201056a2e4407472bf2fa623cc17f339f52c68107b8e37a660e167185968a1"
+    },
+    "docs/referencia/gpu.md": {
+      "sha256": "b3f15575f545de6d12e44bfeb599051fc2b27333cbeb7ea7896ec3d0993882c8"
+    },
+    "docs/referencia/impressao.md": {
+      "sha256": "b2c221f136ef614da4e61329b9344c3cc9cc0f803fe938090c0292fa988be709"
+    },
+    "docs/referencia/janela.md": {
+      "sha256": "72df24420240c6de566ffd23805f453e5e5ca1bd483dca404a660c96f3aa6a48"
+    },
+    "docs/referencia/manifesto.md": {
+      "sha256": "118d75adce4e615bf98a6cfd08c84aa81edf0912b7166d6c69728ad89de19a36"
+    },
+    "docs/referencia/midia.md": {
+      "sha256": "189b0de451e02e02c80829dc3c5dd844a0a4d0648a57b1c3514a8faae8a05015"
+    },
+    "docs/referencia/segredos.md": {
+      "sha256": "40cc3edb61888c0ee165eb13a98c84f0fe866fff9f38bed21f094d711f7e6ff2"
+    },
+    "runtime/README.md": {
+      "sha256": "3e922bb272ece2d510a4599142915c5956dcb2ec99213739bfeb541e67c683c1"
+    },
+    "runtime/node/vssh/app.js": {
+      "sha256": "a6341e74c21a0c9a2709f117c6950ff41ec9f8d7ddeaa881dbb700efcf2a497f"
+    },
+    "runtime/node/vssh/avisos.js": {
+      "sha256": "b3c8e55c1f86247d1d8a246b40c9b52d121da6729c6f0d678f069304f5a66fe2"
+    },
+    "runtime/node/vssh/dados.js": {
+      "sha256": "387b561b5d8bc0d0210d0afb8f4e4d0166b009563c7b3c043dc5c6a5c8a8cb29"
+    },
+    "runtime/node/vssh/eventos.js": {
+      "sha256": "0bbe0ed0bef8763cbb3c700379c6818e978329ed7c27b0d9c65487cf7bd56ff3"
+    },
+    "runtime/node/vssh/gpu.js": {
+      "sha256": "6643de6528771774c3bef5dbc4a08f30701a1d4db6db7951af565c24b8cded29"
+    },
+    "runtime/node/vssh/index.js": {
+      "sha256": "8338498723454d027bfd9eac51972f6757cd6d85bc072cddaa84dc6c4ecf16e2"
+    },
+    "runtime/node/vssh/package.json": {
+      "sha256": "6df9d56718ca3662ca78cb1be1c522478db9a0dc5959144b045702b9424dbdb7"
+    },
+    "runtime/node/vssh/servidor.js": {
+      "sha256": "f3b38eed84aa8b23d09020ef8182ca6a1e3100d3f287cb48ff6a928d490b1aac"
+    },
+    "runtime/node/vssh/web.js": {
+      "sha256": "960853c48fec1b644940ddf3d641a0aa495c0c97e6d37773724af3fa1a203cfa"
+    },
+    "runtime/python/vssh/__init__.py": {
+      "sha256": "332990b9f0ee442428fcf6a7be9a3b4ba96bf00df6262a1e54df587021833e07"
+    },
+    "runtime/python/vssh/app.py": {
+      "sha256": "aff23ac21b1d02f7d9f53656d2fec3e0300b4400739d318ccdd843c31e3fd1aa"
+    },
+    "runtime/python/vssh/avisos.py": {
+      "sha256": "d4ee2abc76d22a77b984c19e1cb49c2aea7a74ab4a66cfbbedf0106ef1f97328"
+    },
+    "runtime/python/vssh/dados.py": {
+      "sha256": "093db2bffc9ddf18c5e813c207b62d18684526f1d56a9ebff1471781e25a0970"
+    },
+    "runtime/python/vssh/eventos.py": {
+      "sha256": "c5c3673a2c6d43c65785b8d22003d95485b11eeea01a545b5aa80ffe87c36f2d"
+    },
+    "runtime/python/vssh/gpu.py": {
+      "sha256": "cac9d2600fe1b505847c5ff0b080cf10436b301a9cafc910e011d654789cc076"
+    },
+    "runtime/python/vssh/servidor.py": {
+      "sha256": "930e8619aa59d3c562dee02faac86c356c98a158424e1da2089ac943cda890ee"
+    },
+    "runtime/python/vssh/web.py": {
+      "sha256": "52d741b8fcc34d3e6953de4cdab477f1cceeb236fc1bf559ef7dfb108efa3e8c"
     }
   }
 }

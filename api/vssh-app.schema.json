@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/colabhd/vssh-app-toolkit/schema/vssh-app.schema.json",
+  "$id": "https://github.com/colabhd/vssh-sdk/api/vssh-app.schema.json",
   "title": "vssh-app.json",
-  "description": "Manifesto de um vssh-app. Fonte da verdade: este arquivo. Validado por inteiro no vssh-app-publish (o gate de entrada no repositório); o vssh-app-install valida só o mínimo, porque roda offline no servidor e não tem como buscar o schema. `additionalProperties: false` em TODO objeto, e a raiz foi a última a fechar: enquanto ela aceitava qualquer chave, `requiredPackage` (sem o s), `gpuu` e `opns` publicavam limpos e o campo era descartado em silêncio por quem lê. Um manifesto escrito para um toolkit mais NOVO passa a ser recusado por um mais velho, e isso é o comportamento desejado — 'este toolkit não conhece este campo' é a informação, e a alternativa é publicar um app cujo campo ninguém vai ler. AO MEXER AQUI: o `vssh-sso` mantém uma cópia vendorizada deste arquivo em `schema/`, com a procedência em `.vssh-schema-version`, e é contra ela que o `tests/unit/contrato-do-manifesto.test.js` DE LÁ confere que todo campo que o portal LÊ está declarado. Campo novo que já tenha consumidor de lá precisa da cópia atualizada junto — o teste de lá fica vermelho dizendo o nome do campo.",
+  "description": "Manifesto de um vssh-app. A fonte deste schema é o repositório do sistema, `vssh-sso`, em `schema/`; o canal de publicação o copia para `api/` do `vssh-sdk`, onde o `vssh-app-publish` o lê e valida o manifesto por inteiro antes de o app entrar no repositório. O `vssh-app-install` valida só o mínimo, porque roda offline no servidor e não tem como buscar o schema. `additionalProperties: false` em todo objeto, a raiz inclusive: um campo desconhecido é recusado na publicação, porque `requiredPackage` (sem o s), `gpuu` ou `opns` publicariam limpos e seriam descartados em silêncio por quem lê. Um manifesto escrito para um SDK mais novo é recusado por um mais velho, e essa é a informação que interessa. Todo campo que o portal lê está declarado aqui, e `tests/unit/contrato-do-manifesto.test.js` do `vssh-sso` confere isso a cada campo novo.",
   "type": "object",
   "required": [
     "id",
@@ -64,6 +64,15 @@
         "type": "string",
         "pattern": "^[a-z][a-z0-9-]*/v[0-9]+$",
         "description": "'nome/vN'. A versão é OBRIGATÓRIA e é o ponto: uma capacidade é um contrato entre repositórios que não se conhecem, e um contrato sem versão só pode ser mudado quebrando alguém em silêncio. Trocar o contrato é publicar 'nome/v2' e conviver com o v1 enquanto houver consumidor."
+      }
+    },
+    "requires": {
+      "type": "array",
+      "description": "Capacidades que este app exige de outros, no formato 'nome/vN': a metade que completa o `provides`. Um app de chat que precisa de um modelo declara `requires: [\"llm/v1\"]` e recebe o motor que estiver instalado, seja qual for. Quem confere é o portal, na instalação, contra o `provides` dos apps instalados naquele servidor: uma capacidade que ninguém oferece recusa a instalação nomeando-a, porque instalar um app que vai falhar por dentro no primeiro uso é pior que dizer o que falta. A conferência lê o catálogo do repositório, que é o único que responde antes de instalar; um catálogo sem este campo não confere. Só o nome com a versão, sem faixa nem comparação: uma capacidade é um contrato, e `nome/v2` é outro contrato.",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*/v[0-9]+$",
+        "description": "'nome/vN', o mesmo formato que o `provides` declara do outro lado."
       }
     },
     "minShellVersion": {
@@ -214,10 +223,29 @@
         }
       }
     },
+    "recursos": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "O que o app pede ao sistema além dos tetos de `resources`, e que o sistema arbitra ao subir o app. O app declara o que precisa e pergunta o que recebeu por `vssh.gpu` (`concedida()` no backend, `estado()` na janela); quem decide, com o que o servidor tem, é o vssh-app-run. O app não escolhe como o recurso chega, e é isso que o poupa de conhecer `CUDA_VISIBLE_DEVICES` e o `limits.json`.",
+      "properties": {
+        "gpu": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["modo"],
+          "description": "A GPU do servidor. Declarar faz duas coisas. O ambiente consulta o kernel (/sys/class/drm e /dev/dri) e registra o que há: fabricante (NVIDIA, AMD, Intel, virtio ou uma placa virtual), driver, se é virtual, e se o processo do usuário abre o render node; um usuário fora do grupo `render` é o modo de falha mais comum, mais que a ausência de placa. E o app deixa de receber `CUDA_VISIBLE_DEVICES=\"\"`, que todo app sem esta declaração recebe para o runtime CUDA não enumerar dispositivo nenhum; é o que deixa um app de inferência conviver com os vizinhos. A arbitragem é por convenção: a variável não fecha /dev/dri, e a fronteira de verdade pediria controle de dispositivo no cgroup (eBPF, root). O que o sistema decidiu chega ao app por `vssh.gpu.concedida()` como `{ concedida, dispositivos, motivo }`, e o motivo de uma negativa fica no run.log e no gerenciador de tarefas.",
+          "properties": {
+            "modo": {
+              "enum": ["opcional", "necessaria"],
+              "description": "`opcional`: o app sobe com ou sem GPU e pergunta o que recebeu; sem placa ele costuma ficar mais lento, e quem sabe se dá para seguir em CPU é o app. `necessaria`: sem GPU utilizável o app não sobe; o run.log nomeia o motivo, e o supervisor o mostra como falha de start, sem laço de reinício, até alguém pedir a subida de novo. Declare `necessaria` só para um app que não tem caminho em CPU: um servidor sem placa, ou um usuário fora do grupo `render`, deixa esse app parado em vez de lento."
+            }
+          }
+        }
+      }
+    },
     "gpu": {
       "type": "boolean",
-      "description": "O app precisa da GPU do servidor. Declarar faz DUAS coisas, e elas são independentes. (1) DESCOBERTA, genérica: o ambiente consulta o kernel (/sys/class/drm + /dev/dri) e reporta o que há — NVIDIA, AMD, Intel, virtio ou uma placa virtual —, com o driver, se é virtual, e se este processo consegue ABRIR o render node (o modo de falha mais comum não é ausência de placa: é o usuário fora do grupo 'render'). Nada disso depende de SDK ou driver proprietário. (2) PORTÃO, só de CUDA: quem NÃO declara recebe `CUDA_VISIBLE_DEVICES=\"\"` e o runtime CUDA não enumera dispositivo nenhum — é o que deixa um app de inferência conviver com os vizinhos. O portão é arbitragem por CONVENÇÃO, não isolamento: ele não fecha /dev/dri, e a fronteira de verdade exigiria controle de dispositivo no cgroup (eBPF, root). Declarar num servidor sem GPU não impede o app de subir — GPU ausente costuma significar 'mais lento', e quem sabe degradar é o app —, mas o motivo fica dito no run.log e em Configurações.",
-      "default": false
+      "default": false,
+      "description": "A grafia anterior de `recursos.gpu.modo: \"opcional\"`, lida pelos mesmos consumidores (o vssh-app-run e a projeção de GET /api/apps) e com o mesmo efeito. Escreva a nova. Esta fica aceita enquanto houver app publicado que a declare, e `recursos.gpu.modo` manda quando os dois aparecem no mesmo manifesto."
     },
     "secrets": {
       "type": "array",
@@ -351,7 +379,7 @@
     },
     "window": {
       "type": "object",
-      "description": "Ignorado por type:'engine'. O portal repassa este objeto INTEIRO ao cliente (`window: m.window || {}` em routes/apps.ts), e o cliente lê exatamente os cinco campos abaixo — então uma chave a mais aqui viaja o caminho todo para não ser lida por ninguém. É o campo em que o erro de digitação era mais barato de cometer e mais caro de perceber: `widht: 900` deixa a janela no tamanho padrão, sem erro em lugar nenhum.",
+      "description": "A janela em que o app abre, no vocabulário das janelas do próprio ambiente. Ignorado por type:'engine'. O portal repassa este objeto inteiro ao cliente (`window: m.window || {}` em routes/apps.ts), e o shell lê só os campos abaixo, então uma chave a mais viaja o caminho todo sem que ninguém a leia. O objeto é fechado por isso: `widht: 900` deixaria a janela no tamanho padrão sem erro em lugar nenhum, e o schema recusa a chave antes de o app publicar.",
       "additionalProperties": false,
       "properties": {
         "title": {
@@ -383,6 +411,57 @@
           ],
           "default": "ambiente",
           "description": "Quem desenha a barra de título. `ambiente` (padrão) é o cabeçalho do desktop. `app` é para quem JÁ TEM uma barra de título própria e boa — o editor, cuja barra é a do VS Code: o shell não monta a dele, e o app põe os botões de janela na sua, chamando `vssh.window.minimize/maximize/close`. Moldura, sombra e alças de resize continuam sendo do ambiente. Quem escolhe `app` fica responsável por três gestos que o cabeçalho padrão dava de graça: arrastar (`vssh.window.arrastar`), duplo-clique (`alternarMaximizado`) e menu de contexto (`menuDoCabecalho`) — um app que declara isto e não os liga entrega uma janela que não se move."
+        },
+        "minimos": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "O piso do redimensionamento pelas alças, para o app que precisa de mais que os 400×300 que o ambiente impõe a toda janela. Um lado só também vale: `{ \"largura\": 640 }` deixa a altura no piso do ambiente. Maximizar e encaixar continuam alcançando qualquer tamanho, e o piso vale para toda janela do app, inclusive a que ele abre pelo verbo `janela.abrir`.",
+          "properties": {
+            "largura": {
+              "type": "integer",
+              "minimum": 400,
+              "maximum": 10000
+            },
+            "altura": {
+              "type": "integer",
+              "minimum": 300,
+              "maximum": 10000
+            }
+          }
+        },
+        "posicao": {
+          "enum": [
+            "cascata",
+            "centrada"
+          ],
+          "default": "cascata",
+          "description": "Onde a janela nasce. `cascata` (padrão) é a janela de trabalho: cada uma abre um pouco abaixo e à direita da anterior, a partir do canto do display em que está o ponteiro. `centrada` é o diálogo e o painel: no meio desse display. Uma janela restaurada de uma sessão anterior volta onde estava, e este campo não a alcança."
+        },
+        "cancelarArraste": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Seletores CSS que não iniciam o arraste da janela, somados à lista do ambiente (botões, campos de formulário). Só alcançam o que o shell desenha em volta do iframe, como a barra de abas de quem tem `richChrome`: o ponteiro dentro do documento do app nunca chega ao shell. O shell descarta um seletor que o navegador não aceita."
+        },
+        "icone": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "O ícone da janela (barra de título, barra de tarefas, Alt+Tab), quando ele não é o `icon` do app. `glifo` é um desenho do próprio ambiente, pintado na cor de destaque que a pessoa escolheu, para o app parecer nativo; `url` é um caminho dentro do app, relativo à raiz dele, que o backend do app serve. Declare um dos dois; `glifo` vence quando há os dois, e o shell descarta um caminho que sai do app.",
+          "properties": {
+            "glifo": {
+              "type": "string",
+              "enum": [
+                "pasta",
+                "globo"
+              ]
+            },
+            "url": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
         }
       }
     }

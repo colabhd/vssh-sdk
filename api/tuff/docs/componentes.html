@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tuff: catálogo de componentes</title>
+
+<!-- As folhas da biblioteca, na ordem em que um app as carrega: tokens, base, componentes, mídia.
+     Caminho relativo, e sem servidor nenhum: esta página abre com duplo clique, de `file://`.
+     Julgamento visual se faz olhando, e uma bancada que precisa de `npm` e de um servidor é uma
+     bancada que ninguém abre. -->
+<link rel="stylesheet" href="../tuff-tokens.css">
+<link rel="stylesheet" href="../tuff-base.css">
+<link rel="stylesheet" href="../tuff.css">
+<link rel="stylesheet" href="../tuff-midia.css">
+<script src="../tuff-icones.js" defer></script>
+<script src="../tuff.js" defer></script>
+<script src="../tuff-midia.js" defer></script>
+
+<style>
+  /* Layout desta página, e nada mais: nenhuma peça abaixo é estilizada aqui. Fora de `@layer`
+     de propósito, como demonstração da hierarquia. Se uma regra daqui não vencesse a da
+     biblioteca, a camada estaria errada. */
+  /* A janela inteira é a gaveta: quem rola é o corpo dela, e não o `<body>`. Se o `<body>`
+     rolasse, a lateral rolaria junto e deixaria de responder "onde eu estou". */
+  html, body { height: 100%; }
+  body { padding: 0; overflow: hidden; }
+  /* O `.tuff-gaveta-conteudo` da biblioteca já dá o respiro; aqui só a coluna e o teto de largura. */
+  .pagina { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--ds-gap-xl); }
+  /* `align-items: start` para os painéis medirem o conteúdo deles. Sem isto a grade estica toda a
+     linha até a altura do painel mais alto, e o catálogo enche de buracos. É layout do catálogo:
+     num app, um painel esticado até o contêiner é o comportamento certo. */
+  .grade { display: grid; gap: var(--ds-gap-lg); align-items: start;
+           grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); }
+  .capa { display: flex; flex-direction: column; gap: var(--ds-gap-sm); }
+  .capa p { color: var(--ds-text-dim); font-size: var(--tuff-size-sm); max-width: 76ch; }
+  .amostra { display: flex; flex-wrap: wrap; gap: var(--ds-gap-md); align-items: center; }
+</style>
+</head>
+<body>
+<div class="tuff-gaveta" id="gaveta" style="height:100%">
+  <div class="tuff-gaveta-veu"></div>
+  <!-- A lateral é montada por `tuff.js` a partir das próprias seções; ver o script no fim. -->
+  <nav class="tuff-gaveta-lateral" id="gaveta-nav" aria-label="Seções"></nav>
+  <div class="tuff-gaveta-corpo">
+
+    <!-- A barra fica dentro do que rola, presa com `--fixa`, e encosta nas bordas porque o corpo
+         não tem padding; o respiro mora em `.tuff-gaveta-conteudo`, abaixo. -->
+    <div class="tuff-barra tuff-barra--fixa">
+      <button class="tuff-btn tuff-btn--icone tuff-gaveta-abrir" data-tuff-gaveta-abrir aria-label="Seções">
+        <svg class="tuff-ico"><use href="#ico-menu"></use></svg>
+      </button>
+      <strong>Tuff: catálogo</strong>
+      <span class="tuff-barra-espaco"></span>
+      <span class="tuff-tag">a base visual do VSSH</span>
+    </div>
+
+<div class="tuff-gaveta-conteudo pagina">
+
+  <header class="capa">
+    <p>
+      Todo componente da biblioteca, numa página só, sem servidor e sem build. O que se julga aqui é
+      se uma janela montada com estas peças passa por janela do ambiente, ou se denuncia que é uma
+      página web dentro de outra.
+    </p>
+    <p>
+      O que não está aqui, e nunca vai estar: diálogo, menu de contexto, aviso, bandeja e seletor de
+      arquivo. Essas superfícies são do desktop. O app as pede por <code>vssh.dialog</code>,
+      <code>vssh.contextMenu</code>, <code>vssh.toast</code> e <code>vssh.pickFile</code>, e é por
+      isso que elas se parecem com o resto do ambiente em vez de serem um <code>&lt;div&gt;</code>
+      que alguém estilizou.
+    </p>
+  </header>
+
+  <div class="grade">
+
+    <section class="tuff-painel" style="min-height:270px">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Botões</div>
+        <div class="tuff-sec-desc">Três variantes. O primário tira a cor do destaque da pessoa.</div>
+      </div>
+      <div class="amostra">
+        <button class="tuff-btn">comum</button>
+        <button class="tuff-btn tuff-btn--primario">primário</button>
+        <button class="tuff-btn tuff-btn--perigo">apagar</button>
+        <button class="tuff-btn" disabled>indisponível</button>
+      </div>
+      <div class="amostra">
+        <button class="tuff-btn tuff-btn--icone" aria-label="Recarregar"><svg class="tuff-ico"><use href="#ico-refresh"></use></svg></button>
+        <button class="tuff-btn tuff-btn--icone" aria-label="Ampliar"><svg class="tuff-ico"><use href="#ico-zoom-in"></use></svg></button>
+        <button class="tuff-btn tuff-btn--icone" aria-label="Reduzir"><svg class="tuff-ico"><use href="#ico-zoom-out"></use></svg></button>
+        <button class="tuff-btn"><svg class="tuff-ico"><use href="#ico-save"></use></svg> com rótulo</button>
+        <span class="tuff-sec-desc">quadrados, para barra e chrome, onde perdem a moldura</span>
+      </div>
+      <hr class="tuff-divisor">
+      <div class="tuff-sec-desc">
+        A barra de ações gruda no fim do painel. Botão flutuando no meio do espaço é o sintoma mais
+        comum de tela feita às pressas.
+      </div>
+      <div class="tuff-acoes tuff-acoes--direita">
+        <button class="tuff-btn">cancelar</button>
+        <button class="tuff-btn tuff-btn--primario">salvar</button>
+      </div>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Campos</div>
+        <div class="tuff-sec-desc">Nunca controle nativo, inclusive a lista aberta do select.</div>
+      </div>
+      <div>
+        <label class="tuff-rotulo" for="cat-nome">Nome do projeto</label>
+        <input class="tuff-campo" id="cat-nome" placeholder="sem espaços">
+      </div>
+      <div>
+        <label class="tuff-rotulo" for="cat-motor">Motor</label>
+        <select class="tuff-select" id="cat-motor">
+          <option>nenhum</option>
+          <option>Xpra</option>
+          <option>Scramjet</option>
+        </select>
+      </div>
+      <div>
+        <label class="tuff-rotulo" for="cat-busca">Busca</label>
+        <input class="tuff-busca" type="search" id="cat-busca" placeholder="filtrar…">
+      </div>
+      <div>
+        <label class="tuff-rotulo" for="cat-notas">Notas</label>
+        <textarea class="tuff-campo" id="cat-notas" rows="3">O textarea cresce só na vertical.</textarea>
+      </div>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Linhas de configuração</div>
+        <div class="tuff-sec-desc">Rótulo e valor nunca com o mesmo peso. Sem hierarquia, a coluna vira uma pilha de pares iguais.</div>
+      </div>
+      <div class="tuff-grupo">
+        <div class="tuff-linha">
+          <div class="tuff-linha-corpo">
+            <div class="tuff-linha-titulo">Manter o backend vivo</div>
+            <div class="tuff-linha-desc">Fechar a janela não encerra o processo.</div>
+          </div>
+          <div class="tuff-linha-ctrl">
+            <label class="tuff-switch">
+              <input type="checkbox" checked aria-label="Manter o backend vivo">
+              <span class="tuff-switch-trilho"></span>
+            </label>
+          </div>
+        </div>
+        <div class="tuff-linha">
+          <div class="tuff-linha-corpo">
+            <div class="tuff-linha-titulo">Aceleração por GPU</div>
+            <div class="tuff-linha-desc">Sem placa detectada neste servidor.</div>
+          </div>
+          <div class="tuff-linha-ctrl">
+            <label class="tuff-switch">
+              <input type="checkbox" disabled aria-label="Aceleração por GPU">
+              <span class="tuff-switch-trilho"></span>
+            </label>
+          </div>
+        </div>
+        <div class="tuff-linha">
+          <div class="tuff-linha-corpo">
+            <div class="tuff-linha-titulo">Qualidade</div>
+            <div class="tuff-linha-desc">Vale para novas sessões.</div>
+          </div>
+          <div class="tuff-linha-ctrl">
+            <div class="tuff-seg">
+              <label class="tuff-seg-btn"><input type="radio" name="q">baixa</label>
+              <label class="tuff-seg-btn"><input type="radio" name="q" checked>média</label>
+              <label class="tuff-seg-btn"><input type="radio" name="q">alta</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Estado</div>
+        <div class="tuff-sec-desc">As cores são as semânticas do ambiente, as mesmas em toda peça.</div>
+      </div>
+      <div class="amostra">
+        <span class="tuff-pill tuff-pill--ok">no ar</span>
+        <span class="tuff-pill tuff-pill--aviso">degradado</span>
+        <span class="tuff-pill tuff-pill--erro">fora</span>
+        <span class="tuff-pill tuff-pill--ocupado">subindo</span>
+        <span class="tuff-pill">desconhecido</span>
+      </div>
+      <div class="amostra">
+        <span class="tuff-tag">python3</span>
+        <span class="tuff-tag">ffmpeg</span>
+        <span class="tuff-tag" data-tuff-dica="declarado em requiredPackages">python3-pip</span>
+      </div>
+      <div class="amostra">
+        <span class="tuff-tecla">Ctrl</span>
+        <span class="tuff-tecla">Shift</span>
+        <span class="tuff-tecla">P</span>
+      </div>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Espera</div>
+        <div class="tuff-sec-desc">Spinner para "não sei quanto falta"; barra para "sei". Trocar os dois custa confiança.</div>
+      </div>
+      <div class="amostra">
+        <span class="tuff-spinner"></span>
+        <span class="tuff-sec-desc">conectando ao servidor…</span>
+      </div>
+      <div class="tuff-progresso"><div class="tuff-progresso-preenchido" style="width:64%"></div></div>
+      <div class="tuff-progresso tuff-progresso--alerta"><div class="tuff-progresso-preenchido" style="width:92%"></div></div>
+      <div class="tuff-progresso tuff-progresso--indeterminado"><div class="tuff-progresso-preenchido"></div></div>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Listas</div>
+        <div class="tuff-sec-desc">A seleção usa o mesmo realce do gerenciador de arquivos do ambiente.</div>
+      </div>
+      <div class="tuff-barra">
+        <span class="tuff-sec-desc">4 itens</span>
+        <span class="tuff-barra-espaco"></span>
+        <button class="tuff-btn" data-tuff-dica="não implementado no catálogo">novo</button>
+      </div>
+      <div class="tuff-lista" role="listbox" aria-label="Arquivos">
+        <div class="tuff-item" role="option" aria-selected="false">relatorio-2026.pdf</div>
+        <div class="tuff-item" role="option" aria-selected="true">medicoes.parquet</div>
+        <div class="tuff-item" role="option" aria-selected="false">notas.md</div>
+        <div class="tuff-item" role="option" aria-selected="false">um-nome-bem-comprido-que-nao-cabe-na-coluna.tar.gz</div>
+      </div>
+      <dl class="tuff-kv tuff-kv--mono">
+        <dt>caminho</dt><dd>/home/pesquisador/dados</dd>
+        <dt>socket</dt><dd>/run/user/1000/vssh-app.sock</dd>
+      </dl>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Dicas e vazio</div>
+        <div class="tuff-sec-desc">Uma tela vazia é um convite para agir. A frase diz o que fazer.</div>
+      </div>
+      <div class="tuff-dica">O servidor resolve o caminho; a sua máquina não entra.</div>
+      <div class="tuff-dica tuff-dica--aviso">Sem systemd de usuário, nenhum limite é aplicado. É informação, sem erro.</div>
+      <div class="tuff-dica tuff-dica--erro">O socket já está em uso por outra instância deste app.</div>
+      <div class="tuff-vazio">
+        <div class="tuff-vazio-titulo">Nenhuma pasta escolhida</div>
+        <div class="tuff-vazio-msg">Escolha uma pasta do servidor para começar. O app lê e grava nela como você.</div>
+        <button class="tuff-btn tuff-btn--primario">escolher pasta</button>
+      </div>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Detalhe</div>
+        <div class="tuff-sec-desc">
+          <code>&lt;details&gt;</code> nativo: abre sem JavaScript e é achável pelo Ctrl+F do navegador.
+        </div>
+      </div>
+      <details class="tuff-detalhe">
+        <summary>Por que o app não vê meus arquivos</summary>
+        <div class="tuff-detalhe-corpo">
+          O backend roda como você no servidor, com acesso POSIX. O seletor existe para você dizer
+          <em>qual</em> pasta, e a permissão já havia.
+        </div>
+      </details>
+      <details class="tuff-detalhe" open>
+        <summary>Tooltip</summary>
+        <div class="tuff-detalhe-corpo">
+          Passe o ponteiro sobre <span class="tuff-tag" data-tuff-dica="e o teclado também: Tab até aqui">este item</span>.
+          O <code>title</code> nativo seria desenhado pelo sistema: claro, com fonte do sistema, no
+          meio de uma janela escura.
+        </div>
+      </details>
+    </section>
+
+  </div>
+
+  <section class="tuff-painel">
+    <div class="tuff-sec">
+      <div class="tuff-sec-titulo">Ícones</div>
+      <div class="tuff-sec-desc">
+        Os 66 que o shell pede, mais 29 que um visualizador de fotos e um player de vídeo pedem.
+        Um traço só, 16×16, <code>currentColor</code>. Passe o ponteiro para ver o nome.
+      </div>
+    </div>
+    <div class="amostra">
+      <svg class="tuff-ico tuff-ico--sm"><use href="#ico-folder"></use></svg>
+      <svg class="tuff-ico"><use href="#ico-folder"></use></svg>
+      <svg class="tuff-ico tuff-ico--lg"><use href="#ico-folder"></use></svg>
+      <span class="tuff-sec-desc">14, 16 e 20. A cor vem do texto ao redor, sempre.</span>
+      <span class="tuff-pill tuff-pill--erro"><svg class="tuff-ico tuff-ico--sm"><use href="#ico-x-circle"></use></svg> herda a cor</span>
+    </div>
+    <div id="cat-icones" class="amostra" style="gap:var(--ds-gap-sm)"></div>
+  </section>
+
+  <header class="capa">
+    <h2>Mídia</h2>
+    <p>
+      O shell não tem player, nem grade de fotos, nem visor com zoom. O chrome de mídia usa o
+      material do ambiente, opaco e com a divisa da barra de tarefas, no lugar da barra de vidro que
+      todo player web usa: o sistema declara <code>--ds-blur: none</code>, e isso é decisão de
+      produto.
+    </p>
+    <p>
+      A assinatura: o destaque que você escolheu é o playhead. Troque a cor com esta página aberta
+      e a trilha, o anel de seleção da grade e a borda da tira acompanham. As imagens abaixo são
+      desenhadas em <code>&lt;canvas&gt;</code> na hora; mídia binária num repositório é uma dívida
+      que ninguém revisita.
+    </p>
+  </header>
+
+  <div class="grade">
+
+    <section class="tuff-painel" style="grid-column: 1 / -1">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Player</div>
+        <div class="tuff-sec-desc">
+          A trilha tem 3px em repouso e 6px sob o ponteiro; o 6 é a medida de trilho fino do
+          ambiente, a mesma da scrollbar. O timecode é monoespaçado com <code>tabular-nums</code>:
+          em fonte proporcional o número treme a cada segundo, no único elemento que o olho segue
+          continuamente.
+        </div>
+      </div>
+      <div class="tuff-palco" id="cat-palco" style="height:150px">
+        <canvas id="cat-quadro" width="480" height="270" style="max-width:100%;max-height:100%"></canvas>
+      </div>
+      <div class="tuff-chrome" id="cat-chrome" data-tuff-chrome>
+        <button class="tuff-btn tuff-btn--icone" data-tuff-play aria-label="Reproduzir"><svg class="tuff-ico"><use href="#ico-play"></use></svg></button>
+        <div class="tuff-trilha" id="cat-trilha" data-tuff-trilha aria-label="Posição">
+          <div class="tuff-trilha-trilho">
+            <div class="tuff-trilha-buffer" style="width:72%"></div>
+            <div class="tuff-trilha-tocado" style="width:38%"></div>
+            <div class="tuff-trilha-marca" style="left:22%"></div>
+            <div class="tuff-trilha-marca" style="left:55%"></div>
+          </div>
+          <div class="tuff-trilha-polegar" style="left:38%"></div>
+          <div class="tuff-trilha-previa" style="left:38%">15:47</div>
+        </div>
+        <span class="tuff-tempo" data-tuff-tempo><b>15:47</b> / 41:37</span>
+        <div class="tuff-volume" data-tuff-volume>
+          <button class="tuff-btn tuff-btn--icone" data-tuff-mudo aria-label="Silenciar"><svg class="tuff-ico"><use href="#ico-volume-on"></use></svg></button>
+          <div class="tuff-volume-trilha">
+            <div class="tuff-volume-trilho"><div class="tuff-volume-nivel" style="width:70%"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="tuff-dica">
+        O chrome some sozinho depois de 2,5&nbsp;s sem ponteiro, e nunca com o foco do teclado
+        dentro dele, nem com o vídeo pausado. Sumir ali deixaria quem navega por teclado sem
+        controle e sem caminho de volta.
+      </div>
+    </section>
+
+    <section class="tuff-painel" style="grid-column: 1 / -1">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Transporte</div>
+        <div class="tuff-sec-desc">
+          O chrome acima fica <em>sobre</em> o vídeo e some sozinho. Isto é a outra peça: a barra que
+          não some, embaixo da janela inteira, enquanto a pessoa navega a biblioteca, porque o vídeo
+          não parou de tocar só porque ela foi olhar outra coisa. É o que separa um player de
+          desktop de uma página com vídeo dentro.
+          <br><br>
+          Dois andares: em cima, <em>onde estou no tempo</em>; embaixo, <em>o que eu faço</em>. O
+          aglomerado de transporte fica no centro óptico por <code>1fr auto 1fr</code>; com
+          <code>flex</code> ele andaria conforme o nome da faixa fosse curto ou comprido, e o botão
+          que se procura sem olhar mudaria de lugar a cada vídeo.
+        </div>
+      </div>
+
+      <div class="tuff-transporte">
+        <div class="tuff-transporte-tempo">
+          <span class="tuff-tempo">12:04</span>
+          <div class="tuff-trilha" aria-label="Posição">
+            <div class="tuff-trilha-trilho">
+              <div class="tuff-trilha-buffer" style="width:43%"></div>
+              <div class="tuff-trilha-tocado" style="width:29%"></div>
+              <div class="tuff-trilha-marca" style="left:18%"></div>
+              <div class="tuff-trilha-marca" style="left:71%"></div>
+            </div>
+            <div class="tuff-trilha-polegar" style="left:29%"></div>
+          </div>
+          <span class="tuff-tempo">41:37</span>
+        </div>
+
+        <div class="tuff-transporte-controles">
+          <div class="tuff-transporte-inicio">
+            <svg class="tuff-ico tuff-ico--sm"><use href="#ico-video"></use></svg>
+            <!-- Um `<span>` simples, e não `.tuff-item`: aquela é linha de lista (ver "Listas"
+                 acima, com `role="option"`), e usá-la como rótulo solto ensinaria o contrário. -->
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">entrevista-final.mkv</span>
+          </div>
+
+          <div class="tuff-transporte-meio">
+            <button class="tuff-btn tuff-btn--icone" aria-label="Anterior"><svg class="tuff-ico"><use href="#ico-skip-back"></use></svg></button>
+            <button class="tuff-btn tuff-btn--icone" aria-label="Pausar"><svg class="tuff-ico"><use href="#ico-pause"></use></svg></button>
+            <button class="tuff-btn tuff-btn--icone" aria-label="Parar"><svg class="tuff-ico"><use href="#ico-stop"></use></svg></button>
+            <button class="tuff-btn tuff-btn--icone" aria-label="Próximo"><svg class="tuff-ico"><use href="#ico-skip-forward"></use></svg></button>
+          </div>
+
+          <div class="tuff-transporte-fim">
+            <!-- Os dois alternadores, um ligado e outro desligado, lado a lado de propósito: é a
+                 única forma de conferir olhando que `aria-pressed` pinta alguma coisa. -->
+            <button class="tuff-btn tuff-btn--icone" aria-pressed="true" aria-label="Repetir: só esta"><svg class="tuff-ico"><use href="#ico-repeat-one"></use></svg></button>
+            <button class="tuff-btn tuff-btn--icone" aria-pressed="false" aria-label="Aleatório"><svg class="tuff-ico"><use href="#ico-shuffle"></use></svg></button>
+            <button class="tuff-btn tuff-btn--icone" aria-label="Ajustes"><svg class="tuff-ico"><use href="#ico-settings"></use></svg></button>
+            <div class="tuff-volume">
+              <button class="tuff-btn tuff-btn--icone" aria-label="Silenciar"><svg class="tuff-ico"><use href="#ico-volume-on"></use></svg></button>
+              <div class="tuff-volume-trilha">
+                <div class="tuff-volume-trilho"><div class="tuff-volume-nivel" style="width:68%"></div></div>
+              </div>
+            </div>
+            <button class="tuff-btn tuff-btn--icone" aria-label="Tela cheia"><svg class="tuff-ico"><use href="#ico-fullscreen"></use></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tuff-dica">
+        O botão de repetir acima está ligado, e o de aleatório não. A diferença vem de
+        <code>aria-pressed="true"</code>, que é o seletor do estado ligado. Um alternador idêntico
+        nos dois estados faz a fila fazer algo que ninguém pediu.
+      </div>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Grade virtualizada</div>
+        <div class="tuff-sec-desc">
+          10&nbsp;000 itens, e só as fileiras visíveis existem no DOM. Setas e Home/End andam
+          dentro; a grade inteira é uma parada de Tab só.
+        </div>
+      </div>
+      <div id="cat-grade" style="height:230px"></div>
+      <div class="tuff-tira" id="cat-tira"></div>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Visor</div>
+        <div class="tuff-sec-desc">
+          Roda para ampliar no ponteiro, arraste para mover, duplo-clique alterna entre caber na
+          janela e 1:1. Sem inércia, de propósito: ferramenta de trabalho não desliza depois que a
+          mão parou.
+        </div>
+      </div>
+      <!-- Chrome sobreposto: a variante para quando a imagem manda e a barra não pode comer
+           espaço, como em tela cheia ou num visualizador de fotos. Continua opaco; o que muda é
+           onde ele mora. -->
+      <div class="tuff-palco" style="height:230px; display:block">
+        <div id="cat-visor" style="height:100%"></div>
+        <div class="tuff-chrome tuff-chrome--sobreposto">
+          <span class="tuff-tempo">900 × 640</span>
+          <span class="tuff-barra-espaco"></span>
+          <button class="tuff-btn" id="cat-ajustar">ajustar</button>
+          <button class="tuff-btn" id="cat-cem">1:1</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+  </div>
+</div>
+
+<script>
+  // Imagens procedurais: nada de binário no repositório, e a página continua abrindo de `file://`.
+  function ladrilho(i, w, h) {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const g = c.getContext('2d');
+    const grad = g.createLinearGradient(0, 0, w, h);
+    grad.addColorStop(0, `hsl(${(i * 37) % 360} 45% 32%)`);
+    grad.addColorStop(1, `hsl(${(i * 37 + 40) % 360} 40% 16%)`);
+    g.fillStyle = grad; g.fillRect(0, 0, w, h);
+    g.fillStyle = 'rgba(255,255,255,.75)';
+    g.font = '600 13px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('#' + i, w / 2, h / 2);
+    return c.toDataURL();
+  }
+
+  /**
+   * A lateral, montada a partir das seções da página.
+   *
+   * Uma lista escrita à mão seria uma segunda lista para esquecer de atualizar, e o sintoma seria
+   * uma peça nova que existe na página e não existe na navegação, ou um item que aponta para uma
+   * seção apagada. É o mesmo argumento da galeria de ícones logo abaixo.
+   *
+   * Os grupos saem dos `<h2>` que já separam a página: a marcação continua sendo a fonte.
+   */
+  function montarNavegacao() {
+    const nav = document.getElementById('gaveta-nav');
+    const slug = (t) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+    const cap = (texto) => {
+      const el = document.createElement('div');
+      el.className = 'tuff-gaveta-cap';
+      el.textContent = texto;
+      nav.appendChild(el);
+    };
+    cap('Vocabulário');
+
+    for (const bloco of document.querySelectorAll('.pagina > *')) {
+      const h2 = bloco.querySelector(':scope > h2');
+      if (h2) { cap(h2.textContent.trim()); continue; }
+      for (const secao of bloco.matches('.tuff-painel') ? [bloco] : bloco.querySelectorAll('.tuff-painel')) {
+        const titulo = secao.querySelector('.tuff-sec-titulo');
+        if (!titulo) continue;
+        const texto = titulo.textContent.trim();
+        if (!secao.id) secao.id = 's-' + slug(texto);
+        const item = document.createElement('button');
+        item.className = 'tuff-gaveta-item';
+        item.dataset.alvo = secao.id;
+        item.title = texto;
+        item.innerHTML = `<span>${texto}</span>`;
+        nav.appendChild(item);
+      }
+    }
+    TuffGaveta.ligar(document.getElementById('gaveta'));
+  }
+
+  addEventListener('DOMContentLoaded', () => {
+    montarNavegacao();
+
+    // A galeria de ícones sai da própria lista da biblioteca: uma lista escrita à mão seria uma
+    // segunda lista para esquecer de atualizar, e um ícone novo nasceria invisível.
+    const caixa = document.getElementById('cat-icones');
+    for (const nome of TuffIcones.nomes()) {
+      const cel = document.createElement('span');
+      cel.className = 'tuff-btn tuff-btn--icone';
+      cel.setAttribute('data-tuff-dica', nome);
+      cel.innerHTML = TuffIcones.svg(nome);
+      caixa.appendChild(cel);
+    }
+
+    ladrilho(0, 480, 270);
+    const q = document.getElementById('cat-quadro').getContext('2d');
+    const grad = q.createLinearGradient(0, 0, 480, 270);
+    grad.addColorStop(0, '#243447'); grad.addColorStop(1, '#12161c');
+    q.fillStyle = grad; q.fillRect(0, 0, 480, 270);
+    q.fillStyle = 'rgba(255,255,255,.35)';
+    q.font = '600 15px system-ui'; q.textAlign = 'center';
+    q.fillText('um quadro qualquer', 240, 140);
+
+    TuffMidia.grade(document.getElementById('cat-grade'), {
+      total: 10000, largura: 96, altura: 68, gap: 6,
+      montar(i, no) { no.innerHTML = `<img alt="item ${i}" src="${ladrilho(i, 96, 68)}">`; },
+    });
+
+    const tira = document.getElementById('cat-tira');
+    for (let i = 0; i < 12; i++) {
+      const it = document.createElement('div');
+      it.className = 'tuff-tira-item';
+      it.setAttribute('aria-selected', String(i === 3));
+      it.innerHTML = `<img alt="quadro ${i}" src="${ladrilho(i * 5, 64, 44)}">`;
+      tira.appendChild(it);
+    }
+
+    const alvo = document.getElementById('cat-visor');
+    const img = new Image();
+    img.alt = 'imagem de exemplo';
+    img.src = ladrilho(7, 900, 640);
+    alvo.appendChild(img);
+    const v = TuffMidia.visor(alvo);
+    img.onload = () => v.ajustar();
+    document.getElementById('cat-ajustar').onclick = () => v.ajustar();
+    document.getElementById('cat-cem').onclick = () => v.cem();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,1434 @@
+{
+  "descricao": "A tabela de exportação da ponte entre um vssh-app e o shell, como dado: um espaço por assunto, e em cada um os verbos (nome público, os campos fixos do fio, os argumentos com nome público, nome no fio e tipo, se responde, o ritmo, a descrição) e os eventos (o `type` no fio e os campos). Gerada de `vssh-client/js/app/abi.js` pelo canal de publicação do sistema; é a fonte de `api/vssh.d.ts`, de `docs/referencia/` e do emulador.",
+  "espacos": {
+    "app": {
+      "descricao": "Quem o app é e em que ambiente ele está: as capacidades do shell, os verbos disponíveis, o título que a janela mostra e a rota que a sessão restaura.",
+      "verbos": {
+        "capacidades": {
+          "fio": {
+            "type": "capabilities"
+          },
+          "campos": [],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "O ambiente em que o app está: o nome do host, o que ele sabe fazer, a versão do shell e a lista de verbos e eventos desta tabela. Com a lista, o app decide sozinho se o shell em que caiu tem o que ele precisa."
+        },
+        "titulo": {
+          "fio": {
+            "type": "title"
+          },
+          "campos": [
+            {
+              "nome": "titulo",
+              "fio": "title",
+              "tipo": "string"
+            }
+          ],
+          "responde": false,
+          "descricao": "O título que a janela mostra na barra de título, na barra de tarefas e no Alt+Tab. O app o reporta sempre que o dele muda; o shell corta em 200 caracteres."
+        },
+        "lembrarRota": {
+          "fio": {
+            "type": "rota"
+          },
+          "campos": [
+            {
+              "nome": "rota",
+              "fio": "rota",
+              "tipo": "string"
+            }
+          ],
+          "responde": false,
+          "descricao": "Onde o app está, para a sessão o reabrir no mesmo lugar: um caminho dentro do app, que o ambiente cola na URL quando restaura a janela. Uma rota que sai do app (um esquema, um caminho absoluto, um `..`) é recusada no console, sem resposta."
+        }
+      },
+      "eventos": {
+        "abertura": {
+          "fio": "open-context",
+          "campos": [
+            {
+              "nome": "caminho",
+              "fio": "path",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "url",
+              "fio": "url",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "tipo",
+              "fio": "tipo",
+              "tipo": "'arquivo' | 'pasta' | 'url'",
+              "opcional": true
+            },
+            {
+              "nome": "rota",
+              "fio": "rota",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "descricao": "O contexto com que o app foi aberto (\"abrir aqui\", \"abrir com\", um item da jump list). Chega depois do load, e de novo quando uma ação alcança uma janela que já está aberta."
+        }
+      }
+    },
+    "janela": {
+      "descricao": "A janela do app: controlada em runtime pelo app que a ocupa, e declarada no manifesto para quem a abre.",
+      "verbos": {
+        "abrir": {
+          "fio": {
+            "type": "window",
+            "op": "open"
+          },
+          "campos": [
+            {
+              "nome": "rota",
+              "fio": "rota",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "titulo",
+              "fio": "title",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "largura",
+              "fio": "width",
+              "tipo": "number",
+              "opcional": true
+            },
+            {
+              "nome": "altura",
+              "fio": "height",
+              "tipo": "number",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "Outra janela deste app, e a rota decide o que vai dentro dela: sem rota, uma cópia da mesma página; com rota (`?painel=notas`), um painel ou um segundo documento. O backend continua sendo um só, e a janela nova leva o título e o ícone do app. O shell recusa uma rota que sai do app (um esquema, um caminho absoluto, um `..`) e responde `false`."
+        },
+        "minimizar": {
+          "fio": {
+            "type": "window",
+            "op": "minimize"
+          },
+          "campos": [],
+          "responde": false,
+          "descricao": "Recolhe a janela para a barra de tarefas. Uma janela já minimizada fica como está."
+        },
+        "maximizar": {
+          "fio": {
+            "type": "window",
+            "op": "maximize"
+          },
+          "campos": [],
+          "responde": false,
+          "descricao": "Ocupa a área de trabalho inteira. Uma janela já maximizada fica como está."
+        },
+        "restaurar": {
+          "fio": {
+            "type": "window",
+            "op": "restore"
+          },
+          "campos": [],
+          "responde": false,
+          "descricao": "Devolve a janela ao tamanho normal: tira da barra de tarefas a que está minimizada, e desmaximiza a que está maximizada."
+        },
+        "focar": {
+          "fio": {
+            "type": "window",
+            "op": "focus"
+          },
+          "campos": [],
+          "responde": false,
+          "descricao": "Traz a janela para a frente das outras e lhe dá o foco."
+        },
+        "fechar": {
+          "fio": {
+            "type": "window",
+            "op": "close"
+          },
+          "campos": [],
+          "responde": false,
+          "descricao": "Fecha a janela pelo mesmo caminho do botão de fechar. Quando ela é a última do app, o backend segue o que `backend.aoFechar` declara no manifesto."
+        },
+        "arrastar": {
+          "fio": {
+            "type": "window",
+            "op": "drag-start"
+          },
+          "campos": [
+            {
+              "nome": "x",
+              "fio": "x",
+              "tipo": "number"
+            },
+            {
+              "nome": "y",
+              "fio": "y",
+              "tipo": "number"
+            },
+            {
+              "nome": "telaX",
+              "fio": "telaX",
+              "tipo": "number"
+            },
+            {
+              "nome": "telaY",
+              "fio": "telaY",
+              "tipo": "number"
+            }
+          ],
+          "responde": false,
+          "descricao": "Começa a arrastar a janela a partir de um ponto do documento do app, para quem declarou `cabecalho: \"app\"` e desenha a própria barra de título. `x` e `y` dizem onde no quadro do app a pessoa o agarrou (`clientX`, `clientY`); `telaX` e `telaY` fixam a referência de tela para o resto do gesto (`screenX`, `screenY`). O app captura o ponteiro e conta o gesto inteiro: este começo, cada ponto por `arrastarPara`, e o fim por `terminarArraste`. Uma janela maximizada ignora o pedido, como ignora o cabeçalho padrão."
+        },
+        "arrastarPara": {
+          "fio": {
+            "type": "window",
+            "op": "drag-move"
+          },
+          "campos": [
+            {
+              "nome": "telaX",
+              "fio": "telaX",
+              "tipo": "number"
+            },
+            {
+              "nome": "telaY",
+              "fio": "telaY",
+              "tipo": "number"
+            }
+          ],
+          "responde": false,
+          "descricao": "Um ponto do arraste em curso, em coordenada de tela (`screenX`, `screenY`). A coordenada é de tela porque o quadro do app se move junto com a janela, e um ponto relativo a ele dependeria do que o gesto acabou de mudar. Sem arraste começado, o shell ignora."
+        },
+        "terminarArraste": {
+          "fio": {
+            "type": "window",
+            "op": "drag-end"
+          },
+          "campos": [],
+          "responde": false,
+          "descricao": "O fim do arraste, no `pointerup` ou `pointercancel` do app. Sem ele a janela continua seguindo o ponteiro depois que a pessoa solta o botão."
+        },
+        "alternarMaximizado": {
+          "fio": {
+            "type": "window",
+            "op": "toggle-maximize"
+          },
+          "campos": [],
+          "responde": false,
+          "descricao": "O duplo-clique da barra de título de quem tem `cabecalho: \"app\"`: maximiza a janela normal e restaura a maximizada."
+        },
+        "menuDoCabecalho": {
+          "fio": {
+            "type": "window",
+            "op": "head-menu"
+          },
+          "campos": [
+            {
+              "nome": "x",
+              "fio": "x",
+              "tipo": "number"
+            },
+            {
+              "nome": "y",
+              "fio": "y",
+              "tipo": "number"
+            }
+          ],
+          "responde": false,
+          "descricao": "O menu de contexto do cabeçalho (mover, maximizar, fechar, o log do backend), aberto no ponto `x`, `y` do quadro do app. O shell traduz o ponto para a tela dele."
+        },
+        "abas": {
+          "fio": {
+            "type": "tabs"
+          },
+          "campos": [
+            {
+              "nome": "abas",
+              "fio": "tabs",
+              "tipo": "{ id: string, title?: string, sessionName?: string }[]"
+            },
+            {
+              "nome": "abaAtiva",
+              "fio": "activeTabId",
+              "tipo": "string | null",
+              "opcional": true
+            }
+          ],
+          "responde": false,
+          "descricao": "A lista de abas de um app com `richChrome`, que o shell desenha na barra de título. O app a manda inteira a cada mudança; o shell responde aos cliques pelos eventos `ativarAba`, `fecharAba` e `novaAba`. Só texto atravessa: o shell monta cada aba com o `title` que recebeu. Uma aba com `sessionName` volta na sessão seguinte pelo evento `restaurarAbas`. Sem `richChrome` no manifesto, o shell ignora a lista."
+        }
+      },
+      "eventos": {
+        "restaurarAbas": {
+          "fio": "restore-tabs",
+          "campos": [
+            {
+              "nome": "abas",
+              "fio": "tabs",
+              "tipo": "{ sessionName: string }[] | null"
+            },
+            {
+              "nome": "sessaoAtiva",
+              "fio": "activeSessionName",
+              "tipo": "string | null"
+            }
+          ],
+          "descricao": "As abas que a sessão anterior deixou salvas, mandadas uma vez, no load do iframe de um app com `richChrome`. Chega mesmo sem nada salvo (`abas: null`), para o app nunca decidir sozinho se cria uma aba inicial."
+        },
+        "ativarAba": {
+          "fio": "activate-tab",
+          "campos": [
+            {
+              "nome": "abaId",
+              "fio": "tabId",
+              "tipo": "string"
+            }
+          ],
+          "descricao": "A pessoa clicou numa aba da barra de título."
+        },
+        "fecharAba": {
+          "fio": "close-tab",
+          "campos": [
+            {
+              "nome": "abaId",
+              "fio": "tabId",
+              "tipo": "string"
+            }
+          ],
+          "descricao": "A pessoa clicou no fechar de uma aba, ou em \"Fechar aba\" no menu do cabeçalho."
+        },
+        "novaAba": {
+          "fio": "new-tab",
+          "campos": [],
+          "descricao": "A pessoa clicou no `+` da barra de abas, ou em \"Nova aba\" no menu do cabeçalho."
+        }
+      }
+    },
+    "arquivos": {
+      "descricao": "Ler e escrever com o consentimento do usuário, escolher, vigiar, abrir, abrir com, arrastar, e a área de transferência de arquivos.",
+      "verbos": {
+        "listar": {
+          "fio": {
+            "type": "fs",
+            "op": "list"
+          },
+          "campos": [
+            {
+              "nome": "caminho",
+              "fio": "path",
+              "tipo": "string"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "sonda": true,
+          "caminhos": [
+            "path"
+          ],
+          "descricao": "As entradas de uma pasta concedida: `{ path, items }`, com nome, tipo e tamanho de cada item."
+        },
+        "consultar": {
+          "fio": {
+            "type": "fs",
+            "op": "stat"
+          },
+          "campos": [
+            {
+              "nome": "caminho",
+              "fio": "path",
+              "tipo": "string"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "sonda": true,
+          "caminhos": [
+            "path"
+          ],
+          "descricao": "O que um caminho é: tamanho, data de modificação, `isFile`, `isDirectory` e o tipo MIME. Um caminho que não existe responde 404, e o app que sonda antes de criar lê isso como resposta."
+        },
+        "ler": {
+          "fio": {
+            "type": "fs",
+            "op": "read"
+          },
+          "campos": [
+            {
+              "nome": "caminho",
+              "fio": "path",
+              "tipo": "string"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "sonda": true,
+          "caminhos": [
+            "path"
+          ],
+          "descricao": "O conteúdo de um arquivo, como texto."
+        },
+        "lerBytes": {
+          "fio": {
+            "type": "fs",
+            "op": "readBytes"
+          },
+          "campos": [
+            {
+              "nome": "caminho",
+              "fio": "path",
+              "tipo": "string"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "sonda": true,
+          "caminhos": [
+            "path"
+          ],
+          "descricao": "O conteúdo de um arquivo, em bytes. No fio ele viaja em base64, porque um `ArrayBuffer` não atravessa o `postMessage` entre os dois documentos sem cópia; o SDK o devolve como `Uint8Array`."
+        },
+        "escrever": {
+          "fio": {
+            "type": "fs",
+            "op": "write"
+          },
+          "campos": [
+            {
+              "nome": "caminho",
+              "fio": "path",
+              "tipo": "string"
+            },
+            {
+              "nome": "conteudo",
+              "fio": "content",
+              "tipo": "string"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "caminhos": [
+            "path"
+          ],
+          "descricao": "Grava texto num arquivo, criando ou substituindo."
+        },
+        "escreverBytes": {
+          "fio": {
+            "type": "fs",
+            "op": "writeBytes"
+          },
+          "campos": [
+            {
+              "nome": "caminho",
+              "fio": "path",
+              "tipo": "string"
+            },
+            {
+              "nome": "base64",
+              "fio": "base64",
+              "tipo": "string"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "caminhos": [
+            "path"
+          ],
+          "descricao": "Grava bytes num arquivo, criando ou substituindo. É a rota de um binário: um PNG passado por `escrever` sairia corrompido sem aviso, porque aquela rota é de texto."
+        },
+        "criarPasta": {
+          "fio": {
+            "type": "fs",
+            "op": "mkdir"
+          },
+          "campos": [
+            {
+              "nome": "caminho",
+              "fio": "path",
+              "tipo": "string"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "caminhos": [
+            "path"
+          ],
+          "descricao": "Cria uma pasta."
+        },
+        "apagar": {
+          "fio": {
+            "type": "fs",
+            "op": "delete"
+          },
+          "campos": [
+            {
+              "nome": "caminho",
+              "fio": "path",
+              "tipo": "string"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "caminhos": [
+            "path"
+          ],
+          "descricao": "Apaga de vez um arquivo ou uma pasta com o conteúdo dela. A lixeira fica de fora; quem quer o caminho com desfazer usa o gerenciador de arquivos."
+        },
+        "existe": {
+          "fio": {
+            "type": "fs",
+            "op": "exists"
+          },
+          "campos": [
+            {
+              "nome": "caminho",
+              "fio": "path",
+              "tipo": "string"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "caminhos": [
+            "path"
+          ],
+          "descricao": "Se um caminho existe: `{ exists }`. Só o 404 do servidor vira `false`; permissão negada e servidor fora lançam, porque \"não pude perguntar\" e \"não existe\" pedem do app ações opostas."
+        },
+        "renomear": {
+          "fio": {
+            "type": "fs",
+            "op": "rename"
+          },
+          "campos": [
+            {
+              "nome": "origem",
+              "fio": "from",
+              "tipo": "string"
+            },
+            {
+              "nome": "destino",
+              "fio": "to",
+              "tipo": "string"
+            },
+            {
+              "nome": "politica",
+              "fio": "policy",
+              "tipo": "'fail' | 'overwrite'",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "caminhos": [
+            "from",
+            "to"
+          ],
+          "descricao": "Renomeia, e é também o mover, como o `mv`. Origem e destino precisam estar concedidos. Um destino que já existe falha; `overwrite` substitui, e precisa ser dito, porque perder um arquivo em silêncio não tem desfazer."
+        },
+        "copiar": {
+          "fio": {
+            "type": "fs",
+            "op": "copy"
+          },
+          "campos": [
+            {
+              "nome": "origem",
+              "fio": "from",
+              "tipo": "string"
+            },
+            {
+              "nome": "destino",
+              "fio": "to",
+              "tipo": "string"
+            },
+            {
+              "nome": "politica",
+              "fio": "policy",
+              "tipo": "'fail' | 'overwrite'",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "caminhos": [
+            "from",
+            "to"
+          ],
+          "descricao": "Copia. Origem e destino precisam estar concedidos, e um destino que já existe segue a política de `renomear`."
+        },
+        "vigiar": {
+          "fio": {
+            "type": "fs",
+            "op": "watch"
+          },
+          "campos": [
+            {
+              "nome": "caminho",
+              "fio": "path",
+              "tipo": "string"
+            },
+            {
+              "nome": "vigia",
+              "fio": "watchId",
+              "tipo": "string"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "caminhos": [
+            "path"
+          ],
+          "descricao": "Assina as mudanças sob um caminho, venham de onde vierem: outro editor, um upload pelo gerenciador de arquivos. A resposta confirma a assinatura; cada mudança chega depois pelo evento `arquivoMudou`, com o `vigia` que o app escolheu. Quem segura a conexão com o servidor é o shell, e ela morre com a janela."
+        },
+        "pararDeVigiar": {
+          "fio": {
+            "type": "fs",
+            "op": "unwatch"
+          },
+          "campos": [
+            {
+              "nome": "vigia",
+              "fio": "watchId",
+              "tipo": "string"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "caminhos": [],
+          "descricao": "Encerra uma assinatura de `vigiar`. Cada assinatura segura um vigia vivo no servidor do usuário, com teto por usuário, e encerrar a que deixou de servir é o que mantém as outras cabendo."
+        },
+        "escolherArquivo": {
+          "fio": {
+            "type": "pick",
+            "variant": "open"
+          },
+          "campos": [
+            {
+              "nome": "titulo",
+              "fio": "title",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "filtro",
+              "fio": "filter",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "pasta",
+              "fio": "dir",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "nome",
+              "fio": "name",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "humano",
+          "descricao": "Abre o seletor de arquivo do sistema e responde com o caminho escolhido, ou `null` se o usuário cancelou. O `filtro` é uma lista de grupos no estilo do Qt: `Imagens (*.png *.jpg);;Tudo (*)`. Escolher é consentir: o caminho passa a estar concedido a este app, e a concessão sobrevive à janela e à sessão."
+        },
+        "escolherDestino": {
+          "fio": {
+            "type": "pick",
+            "variant": "save"
+          },
+          "campos": [
+            {
+              "nome": "titulo",
+              "fio": "title",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "filtro",
+              "fio": "filter",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "pasta",
+              "fio": "dir",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "nome",
+              "fio": "name",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "humano",
+          "descricao": "Abre o seletor de \"salvar como\", com `nome` sugerido, e responde com o caminho onde gravar, ou `null` se o usuário cancelou. O caminho escolhido fica concedido a este app."
+        },
+        "escolherPasta": {
+          "fio": {
+            "type": "pick",
+            "variant": "directory"
+          },
+          "campos": [
+            {
+              "nome": "titulo",
+              "fio": "title",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "pasta",
+              "fio": "dir",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "humano",
+          "descricao": "Abre o seletor de pasta e responde com o caminho escolhido, ou `null` se o usuário cancelou. A pasta inteira fica concedida a este app, e é assim que um app trabalha numa árvore sem pedir arquivo a arquivo."
+        },
+        "permissoes": {
+          "fio": {
+            "type": "grants"
+          },
+          "campos": [
+            {
+              "nome": "caminho",
+              "fio": "path",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "Com `caminho`, se este app pode tocá-lo: `true` ou `false`. Sem, a lista dos caminhos concedidos a ele, com que o app refaz um handle sem abrir seletor. Quem decide é o shell; o espelho que o SDK mantém serve só ao que precisa responder sem esperar."
+        },
+        "areaDeTransferencia": {
+          "fio": {
+            "type": "clipboard",
+            "op": "files"
+          },
+          "campos": [],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "O que está na área de transferência de arquivos do ambiente: `{ action, paths }`, ou `null`. É a área do gerenciador de arquivos, que nenhuma API do navegador alcança; texto e imagem vão por `navigator.clipboard`, direto no app."
+        },
+        "copiarParaAreaDeTransferencia": {
+          "fio": {
+            "type": "clipboard",
+            "op": "setFiles"
+          },
+          "campos": [
+            {
+              "nome": "caminhos",
+              "fio": "paths",
+              "tipo": "string[]"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "Põe caminhos na área de transferência de arquivos, como se o usuário os tivesse copiado no gerenciador, e responde com quantos entraram. Sempre copiar: recortar moveria um arquivo do usuário na próxima colagem a partir de uma mensagem de iframe, e fica com o gerenciador, onde a pessoa vê o que faz."
+        },
+        "abrir": {
+          "fio": {
+            "type": "open-file"
+          },
+          "campos": [
+            {
+              "nome": "caminho",
+              "fio": "path",
+              "tipo": "string"
+            }
+          ],
+          "responde": false,
+          "descricao": "Abre um arquivo no visualizador do ambiente que a extensão pede: PDF, vídeo, editor de texto, planilha. O app manda o caminho e não precisa saber em que servidor está."
+        },
+        "abrirPasta": {
+          "fio": {
+            "type": "open-folder"
+          },
+          "campos": [
+            {
+              "nome": "caminho",
+              "fio": "path",
+              "tipo": "string"
+            }
+          ],
+          "responde": false,
+          "descricao": "Abre uma pasta no gerenciador de arquivos."
+        },
+        "abrirCom": {
+          "fio": {
+            "type": "open-with"
+          },
+          "campos": [
+            {
+              "nome": "caminho",
+              "fio": "path",
+              "tipo": "string"
+            }
+          ],
+          "responde": true,
+          "ritmo": "humano",
+          "descricao": "Mostra ao usuário os aplicativos que abrem o arquivo, a mesma lista do menu de contexto do gerenciador, e abre no escolhido. Responde com o nome do aplicativo, ou `null` se o usuário cancelou. Sem X11 a lista tem só vssh-apps."
+        },
+        "abrirLink": {
+          "fio": {
+            "type": "open-url"
+          },
+          "campos": [
+            {
+              "nome": "url",
+              "fio": "url",
+              "tipo": "string"
+            },
+            {
+              "nome": "destino",
+              "fio": "destino",
+              "tipo": "'navegador'",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "Abre um link no navegador do ambiente, que resolve a rede a partir do servidor Linux: um `http://localhost:3000` chega ao loopback do servidor, e numa aba de fora chegaria à máquina de quem lê. Só `http` e `https`. Um link cujo host outro app declarou em `opens.urls` vai para esse app; `destino: 'navegador'` pede o navegador mesmo assim."
+        },
+        "arrastar": {
+          "fio": {
+            "type": "arraste",
+            "fase": "inicio"
+          },
+          "campos": [
+            {
+              "nome": "caminhos",
+              "fio": "caminhos",
+              "tipo": "string[]"
+            }
+          ],
+          "responde": false,
+          "descricao": "Avisa que um arraste de arquivos começou dentro do app, com os caminhos absolutos que ele carrega. É o que acende os alvos de soltura do ambiente (a área de trabalho, o gerenciador, a lixeira), que leem um estado do documento do shell que um gesto nascido no iframe não escreve. O SDK o manda de dentro do `dragstart`."
+        },
+        "terminarArraste": {
+          "fio": {
+            "type": "arraste",
+            "fase": "fim"
+          },
+          "campos": [],
+          "responde": false,
+          "descricao": "Avisa que o arraste acabou, e apaga o estado. O `dragend` não atravessa documentos, então sem este aviso os alvos do ambiente ficariam acesos para um gesto que já terminou. O SDK o manda sozinho, no `dragend` do app."
+        }
+      },
+      "eventos": {
+        "permissoesMudaram": {
+          "fio": "grants",
+          "campos": [
+            {
+              "nome": "caminhos",
+              "fio": "paths",
+              "tipo": "string[]"
+            }
+          ],
+          "descricao": "A lista completa do que este app pode tocar. Chega no load da janela e a cada mudança (uma escolha num seletor, uma revogação no menu da janela), e substitui a anterior: o shell é a fonte, e uma revogação lá apaga aqui."
+        },
+        "arquivoMudou": {
+          "fio": "fs-change",
+          "campos": [
+            {
+              "nome": "vigia",
+              "fio": "watchId",
+              "tipo": "string"
+            },
+            {
+              "nome": "caminho",
+              "fio": "path",
+              "tipo": "string | null"
+            },
+            {
+              "nome": "encerrado",
+              "fio": "closed",
+              "tipo": "boolean",
+              "opcional": true
+            }
+          ],
+          "descricao": "Algo mudou sob um caminho vigiado. `encerrado` é o shell dizendo que a assinatura acabou de vez, porque a conexão com o servidor desistiu de reconectar; avisar é melhor que seguir calado fingindo que vigia."
+        },
+        "areaDeTransferenciaMudou": {
+          "fio": "clipboard-change",
+          "campos": [
+            {
+              "nome": "conteudo",
+              "fio": "clipboard",
+              "tipo": "{ action, paths } | null"
+            }
+          ],
+          "descricao": "A área de transferência de arquivos mudou, por qualquer janela: o usuário copiou no gerenciador e voltou para o app. Sem o evento, o app só descobriria perguntando em laço."
+        }
+      }
+    },
+    "avisos": {
+      "descricao": "Notificação, aviso efêmero, atividade em curso e bandeja, para um app com janela aberta.",
+      "verbos": {
+        "notificar": {
+          "fio": {
+            "type": "notify"
+          },
+          "campos": [
+            {
+              "nome": "mensagem",
+              "fio": "message",
+              "tipo": "string"
+            },
+            {
+              "nome": "titulo",
+              "fio": "title",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "nivel",
+              "fio": "level",
+              "tipo": "'info' | 'success' | 'warning' | 'error'",
+              "opcional": true
+            },
+            {
+              "nome": "prioridade",
+              "fio": "prioridade",
+              "tipo": "'baixa' | 'normal' | 'alta'",
+              "opcional": true
+            },
+            {
+              "nome": "chave",
+              "fio": "chave",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "acoes",
+              "fio": "actions",
+              "tipo": "{ id: string, label: string }[]",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "Um fato que aconteceu, gravado no histórico do sino e anunciado num aviso: um caminho, um erro que a pessoa vai querer reencontrar. `nivel` é o tom (cor e ícone); `prioridade` é quanto interromper: `baixa` só marca o sino, `normal` mostra o aviso por alguns segundos, `alta` o deixa na tela até a pessoa responder. Um app não abre modal, e `critica` vira `alta`. A mesma `chave` substitui a notificação anterior no lugar de empilhar. O clique numa das `acoes` volta pelo evento `acaoDeNotificacao`. A resposta é o id da notificação."
+        },
+        "avisar": {
+          "fio": {
+            "type": "toast"
+          },
+          "campos": [
+            {
+              "nome": "mensagem",
+              "fio": "message",
+              "tipo": "string"
+            },
+            {
+              "nome": "titulo",
+              "fio": "title",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "nivel",
+              "fio": "level",
+              "tipo": "'info' | 'success' | 'warning' | 'error'",
+              "opcional": true
+            },
+            {
+              "nome": "duracao",
+              "fio": "timeout",
+              "tipo": "number",
+              "opcional": true
+            },
+            {
+              "nome": "chave",
+              "fio": "chave",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "A frase que se lê e se esquece (\"copiado\", \"salvo\"): some sozinha depois de `duracao` milissegundos (4000 por padrão) e não entra no histórico. A mesma `chave` reescreve o aviso que está na tela e recomeça o relógio dele."
+        },
+        "atividade": {
+          "fio": {
+            "type": "live"
+          },
+          "campos": [
+            {
+              "nome": "chave",
+              "fio": "chave",
+              "tipo": "string"
+            },
+            {
+              "nome": "item",
+              "fio": "item",
+              "tipo": "object"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "Uma condição que é verdade agora, na bandeja e no painel de atividades: um progresso, algo tocando. `item` leva `titulo`, `texto`, `formato` (`simples`, `progresso` ou `midia`), `progresso` (`{ feito, total }` ou `{ indeterminado: true }`) e `acoes`; a mesma `chave` atualiza no lugar, então relatar progresso não empilha linhas. O clique numa ação volta pelo evento `acaoDeAtividade`. A resposta é a chave completa, `app:<id>:<chave>`, que é a que o ambiente usa. Sem `item`, o mesmo fio encerra a atividade, como `encerrarAtividade`."
+        },
+        "encerrarAtividade": {
+          "fio": {
+            "type": "live",
+            "item": null
+          },
+          "campos": [
+            {
+              "nome": "chave",
+              "fio": "chave",
+              "tipo": "string"
+            },
+            {
+              "nome": "registrar",
+              "fio": "registrar",
+              "tipo": "object",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "Encerra uma atividade. Sem `registrar` ela some sem deixar rastro, que é o certo para uma indisponibilidade resolvida; com `registrar` (`titulo`, `texto`, `level`) o fim vira uma notificação no histórico, como \"550 arquivos copiados\". A resposta é a chave completa."
+        },
+        "bandeja": {
+          "fio": {
+            "type": "tray",
+            "op": "set"
+          },
+          "campos": [
+            {
+              "nome": "item",
+              "fio": "item",
+              "tipo": "object"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "O ícone do app ao lado do relógio. `item` leva `icon` (nome de ícone do ambiente ou caminho dentro do pacote), `tooltip`, `badge` (`{ count }`, `{ dot: true }` ou `{ text }`) e `menu` (itens com `id` e `label`). É um item por app, e chamar de novo troca o conteúdo sem o ícone mudar de lugar. O clique e a escolha no menu voltam pelo evento `acaoNaBandeja`. A resposta é `true`."
+        },
+        "tirarDaBandeja": {
+          "fio": {
+            "type": "tray",
+            "op": "remove"
+          },
+          "campos": [],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "Tira o ícone do app da bandeja. A resposta diz se havia um."
+        }
+      },
+      "eventos": {
+        "acaoDeNotificacao": {
+          "fio": "notify-action",
+          "campos": [
+            {
+              "nome": "notificacaoId",
+              "fio": "notificationId",
+              "tipo": "string"
+            },
+            {
+              "nome": "acaoId",
+              "fio": "actionId",
+              "tipo": "string"
+            }
+          ],
+          "descricao": "A pessoa clicou numa ação de uma notificação deste app. Chega à janela do app que teve foco por último, e a ela só."
+        },
+        "acaoDeAtividade": {
+          "fio": "live-action",
+          "campos": [
+            {
+              "nome": "chave",
+              "fio": "chave",
+              "tipo": "string"
+            },
+            {
+              "nome": "acaoId",
+              "fio": "actionId",
+              "tipo": "string"
+            }
+          ],
+          "descricao": "A pessoa clicou numa ação de uma atividade declarada por esta janela. `chave` é a que o app escolheu, sem o prefixo do ambiente."
+        },
+        "acaoNaBandeja": {
+          "fio": "tray-event",
+          "campos": [
+            {
+              "nome": "evento",
+              "fio": "event",
+              "tipo": "'click' | 'menu'"
+            },
+            {
+              "nome": "menuId",
+              "fio": "menuId",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "descricao": "A pessoa clicou no ícone da bandeja (`click`) ou escolheu um item do menu dele (`menu`, com o `menuId` do item). O shell não interpreta o id; quem sabe o que ele significa é o app."
+        }
+      }
+    },
+    "dialogos": {
+      "descricao": "Os diálogos do sistema e o menu de contexto, desenhados pelo shell com os dados que o app manda.",
+      "verbos": {
+        "mostrar": {
+          "fio": {
+            "type": "dialog"
+          },
+          "campos": [
+            {
+              "nome": "mensagem",
+              "fio": "message",
+              "tipo": "string"
+            },
+            {
+              "nome": "titulo",
+              "fio": "title",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "humano",
+          "descricao": "Uma caixa de informação com um botão OK. A resposta chega quando a pessoa fecha a caixa."
+        },
+        "erro": {
+          "fio": {
+            "type": "dialog",
+            "variant": "error"
+          },
+          "campos": [
+            {
+              "nome": "mensagem",
+              "fio": "message",
+              "tipo": "string"
+            },
+            {
+              "nome": "titulo",
+              "fio": "title",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "humano",
+          "descricao": "A mesma caixa de `mostrar`, com o tom de erro."
+        },
+        "confirmar": {
+          "fio": {
+            "type": "dialog",
+            "variant": "confirm"
+          },
+          "campos": [
+            {
+              "nome": "mensagem",
+              "fio": "message",
+              "tipo": "string"
+            },
+            {
+              "nome": "titulo",
+              "fio": "title",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "humano",
+          "descricao": "Uma pergunta com \"Sim\" e \"Não\". A resposta é `true` só quando a pessoa disse sim; fechar a caixa vale como não."
+        },
+        "perguntar": {
+          "fio": {
+            "type": "dialog",
+            "variant": "prompt"
+          },
+          "campos": [
+            {
+              "nome": "mensagem",
+              "fio": "message",
+              "tipo": "string"
+            },
+            {
+              "nome": "valor",
+              "fio": "value",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "titulo",
+              "fio": "title",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "humano",
+          "descricao": "Um campo de texto de uma linha. A resposta é o que a pessoa escreveu, ou `null` quando ela cancelou."
+        },
+        "senha": {
+          "fio": {
+            "type": "dialog",
+            "variant": "password"
+          },
+          "campos": [
+            {
+              "nome": "mensagem",
+              "fio": "message",
+              "tipo": "string"
+            },
+            {
+              "nome": "titulo",
+              "fio": "title",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "humano",
+          "descricao": "Um campo de senha, com o texto escondido. A resposta é o valor digitado, ou `null` quando a pessoa cancelou. O valor chega ao app; para uma credencial que o app não deve ver, o caminho é `segredos.pedir`."
+        },
+        "menuDeContexto": {
+          "fio": {
+            "type": "context-menu"
+          },
+          "campos": [
+            {
+              "nome": "x",
+              "fio": "x",
+              "tipo": "number"
+            },
+            {
+              "nome": "y",
+              "fio": "y",
+              "tipo": "number"
+            },
+            {
+              "nome": "itens",
+              "fio": "items",
+              "tipo": "object[]"
+            }
+          ],
+          "responde": true,
+          "ritmo": "humano",
+          "descricao": "O menu de contexto do ambiente, montado com os itens que o app descreve: `label`, `icon`, `id`, `danger`, `checked`, `disabled`, `separator`, `header` e um nível de `submenu`. `x` e `y` são do viewport do app, e o shell soma a posição da janela. A resposta é o `id` do item escolhido (o `label`, quando o item não tem id), e `null` quando a pessoa fechou sem escolher."
+        }
+      },
+      "eventos": {}
+    },
+    "segredos": {
+      "descricao": "O cofre: o app pede uma credencial pelo nome, o shell mostra o campo e grava, e o valor nunca passa pelo app.",
+      "verbos": {
+        "listar": {
+          "fio": {
+            "type": "secrets",
+            "op": "list"
+          },
+          "campos": [],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "Os nomes guardados para este app, em `names`. Só os nomes: o cofre não devolve valor."
+        },
+        "pedir": {
+          "fio": {
+            "type": "secrets",
+            "op": "set"
+          },
+          "campos": [
+            {
+              "nome": "nome",
+              "fio": "nome",
+              "tipo": "string"
+            },
+            {
+              "nome": "titulo",
+              "fio": "title",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "descricao",
+              "fio": "description",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "humano",
+          "descricao": "Pede à pessoa uma credencial pelo nome (maiúsculas, dígitos e sublinhado, até 64 caracteres). O shell mostra um campo de senha com a `descricao`, grava no servidor e responde `{ names, requerReinicio: true }`; o valor não passa pelo app. O ambiente de um processo é fixado no start, e `requerReinicio` é o app saber que precisa reiniciar para enxergar o segredo. Cancelar responde `{ names: null, cancelado: true }`."
+        },
+        "apagar": {
+          "fio": {
+            "type": "secrets",
+            "op": "del"
+          },
+          "campos": [
+            {
+              "nome": "nome",
+              "fio": "nome",
+              "tipo": "string"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "Apaga uma credencial pelo nome. A resposta é `{ names, requerReinicio: true }`, com a lista que sobrou."
+        }
+      },
+      "eventos": {}
+    },
+    "midia": {
+      "descricao": "O que o app está tocando, o transporte que ele sabe fazer e o volume que o usuário deixou para ele.",
+      "verbos": {
+        "audio": {
+          "fio": {
+            "type": "audio-state"
+          },
+          "campos": [
+            {
+              "nome": "temAudio",
+              "fio": "hasAudio",
+              "tipo": "boolean"
+            },
+            {
+              "nome": "tocando",
+              "fio": "playing",
+              "tipo": "boolean"
+            }
+          ],
+          "responde": false,
+          "descricao": "O app dizendo que tem áudio, e se está tocando. É o que o põe na lista do mixer de volume: um app que toca por Web Audio não tem elemento que o shell encontre na varredura. O SDK relata sozinho a mídia e o Web Audio que ele vê; um app só chama isto por conta própria quando produz som por um caminho que o SDK não alcança."
+        },
+        "transporte": {
+          "fio": {
+            "type": "media-transporte"
+          },
+          "campos": [
+            {
+              "nome": "anterior",
+              "fio": "anterior",
+              "tipo": "boolean"
+            },
+            {
+              "nome": "proximo",
+              "fio": "proximo",
+              "tipo": "boolean"
+            }
+          ],
+          "responde": false,
+          "descricao": "O que este app sabe fazer de transporte além de tocar, pausar e buscar, que o shell já faz sozinho: anterior e próximo dependem de uma fila, e a fila é do app. A central de mídia desenha só os botões declarados, e o clique volta pelo evento `acao`."
+        },
+        "agora": {
+          "fio": {
+            "type": "media-agora"
+          },
+          "campos": [
+            {
+              "nome": "titulo",
+              "fio": "titulo",
+              "tipo": "string"
+            },
+            {
+              "nome": "subtitulo",
+              "fio": "subtitulo",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "capa",
+              "fio": "capa",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "responde": false,
+          "descricao": "O que está tocando, para a central de mídia. Sem isto o shell tira o nome da URL da fonte, e uma mídia montada por MSE tem um `blob:` sem nome. `capa` é uma URL de imagem relativa ao app, e só vale dentro dele. Sem título e sem capa, a decisão volta ao ambiente."
+        }
+      },
+      "eventos": {
+        "volume": {
+          "fio": "volume",
+          "campos": [
+            {
+              "nome": "ganho",
+              "fio": "gain",
+              "tipo": "number"
+            },
+            {
+              "nome": "mudo",
+              "fio": "muted",
+              "tipo": "boolean"
+            }
+          ],
+          "descricao": "O volume que o mixer do ambiente aplica a este app, de 0 a 1, com o mudo à parte. Chega no load da janela e a cada mexida no mixer. O SDK já o aplica à mídia e ao GainNode do app; um app só lê isto para desenhar o próprio controle."
+        },
+        "acao": {
+          "fio": "media-acao",
+          "campos": [
+            {
+              "nome": "acao",
+              "fio": "acao",
+              "tipo": "'anterior' | 'proximo'"
+            }
+          ],
+          "descricao": "A central de mídia pedindo a faixa anterior ou a próxima ao app que declarou o transporte."
+        }
+      }
+    },
+    "impressao": {
+      "descricao": "Imprimir pela tela do sistema: o app pede, e quem escolhe a impressora e confirma é o usuário.",
+      "verbos": {
+        "imprimir": {
+          "fio": {
+            "type": "print"
+          },
+          "campos": [
+            {
+              "nome": "caminho",
+              "fio": "path",
+              "tipo": "string"
+            },
+            {
+              "nome": "nome",
+              "fio": "name",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "Abre a tela de impressão do ambiente para um arquivo do servidor, por caminho absoluto. Quem escolhe a impressora e confirma é a pessoa, com o `nome` do arquivo na tela (o do caminho, por padrão). A resposta é `true` assim que a tela abre, sem esperar a impressão."
+        }
+      },
+      "eventos": {}
+    },
+    "gpu": {
+      "descricao": "O recurso que o sistema arbitra ao subir o app. O manifesto declara o que o app precisa em `recursos.gpu.modo`; quem decide, com o que o servidor tem, é o `vssh-app-run`, e o app pergunta o que recebeu sem conhecer `CUDA_VISIBLE_DEVICES` nem o inventário do servidor.",
+      "verbos": {
+        "estado": {
+          "fio": {
+            "type": "gpu",
+            "op": "estado"
+          },
+          "campos": [],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "O que o sistema concedeu de GPU a este app, na forma que o backend lê em `vssh.gpu.concedida()`: `{ concedida, dispositivos, motivo }`. `dispositivos` são os que o processo do app abre, cada um com `fabricante`, `driver`, `virtual`, `video` (o caminho de codificação: `nvenc`, `vaapi` ou `null`) e `renderNode`; a lista fica vazia quando nada foi concedido. `motivo` é a frase do lançador quando a resposta é não (`não declarada no manifesto`, `sem GPU utilizável: ...`, `não consegui consultar este servidor`), e `null` quando é sim. A janela e o backend leem o mesmo registro, e o gerenciador de tarefas mostra a mesma frase."
+        }
+      },
+      "eventos": {}
+    }
+  }
+}
