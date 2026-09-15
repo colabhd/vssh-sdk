@@ -1,9 +1,10 @@
 name: CI
 
 # O que este repositório publica é o que um app novo copia (`templates/`), o que o CI dele chama
-# (`scripts/vssh-app-publish` e o reusable) e o contrato que ele valida (`api/`). O CI mede as
-# três coisas juntas: a suíte Node, a suíte Python, e os dois templates subindo de verdade num
-# socket, com as libs instaladas pelo mesmo `installCommand` que o servidor roda.
+# (`scripts/vssh-app-publish`, o reusable e a ação `preparar-sdk`) e o contrato que ele valida
+# (`api/`). O CI mede as três coisas juntas: a suíte Node, a suíte Python, e os dois templates
+# subindo de verdade num socket, importando o runtime `vssh` de `runtime/` como importam o de
+# /opt/vssh/sdk no servidor.
 #
 # SEM DEPENDÊNCIA NPM, e é decisão: a suíte é `node --test` sobre a biblioteca padrão, e o
 # validador do publish é Python da biblioteca padrão. Cada dependência aqui seria mais uma coisa a
@@ -19,9 +20,9 @@ name: CI
 on:
   push:
     branches: [main]
-    paths: ['api/**', 'scripts/**', 'templates/**', 'examples/**', 'tests/**', 'package.json', '.github/workflows/ci.yml']
+    paths: ['api/**', 'runtime/**', 'scripts/**', 'templates/**', 'examples/**', 'tests/**', 'package.json', '.github/workflows/ci.yml', '.github/actions/**']
   pull_request:
-    paths: ['api/**', 'scripts/**', 'templates/**', 'examples/**', 'tests/**', 'package.json', '.github/workflows/ci.yml']
+    paths: ['api/**', 'runtime/**', 'scripts/**', 'templates/**', 'examples/**', 'tests/**', 'package.json', '.github/workflows/ci.yml', '.github/actions/**']
   workflow_dispatch:
 
 jobs:
@@ -34,17 +35,16 @@ jobs:
           # O glob de `node --test` exige runner >= 22.
           node-version: '24'
 
-      # As libs de cada template vêm do mesmo `installCommand` que o servidor roda. Sem as do
-      # Node, o caso de `tests/template-galeria.test.js` que confere o que o backend injeta se
-      # pula dizendo o comando; sem as do Python, `tests/python/test_template.py` inteiro.
-      - name: Libs do template Node, como o servidor as instala
+      # O runtime `vssh` que os templates importam é a cópia gerada em `runtime/` deste checkout,
+      # posta no caminho dos dois interpretadores pelo mesmo script que quem desenvolve usa
+      # (`source scripts/ambiente-de-dev.sh`). Num servidor quem faz isso é o `vssh-app-run`, com
+      # /opt/vssh/sdk. O ambiente de um passo morre com ele, daí o `GITHUB_ENV`.
+      - name: O runtime vssh no caminho do Node e do Python
         shell: bash
-        working-directory: templates/hello-vssh-app-node
         run: |
           set -euo pipefail
-          CMD="$(python3 -c 'import json;print(json.load(open("vssh-app.json"))["backend"]["installCommand"])')"
-          echo "${CMD}"
-          bash -c "${CMD}"
+          . scripts/ambiente-de-dev.sh
+          { echo "VSSH_SDK=${VSSH_SDK}"; echo "NODE_PATH=${NODE_PATH}"; echo "PYTHONPATH=${PYTHONPATH}"; } >> "${GITHUB_ENV}"
 
       - name: Testes Node
         shell: bash
@@ -52,19 +52,11 @@ jobs:
 
       # Sem `setup-python`: um app Python roda com o interpretador que o servidor tem, e o do
       # runner é o do sistema, como lá.
-      - name: Libs do template Python, como o servidor as instala
-        shell: bash
-        working-directory: templates/hello-vssh-app
-        run: |
-          set -euo pipefail
-          python3 --version
-          CMD="$(python3 -c 'import json;print(json.load(open("vssh-app.json"))["backend"]["installCommand"])')"
-          echo "${CMD}"
-          bash -c "${CMD}"
-
       - name: Testes Python
         shell: bash
-        run: npm run test:py
+        run: |
+          python3 --version
+          npm run test:py
 
   smoke-template-node:
     runs-on: ubuntu-latest
@@ -76,19 +68,19 @@ jobs:
           # provar que o template sobe lá.
           node-version: '24'
 
-      # O `installCommand` do manifesto: o smoke prova que o que o servidor executa produz um app
-      # que sobe, e um comando escrito aqui poderia divergir dele. O lock do template fixa o
-      # commit das libs.
-      - name: Libs do template, como o servidor as instala
-        working-directory: templates/hello-vssh-app-node
+      # O runtime `vssh` que os templates importam é a cópia gerada em `runtime/` deste checkout,
+      # posta no caminho dos dois interpretadores pelo mesmo script que quem desenvolve usa
+      # (`source scripts/ambiente-de-dev.sh`). Num servidor quem faz isso é o `vssh-app-run`, com
+      # /opt/vssh/sdk. O ambiente de um passo morre com ele, daí o `GITHUB_ENV`.
+      - name: O runtime vssh no caminho do Node e do Python
+        shell: bash
         run: |
           set -euo pipefail
-          CMD="$(python3 -c 'import json;print(json.load(open("vssh-app.json"))["backend"]["installCommand"])')"
-          echo "${CMD}"
-          bash -c "${CMD}"
+          . scripts/ambiente-de-dev.sh
+          { echo "VSSH_SDK=${VSSH_SDK}"; echo "NODE_PATH=${NODE_PATH}"; echo "PYTHONPATH=${PYTHONPATH}"; } >> "${GITHUB_ENV}"
 
       # Exercita o template como um app real: sobe o backend NO SOCKET que o portal daria, e
-      # confere healthcheck, API, index servido pelo static-spa e SSE chegando sem buffer.
+      # confere healthcheck, API, index servido pelo `web.spa` e SSE chegando sem buffer.
       - name: Smoke do template Node
         run: |
           cd templates/hello-vssh-app-node
@@ -103,8 +95,8 @@ jobs:
           PATH="${RUNNER_TEMP}:${PATH}"
           VSSH_APP_SOCKET="${SOCK}" VSSH_APP_ID=hello-world-node \
             VSSH_APP_DATA_DIR="${RUNNER_TEMP}/hwn" node backend/server.js &
-          for i in $(seq 1 20); do q -fsS http://app/healthz >/dev/null 2>&1 && break; sleep 0.5; done
-          q -fsS http://app/healthz | grep -q ok
+          for i in $(seq 1 20); do q -fsS http://app/saude >/dev/null 2>&1 && break; sleep 0.5; done
+          q -fsS http://app/saude | grep -qE '"ok": ?true'
           q -fsS http://app/api/ping | grep -q '"pong":true'
           q -fsS http://app/ | grep -q '<!DOCTYPE html>'
           timeout 3 q -sN http://app/api/events | grep -q 'event: tick'
@@ -165,16 +157,16 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # `--target vendor/py` é literalmente o que o `installCommand` do manifesto faz no servidor,
-      # e é o que o `backend/main.py` põe no `sys.path`. Rodar o comando do manifesto é o que
-      # impede o CI e o servidor de divergirem.
-      - name: Libs do template, como o servidor as instala
-        working-directory: templates/hello-vssh-app
+      # O runtime `vssh` que os templates importam é a cópia gerada em `runtime/` deste checkout,
+      # posta no caminho dos dois interpretadores pelo mesmo script que quem desenvolve usa
+      # (`source scripts/ambiente-de-dev.sh`). Num servidor quem faz isso é o `vssh-app-run`, com
+      # /opt/vssh/sdk. O ambiente de um passo morre com ele, daí o `GITHUB_ENV`.
+      - name: O runtime vssh no caminho do Node e do Python
+        shell: bash
         run: |
           set -euo pipefail
-          CMD="$(python3 -c 'import json;print(json.load(open("vssh-app.json"))["backend"]["installCommand"])')"
-          echo "${CMD}"
-          bash -c "${CMD}"
+          . scripts/ambiente-de-dev.sh
+          { echo "VSSH_SDK=${VSSH_SDK}"; echo "NODE_PATH=${NODE_PATH}"; echo "PYTHONPATH=${PYTHONPATH}"; } >> "${GITHUB_ENV}"
 
       - name: Smoke do template Python
         run: |
@@ -187,8 +179,8 @@ jobs:
           PATH="${RUNNER_TEMP}:${PATH}"
           VSSH_APP_SOCKET="${SOCK}" VSSH_APP_ID=hello-world \
             VSSH_APP_DATA_DIR="${RUNNER_TEMP}/hwp" python3 backend/main.py &
-          for i in $(seq 1 20); do q -fsS http://app/healthz >/dev/null 2>&1 && break; sleep 0.5; done
-          q -fsS http://app/healthz | grep -q ok
+          for i in $(seq 1 20); do q -fsS http://app/saude >/dev/null 2>&1 && break; sleep 0.5; done
+          q -fsS http://app/saude | grep -qE '"ok": ?true'
           q -fsS http://app/api/ping | grep -q '"pong":true'
           q -fsS http://app/ | grep -q '<!DOCTYPE html>'
           timeout 3 q -sN http://app/api/events | grep -q 'event: tick'

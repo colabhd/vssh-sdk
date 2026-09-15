@@ -1,0 +1,52 @@
+name: Preparar o SDK do VSSH
+description: >-
+  Traz o runtime `vssh`, o `api/` e os scripts deste repositório para `_sdk/` no workspace do
+  chamador, e exporta VSSH_SDK, NODE_PATH e PYTHONPATH para os passos seguintes do job. É o que um
+  app usa antes de `npm test` ou `python -m unittest`, para importar `vssh` no CI como importa no
+  servidor.
+
+# O CI de um app:
+#
+#   steps:
+#     - uses: actions/checkout@v5
+#     - uses: colabhd/vssh-sdk/.github/actions/preparar-sdk@main
+#     - run: npm test
+#
+# `ref` fixa outra revisão deste repositório; o padrão é `main`, porque `runtime/` é gerado a
+# partir do sistema que está no ar, e a ponta de `main` é a que responde "o servidor de hoje tem
+# este runtime?".
+
+inputs:
+  ref:
+    description: Ref do vssh-sdk de onde puxar runtime, api e scripts
+    required: false
+    default: main
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout esparso do vssh-sdk (runtime, api, scripts)
+      uses: actions/checkout@v5
+      with:
+        repository: colabhd/vssh-sdk
+        ref: ${{ inputs.ref }}
+        sparse-checkout: |
+          runtime
+          api
+          scripts
+        path: _sdk
+        # Repositório público: o github.token do chamador o enxerga sem PAT.
+
+    # `GITHUB_ENV`, e não `export`: o ambiente de um passo morre com ele, e é nos passos
+    # seguintes (o `npm test` do app) que o runtime precisa estar no caminho. O que já havia em
+    # NODE_PATH e PYTHONPATH fica, atrás do runtime.
+    - name: VSSH_SDK, NODE_PATH e PYTHONPATH para os passos seguintes
+      shell: bash
+      run: |
+        set -euo pipefail
+        SDK="${GITHUB_WORKSPACE}/_sdk"
+        {
+          echo "VSSH_SDK=${SDK}"
+          echo "NODE_PATH=${SDK}/runtime/node${NODE_PATH:+:${NODE_PATH}}"
+          echo "PYTHONPATH=${SDK}/runtime/python${PYTHONPATH:+:${PYTHONPATH}}"
+        } >> "${GITHUB_ENV}"
