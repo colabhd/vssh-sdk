@@ -6,8 +6,7 @@
   "category": "Utility",
   "description": "Template de vssh-app com backend Python e galeria das capacidades do ambiente — ponte com o desktop, File System Access, bandeja, som, impressão, duas janelas sobre um backend só, e o que o ambiente decide por um app: limite de recurso, GPU e cofre de segredos.",
   "requiredPackages": [
-    "ffmpeg",
-    "python3-pip"
+    "ffmpeg"
   ],
   "gpu": true,
   "resources": {
@@ -45,8 +44,7 @@
     "runtime": "python3",
     "transport": "socket",
     "entrypoint": "backend/main.py",
-    "installCommand": "( [ \"${VSSH_APP_REBUILD:-}\" != 1 ] && test -d vendor/py ) || python3 -m pip install --no-cache-dir --target vendor/py \"https://github.com/colabhd/vssh-app-toolkit/archive/refs/tags/v4.tar.gz\"",
-    "healthcheckPath": "/healthz",
+    "healthcheckPath": "/saude",
     "aoFechar": "encerrar"
   },
   "window": {

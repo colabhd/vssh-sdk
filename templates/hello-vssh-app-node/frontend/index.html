@@ -119,17 +119,21 @@
           manifesto. Num servidor sem gerenciador systemd do usuário
           (<code>loginctl enable-linger</code>) nada é aplicado, e aí ele aparece como
           <code>max</code>: o app roda <em>sem</em> limite, e isso é informação, não erro.</li>
-        <li><strong>GPU</strong> — o <em>inventário</em> do servidor, perguntado ao kernel
-          (<code>/sys/class/drm</code> + <code>/dev/dri</code>): quem é a placa pelo id do
-          barramento, qual driver assumiu, se ela é <em>virtual</em>, e — a pergunta que mais trava
-          gente — se este processo consegue <strong>abrir</strong> o render node. Vale para NVIDIA,
-          AMD, Intel, virtio, o que for; não depende de SDK nem de driver proprietário.
-          <br>Ao lado dele vem <code>CUDA_VISIBLE_DEVICES</code>, que é outra coisa: o
-          <em>portão</em>. Este template <strong>declara</strong> <code>gpu: true</code> — porque
-          uma galeria existe para ser exercitada, e o benchmark abaixo precisa da placa. Num app que
-          <em>não</em> declara, o valor seria <code>""</code>; e sozinho esse vazio é ambíguo — é o
-          mesmo para "escondida de mim" e para "não existe". É por isso que ele aparece
-          <em>junto</em> do inventário, e nunca no lugar dele.</li>
+        <li><strong>GPU</strong>: o que o lançador <em>concedeu</em> a este processo, lido pelo
+          backend em <code>vssh.gpu.concedida()</code>. O lançador pergunta ao kernel
+          (<code>/sys/class/drm</code> + <code>/dev/dri</code>) quem é a placa pelo id do
+          barramento, qual driver assumiu, se ela é <em>virtual</em>, e, a pergunta que mais trava
+          gente, se este usuário consegue <strong>abrir</strong> o render node; a resposta vale para
+          NVIDIA, AMD, Intel, virtio, o que for. O app não vasculha nada: a decisão que vale é a do
+          lançador, a mesma que a janela recebe por <code>vssh.gpu.estado()</code> e que o
+          gerenciador de tarefas mostra, e uma negativa vem com o <em>motivo</em>.
+          <br>Ao lado dela vem <code>CUDA_VISIBLE_DEVICES</code>, que é outra coisa: o
+          <em>portão</em> do runtime CUDA. Este template <strong>declara</strong>
+          <code>gpu: true</code>, porque uma galeria existe para ser exercitada, e o benchmark
+          abaixo precisa da placa. Num app que <em>não</em> declara, o valor seria
+          <code>""</code>; e sozinho esse vazio é ambíguo, o mesmo para "escondida de mim" e para
+          "não existe". É por isso que ele aparece <em>junto</em> da decisão, e nunca no lugar
+          dela. Fora do lançador não há registro, e a peça diz isso.</li>
         <li><strong>Cofre</strong> — o app declara o <em>nome</em> (<code>HELLO_SEGREDO</code>); o
           valor você guarda em <strong>Configurações → Segredos</strong>, e ele mora no
           <em>seu</em> servidor, não no portal. Depois de guardar,
@@ -157,7 +161,7 @@
       <p class="tuff-sec-desc">
         <strong>O segredo se guarda AQUI, no app</strong> — não em Configurações. É o app que sabe
         que falta credencial, e sabe na hora exata em que ela falta. O botão chama
-        <code>vssh.secrets.set()</code>: o campo é do desktop, o valor vai direto para o seu
+        <code>vssh.segredos.pedir()</code>: o campo é do desktop, o valor vai direto para o seu
         servidor, e o app <em>nunca o toca</em> — nem no envio, nem na volta. Em Configurações →
         Cofre você confere o que já está guardado.
       </p>
@@ -194,7 +198,7 @@
       </p>
       <p class="tuff-sec-desc">
         O app também pode <strong>pedir</strong> a janela, e aí ele escolhe o que vai dentro:
-        <code>vssh.window.abrir('?painel=1', …)</code> abre uma janela <strong>extra</strong> — um
+        <code>vssh.janela.abrir('?painel=1', …)</code> abre uma janela <strong>extra</strong>, um
         painel, uma prévia, um segundo documento — e não uma cópia desta página. O botão abaixo
         abre o painel compacto deste app, ligado ao mesmo contador. URL absoluta e
         <code>javascript:</code> são recusados pelo shell: a janela leva o título e o ícone do seu
@@ -498,7 +502,7 @@
         A armadilha que não deixa rastro: sem <code>preventDefault</code> no
         <code>dragover</code>, o navegador entende que o alvo recusa a soltura e o
         <strong><code>drop</code> nunca acontece</strong> — sem erro, sem log, só o cursor de
-        proibido. Quem usa <code>vssh.onArquivosSoltos()</code> não precisa lembrar disso.
+        proibido. Quem usa <code>vssh.arquivos.aoSoltarArquivos()</code> não precisa lembrar disso.
       </p>
       <div class="tuff-acoes">
         <div id="solte">solte arquivos aqui</div>

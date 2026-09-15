@@ -1,34 +1,31 @@
 #!/usr/bin/env python3
-"""Hello World (Python) — template de partida para um vssh-app com backend Python.
+"""Hello World (Python): o template de partida para um vssh-app com backend Python.
 
-**É o mesmo app que o `hello-vssh-app-node`.** Mesmas peças, mesmas rotas, mesmo frontend — o
+É o mesmo app que o `hello-vssh-app-node`. Mesmas peças, mesmas rotas, mesmo frontend: o
 `frontend/galeria.js` é byte a byte idêntico ao de lá, e há um teste que reprova a divergência
-(`tests/galeria-paridade.test.js`). A escolha entre os dois templates é de LINGUAGEM, e mais nada.
+(`tests/galeria-paridade.test.js`). A escolha entre os dois templates é de linguagem, e mais nada.
 
-Uma dependência, e ela é o toolkit, de onde vêm as libs de backend (endereço, log, SPA, SSE,
-filesystem privado, bandeja, notificação, atividade):
+O backend importa `vssh`, o runtime que o sistema instala em cada servidor em
+`/opt/vssh/sdk/python` e que o `vssh-app-run` expõe pelo `PYTHONPATH` a todo app que sobe. Nada
+disso viaja no pacote, e o manifesto não tem `installCommand`. O resto é stdlib. O SDK web
+(`vssh`) e a biblioteca de UI também não viajam: o sistema os serve em `_sdk/` dentro do espaço
+de URL do app, e o backend só injeta as tags (ver `web.spa` abaixo).
 
-    pip install "https://github.com/colabhd/vssh-app-toolkit/archive/refs/tags/v4.tar.gz"
-
-Quem instala no servidor é o `installCommand` do manifesto. O resto é stdlib. O SDK web (`vssh`)
-e a biblioteca de UI não viajam no pacote: o sistema os serve em `_sdk/` dentro do espaço de URL
-do app, e o backend só injeta as tags (ver `criar_spa_estatica` abaixo).
+Fora do servidor, `scripts/ambiente-de-dev.sh` do SDK aponta `PYTHONPATH` para a cópia de
+`runtime/python`, e `python3 backend/main.py --tcp 127.0.0.1:0` sobe o backend numa porta.
 
 O que este template já faz por você, e que a primeira versão de todo app esquece:
   - log estruturado em $VSSH_APP_DATA_DIR desde a primeira linha (é o que salva a depuração
     remota: frame minificado sustenta hipótese, log do backend nomeia op e caminho);
-  - checagem do X-Vssh-App-Token, resistente a timing;
-  - healthcheck que responde sem depender de nada estar pronto;
+  - o portão do X-Vssh-App-Token, em tempo constante, e o `/saude` que o ambiente sonda;
   - um endpoint SSE com os cabeçalhos que sobrevivem ao proxy e ao CDN.
 
-⚠ **Este arquivo não lê `VSSH_APP_PORT`, e ler seria o defeito**: o
-endereço de um app é um socket unix, e o `transport: "tcp"` que entregaria uma porta saiu do
-schema. Quem lê o endereço, limpa socket órfão e falha alto quando não veio nada é o
-`criar_servidor()` do toolkit, lá no fim.
+Este arquivo não lê `VSSH_APP_PORT`, e ler seria o defeito: o endereço de um app é um socket
+unix, e o `transport: "tcp"` que entregaria uma porta saiu do schema. Quem lê o endereço, limpa
+socket órfão e falha alto quando não veio nada é o `servidor.escutar()`, lá no fim.
 """
 
 import hashlib
-import hmac
 import json
 import os
 import re
@@ -42,109 +39,87 @@ try:
     import resource  # tempo de processador dos FILHOS — é o que o benchmark da GPU compara
 except ImportError:  # Windows de desenvolvimento; o app roda em Linux
     resource = None
-from http.server import BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlsplit
 
-# As libs do toolkit. `vendor/py` primeiro: é onde o `installCommand` as instala, e um `pip
-# install --target` dentro do próprio pacote é o equivalente exato do `node_modules` do lado Node.
+# Os módulos do runtime, cada um importado por si:
+#
+#   servidor   o endereço, o portão de token, o `/saude`, o log
+#   web        a SPA do app, com o SDK web e o Tuff injetados no `<head>`
+#   eventos    SSE, e a difusão a quem assinou
+#   dados      o filesystem privado do app, e as rotas que o frontend chama
+#   avisos     notificar, atividade em curso e bandeja, para um app sem janela
+#   app        quem sou, e onde guardo as coisas
+#   gpu        o que o lançador concedeu de GPU a este processo
+#
+# As duas vozes de um app sem janela dizem coisas diferentes, e trocar uma pela outra é o erro
+# que enche o sino de quem usa o ambiente: `avisos.notificar` registra um fato que aconteceu, e
+# que a pessoa vai querer reencontrar; `avisos.atividade` declara uma condição verdadeira agora,
+# que some quando deixa de ser, sem deixar rastro. A bandeja (`avisos.bandeja`) é o par do
+# `vssh.avisos.bandeja` do SDK web: aquele morre com a janela; este escreve um arquivo que o
+# portal lê, e o clique volta como POST, porque a rede é assimétrica (o portal alcança o app; o
+# app não alcança o portal).
+from vssh import app, avisos, dados, eventos, gpu, servidor, web
+
 _AQUI = os.path.dirname(os.path.abspath(__file__))
-_VENDOR = os.path.join(_AQUI, "..", "vendor", "py")
-if os.path.isdir(_VENDOR):
-    sys.path.insert(0, os.path.abspath(_VENDOR))
 
-from vssh_app_toolkit.fs import criar_fs_do_app, criar_handler_fs  # noqa: E402
-from vssh_app_toolkit.listen import ErroDeEndereco, VSSH_APP_JA_ESCUTANDO, criar_servidor  # noqa: E402
-from vssh_app_toolkit.log import criar_log_do_app  # noqa: E402
-# As duas vozes de um app SEM janela. Elas dizem coisas diferentes, e trocar uma pela outra é o
-# erro que enche o sino de quem usa o ambiente:
-#
-#   notificar()  um FATO que aconteceu, e que a pessoa vai querer reencontrar. Fica no histórico.
-#   live         uma CONDIÇÃO que é verdade AGORA. Some quando deixa de ser, sem deixar rastro.
-from vssh_app_toolkit.live import (  # noqa: E402
-    definir_live,
-    limpar_live,
-    limpar_live_ao_sair,
-    manter_live_vivo,
-)
-from vssh_app_toolkit.notify import notificar  # noqa: E402
-from vssh_app_toolkit.spa import criar_spa_estatica  # noqa: E402
-from vssh_app_toolkit.sse import abrir_stream_sse  # noqa: E402
-from vssh_app_toolkit.tray import definir_bandeja, limpar_bandeja, limpar_bandeja_ao_sair  # noqa: E402
+APP_ID = app.ident()
 
-# O que o sistema serve no espaço `_sdk/` do app, e este backend só injeta. Os caminhos são
-# relativos à raiz do app, sem carimbo: o arquivo não existe no disco deste pacote, o sistema
-# responde com `no-cache` e ETag, e a versão que chega é a do shell que está no ar.
-#
-#   `_sdk/vssh.js`  o SDK web: a ponte `vssh.*` e o polyfill de File System Access, num arquivo.
-#   `_sdk/tuff/…`   a biblioteca de UI. Tokens antes da base, e a base antes dos componentes,
-#                   porque cada folha lê o que a anterior declara; os ícones antes de `tuff.js`,
-#                   porque a gaveta tem um por item e um `<use>` que resolve depois da primeira
-#                   pintura pisca.
-#
-# Adotar o Tuff é escolha deste app: um app com identidade visual própria injeta só o SDK.
-SDK_WEB = ["_sdk/vssh.js"]
-TUFF_ESTILOS = ["_sdk/tuff/tuff-tokens.css", "_sdk/tuff/tuff-base.css", "_sdk/tuff/tuff.css"]
-TUFF_SCRIPTS = ["_sdk/tuff/tuff-icones.js", "_sdk/tuff/tuff.js"]
-
-APP_ID = os.environ.get("VSSH_APP_ID") or "hello-world"
-APP_TOKEN = os.environ.get("VSSH_APP_TOKEN") or None
-
-log = criar_log_do_app(app_id=APP_ID)
+log = servidor.criar_log()
 
 # As duas metades do prazo de validade de uma atividade, ligadas no boot porque é uma linha cada e
-# porque esquecê-las não quebra nada — só deixa uma barra mentindo no painel de outra pessoa.
-manter_live_vivo()
-limpar_live_ao_sair()
+# porque esquecê-las não quebra nada: só deixa uma barra mentindo no painel de outra pessoa. A
+# renovação cobre o `kill -9` (o portal descarta o que passa ~60 s sem renovar o `at`); a limpeza
+# ao sair cobre a saída limpa, onde 60 s de "sincronizando" seria um minuto de mentira.
+avisos.manter_atividades_vivas()
+avisos.limpar_atividades_ao_sair()
 # Ícone órfão mente sobre o estado do ambiente: ele fica na bandeja depois que o app morreu, e quem
 # o vê conclui que o app está de pé.
-limpar_bandeja_ao_sair()
+avisos.limpar_bandeja_ao_sair()
 
 # ── O armazém privado deste app ──────────────────────────────────────────────
 #
-# A raiz fica DENTRO do VSSH_APP_DATA_DIR, que é o único diretório gravável garantido — o pacote em
-# /opt/vssh-apps/<id>/ é root-owned e somente leitura.
-_RAIZ_PRIVADA = os.path.join(
-    os.environ.get("VSSH_APP_DATA_DIR") or os.path.join("/tmp", f"{APP_ID}-data"), "privado"
-)
-arquivos_privados = criar_fs_do_app(root=_RAIZ_PRIVADA, ao_avisar=lambda e: log("fs-warn", e))
-servir_privado = criar_handler_fs(
-    arquivos_privados,
-    mount_path="/api/privado",
-    # O MESMO token do resto do app. A lib confere sozinha, com comparação resistente a timing — e
-    # é por isso que ela tem essa opção em vez de deixar cada app comparar com `!=`.
-    require_token=APP_TOKEN,
-    ao_avisar=lambda e: log("fs-warn", e),
-)
+# `dados.abrir("privado")` é `<diretório de dados>/privado`: dentro do VSSH_APP_DATA_DIR, que é o
+# único diretório gravável garantido (o pacote em /opt/vssh-apps/<id>/ é de root e somente
+# leitura), e em `~/.vssh-apps/<id>/data` fora do lançador. É o filesystem privado do app, e não
+# os arquivos do usuário, que são a File System Access da galeria.
+arquivos_privados = dados.abrir("privado", ao_avisar=log)
+# As rotas que o frontend chama em `api/privado`. O portão de token fica no `servidor.Pedido`, na
+# frente de tudo, e por isso estas rotas não têm um segundo.
+servir_privado = dados.rotas(arquivos_privados, prefixo="/api/privado", ao_avisar=log)
 
-spa = criar_spa_estatica(
-    root=os.path.join(_AQUI, "..", "frontend"),
+# A raiz vai absoluta, a partir deste arquivo. Uma relativa (`web.spa("frontend")`) resolve contra
+# a pasta do `vssh-app.json` a partir do script principal, e numa bancada que importa este módulo
+# o script principal é outro.
+spa = web.spa(
+    os.path.join(_AQUI, "..", "frontend"),
     # A ponte com o ambiente entra por uma tag, e a tag é tudo que este backend faz por ela:
-    # `inject_scripts` acrescenta o `<script src="_sdk/vssh.js">` antes do `</head>` do index, e
-    # quem responde esse caminho é o sistema, sem `mounts` nenhum. O caminho é relativo à raiz do
-    # app, e numa rota profunda do `spa_fallback` o `<base href>` que a lib injeta o resolve.
-    # Fora do ambiente (o backend rodando solto na sua máquina) ninguém serve `_sdk/`, e a galeria
-    # diz isso na peça "Ambiente".
+    # `web.spa` acrescenta o `<script src="_sdk/vssh.js">` antes do `</head>` do index, e quem
+    # responde esse caminho é o sistema. O caminho é relativo à raiz do app, e numa rota profunda
+    # (`rotas_profundas`) o `<base href>` que a lib injeta o resolve. Fora do ambiente ninguém
+    # serve `_sdk/`, e a galeria diz isso na peça "Ambiente".
     #
-    # `galeria.js`, o código deste app, entra na mesma lista, e não como uma `<script src>` no
-    # index, para ganhar o carimbo de conteúdo na URL: só o que é injetado e existe no disco é
-    # carimbado, e o carimbo é o que garante que uma reinstalação não sirva a versão velha de
-    # nenhum cache do caminho. Ele vem depois do SDK, porque é o SDK que ele chama.
-    #
-    # As folhas saem antes dos scripts no `<head>`: um `<link>` bloqueia a primeira pintura, então
-    # descobri-lo cedo é o que evita a página aparecer sem estilo por um quadro.
-    inject_styles=TUFF_ESTILOS,
-    inject_scripts=SDK_WEB + TUFF_SCRIPTS + ["galeria.js"],
+    # O Tuff, a biblioteca de UI, vem do mesmo espaço `_sdk/tuff/`. `web.TUFF` são os tokens, os
+    # componentes e o comportamento; `TUFF_BASE` é o reset da página inteira, à parte porque um
+    # bundle antigo com CSS próprio não o quer; `TUFF_ICONES` é o sprite, que não atravessa o
+    # iframe e por isso entra como script. Adotar o Tuff é escolha deste app: um app com
+    # identidade visual própria passa `tuff=False`, que é o padrão.
+    tuff=[*web.TUFF, web.TUFF_BASE, web.TUFF_ICONES],
+    # `galeria.js`, o código deste app, entra aqui, e não como uma `<script src>` no index, para
+    # ganhar o carimbo de conteúdo na URL: só o que é injetado e existe no disco é carimbado, e o
+    # carimbo é o que garante que uma reinstalação não sirva a versão velha de nenhum cache do
+    # caminho. Ele vem depois do SDK e do Tuff, porque é o SDK que ele chama.
+    scripts=["galeria.js"],
     # Descomente se o seu app usa roteamento HTML5 (History API) em vez de fragmento:
-    # spa_fallback=True,
-    missing_bundle_hint="Rode o build do frontend antes de subir o backend.",
-    ao_avisar=lambda e: log("spa-warn", e),
+    # rotas_profundas=True,
+    dica="Rode o build do frontend antes de subir o backend.",
+    ao_avisar=log,
 )
 
 # ── Estado do processo, compartilhado por todas as janelas ────────────────────
 #
-# Um conjunto de streams SSE abertos e um contador. É o menor estado possível que ainda prova o
-# modelo: N janelas, UM backend.
-conexoes = set()
+# Um difusor de SSE e um contador. É o menor estado possível que ainda prova o modelo: N janelas,
+# um backend. Quem assina `api/events` entra no difusor; quem incrementa publica para todos.
+difusor = eventos.Difusor()
 _tranca = threading.Lock()
 contador = 0
 subiu_em = datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
@@ -152,20 +127,18 @@ tarefa_em_curso = None
 
 
 def estado():
-    return {"contador": contador, "conexoes": len(conexoes), "subiuEm": subiu_em}
+    return {"contador": contador, "conexoes": difusor.assinantes, "subiuEm": subiu_em}
 
 
 def difundir():
-    for s in list(conexoes):
-        s.enviar("estado", estado())
+    difusor.publicar("estado", estado())
 
 
-# A difusão genérica, para o que o BACKEND recebe sem ninguém ter perguntado: o clique na bandeja e
+# A difusão genérica, para o que o backend recebe sem ninguém ter perguntado: o clique na bandeja e
 # a ação de uma notificação chegam ao processo por POST, e é por aqui que uma janela aberta fica
-# sabendo. Com nenhuma janela aberta, o laço não itera — e o app recebeu do mesmo jeito.
+# sabendo. Com nenhuma janela aberta, ninguém recebe, e o app recebeu do mesmo jeito.
 def difundir_evento(nome, dado):
-    for s in list(conexoes):
-        s.enviar(nome, dado)
+    difusor.publicar(nome, dado)
 
 
 # ── O que o ambiente decidiu por este processo ────────────────────────────────
@@ -214,123 +187,21 @@ def limites_do_cgroup():
         return {"contido": None, "motivo": str(err)}
 
 
-_FABRICANTES = {
-    "0x10de": "NVIDIA", "0x1002": "AMD", "0x1022": "AMD", "0x8086": "Intel",
-    "0x1af4": "virtio", "0x1234": "QEMU", "0x15ad": "VMware", "0x5853": "Xen",
-    "0x1414": "Microsoft",
-}
-# Por FABRICANTE primeiro. Um servidor real mostrou uma virtio-gpu reportando `DRIVER=virtio-pci` —
-# o driver do BARRAMENTO, não o do DRM —, e a placa virtual passou por física. O id do fabricante
-# não erra: 0x1af4 é virtio venha o dispositivo pendurado onde vier.
-_FAB_VIRTUAIS = {"0x1af4", "0x1234", "0x15ad", "0x5853", "0x1414"}
-_DRIVERS_VIRTUAIS = {"virtio_gpu", "virtio-pci", "bochs-drm", "bochs", "vmwgfx", "qxl",
-                     "vboxvideo", "simpledrm", "vgem", "vkms", "hyperv_drm"}
-# O caminho de CODIFICAÇÃO de vídeo, POR DRIVER. Um servidor de verdade mostrou por quê: NVIDIA,
-# `vainfo` instalado, libva respondendo — e `h264_vaapi` morrendo em "Failed to initialise VAAPI
-# connection". O driver proprietário da NVIDIA não fala VA-API (o `nvidia-vaapi-driver` que existe
-# por fora só decodifica); ali o caminho é NVENC, sem render node. `nouveau` fica de fora: decodifica
-# por VA-API e não codifica nada.
-_VIDEO_POR_DRIVER = {"nvidia": "nvenc", "i915": "vaapi", "xe": "vaapi", "amdgpu": "vaapi",
-                     "radeon": "vaapi"}
+def gpu_do_ambiente():
+    """A GPU, do ponto de vista deste processo: o que o lançador concedeu, e por que não.
 
+    O `vssh-app-run` decide ao subir o app, com o que o servidor tem (fabricante pelo id do
+    barramento, driver, virtual ou física, e se este usuário abre o render node) e com o que o
+    manifesto pede, e registra a decisão. `gpu.concedida()` a lê; o app não vasculha `/sys` nem
+    olha `CUDA_VISIBLE_DEVICES` para descobrir, porque a resposta do lançador é a que vale, e é a
+    mesma que a janela recebe por `vssh.gpu.estado()` e que o gerenciador de tarefas mostra.
 
-def gpu_do_servidor():
-    """A GPU deste servidor — o INVENTÁRIO, e não só a variável do CUDA.
-
-    A primeira versão desta peça mostrava apenas `CUDA_VISIBLE_DEVICES`, e era inútil: o valor `""`
-    (o ambiente escondeu) é indistinguível de "não há placa nenhuma". Pior, ela dizia "sem GPU" num
-    servidor com AMD, com Intel ou com placa virtual — porque só sabia perguntar ao `nvidia-smi`.
-
-    Agora pergunta ao KERNEL, que responde para qualquer fabricante e para placa que nem existe
-    fisicamente: `/sys/class/drm` diz quem é e qual driver assumiu, e `/dev/dri` diz se este
-    processo consegue ABRIR. As duas perguntas são diferentes, e a segunda é a que mais trava
-    gente: o dispositivo existe e o usuário não está no grupo `render`.
+    `CUDA_VISIBLE_DEVICES` vai ao lado, e é outra coisa: o portão do runtime CUDA. Sozinho, o
+    valor `""` é ambíguo (o mesmo para "escondida deste app" e para "não há placa"); ao lado da
+    decisão, ele fica legível. Fora do lançador não há registro, e a resposta é "sem registro do
+    lançador", que é informação e não erro.
     """
-    sysfs = os.environ.get("VSSH_GPU_SYSFS") or "/sys/class/drm"
-    dev = os.environ.get("VSSH_GPU_DEV") or "/dev/dri"
-
-    def ler(p):
-        try:
-            with open(p, encoding="utf-8") as fh:
-                return fh.read().strip()
-        except OSError:
-            return None
-
-    try:
-        cartoes = sorted(c for c in os.listdir(sysfs) if c.startswith("card") and "-" not in c)
-    except OSError as err:
-        # "Não sei" ≠ "não tem". Um Windows de desenvolvimento cai aqui, e chamar isso de ausência
-        # de GPU seria a peça mentindo sobre o servidor.
-        return {"sei": False, "motivo": str(err), "dispositivos": []}
-
-    dispositivos = []
-    for cartao in cartoes:
-        base = os.path.join(sysfs, cartao)
-        vendor = ler(os.path.join(base, "device", "vendor"))
-        # `uevent` é um arquivo de texto com `DRIVER=amdgpu`; `device/driver` é um symlink de mesmo
-        # nome. O arquivo vem primeiro porque é legível em qualquer lugar.
-        driver = None
-        uevent = ler(os.path.join(base, "device", "uevent"))
-        if uevent:
-            for l in uevent.split("\n"):
-                if l.startswith("DRIVER="):
-                    driver = l[len("DRIVER="):].strip() or None
-        if not driver:
-            try:
-                driver = os.path.basename(os.path.realpath(os.path.join(base, "device", "driver")))
-            except OSError:
-                driver = None
-
-        node = None
-        try:
-            n = next((x for x in os.listdir(os.path.join(base, "device", "drm"))
-                      if x.startswith("renderD")), None)
-            if n:
-                node = os.path.join(dev, n)
-        except OSError:
-            pass
-
-        acesso = "ausente"
-        if node:
-            if os.access(node, os.R_OK | os.W_OK):
-                acesso = "ok"
-            else:
-                acesso = "negado" if os.path.exists(node) else "ausente"
-
-        v = (vendor or "").lower()
-        virtual = True if v in _FAB_VIRTUAIS else (
-            True if driver in _DRIVERS_VIRTUAIS else (False if (v or driver) else None))
-        dispositivos.append({
-            "card": cartao, "fabricante": _FABRICANTES.get(v, "desconhecido"),
-            "vendor": vendor, "driver": driver, "virtual": virtual,
-            "renderNode": node, "acesso": acesso,
-            # `None` é "não codifica" (virtual) ou "não sei" — nos dois a resposta é a CPU.
-            "video": None if virtual else _VIDEO_POR_DRIVER.get(driver or ""),
-        })
-
-    usaveis = [d for d in dispositivos if d["acesso"] == "ok"]
-    negados = [d for d in dispositivos if d["acesso"] == "negado"]
-    if not dispositivos:
-        resumo = "nenhum dispositivo DRM neste servidor"
-    elif usaveis:
-        resumo = ", ".join(
-            f"{d['fabricante']} ({d['driver'] or 'sem driver'}{', virtual' if d['virtual'] else ''})"
-            for d in usaveis)
-    elif negados:
-        resumo = (f"{len(negados)} dispositivo(s) presentes e SEM ACESSO — falta o grupo 'render' "
-                  "(usermod -aG render <usuario>)")
-    else:
-        resumo = "dispositivos presentes, sem render node utilizável"
-
-    return {
-        "sei": True,
-        "dispositivos": dispositivos,
-        "temGpu": bool(usaveis),
-        # O portão do CUDA continua sendo reportado — mas agora ao LADO do inventário, que é o que
-        # torna a variável vazia legível: "escondida do app" deixa de parecer "não existe".
-        "cudaVisibleDevices": os.environ.get("CUDA_VISIBLE_DEVICES"),
-        "resumo": resumo,
-    }
+    return {**gpu.concedida(), "cudaVisibleDevices": os.environ.get("CUDA_VISIBLE_DEVICES")}
 
 
 def segredo():
@@ -516,10 +387,9 @@ def benchmark_gpu(frames=300):
         livre, e um benchmark que não mede tempo de processador não vê isso. `getrusage` dos
         filhos é a medida, e a razão entre os dois lados é a segunda resposta.
     """
-    gpu = gpu_do_servidor()
-    # O dispositivo, e não só o caminho: o diagnóstico da falha precisa saber se a placa é virtual
-    # para responder em vez de hesitar.
-    alvo = next((d for d in (gpu.get("dispositivos") or []) if d["acesso"] == "ok"), None)
+    # O dispositivo concedido, e não só o caminho dele: o diagnóstico da falha precisa saber se a
+    # placa é virtual para responder em vez de hesitar.
+    alvo = next((d for d in gpu.concedida()["dispositivos"] if d["acesso"] == "ok"), None)
     node = alvo["renderNode"] if alvo else None
 
     try:
@@ -646,40 +516,33 @@ def benchmark_gpu(frames=300):
             "capacidades": capacidades, "leitura": leitura}
 
 
-def token_confere(esperado, recebido):
-    """Comparação de tamanho fixo: hash dos dois lados antes de comparar, para não vazar prefixo
-    pelo tempo nem tropeçar em comprimentos diferentes."""
-    if not isinstance(recebido, str) or not recebido:
-        return False
-    a = hashlib.sha256(esperado.encode("utf-8")).digest()
-    b = hashlib.sha256(recebido.encode("utf-8")).digest()
-    return hmac.compare_digest(a, b)
+class Pedido(servidor.Pedido):
+    """O handler do app. A base traz o HTTP/1.1 com keep-alive, o log calado por pedido, o portão
+    do `X-Vssh-App-Token` (403 com `X-Vssh-Token: recusado`, em tempo constante) e o `GET /saude`
+    com `{ok, versao, pid}`; quando `atender` é chamado, os dois já passaram.
 
-
-class Handler(BaseHTTPRequestHandler):
-    server_version = "hello-vssh-app/4.0"
-    # HTTP/1.1 para o SSE poder ficar aberto e para o navegador não fechar a cada resposta. Com
-    # 1.0, todo `Content-Length` vira "conexão acabou", e o stream de eventos morre no primeiro.
-    protocol_version = "HTTP/1.1"
+    O `/saude` é o que o lifecycle sonda, até 15x/1s, segurando o clique de "abrir app"; a sondagem
+    vai com o token, e a resposta não toca em nada, então ela diz só se o processo subiu. O que não
+    conta como pronto é 000, 5xx e 401/403. O socket é 0600 do dono, e ainda assim outro processo
+    do mesmo usuário Linux o alcança: um app que dá acesso sensível (shell, arquivos) confere o
+    token; um app trivial pode não conferir, e aí basta não herdar desta base.
+    """
 
     # ── plumbing ─────────────────────────────────────────────────────────────
 
-    def log_message(self, fmt, *args):
-        # O log de acesso da stdlib vai para o stderr sem estrutura. Quem registra o que importa é
-        # o `log()` do toolkit — este aqui só faria ruído no run.log.
-        pass
-
     def _json(self, status, corpo):
-        dados = json.dumps(corpo, ensure_ascii=False, default=str, separators=(",", ":")).encode("utf-8")
+        # Separadores compactos, porque é o que o `JSON.stringify` do template Node escreve, e o
+        # mesmo app produz os mesmos bytes nos dois runtimes.
+        dados_ = json.dumps(corpo, ensure_ascii=False, default=str, separators=(",", ":")).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(dados)))
+        self.send_header("Content-Length", str(len(dados_)))
         self.end_headers()
         if self.command != "HEAD":
-            self.wfile.write(dados)
+            self.wfile.write(dados_)
 
     def _corpo(self):
-        """O corpo JSON de uma requisição — para os POSTs que o AMBIENTE faz no seu backend.
+        """O corpo JSON de uma requisição, para os POSTs que o ambiente faz no seu backend.
 
         Corpo ilegível vira `{}` em vez de erro, de propósito: estas rotas existem para reagir a um
         clique do usuário, e derrubar a reação porque o JSON veio torto seria perder o gesto dele.
@@ -694,57 +557,23 @@ class Handler(BaseHTTPRequestHandler):
 
     # ── roteamento ───────────────────────────────────────────────────────────
 
-    def do_GET(self):  # noqa: N802
-        self._servir()
-
-    def do_HEAD(self):  # noqa: N802
-        self._servir()
-
-    def do_POST(self):  # noqa: N802
-        self._servir()
-
-    def do_DELETE(self):  # noqa: N802
-        self._servir()
-
-    def _servir(self):
+    def atender(self, metodo):
         global contador, tarefa_em_curso
         partes = urlsplit(self.path)
         caminho = partes.path
 
         try:
-            # O healthcheck é pollado pelo lifecycle do portal DIRETO no socket, até 15x/1s,
-            # bloqueando o clique de "abrir app". A sondagem vai COM o
-            # X-Vssh-App-Token, então gatear esta rota seria permitido. Ela fica isenta por outro
-            # motivo: responde `ok` sem tocar em nada, e assim o healthcheck não depende de o token
-            # estar certo para dizer se o processo subiu.
-            if caminho == "/healthz":
-                corpo = b"ok\n"
-                self.send_response(200)
-                self.send_header("Content-Type", "text/plain")
-                self.send_header("Content-Length", str(len(corpo)))
-                self.end_headers()
-                if self.command != "HEAD":
-                    self.wfile.write(corpo)
-                return
-
-            if APP_TOKEN and not token_confere(APP_TOKEN, self.headers.get("X-Vssh-App-Token")):
-                # O socket é 0600 do dono, mas outro processo do mesmo usuário Linux o alcança.
-                # Apps que dão acesso sensível (shell, arquivos) devem checar; apps triviais podem
-                # simplesmente não checar.
-                log("token-rejected", {"path": caminho})
-                self._json(403, {"error": "token ausente ou inválido"})
-                return
-
             # ── A tarefa longa, e o ciclo completo de uma atividade ────────────
             #
-            #  1. `definir_live` a cada passo, com a MESMA chave — ela reescreve no lugar;
-            #  2. a renovação do `at`, ligada uma vez no boot por `manter_live_vivo()`;
-            #  3. `limpar_live` com `registrar` no fim: a atividade some e deixa UMA notificação.
+            #  1. `avisos.atividade` a cada passo, com a mesma chave: ela reescreve no lugar;
+            #  2. a renovação do `at`, ligada uma vez no boot por `manter_atividades_vivas()`;
+            #  3. `limpar_atividade` com `registrar` no fim: a atividade some e deixa uma
+            #     notificação.
             #
-            # `?lento=1` é o que torna a decisão 2 OBSERVÁVEL: oito passos de 10 s passam de 80 s,
+            # `?lento=1` é o que torna a decisão 2 observável: oito passos de 10 s passam de 80 s,
             # bem além do TTL de 60 s. Com a renovação ligada, a barra atravessa; sem ela, some no
-            # meio sozinha — que é o defeito que dorme numa demonstração de seis segundos.
-            if caminho == "/api/tarefa-longa" and self.command == "POST":
+            # meio sozinha, que é o defeito que dorme numa demonstração de seis segundos.
+            if caminho == "/api/tarefa-longa" and metodo == "POST":
                 lento = parse_qs(partes.query).get("lento", [None])[0] == "1"
                 intervalo = 10.0 if lento else 0.8
                 total = 8
@@ -758,15 +587,15 @@ class Handler(BaseHTTPRequestHandler):
                     for feito in range(1, total + 1):
                         if parar.is_set():
                             return
-                        definir_live("exemplo-backend", {
+                        avisos.atividade("exemplo-backend", {
                             "titulo": "Tarefa do backend",
-                            "texto": f"passo {feito}" + (" (devagar — atravessa o TTL)" if lento else ""),
+                            "texto": f"passo {feito}" + (" (devagar, atravessa o TTL)" if lento else ""),
                             "formato": "progresso",
                             "progresso": {"feito": feito, "total": total},
                         })
                         if feito < total:
                             parar.wait(intervalo)
-                    limpar_live("exemplo-backend", registrar={
+                    avisos.limpar_atividade("exemplo-backend", registrar={
                         "titulo": "Tarefa concluída", "texto": f"{total} passos", "level": "success"})
 
                 threading.Thread(target=rodar, daemon=True).start()
@@ -775,31 +604,31 @@ class Handler(BaseHTTPRequestHandler):
                                  "duracaoMs": int(total * intervalo * 1000)})
                 return
 
-            # Uma notificação de backend com `key` estável. O portal lê uma JANELA do fim do
-            # journal, não um delta — então é a `key` que impede o mesmo aviso de chegar a cada
-            # tick. Chamar isto dez vezes no mesmo dia rende UMA notificação.
-            if caminho == "/api/avisar" and self.command == "POST":
+            # Uma notificação de backend com `chave` estável. O portal lê uma janela do fim do
+            # journal, e não um delta, então é a chave que impede o mesmo aviso de chegar a cada
+            # tick. Chamar isto dez vezes no mesmo dia rende uma notificação.
+            if caminho == "/api/avisar" and metodo == "POST":
                 hoje = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-                notificar("O disco do servidor está acima de 90%.",
-                          title="Hello World", level="warning", chave=f"disco-cheio-{hoje}")
+                avisos.notificar("O disco do servidor está acima de 90%.",
+                                 titulo="Hello World", nivel="warning", chave=f"disco-cheio-{hoje}")
                 self._json(200, {"notificada": True, "key": f"disco-cheio-{hoje}"})
                 return
 
-            # Uma notificação com AÇÃO. A diferença para a de cima é o `path`: sem ele, o botão da
+            # Uma notificação com ação. A diferença para a de cima é a `rota`: sem ela, o botão da
             # notificação não teria para onde mandar a resposta. O clique pode acontecer com o app
             # sem janela nenhuma aberta.
-            if caminho == "/api/avisar-com-acao" and self.command == "POST":
-                notificar("O índice está desatualizado. Reconstruir agora?",
-                          title="Hello World", level="warning", persistent=True,
-                          actions=[{"id": "reconstruir", "label": "Reconstruir"}],
-                          path="/api/acao", chave=f"indice-{int(time.time() * 1000)}")
+            if caminho == "/api/avisar-com-acao" and metodo == "POST":
+                avisos.notificar("O índice está desatualizado. Reconstruir agora?",
+                                 titulo="Hello World", nivel="warning", persistente=True,
+                                 acoes=[{"id": "reconstruir", "label": "Reconstruir"}],
+                                 rota="/api/acao", chave=f"indice-{int(time.time() * 1000)}")
                 self._json(200, {"notificada": True, "acao": "reconstruir", "rota": "/api/acao"})
                 return
 
             # O destino da ação. Quem faz este POST é o desktop, não o seu frontend.
-            if caminho == "/api/acao" and self.command == "POST":
+            if caminho == "/api/acao" and metodo == "POST":
                 corpo = self._corpo()
-                # ANINHADO, e não espalhado: o corpo que o ambiente manda tem chaves próprias, e
+                # Aninhado, e não espalhado: o corpo que o ambiente manda tem chaves próprias, e
                 # espalhá-las por cima do registro sequestraria o nome do evento no log.
                 log("acao-de-notificacao", {"acao": corpo})
                 difundir_evento("acao", {**corpo, "em": datetime.now(timezone.utc).isoformat()})
@@ -807,39 +636,39 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             # ── A bandeja pela lib, e o clique que volta ────────────────────
-            if caminho == "/api/bandeja" and self.command == "POST":
-                ok = definir_bandeja({
+            if caminho == "/api/bandeja" and metodo == "POST":
+                ok = avisos.bandeja({
                     "icon": "refresh",
-                    "tooltip": "Hello World — posto pelo BACKEND",
+                    "tooltip": "Hello World, posto pelo backend",
                     "badge": {"dot": True},
                     "menu": [
                         {"id": "oi", "label": "Um item do menu"},
                         {"separator": True},
                         {"id": "sair", "label": "Remover este ícone", "danger": True},
                     ],
-                    # Só DADOS atravessam o arquivo: aqui vai uma rota, não uma função.
+                    # Só dados atravessam o arquivo: aqui vai uma rota, e não uma função.
                     "onClick": {"path": "/api/bandeja/clique"},
                 })
                 self._json(200, {"ok": ok,
                                  "motivo": None if ok else "sem VSSH_APP_DATA_DIR nem VSSH_APP_ID"})
                 return
 
-            if caminho == "/api/bandeja" and self.command == "DELETE":
-                limpar_bandeja()
+            if caminho == "/api/bandeja" and metodo == "DELETE":
+                avisos.limpar_bandeja()
                 self._json(200, {"ok": True})
                 return
 
-            if caminho == "/api/bandeja/clique" and self.command == "POST":
+            if caminho == "/api/bandeja/clique" and metodo == "POST":
                 corpo = self._corpo()
                 log("clique-na-bandeja", {"clique": corpo})
                 if corpo.get("menuId") == "sair":
-                    limpar_bandeja()
+                    avisos.limpar_bandeja()
                 difundir_evento("bandeja", corpo)
                 self._json(200, {"ok": True})
                 return
 
-            # O filesystem privado, servido pela lib. Ela devolve `True` quando atendeu — mesmo
-            # contrato do spa, e pela mesma razão: quem compõe as rotas é o app, não a lib.
+            # O filesystem privado, servido pela lib. Ela devolve `True` quando atendeu, o mesmo
+            # contrato do `spa`, e pela mesma razão: quem compõe as rotas é o app, e não a lib.
             if servir_privado(self):
                 return
 
@@ -851,30 +680,23 @@ class Handler(BaseHTTPRequestHandler):
 
             # Exemplo de SSE. Prove que eventos chegam sem buffer: `curl -N <baseUrl>api/events`.
             #
-            # O stream também entra no conjunto de conexões abertas — é o que faz a demonstração de
-            # "duas janelas, um backend" funcionar: quem incrementa é uma janela, e a difusão
-            # alcança todas as outras.
+            # O stream entra no difusor, e é isso que faz a demonstração de "duas janelas, um
+            # backend" funcionar: quem incrementa é uma janela, e a difusão alcança todas as
+            # outras. Este laço segura a thread do pedido, e é assim que tem de ser: em
+            # `http.server`, retornar do handler fecha a conexão, e o `EventSource` do navegador
+            # reconectaria em laço sem um erro sequer do lado do servidor. A escrita que falha
+            # marca o stream como fechado, e o difusor o esquece.
             if caminho == "/api/events":
-                stream = abrir_stream_sse(self)
-                with _tranca:
-                    conexoes.add(stream)
-                stream.enviar("estado", estado())
-
+                fluxo = difusor.assinar(self)
+                fluxo.enviar("estado", estado())
                 n = 0
                 try:
-                    # Este laço SEGURA a thread da requisição, e é assim que tem de ser: em
-                    # `http.server`, retornar do handler fecha a conexão. Sem ele o `EventSource`
-                    # do navegador reconecta em laço, sem um erro sequer do lado do servidor.
-                    while not stream.fechado:
+                    while not fluxo.fechado:
                         time.sleep(1.0)
                         n += 1
-                        stream.enviar("tick", {"n": n, "time": datetime.now(timezone.utc).isoformat()})
+                        fluxo.enviar("tick", {"n": n, "time": datetime.now(timezone.utc).isoformat()})
                 finally:
-                    stream.fechar()
-                    # Sem o `discard` no fim, cada abrir-e-fechar de janela deixaria um stream morto
-                    # no conjunto e o número de conexões só subiria.
-                    with _tranca:
-                        conexoes.discard(stream)
+                    fluxo.fechar()
                     difundir()
                 return
 
@@ -882,11 +704,11 @@ class Handler(BaseHTTPRequestHandler):
             #
             # O contador vive AQUI, no processo. Duas janelas do mesmo app são duas visões deste
             # mesmo processo — mesmo socket, mesmo token, mesmo VSSH_APP_DATA_DIR.
-            if caminho == "/api/estado" and self.command == "GET":
+            if caminho == "/api/estado" and metodo == "GET":
                 self._json(200, estado())
                 return
 
-            if caminho == "/api/estado/incrementar" and self.command == "POST":
+            if caminho == "/api/estado/incrementar" and metodo == "POST":
                 with _tranca:
                     contador += 1
                 difundir()
@@ -895,14 +717,14 @@ class Handler(BaseHTTPRequestHandler):
 
             # ── O que o AMBIENTE decidiu por este processo ──────────────────
             if caminho == "/api/runtime":
-                self._json(200, {"limites": limites_do_cgroup(), "gpu": gpu_do_servidor(),
+                self._json(200, {"limites": limites_do_cgroup(), "gpu": gpu_do_ambiente(),
                                  "segredo": segredo()})
                 return
 
             # O benchmark fica numa rota À PARTE, e num POST. Ele leva segundos e queima CPU:
             # pendurá-lo no `/api/runtime` faria toda abertura da galeria pagar por um número que
             # ninguém pediu.
-            if caminho == "/api/gpu/benchmark" and self.command == "POST":
+            if caminho == "/api/gpu/benchmark" and metodo == "POST":
                 self._json(200, benchmark_gpu())
                 return
 
@@ -919,7 +741,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.write(corpo)
 
         except Exception as err:  # noqa: BLE001
-            # Sem isto, uma falha derruba a thread da requisição sem deixar rastro nenhum — e o
+            # Sem isto, uma falha derruba a thread da requisição sem deixar rastro nenhum, e o
             # lifecycle só mostra que o app "não respondeu".
             import traceback
 
@@ -932,26 +754,14 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main():
-    try:
-        servidor = criar_servidor(Handler)
-    except ErroDeEndereco as err:
-        # `VSSH_APP_JA_ESCUTANDO` não é falha: significa que outra instância já atende neste
-        # endereço, e o lifecycle trata sair-em-silêncio como sucesso. Qualquer outro erro é fatal
-        # e tem de aparecer: um backend que não escuta e não reclama vira janela em branco sem causa.
-        if err.codigo == VSSH_APP_JA_ESCUTANDO:
-            log("already-listening", {"message": str(err)})
-            raise SystemExit(0)
-        log("listen-failed", {"message": str(err), "code": err.codigo})
-        print(f"[{APP_ID}] não consegui escutar: {err}", file=sys.stderr)
-        raise SystemExit(1)
-
-    log("listening", {**servidor.endereco_vssh, "appId": APP_ID,
-                      "tokenRequired": bool(APP_TOKEN)})
-    try:
-        servidor.serve_forever()
-    finally:
-        servidor.server_close()
+    # `servidor.escutar` lê `$VSSH_APP_SOCKET`, limpa um socket órfão por tentativa de conexão, põe
+    # o modo 0600, anuncia `[<id>] versão <v> escutando em <onde>` no stdout e atende até o
+    # processo acabar. Com `--tcp host:porta` na linha de comando ele abre uma porta, para a
+    # bancada. O código de saída é dele: `0` no fim normal e também quando outra instância já
+    # atende (o lifecycle lê `0` como "está de pé"), `2` quando não há onde escutar.
+    log("boot", {"appId": APP_ID, "tokenRequired": bool(os.environ.get("VSSH_APP_TOKEN"))})
+    return servidor.escutar(Pedido, sys.argv[1:])
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

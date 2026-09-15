@@ -86,7 +86,7 @@ test('os dois backends atendem exatamente as mesmas rotas', () => {
   // responde 404 — e a peça pareceria quebrada NAQUELE servidor, que é a conclusão errada mais
   // cara que uma galeria pode induzir.
   const rotasDe = (fonte) =>
-    [...fonte.matchAll(/['"](\/(?:healthz|api\/[a-z0-9/-]*))['"]/g)].map((m) => m[1]);
+    [...fonte.matchAll(/['"](\/(?:saude|api\/[a-z0-9/-]*))['"]/g)].map((m) => m[1]);
 
   const node = new Set(rotasDe(ler(path.join(NODE, 'backend', 'server.js'))));
   const py = new Set(rotasDe(ler(path.join(PY, 'backend', 'main.py'))));
@@ -112,13 +112,10 @@ test('os manifestos declaram as mesmas capacidades', () => {
   assert.equal(b.backend?.aoFechar, a.backend?.aoFechar);
   assert.equal(b.backend?.transport, a.backend?.transport);
 
-  // `ffmpeg` é do benchmark e vale para os dois. O que só um deles precisa é o gerenciador de
-  // pacotes do próprio runtime — e ele TEM de estar declarado, senão o instalador deixa passar um
-  // servidor onde o `installCommand` falha e o app não sobe para aquele usuário.
-  assert.ok(a.requiredPackages.includes('ffmpeg') && b.requiredPackages.includes('ffmpeg'));
-  assert.ok(b.requiredPackages.includes('python3-pip'),
-    'o template Python instala as libs com pip e não o declara: o servidor sem pip só descobre '
-    + 'isso quando o primeiro usuário abre o app');
+  // `ffmpeg` é do benchmark e vale para os dois. As libs de backend são o runtime que o servidor
+  // já tem, então nenhum dos dois pede gerenciador de pacotes nem tem `installCommand`.
+  assert.deepEqual(b.requiredPackages, a.requiredPackages, 'os pacotes de sistema divergem');
+  assert.ok(a.requiredPackages.includes('ffmpeg'));
 
   // Ids distintos, de propósito: os dois podem estar instalados no MESMO servidor — é assim que se
   // compara um runtime com o outro com as mãos.
@@ -126,13 +123,13 @@ test('os manifestos declaram as mesmas capacidades', () => {
 });
 
 // As duas afirmações sobre o backend Python — que ele não lê `VSSH_APP_PORT`, e que quem abre o
-// endereço é o `criar_servidor()` do toolkit — são medidas EXECUTANDO, em
+// endereço é o `servidor.escutar()` do runtime, são medidas EXECUTANDO, em
 // `tests/python/test_template.py`:
 //
 //   - o `carregar_backend()` de lá importa o `main.py` com o ambiente ZERADO (`clear=True`), então
 //     uma leitura de `VSSH_APP_PORT` levanta `KeyError` e derruba o arquivo inteiro;
-//   - `OEnderecoVemDoToolkit` troca o `criar_servidor` dentro do módulo do toolkit e chama o
-//     `main()`: um servidor montado à mão não passa pelo dublê.
+//   - `OEnderecoVemDoRuntime` troca o `escutar` dentro do módulo do runtime e chama o `main()`:
+//     um servidor montado à mão não passa pelo dublê.
 //
 // Havia aqui um `doesNotMatch` e um `match` sobre o texto do `main.py` dizendo as mesmas duas
 // coisas. Eles ficavam verdes com o defeito presente escrito de outro jeito (`os.getenv`,

@@ -93,30 +93,41 @@ test('toda peça tem onde escrever a resposta', () => {
 // Chrome aberto na página, e o smoke do `ci.yml`, que sobe os dois templates num socket e lê as
 // tags com `curl`.
 
-test('o que o backend IMPORTA do toolkit, ele CHAMA', () => {
-  // O defeito que esta guarda existe para impedir, e que já aconteceu: `keepLiveAlive` e
-  // `clearLiveOnExit` importados na linha 32, com o comentário da rota afirmando *"`keepLiveAlive()`
-  // uma vez"* como decisão de desenho — e nenhuma chamada no arquivo inteiro. Não aparecia porque a
-  // tarefa de exemplo durava 6,4 s contra um TTL de 60 s: o único caso em que a ausência morde é o
-  // que a demonstração não exercitava.
-  //
-  // Num template, isto é pior que um import morto qualquer. Ele é o arquivo de onde todo app novo
-  // nasce, e o comentário sobrevive à cópia — então o defeito se propaga como se fosse a prática
-  // recomendada, com a assinatura de quem parece ter pensado no assunto.
-  const importados = [...SERVER.matchAll(/const \{([^}]+)\} = require\('vssh-app-toolkit\/[^']+'\)/g)]
-    .flatMap((m) => m[1].split(',').map((s) => s.trim()))
-    .filter(Boolean);
-  assert.ok(importados.length >= 7, 'o backend parou de importar as libs — o teste ficou obsoleto');
+/**
+ * O runtime `vssh` que o backend importa: o do `NODE_PATH` (a fonte, numa máquina com o
+ * `vssh-sso` ao lado, ou o que `scripts/ambiente-de-dev.sh` exporta), e a cópia gerada em
+ * `runtime/node/vssh` deste checkout quando não há outro. `null` num checkout esparso sem ela.
+ */
+function runtime() {
+  try { return require('vssh'); } catch { /* sem NODE_PATH */ }
+  try { return require(path.join(__dirname, '..', 'runtime', 'node', 'vssh')); } catch { return null; }
+}
 
-  for (const nome of importados) {
-    // MAIÚSCULAS é a convenção de valor neste repositório: um valor se usa por referência, e
-    // exigir `NOME(` dele acusaria um uso correto. Para o resto, o que se mede é a chamada: um
-    // `require` que só aparece no próprio `require` não faz nada por ninguém.
-    const ehValor = nome === nome.toUpperCase();
-    const usos = SERVER.match(new RegExp(ehValor ? `\\b${nome}\\b` : `\\b${nome}\\s*\\(`, 'g')) || [];
-    assert.ok(usos.length >= 1 && (!ehValor || usos.length > 1),
-      `o backend importa '${nome}' do toolkit e nunca o ${ehValor ? 'usa' : 'chama'}: ` +
-      'o template ensinaria pelo import uma coisa que o código não faz');
+test('tudo que o backend pede ao runtime existe nele, e todo módulo que ele pega é usado', (t) => {
+  // A junção: um lado é o que o template pede (`servidor.escutar`, `web.TUFF_BASE`,
+  // `avisos.bandeja`), o outro é o que o pacote `vssh` de verdade exporta. Um nome renomeado no
+  // runtime, ou escrito errado aqui, não é erro em lugar nenhum até o app subir num servidor: um
+  // `TypeError: avisos.bandeija is not a function` no primeiro clique da bandeja, e só nele.
+  //
+  // O outro lado da mesma junção: um módulo pego do barril e nunca usado ensinaria pelo import
+  // uma coisa que o código não faz, e o template é o arquivo de onde todo app novo nasce.
+  const vssh = runtime();
+  if (!vssh) { t.skip('sem o runtime `vssh` neste checkout (NODE_PATH ou runtime/node)'); return; }
+
+  const m = SERVER.match(/const \{([^}]+)\} = require\('vssh'\)/);
+  assert.ok(m, 'o backend parou de pegar módulos do barril `vssh`: o teste ficou obsoleto');
+  const modulos = m[1].split(',').map((x) => x.trim()).filter(Boolean);
+  assert.ok(modulos.length >= 5, 'o backend usa menos de cinco módulos do runtime: o teste ficou obsoleto');
+
+  for (const modulo of modulos) {
+    assert.ok(modulo in vssh, `o backend pega '${modulo}' de require('vssh') e o runtime não tem esse módulo`);
+    // `(?<![\w.-])`: o `app.invalid` de `http://vssh-app.invalid` não é um uso do módulo `app`.
+    const pedidos = new Set([...SERVER.matchAll(new RegExp(`(?<![\\w.-])${modulo}\\.([A-Za-z_]\\w*)`, 'g'))].map((x) => x[1]));
+    assert.ok(pedidos.size >= 1, `o backend pega '${modulo}' do runtime e nunca o usa`);
+    for (const nome of pedidos) {
+      assert.ok(nome in vssh[modulo],
+        `o backend chama '${modulo}.${nome}' e o runtime não exporta isso: quebraria no servidor, na primeira chamada`);
+    }
   }
 });
 
@@ -278,12 +289,13 @@ function comBenchmark(execFake, gpuFake, hrtime = process.hrtime) {
   const corpo = SERVER.slice(i, SERVER.indexOf('\n}\n', i) + 2);
   // `_porQueVaapiFalhou` e `_oQueAPlacaSabe` são injetados: eles moram fora do recorte, e sem eles
   // o corpo estoura com ReferenceError — que o teste leria como "o benchmark quebrou" em vez de
-  // "o recorte não trouxe os vizinhos".
-  const fn = new Function('require', 'process', 'gpuDoServidor', '_porQueVaapiFalhou',
+  // "o recorte não trouxe os vizinhos". `gpu` é o módulo do runtime, de mentira: o que o
+  // lançador teria concedido.
+  const fn = new Function('require', 'process', 'gpu', '_porQueVaapiFalhou',
     '_oQueAPlacaSabe', `${corpo}\nreturn benchmarkGpu;`)(
     (m) => (m === 'node:child_process' ? { execFileSync: execFake } : require(m)),
     { hrtime, env: {} },
-    () => gpuFake,
+    { concedida: () => gpuFake },
     (s) => (s ? 'diagnóstico de mentira' : null),
     () => ({ tem: false, motivo: 'vainfo de mentira' }),
   );
@@ -293,39 +305,6 @@ function comBenchmark(execFake, gpuFake, hrtime = process.hrtime) {
 const COM_PLACA = { dispositivos: [{ acesso: 'ok', renderNode: '/dev/dri/renderD128', video: 'vaapi' }] };
 const COM_NVIDIA = { dispositivos: [{ acesso: 'ok', renderNode: '/dev/dri/renderD128',
                                       fabricante: 'NVIDIA', driver: 'nvidia', video: 'nvenc' }] };
-
-/** A `gpuDoServidor` de verdade, contra uma `/sys/class/drm` + `/dev/dri` de mentira com UMA placa. */
-function descobrir(vendor, driver) {
-  const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = require('node:fs');
-  const { tmpdir } = require('node:os');
-  const raiz = mkdtempSync(path.join(tmpdir(), 'vssh-gpu-'));
-  const disp = path.join(raiz, 'sys', 'card0', 'device');
-  mkdirSync(path.join(disp, 'drm', 'renderD128'), { recursive: true });
-  mkdirSync(path.join(raiz, 'dev'));
-  writeFileSync(path.join(disp, 'vendor'), `${vendor}\n`);
-  writeFileSync(path.join(disp, 'uevent'), `DRIVER=${driver}\n`);
-  writeFileSync(path.join(raiz, 'dev', 'renderD128'), '');
-
-  const i = SERVER.indexOf('function gpuDoServidor');
-  assert.ok(i > 0, 'não achei gpuDoServidor — o teste ficou obsoleto');
-  const corpo = SERVER.slice(i, SERVER.indexOf('\n}\n', i) + 2);
-  const fn = new Function('require', 'process', 'path', `${corpo}\nreturn gpuDoServidor;`)(
-    require, { env: { VSSH_GPU_SYSFS: path.join(raiz, 'sys'), VSSH_GPU_DEV: path.join(raiz, 'dev') } }, path);
-  try { return fn(); } finally { rmSync(raiz, { recursive: true, force: true }); }
-}
-
-test('o caminho de codificação sai do DRIVER — e NVIDIA é NVENC, não VA-API', () => {
-  // Medido num servidor de verdade: NVIDIA, `vainfo` instalado, libva respondendo a versão — e
-  // `h264_vaapi` morrendo em "Failed to initialise VAAPI connection". O driver proprietário não
-  // fala VA-API; ele codifica por NVENC.
-  assert.strictEqual(descobrir('0x10de', 'nvidia').dispositivos[0].video, 'nvenc');
-  assert.strictEqual(descobrir('0x1002', 'amdgpu').dispositivos[0].video, 'vaapi');
-  assert.strictEqual(descobrir('0x8086', 'i915').dispositivos[0].video, 'vaapi');
-  // Virtual não codifica por caminho nenhum, e driver fora da tabela é "não sei": os dois são
-  // `null`, e não um chute que mande o benchmark tentar.
-  assert.strictEqual(descobrir('0x1af4', 'virtio_gpu').dispositivos[0].video, null);
-  assert.strictEqual(descobrir('0x10de', 'nouveau').dispositivos[0].video, null);
-});
 
 test('numa NVIDIA o benchmark codifica por NVENC, sem render node e sem tentar VA-API', () => {
   // O servidor de verdade: `renderD128` presente, e o benchmark antigo tentava `h264_vaapi` ali —

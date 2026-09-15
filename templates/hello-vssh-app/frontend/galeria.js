@@ -138,16 +138,19 @@ function montarGaleria() {
           : d.limites?.contido === false ? `NÃO aplicado (memory.max=${d.limites.memoryMax || '—'})`
           : `não sei — ${d.limites?.motivo || 'sem resposta'}`}`,
         d.limites?.memoryCurrent ? `        usando agora: ${d.limites.memoryCurrent} bytes` : null,
-        `GPU     ${!d.gpu?.sei ? `não sei — ${d.gpu?.motivo || 'sem resposta'}` : d.gpu.resumo}`,
-        d.gpu?.sei && d.gpu.dispositivos.length
+        // O que o lançador decidiu, e não um inventário feito pelo app: `concedida` com a lista
+        // do que este processo abre, ou o motivo da negativa (não declarada no manifesto, sem
+        // placa utilizável, sem registro porque o app subiu fora do lançador).
+        `GPU     ${d.gpu?.concedida ? 'concedida' : `negada: ${d.gpu?.motivo || 'sem resposta'}`}`,
+        d.gpu?.dispositivos?.length
           ? d.gpu.dispositivos.map((g) =>
               `        ${g.card}: ${g.fabricante} ${g.vendor || ''} driver=${g.driver || '—'}` +
-              `${g.virtual ? ' (virtual)' : ''} acesso=${g.acesso}`).join('\n')
+              `${g.virtual ? ' (virtual)' : ''} via=${g.video || 'sem codificador de vídeo'}`).join('\n')
           : null,
-        // Reportado ao LADO do inventário de propósito. Sozinha, a string vazia é ambígua: ela é o
+        // Reportado ao LADO da decisão de propósito. Sozinha, a string vazia é ambígua: ela é o
         // mesmo valor para "o ambiente escondeu de mim" e para "não há placa nenhuma".
         `CUDA    CUDA_VISIBLE_DEVICES=${JSON.stringify(d.gpu?.cudaVisibleDevices)}` +
-          `${d.gpu?.cudaVisibleDevices === '' ? ' — escondida deste app (ele não pediu gpu)' : ''}`,
+          `${d.gpu?.cudaVisibleDevices === '' ? ', escondida deste app pelo lançador' : ''}`,
         `cofre   ${d.segredo?.definido
           ? `HELLO_SEGREDO chegou (${d.segredo.tamanho} caracteres, sha256 ${d.segredo.sha256}…)`
           : d.segredo?.leitura}`,

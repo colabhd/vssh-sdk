@@ -2,11 +2,12 @@
 
 // O template Node num Chrome de verdade, fora do ambiente, com o SDK web de verdade.
 //
-// O que se mede: o backend do template sobe como o servidor o sobe (socket unix, o mesmo
-// `backend/server.js`), a página que ele serve inclui `_sdk/vssh.js` e o Tuff pelos caminhos do
-// contrato, e um Chrome aberto nela, sem shell por cima (`window.parent === window`), não lança
-// exceção nenhuma e vê cada verbo degradar como o SDK promete: `capacidades()` responde sem shell,
-// um seletor responde `null`, um diálogo cai no do navegador, um aviso vai ao console.
+// O que se mede: o backend do template sobe (o mesmo `backend/server.js`, numa porta de bancada
+// pelo `--tcp` do `servidor.escutar`), a página que ele serve inclui `_sdk/vssh.js` e o Tuff pelos
+// caminhos do contrato, e um Chrome aberto nela, sem shell por cima (`window.parent === window`),
+// não lança exceção nenhuma e vê cada verbo degradar como o SDK promete: `capacidades()` responde
+// sem shell, um seletor responde `null`, um diálogo cai no do navegador, um aviso vai ao console.
+// O socket unix, que é como o servidor o sobe, fica com o smoke do `ci.yml`.
 //
 // Quem serve `_sdk/` aqui é este teste, no lugar do sistema: um HTTP na frente do socket do app
 // que responde `_sdk/vssh.js` com o artefato e `_sdk/tuff/*` com os arquivos do Tuff, e encaminha
@@ -17,9 +18,10 @@
 // (um artefato montado à mão de um checkout do sistema, por exemplo). Sem o artefato o teste se
 // pula dizendo o caminho.
 //
-// O backend precisa de socket unix, então no Windows o teste se pula; `VSSH_TEMPLATE_URL` aponta
-// para um backend já de pé num TCP (um relay de dentro do WSL), e aí o teste roda em qualquer
-// lugar. As libs do template chegam pelo `installCommand` do manifesto; sem elas, pula também.
+// O runtime `vssh` que o backend importa vem do `NODE_PATH` quando há um (a fonte, ou o que
+// `scripts/ambiente-de-dev.sh` exporta), e da cópia gerada em `runtime/node` deste checkout
+// quando não há. `VSSH_TEMPLATE_URL` aponta para um backend já de pé em qualquer lugar, e aí
+// nenhum sobe daqui.
 //
 // Só o template Node: o `galeria.js` é o mesmo arquivo nos dois templates e a marcação difere
 // só no nome do runtime (`tests/galeria-paridade.test.js`), então medir um é medir os dois.
@@ -39,6 +41,7 @@ const APP = path.join(ROOT, 'templates', 'hello-vssh-app-node');
 const SDK_WEB = process.env.VSSH_SDK_WEB || path.join(ROOT, 'api', 'vssh.js');
 const SDK_TUFF = process.env.VSSH_SDK_TUFF || path.join(ROOT, 'api', 'tuff');
 const URL_DO_APP = process.env.VSSH_TEMPLATE_URL || '';
+const RUNTIME_NODE = path.join(ROOT, 'runtime', 'node');
 
 const MIME = { '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.woff2': 'font/woff2', '.woff': 'font/woff', '.svg': 'image/svg+xml', '.json': 'application/json' };
@@ -46,9 +49,8 @@ const MIME = { '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; chars
 function motivoParaPular() {
   if (!caminhoDoNavegador()) return motivoDoSkip();
   if (!fs.existsSync(SDK_WEB)) return `sem o SDK web em ${SDK_WEB}: o canal do sistema o escreve em api/, ou aponte VSSH_SDK_WEB`;
-  if (!URL_DO_APP && process.platform === 'win32') return 'o backend do template escuta num socket unix; no Windows aponte VSSH_TEMPLATE_URL para um backend de pé';
-  if (!URL_DO_APP && !fs.existsSync(path.join(APP, 'node_modules', 'vssh-app-toolkit'))) {
-    return 'sem as libs do template: rode o installCommand do vssh-app.json em templates/hello-vssh-app-node';
+  if (!URL_DO_APP && !process.env.NODE_PATH && !fs.existsSync(path.join(RUNTIME_NODE, 'vssh'))) {
+    return 'sem o runtime `vssh` neste checkout: o canal do sistema o escreve em runtime/node, ou exporte NODE_PATH';
   }
   return false;
 }
@@ -56,11 +58,11 @@ const pular = motivoParaPular();
 
 /** @type {any} */ let navegador, frente, backend, pagina, dirTemp;
 
-/** Um pedido ao backend do template, pelo socket unix ou pelo TCP de `VSSH_TEMPLATE_URL`. */
+/** Um pedido ao backend do template: o que subiu aqui, ou o de `VSSH_TEMPLATE_URL`. */
 function aoBackend(req, res) {
   const alvo = URL_DO_APP
     ? { host: new URL(URL_DO_APP).hostname, port: new URL(URL_DO_APP).port }
-    : { socketPath: backend.socket };
+    : { host: '127.0.0.1', port: backend.porta };
   const encaminhado = http.request({ ...alvo, path: req.url, method: req.method, headers: { ...req.headers, host: 'app' } }, (r) => {
     res.writeHead(r.statusCode, r.headers);
     r.pipe(res);
@@ -79,23 +81,31 @@ function doSdk(rel, res) {
   fs.createReadStream(arquivo).pipe(res);
 }
 
+/**
+ * Sobe o backend numa porta livre e lê a porta da linha que o `servidor.escutar` anuncia no
+ * stdout (`[<id>] versão <v> escutando em 127.0.0.1:<porta>`), que é o que ela existe para dizer.
+ */
 async function subirBackend() {
   dirTemp = fs.mkdtempSync(path.join(os.tmpdir(), 'vssh-tpl-'));
-  const socket = path.join(dirTemp, 'app.sock');
-  const proc = spawn(process.execPath, ['backend/server.js'], {
+  const proc = spawn(process.execPath, ['backend/server.js', '--tcp', '127.0.0.1:0'], {
     cwd: APP,
-    env: { ...process.env, VSSH_APP_SOCKET: socket, VSSH_APP_ID: 'hello-world-node', VSSH_APP_DATA_DIR: path.join(dirTemp, 'data') },
+    env: {
+      ...process.env,
+      NODE_PATH: process.env.NODE_PATH || RUNTIME_NODE,
+      VSSH_APP_ID: 'hello-world-node', VSSH_APP_DATA_DIR: path.join(dirTemp, 'data'),
+    },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let saida = '';
   proc.stdout.on('data', (d) => { saida += d; });
   proc.stderr.on('data', (d) => { saida += d; });
   const fim = Date.now() + 20000;
-  while (!fs.existsSync(socket)) {
+  for (;;) {
+    const m = /escutando em 127\.0\.0\.1:(\d+)/.exec(saida);
+    if (m) return { proc, porta: Number(m[1]) };
     if (proc.exitCode !== null || Date.now() > fim) throw new Error(`o backend do template não subiu:\n${saida.slice(-1500)}`);
     await new Promise((r) => setTimeout(r, 100));
   }
-  return { proc, socket };
 }
 
 before(async () => {

@@ -1,44 +1,45 @@
 'use strict';
 
-// Hello World (Node) — template de partida para um vssh-app com backend Node.
+// Hello World (Node): o template de partida para um vssh-app com backend Node.
 //
-// Uma dependência npm, e ela é o toolkit, de onde vêm as libs de backend (endereço, log, SPA, SSE,
-// filesystem privado, bandeja, notificação, atividade): `npm i github:colabhd/vssh-app-toolkit#v4`.
-// O resto é stdlib do Node. Quem instala no servidor é o `installCommand` do manifesto
-// (`npm ci --omit=dev`), e o lock commitado é o que fixa a versão; medido, o `npm ci` resolve o
-// pacote pelo tarball do codeload, sem precisar de `git` nem de chave SSH no alvo. O SDK web
-// (`vssh`) e a biblioteca de UI não viajam no pacote: o sistema os serve em `_sdk/` dentro do
-// espaço de URL do app, e o backend só injeta as tags (ver `createStaticSpa` abaixo).
+// O backend importa `vssh`, o runtime que o sistema instala em cada servidor em
+// `/opt/vssh/sdk/node` e que o `vssh-app-run` expõe pelo `NODE_PATH` a todo app que sobe. Nada
+// disso viaja no pacote: o `package.json` deste template não tem dependência, e o manifesto não
+// tem `installCommand`. O resto é stdlib do Node. O SDK web (`vssh`) e a biblioteca de UI também
+// não viajam: o sistema os serve em `_sdk/` dentro do espaço de URL do app, e o backend só injeta
+// as tags (ver `web.spa` abaixo).
+//
+// Fora do servidor, `scripts/ambiente-de-dev.sh` do SDK aponta `NODE_PATH` para a cópia de
+// `runtime/node`, e `node backend/server.js --tcp 127.0.0.1:0` sobe o backend numa porta.
 //
 // O que este template já faz por você, e que a primeira versão de todo app esquece:
 //   - log estruturado em $VSSH_APP_DATA_DIR desde a primeira linha (é o que salva a depuração
 //     remota: frame minificado sustenta hipótese, log do backend nomeia op e caminho);
-//   - checagem do X-Vssh-App-Token, timing-safe;
-//   - healthcheck que responde sem depender de nada estar pronto;
-//   - um endpoint SSE com os headers que sobrevivem ao proxy e ao CDN.
+//   - o portão do X-Vssh-App-Token, em tempo constante, e o `/saude` que o ambiente sonda;
+//   - um endpoint SSE com os cabeçalhos que sobrevivem ao proxy e ao CDN.
 
 const crypto = require('node:crypto');
 const http = require('node:http');
 const path = require('node:path');
 
-const { createStaticSpa } = require('vssh-app-toolkit/spa');
-const { createAppLog } = require('vssh-app-toolkit/log');
-const { openSseStream } = require('vssh-app-toolkit/sse');
-const { escutar } = require('vssh-app-toolkit/listen');
-// As duas vozes de um app SEM janela. Elas dizem coisas diferentes, e trocar uma pela outra é o
-// erro que enche o sino de quem usa o ambiente:
+// O barril é preguiçoso: cada módulo carrega no primeiro uso.
 //
-//   notify()  um FATO que aconteceu, e que a pessoa vai querer reencontrar. Fica no histórico.
-//   live      uma CONDIÇÃO que é verdade AGORA. Some quando deixa de ser, sem deixar rastro.
-const { notify } = require('vssh-app-toolkit/notify');
-const { setLive, clearLive, keepLiveAlive, clearLiveOnExit } = require('vssh-app-toolkit/live');
-// A bandeja do app SEM janela. O par do `vssh.avisos.bandeja` do SDK web, e não um substituto:
-// aquele morre com a janela; este escreve um arquivo que o portal lê, e o clique volta como POST,
-// porque a rede é assimétrica (o portal alcança o app; o app não alcança o portal).
-const { setTray, clearTray, clearTrayOnExit } = require('vssh-app-toolkit/tray');
-// O filesystem PRIVADO do app: uma raiz confinada, servida por HTTP ao próprio frontend. Não
-// confundir com os arquivos do usuário, que são a File System Access — ver a peça na galeria.
-const { createAppFs, createFsHandler } = require('vssh-app-toolkit/fs');
+//   servidor   o endereço, o portão de token, o `/saude`, o log
+//   web        a SPA do app, com o SDK web e o Tuff injetados no `<head>`
+//   eventos    SSE, e a difusão a quem assinou
+//   dados      o filesystem privado do app, e as rotas que o frontend chama
+//   avisos     notificar, atividade em curso e bandeja, para um app sem janela
+//   app        quem sou, e onde guardo as coisas
+//   gpu        o que o lançador concedeu de GPU a este processo
+//
+// As duas vozes de um app sem janela dizem coisas diferentes, e trocar uma pela outra é o erro
+// que enche o sino de quem usa o ambiente: `avisos.notificar` registra um fato que aconteceu, e
+// que a pessoa vai querer reencontrar; `avisos.atividade` declara uma condição verdadeira agora,
+// que some quando deixa de ser, sem deixar rastro. A bandeja (`avisos.bandeja`) é o par do
+// `vssh.avisos.bandeja` do SDK web: aquele morre com a janela; este escreve um arquivo que o
+// portal lê, e o clique volta como POST, porque a rede é assimétrica (o portal alcança o app; o
+// app não alcança o portal).
+const { servidor, web, eventos, dados, avisos, app, gpu } = require('vssh');
 
 // Onde este backend escuta é decisão do lifecycle, não deste arquivo: socket unix em
 // $VSSH_APP_SOCKET. Quem lê a variável,
@@ -48,111 +49,88 @@ const { createAppFs, createFsHandler } = require('vssh-app-toolkit/fs');
 // roteamento ao transporte sem necessidade: num socket unix não existe porta, `${PORT}` vira `NaN`
 // e o `new URL` estoura em toda requisição. O host aqui nunca vai à rede.
 const BASE_URL = 'http://vssh-app.invalid';
+const APP_ID = app.ident();
 
-// O que o sistema serve no espaço `_sdk/` do app, e este backend só injeta. Os caminhos são
-// relativos à raiz do app, sem carimbo: o arquivo não existe no disco deste pacote, o sistema
-// responde com `no-cache` e ETag, e a versão que chega é a do shell que está no ar.
-//
-//   `_sdk/vssh.js`  o SDK web: a ponte `vssh.*` e o polyfill de File System Access, num arquivo.
-//   `_sdk/tuff/…`   a biblioteca de UI. Tokens antes da base, e a base antes dos componentes,
-//                   porque cada folha lê o que a anterior declara; os ícones antes de `tuff.js`,
-//                   porque a gaveta tem um por item e um `<use>` que resolve depois da primeira
-//                   pintura pisca.
-//
-// Adotar o Tuff é escolha deste app: um app com identidade visual própria injeta só o SDK.
-const SDK_WEB = ['_sdk/vssh.js'];
-const TUFF_ESTILOS = ['_sdk/tuff/tuff-tokens.css', '_sdk/tuff/tuff-base.css', '_sdk/tuff/tuff.css'];
-const TUFF_SCRIPTS = ['_sdk/tuff/tuff-icones.js', '_sdk/tuff/tuff.js'];
-
-const APP_ID = process.env.VSSH_APP_ID || 'hello-world-node';
-const APP_TOKEN = process.env.VSSH_APP_TOKEN || null;
-
-const log = createAppLog({ appId: APP_ID });
+const log = servidor.criarLog();
 
 // As duas metades do prazo de validade de uma atividade, ligadas no boot porque é uma linha cada e
-// porque esquecê-las não quebra nada — só deixa uma barra mentindo no painel de outra pessoa.
+// porque esquecê-las não quebra nada: só deixa uma barra mentindo no painel de outra pessoa.
 //
-//   keepLiveAlive()   renova o `at` das atividades vivas a cada 20 s. O portal descarta o que passa
-//                     ~60 s sem renovar, porque um arquivo `live` sobrevive a um `kill -9`. Sem
-//                     isto, toda atividade mais longa que um minuto some no meio — e some SOZINHA,
-//                     o que parece defeito do ambiente. Com `_vivas` vazio ele não faz nada, e o
-//                     temporizador é `unref`: não segura o processo.
-//   clearLiveOnExit() apaga o que ficou vivo num Ctrl+C ou num SIGTERM. O TTL já cobre o `kill -9`;
-//                     isto cobre a saída LIMPA, onde 60 s de "sincronizando" seria um minuto de
-//                     mentira que dava para não contar.
+//   manterAtividadesVivas()   renova o `at` das atividades vivas a cada 20 s. O portal descarta o
+//                             que passa ~60 s sem renovar, porque um arquivo `live` sobrevive a
+//                             um `kill -9`. Sem isto, toda atividade mais longa que um minuto some
+//                             no meio, sozinha, o que parece defeito do ambiente. O temporizador
+//                             é `unref` e não segura o processo.
+//   limparAtividadesAoSair()  apaga o que ficou vivo num Ctrl+C ou num SIGTERM. O TTL já cobre o
+//                             `kill -9`; isto cobre a saída limpa, onde 60 s de "sincronizando"
+//                             seria um minuto de mentira que dava para não contar.
 //
-// Este bloco esteve importado e NÃO chamado, com o comentário da rota afirmando o contrário. Não
-// aparecia porque a tarefa de exemplo durava 6,4 s contra um TTL de 60 s — o defeito só se
-// manifestava no caso que ninguém exercita. A guarda está em tests/template-galeria.test.js.
-keepLiveAlive();
-clearLiveOnExit();
+// A tarefa de exemplo dura 6,4 s contra um TTL de 60 s, então a renovação só morde no caso que
+// ninguém exercita; `?lento=1` na rota da tarefa existe para exercitá-lo.
+avisos.manterAtividadesVivas();
+avisos.limparAtividadesAoSair();
 // Ícone órfão mente sobre o estado do ambiente: ele fica na bandeja depois que o app morreu, e
 // quem o vê conclui que o app está de pé.
-clearTrayOnExit();
+avisos.limparBandejaAoSair();
 
 // ── O armazém privado deste app ──────────────────────────────────────────────
 //
-// A raiz fica DENTRO do `VSSH_APP_DATA_DIR`, que é o único diretório gravável garantido — o pacote
-// em `/opt/vssh-apps/<id>/` é root-owned e somente leitura. Fora do VSSH (o seu `npm run dev`) não
-// há data dir, e aí um diretório temporário serve: a peça continua exercitável na sua máquina.
-const RAIZ_PRIVADA = path.join(
-  process.env.VSSH_APP_DATA_DIR || path.join(require('node:os').tmpdir(), `${APP_ID}-data`),
-  'privado',
-);
-const arquivosPrivados = createAppFs({ root: RAIZ_PRIVADA, onWarn: (e) => log('fs-warn', e) });
-const servirPrivado = createFsHandler({
-  fs: arquivosPrivados,
-  mountPath: '/api/privado',
-  // O MESMO token do resto do app. A lib confere sozinha, com comparação resistente a timing — e é
-  // por isso que ela tem essa opção em vez de deixar cada app comparar com `!==`.
-  requireToken: APP_TOKEN,
-  onWarn: (e) => log('fs-warn', e),
-});
+// `dados.abrir('privado')` é `<diretório de dados>/privado`: dentro do `VSSH_APP_DATA_DIR`, que é
+// o único diretório gravável garantido (o pacote em `/opt/vssh-apps/<id>/` é de root e somente
+// leitura), e em `~/.vssh-apps/<id>/data` fora do lançador. A peça continua exercitável na sua
+// máquina. É o filesystem privado do app, e não os arquivos do usuário, que são a File System
+// Access da galeria.
+const arquivosPrivados = dados.abrir('privado', { aoAvisar: log });
+// As rotas que o frontend chama em `api/privado`. O portão de token fica no `servidor.portao`,
+// na frente de tudo, e por isso estas rotas não têm um segundo.
+const servirPrivado = dados.rotas(arquivosPrivados, { prefixo: '/api/privado', aoAvisar: log });
 
-const spa = createStaticSpa({
-  root: path.join(__dirname, '..', 'frontend'),
-
+// A raiz vai absoluta, a partir deste arquivo. Uma relativa (`web.spa('frontend')`) resolve contra
+// a pasta do `vssh-app.json` a partir do script principal, e numa bancada que importa este módulo
+// o script principal é outro.
+const spa = web.spa(path.join(__dirname, '..', 'frontend'), {
   // A ponte com o ambiente entra por uma tag, e a tag é tudo que este backend faz por ela:
-  // `injectScripts` acrescenta o `<script src="_sdk/vssh.js">` antes do `</head>` do index, e
-  // quem responde esse caminho é o sistema, sem `mounts` nenhum. O caminho é relativo à raiz do
-  // app, e numa rota profunda do `spaFallback` o `<base href>` que a lib injeta o resolve. Fora
-  // do ambiente (o backend rodando solto na sua máquina) ninguém serve `_sdk/`, e a galeria diz
-  // isso na peça "Ambiente".
+  // `web.spa` acrescenta o `<script src="_sdk/vssh.js">` antes do `</head>` do index, e quem
+  // responde esse caminho é o sistema. O caminho é relativo à raiz do app, e numa rota profunda
+  // (`rotasProfundas`) o `<base href>` que a lib injeta o resolve. Fora do ambiente ninguém serve
+  // `_sdk/`, e a galeria diz isso na peça "Ambiente".
   //
-  // `galeria.js`, o código deste app, entra na mesma lista, e não como uma `<script src>` no
-  // index, para ganhar o carimbo de conteúdo na URL: só o que é injetado e existe no disco é
-  // carimbado, e o carimbo é o que garante que uma reinstalação não sirva a versão velha de
-  // nenhum cache do caminho. Ele vem depois do SDK, porque é o SDK que ele chama. Quem tem build
-  // (Vite e afins) já recebe um nome com hash e não precisa disto.
-  //
-  // As folhas saem antes dos scripts no `<head>`, e é o `injectStyles` que garante isso: um `<link>`
-  // bloqueia a primeira pintura, então descobri-lo cedo é o que evita a página aparecer sem estilo
-  // por um quadro.
-  injectStyles: TUFF_ESTILOS,
-  injectScripts: [...SDK_WEB, ...TUFF_SCRIPTS, 'galeria.js'],
+  // O Tuff, a biblioteca de UI, vem do mesmo espaço `_sdk/tuff/`. `web.TUFF` são os tokens, os
+  // componentes e o comportamento; `TUFF_BASE` é o reset da página inteira, à parte porque um
+  // bundle antigo com CSS próprio não o quer; `TUFF_ICONES` é o sprite, que não atravessa o
+  // iframe e por isso entra como script. Adotar o Tuff é escolha deste app: um app com identidade
+  // visual própria passa `tuff: false`, que é o padrão.
+  tuff: [...web.TUFF, web.TUFF_BASE, web.TUFF_ICONES],
+
+  // `galeria.js`, o código deste app, entra aqui, e não como uma `<script src>` no index, para
+  // ganhar o carimbo de conteúdo na URL: só o que é injetado e existe no disco é carimbado, e o
+  // carimbo é o que garante que uma reinstalação não sirva a versão velha de nenhum cache do
+  // caminho. Ele vem depois do SDK e do Tuff, porque é o SDK que ele chama. Quem tem build (Vite
+  // e afins) já recebe um nome com hash e não precisa disto.
+  scripts: ['galeria.js'],
 
   // Descomente se o seu app usa roteamento HTML5 (History API) em vez de fragmento:
-  // spaFallback: true,
-  missingBundleHint: 'Rode o build do frontend antes de subir o backend.',
-  onWarn: (event) => log('spa-warn', event),
+  // rotasProfundas: true,
+  dica: 'Rode o build do frontend antes de subir o backend.',
+  aoAvisar: log,
 });
 
 // ── Estado do processo, compartilhado por todas as janelas ────────────────────
 //
-// Um `Set` de streams SSE abertos e um contador. É o menor estado possível que ainda prova o
-// modelo: N janelas, UM backend.
-const conexoes = new Set();
+// Um difusor de SSE e um contador. É o menor estado possível que ainda prova o modelo: N janelas,
+// um backend. Quem assina `api/events` entra no difusor; quem incrementa publica para todos.
+const difusor = new eventos.Difusor();
 let contador = 0;
 const subiuEm = new Date().toISOString();
 // O temporizador da tarefa longa, para que um segundo clique reinicie em vez de empilhar.
 let tarefaEmCurso = null;
 
-const estado = () => ({ contador, conexoes: conexoes.size, subiuEm });
-const difundir = () => { for (const s of conexoes) s.send('estado', estado()); };
-// A difusão genérica, para o que o BACKEND recebe sem ninguém ter perguntado: o clique na bandeja
+const estado = () => ({ contador, conexoes: difusor.assinantes, subiuEm });
+const difundir = () => difusor.publicar('estado', estado());
+// A difusão genérica, para o que o backend recebe sem ninguém ter perguntado: o clique na bandeja
 // e a ação de uma notificação chegam ao processo por POST, e é por aqui que uma janela aberta fica
-// sabendo. Com nenhuma janela aberta, o `for` não itera — e o app recebeu do mesmo jeito.
-const difundirEvento = (nome, dado) => { for (const s of conexoes) s.send(nome, dado); };
+// sabendo. Com nenhuma janela aberta, ninguém recebe, e o app recebeu do mesmo jeito.
+const difundirEvento = (nome, dado) => difusor.publicar(nome, dado);
 
 // ── O que o ambiente decidiu por este processo ────────────────────────────────
 //
@@ -194,103 +172,21 @@ function limitesDoCgroup() {
 }
 
 /**
- * A GPU, do ponto de vista deste processo.
+ * A GPU, do ponto de vista deste processo: o que o lançador concedeu, e por que não.
  *
- * Este template NÃO declara `gpu: true`, e o esperado é justamente isto: `CUDA_VISIBLE_DEVICES`
- * chega como string VAZIA. Não é uma falha — é o padrão do ambiente aparecendo. Quem não pediu a
- * placa não a enxerga, e é isso que deixa um app de inferência conviver com os vizinhos.
+ * O `vssh-app-run` decide ao subir o app, com o que o servidor tem (fabricante pelo id do
+ * barramento, driver, virtual ou física, e se este usuário abre o render node) e com o que o
+ * manifesto pede, e registra a decisão. `gpu.concedida()` a lê; o app não vasculha `/sys` nem
+ * olha `CUDA_VISIBLE_DEVICES` para descobrir, porque a resposta do lançador é a que vale, e é a
+ * mesma que a janela recebe por `vssh.gpu.estado()` e que o gerenciador de tarefas mostra.
+ *
+ * `CUDA_VISIBLE_DEVICES` vai ao lado, e é outra coisa: o portão do runtime CUDA. Sozinho, o valor
+ * `""` é ambíguo (o mesmo para "escondida deste app" e para "não há placa"); ao lado da decisão,
+ * ele fica legível. Fora do lançador não há registro, e a resposta é "sem registro do lançador",
+ * que é informação e não erro.
  */
-/**
- * A GPU deste servidor — o INVENTÁRIO, e não só a variável do CUDA.
- *
- * A primeira versão desta peça mostrava apenas `CUDA_VISIBLE_DEVICES`, e era inútil: o valor
- * `""` (o ambiente escondeu) é indistinguível de "não há placa nenhuma", então a demonstração
- * testava a mesma coisa que não ter. Pior, ela dizia "sem GPU" num servidor com AMD, com Intel ou
- * com placa virtual — porque só sabia perguntar ao `nvidia-smi`.
- *
- * Agora pergunta ao KERNEL, que responde para qualquer fabricante e para placa que nem existe
- * fisicamente: `/sys/class/drm` diz quem é (id do barramento PCI) e qual driver assumiu, e
- * `/dev/dri` diz se este processo consegue abrir. As duas perguntas são diferentes, e a segunda é
- * a que mais trava gente: o dispositivo existe e o usuário não está no grupo `render`.
- *
- * Nada disto precisa de SDK, de driver proprietário ou de pacote instalado.
- */
-function gpuDoServidor() {
-  const fs = require('node:fs');
-  const SYSFS = process.env.VSSH_GPU_SYSFS || '/sys/class/drm';
-  const DEV = process.env.VSSH_GPU_DEV || '/dev/dri';
-  const FABRICANTES = {
-    '0x10de': 'NVIDIA', '0x1002': 'AMD', '0x1022': 'AMD', '0x8086': 'Intel',
-    '0x1af4': 'virtio', '0x1234': 'QEMU', '0x15ad': 'VMware', '0x5853': 'Xen', '0x1414': 'Microsoft',
-  };
-  // Por FABRICANTE primeiro. Um servidor real mostrou uma virtio-gpu reportando
-  // `DRIVER=virtio-pci` — o driver do BARRAMENTO, não o do DRM —, e a placa virtual passou por
-  // física. O id do fabricante não erra: 0x1af4 é virtio venha o dispositivo pendurado onde vier.
-  const VIRT_FAB = new Set(['0x1af4', '0x1234', '0x15ad', '0x5853', '0x1414']);
-  const VIRTUAIS = new Set(['virtio_gpu', 'virtio-pci', 'bochs-drm', 'bochs', 'vmwgfx', 'qxl',
-                            'vboxvideo', 'simpledrm', 'vgem', 'vkms', 'hyperv_drm']);
-  // O caminho de CODIFICAÇÃO de vídeo, POR DRIVER. Um servidor de verdade mostrou por quê: NVIDIA,
-  // `vainfo` instalado, libva respondendo — e `h264_vaapi` morrendo em "Failed to initialise VAAPI
-  // connection". O driver proprietário da NVIDIA não fala VA-API (o `nvidia-vaapi-driver` que
-  // existe por fora só decodifica); ali o caminho é NVENC, sem render node. `nouveau` fica de
-  // fora: decodifica por VA-API e não codifica nada.
-  const VIDEO_POR_DRIVER = { nvidia: 'nvenc', i915: 'vaapi', xe: 'vaapi', amdgpu: 'vaapi', radeon: 'vaapi' };
-  const ler = (p) => { try { return fs.readFileSync(p, 'utf8').trim(); } catch { return null; } };
-
-  let cartoes;
-  try {
-    cartoes = fs.readdirSync(SYSFS).filter((c) => c.startsWith('card') && !c.includes('-')).sort();
-  } catch (err) {
-    // "Não sei" ≠ "não tem". Um Windows de desenvolvimento cai aqui, e chamar isso de ausência de
-    // GPU seria a peça mentindo sobre o servidor.
-    return { sei: false, motivo: err.message, dispositivos: [] };
-  }
-
-  const dispositivos = cartoes.map((cartao) => {
-    const base = path.join(SYSFS, cartao);
-    const vendor = ler(path.join(base, 'device', 'vendor'));
-    // `uevent` é um arquivo de texto com `DRIVER=amdgpu`; `device/driver` é um symlink de mesmo
-    // nome. O arquivo vem primeiro porque é legível em qualquer lugar — e mensurável numa bancada
-    // que não pode criar symlinks.
-    let driver = null;
-    const uevent = ler(path.join(base, 'device', 'uevent'));
-    const m = uevent && uevent.split('\n').find((l) => l.startsWith('DRIVER='));
-    if (m) driver = m.slice('DRIVER='.length).trim() || null;
-    if (!driver) { try { driver = path.basename(fs.realpathSync(path.join(base, 'device', 'driver'))); } catch {} }
-    let node = null;
-    try {
-      const n = fs.readdirSync(path.join(base, 'device', 'drm')).find((x) => x.startsWith('renderD'));
-      if (n) node = path.join(DEV, n);
-    } catch {}
-    let acesso = 'ausente';
-    if (node) {
-      try { fs.accessSync(node, fs.constants.R_OK | fs.constants.W_OK); acesso = 'ok'; }
-      catch { acesso = fs.existsSync(node) ? 'negado' : 'ausente'; }
-    }
-    const v = (vendor || '').toLowerCase();
-    const virtual = VIRT_FAB.has(v) ? true : VIRTUAIS.has(driver) ? true : (v || driver) ? false : null;
-    return {
-      card: cartao, fabricante: FABRICANTES[v] || 'desconhecido',
-      vendor, driver, virtual, renderNode: node, acesso,
-      // `null` é "não codifica" (virtual) ou "não sei" — nos dois a resposta é a CPU.
-      video: virtual ? null : (VIDEO_POR_DRIVER[driver] || null),
-    };
-  });
-
-  const usaveis = dispositivos.filter((d) => d.acesso === 'ok');
-  const negados = dispositivos.filter((d) => d.acesso === 'negado');
-  return {
-    sei: true,
-    dispositivos,
-    temGpu: usaveis.length > 0,
-    // O portão do CUDA continua sendo reportado — mas agora ao LADO do inventário, que é o que
-    // torna a variável vazia legível: "escondida do app" deixa de parecer "não existe".
-    cudaVisibleDevices: process.env.CUDA_VISIBLE_DEVICES ?? null,
-    resumo: !dispositivos.length ? 'nenhum dispositivo DRM neste servidor'
-      : usaveis.length ? usaveis.map((d) => `${d.fabricante} (${d.driver || 'sem driver'}${d.virtual ? ', virtual' : ''})`).join(', ')
-      : negados.length ? `${negados.length} dispositivo(s) presentes e SEM ACESSO — falta o grupo 'render' (usermod -aG render <usuario>)`
-      : 'dispositivos presentes, sem render node utilizável',
-  };
+function gpuDoAmbiente() {
+  return { ...gpu.concedida(), cudaVisibleDevices: process.env.CUDA_VISIBLE_DEVICES ?? null };
 }
 
 /**
@@ -495,10 +391,9 @@ function benchmarkGpu({ frames = 300 } = {}) {
   // Quadros da execução CURTA de cada lado: o bastante para o ffmpeg passar da partida, pouco o
   // bastante para não custar nada. A diferença entre ela e a longa é o regime.
   const AQUECER = 30;
-  const gpu = gpuDoServidor();
-  // O dispositivo, e não só o caminho: o diagnóstico da falha precisa saber se a placa é virtual
-  // para responder em vez de hesitar.
-  const alvo = (gpu.dispositivos || []).find((d) => d.acesso === 'ok') || null;
+  // O dispositivo concedido, e não só o caminho dele: o diagnóstico da falha precisa saber se a
+  // placa é virtual para responder em vez de hesitar.
+  const alvo = gpu.concedida().dispositivos.find((d) => d.acesso === 'ok') || null;
   const node = alvo?.renderNode || null;
 
   const temFfmpeg = (() => {
@@ -648,88 +543,67 @@ function benchmarkGpu({ frames = 300 } = {}) {
  */
 function lerCorpo(req) {
   return new Promise((resolve) => {
-    let dados = '';
+    let corpo = '';
     req.on('data', (pedaco) => {
-      dados += pedaco;
-      if (dados.length > 64 * 1024) { dados = ''; req.destroy(); }
+      corpo += pedaco;
+      if (corpo.length > 64 * 1024) { corpo = ''; req.destroy(); }
     });
-    req.on('end', () => { try { resolve(JSON.parse(dados || '{}')); } catch { resolve({}); } });
+    req.on('end', () => { try { resolve(JSON.parse(corpo || '{}')); } catch { resolve({}); } });
     req.on('error', () => resolve({}));
   });
 }
 
-// Comparação de tamanho fixo: hash dos dois lados antes de comparar, para não vazar prefixo pelo
-// tempo nem tropeçar em comprimentos diferentes.
-function tokenMatches(expected, received) {
-  if (typeof received !== 'string' || received.length === 0) return false;
-  const a = crypto.createHash('sha256').update(expected).digest();
-  const b = crypto.createHash('sha256').update(received).digest();
-  return crypto.timingSafeEqual(a, b);
-}
-
-const server = http.createServer(async (req, res) => {
+// O portão na frente de tudo: recusa quem não traz o `X-Vssh-App-Token` do ambiente (403 com
+// `X-Vssh-Token: recusado`, em tempo constante), responde `GET /saude` com `{ok, versao, pid}` e
+// entrega o resto ao handler. O `/saude` é o que o lifecycle sonda, até 15x/1s, segurando o
+// clique de "abrir app"; a sondagem vai com o token, e a resposta não toca em nada, então ela diz
+// só se o processo subiu. O que não conta como pronto é 000, 5xx e 401/403.
+//
+// O socket é 0600 do dono, e ainda assim outro processo do mesmo usuário Linux o alcança. Um app
+// que dá acesso sensível (shell, arquivos) confere o token; um app trivial pode não conferir, e
+// aí basta não passar pelo portão.
+const server = http.createServer(servidor.portao(async (req, res) => {
   const url = new URL(req.url, BASE_URL);
 
   try {
-    // O healthcheck é pollado pelo lifecycle do portal DIRETO na porta, até 15x/1s, bloqueando o
-    // clique de "abrir app". A sondagem vai COM o X-Vssh-App-Token, então gatear
-    // esta rota seria permitido — o comentário anterior aqui dizia que isentá-la era obrigatório,
-    // e isso estava errado. Ela fica isenta por outro motivo, que continua valendo: responde `ok`
-    // sem tocar em nada, e assim o healthcheck não depende do token estar certo para dizer se o
-    // processo subiu. O que NÃO conta como pronto é 000, 5xx e 401/403.
-    if (url.pathname === '/healthz') {
-      res.writeHead(200, { 'Content-Type': 'text/plain' });
-      res.end('ok\n');
-      return;
-    }
-
-    if (APP_TOKEN && !tokenMatches(APP_TOKEN, req.headers['x-vssh-app-token'])) {
-      // A porta é loopback, mas outro processo do mesmo usuário Linux alcança. Apps que dão acesso
-      // sensível (shell, arquivos) devem checar; apps triviais podem simplesmente não checar.
-      log('token-rejected', { path: url.pathname });
-      res.writeHead(403, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'token ausente ou inválido' }));
-      return;
-    }
-
     // ── A tarefa longa, e o ciclo completo de uma atividade ────────────────────
     //
     // O que este endpoint demonstra é o que um `kind:"service"` faz o dia inteiro: trabalho que
     // demora, com o usuário podendo estar olhando para outra coisa. Três decisões dentro dele:
     //
-    //  1. **`setLive` a cada passo, com a MESMA chave.** Ela reescreve no lugar — vinte relatos
-    //     de progresso não viram vinte linhas no painel de quem está trabalhando;
-    //  2. **A renovação do `at`**, ligada uma vez no boot por `keepLiveAlive()` (ver o topo do
-    //     arquivo). O portal descarta a atividade que passa ~60 s sem renovar o carimbo de tempo,
-    //     porque um arquivo chamado `live` sobrevive a um `kill -9` — e uma barra parada em 30%
-    //     para sempre é pior que barra nenhuma;
-    //  3. **`clearLive` com `registrar` no fim.** A atividade some e deixa UMA notificação. Se o
-    //     desfecho não interessasse (uma indisponibilidade que se resolveu), seria `clearLive`
-    //     sem argumento nenhum, e não sobraria rastro — que é o certo nesse caso.
+    //  1. `avisos.atividade` a cada passo, com a mesma chave. Ela reescreve no lugar: vinte
+    //     relatos de progresso não viram vinte linhas no painel de quem está trabalhando;
+    //  2. a renovação do `at`, ligada uma vez no boot por `manterAtividadesVivas()` (ver o topo
+    //     do arquivo). O portal descarta a atividade que passa ~60 s sem renovar o carimbo de
+    //     tempo, porque um arquivo chamado `live` sobrevive a um `kill -9`, e uma barra parada em
+    //     30% para sempre é pior que barra nenhuma;
+    //  3. `limparAtividade` com `registrar` no fim. A atividade some e deixa uma notificação. Se
+    //     o desfecho não interessasse (uma indisponibilidade que se resolveu), seria
+    //     `limparAtividade` sem argumento nenhum, e não sobraria rastro, que é o certo nesse caso.
     //
-    // `?lento=1` é o que torna a decisão 2 OBSERVÁVEL: oito passos de 10 s passam de 80 s, bem
+    // `?lento=1` é o que torna a decisão 2 observável: oito passos de 10 s passam de 80 s, bem
     // além do TTL de 60 s. Com a renovação ligada, a barra atravessa; sem ela, some no meio
-    // sozinha — que é o defeito que dorme numa demonstração de 6 segundos.
+    // sozinha, que é o defeito que dorme numa demonstração de 6 segundos.
     if (url.pathname === '/api/tarefa-longa' && req.method === 'POST') {
       const lento = url.searchParams.get('lento') === '1';
       const intervalo = lento ? 10000 : 800;
       const total = 8;
       let feito = 0;
       // Uma tarefa por vez: um segundo clique reinicia em vez de somar dois temporizadores
-      // escrevendo na MESMA chave — dois donos do mesmo arquivo é progresso que anda para trás.
+      // escrevendo na mesma chave. Dois donos do mesmo arquivo é progresso que anda para trás.
       if (tarefaEmCurso) clearInterval(tarefaEmCurso);
       const passo = () => {
         feito++;
-        setLive('exemplo-backend', {
+        avisos.atividade('exemplo-backend', {
           titulo: 'Tarefa do backend',
-          texto: `passo ${feito}${lento ? ' (devagar — atravessa o TTL)' : ''}`,
+          texto: `passo ${feito}${lento ? ' (devagar, atravessa o TTL)' : ''}`,
           formato: 'progresso',
           progresso: { feito, total },
         });
         if (feito >= total) {
           clearInterval(tarefaEmCurso);
           tarefaEmCurso = null;
-          clearLive('exemplo-backend', {
+          avisos.limparAtividade('exemplo-backend', {
             registrar: { titulo: 'Tarefa concluída', texto: `${total} passos`, level: 'success' },
           });
         }
@@ -744,29 +618,29 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // Uma notificação de backend com `key` estável. O portal lê uma JANELA do fim do journal, não
-    // um delta — então é a `key` que impede o mesmo aviso de chegar a cada tick. Chamar isto dez
-    // vezes no mesmo dia rende UMA notificação; no dia seguinte, outra.
+    // Uma notificação de backend com `chave` estável. O portal lê uma janela do fim do journal, e
+    // não um delta, então é a chave que impede o mesmo aviso de chegar a cada tick. Chamar isto
+    // dez vezes no mesmo dia rende uma notificação; no dia seguinte, outra.
     if (url.pathname === '/api/avisar' && req.method === 'POST') {
       const hoje = new Date().toISOString().slice(0, 10);
-      notify('O disco do servidor está acima de 90%.', {
-        title: 'Hello World', level: 'warning', key: `disco-cheio-${hoje}`,
+      avisos.notificar('O disco do servidor está acima de 90%.', {
+        titulo: 'Hello World', nivel: 'warning', chave: `disco-cheio-${hoje}`,
       });
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ notificada: true, key: `disco-cheio-${hoje}` }));
       return;
     }
 
-    // Uma notificação com AÇÃO, vinda do backend. A diferença para a de cima é o `path`: sem ele,
+    // Uma notificação com ação, vinda do backend. A diferença para a de cima é a `rota`: sem ela,
     // o botão da notificação não teria para onde mandar a resposta. O clique pode acontecer com o
-    // app sem janela nenhuma aberta — e é por isso que o destino é uma rota do processo, e não um
+    // app sem janela nenhuma aberta, e é por isso que o destino é uma rota do processo, e não um
     // callback do frontend.
     if (url.pathname === '/api/avisar-com-acao' && req.method === 'POST') {
-      notify('O índice está desatualizado. Reconstruir agora?', {
-        title: 'Hello World', level: 'warning', persistent: true,
-        actions: [{ id: 'reconstruir', label: 'Reconstruir' }],
-        path: '/api/acao',
-        key: `indice-${Date.now()}`,
+      avisos.notificar('O índice está desatualizado. Reconstruir agora?', {
+        titulo: 'Hello World', nivel: 'warning', persistente: true,
+        acoes: [{ id: 'reconstruir', label: 'Reconstruir' }],
+        rota: '/api/acao',
+        chave: `indice-${Date.now()}`,
       });
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ notificada: true, acao: 'reconstruir', rota: '/api/acao' }));
@@ -785,17 +659,17 @@ const server = http.createServer(async (req, res) => {
 
     // ── A bandeja pela lib, e o clique que volta ────────────────────────────
     if (url.pathname === '/api/bandeja' && req.method === 'POST') {
-      const ok = setTray({
+      const ok = avisos.bandeja({
         icon: 'refresh',
-        tooltip: 'Hello World — posto pelo BACKEND',
+        tooltip: 'Hello World, posto pelo backend',
         badge: { dot: true },
         menu: [
           { id: 'oi', label: 'Um item do menu' },
           { separator: true },
           { id: 'sair', label: 'Remover este ícone', danger: true },
         ],
-        // Só DADOS atravessam o arquivo: aqui vai uma rota, não uma função. É a mesma restrição
-        // do menu de contexto, pela mesma razão — função não serializa.
+        // Só dados atravessam o arquivo: aqui vai uma rota, e não uma função. É a mesma restrição
+        // do menu de contexto, pela mesma razão, porque função não serializa.
         onClick: { path: '/api/bandeja/clique' },
       });
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -804,7 +678,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (url.pathname === '/api/bandeja' && req.method === 'DELETE') {
-      clearTray();
+      avisos.limparBandeja();
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ ok: true }));
       return;
@@ -812,20 +686,20 @@ const server = http.createServer(async (req, res) => {
 
     if (url.pathname === '/api/bandeja/clique' && req.method === 'POST') {
       const corpo = await lerCorpo(req);
-      // ANINHADO, e não espalhado. `createAppLog` monta `{ts, event, ...detail}` — e o corpo que o
-      // ambiente manda TEM uma chave `event` (`click`/`menu`). Espalhá-lo sequestra o nome do
-      // evento: as duas rotas do app apareciam no log como `"event":"click"` e `"event":"menu"`,
-      // sem uma palavra dizendo que vieram da bandeja. Medido rodando o template de verdade.
+      // Aninhado, e não espalhado. O `log` monta `{ts, event, ...detalhe}`, e o corpo que o
+      // ambiente manda tem uma chave `event` (`click`/`menu`). Espalhá-lo sequestraria o nome do
+      // evento: as duas rotas do app apareceriam no log como `"event":"click"` e `"event":"menu"`,
+      // sem uma palavra dizendo que vieram da bandeja.
       log('clique-na-bandeja', { clique: corpo });
-      if (corpo.menuId === 'sair') clearTray();
+      if (corpo.menuId === 'sair') avisos.limparBandeja();
       difundirEvento('bandeja', corpo);
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ ok: true }));
       return;
     }
 
-    // O filesystem privado, servido pela lib. Ela devolve `true` quando atendeu — mesmo contrato
-    // do static-spa, e pela mesma razão: quem compõe as rotas é o app, não a lib.
+    // O filesystem privado, servido pela lib. Ela devolve `true` quando atendeu, o mesmo contrato
+    // do `spa`, e pela mesma razão: quem compõe as rotas é o app, e não a lib.
     if (await servirPrivado(req, res, url)) return;
 
     if (url.pathname === '/api/ping') {
@@ -836,20 +710,19 @@ const server = http.createServer(async (req, res) => {
 
     // Exemplo de SSE. Prove que eventos chegam sem buffer: `curl -N <baseUrl>api/events`.
     //
-    // O stream também entra no conjunto de conexões abertas — é o que faz a demonstração de
-    // "duas janelas, um backend" funcionar: quem incrementa é uma janela, e a difusão alcança
-    // todas as outras. Sem o `delete` no `close`, cada abrir-e-fechar de janela deixaria um
-    // stream morto no conjunto e o número de conexões só subiria.
+    // O stream entra no difusor, e é isso que faz a demonstração de "duas janelas, um backend"
+    // funcionar: quem incrementa é uma janela, e a difusão alcança todas as outras. O difusor
+    // tira o stream do conjunto no `close` da resposta; sem isso, cada abrir-e-fechar de janela
+    // deixaria um stream morto no conjunto e o número de conexões só subiria.
     if (url.pathname === '/api/events') {
-      const stream = openSseStream(res);
-      conexoes.add(stream);
-      stream.send('estado', estado());
-      let n = 0;
-      const timer = setInterval(() => {
-        if (stream.closed) return clearInterval(timer);
-        stream.send('tick', { n: ++n, time: new Date().toISOString() });
-      }, 1000);
-      res.on('close', () => { clearInterval(timer); conexoes.delete(stream); difundir(); });
+      difusor.atender(res, (fluxo) => {
+        fluxo.enviar('estado', estado());
+        let n = 0;
+        const timer = setInterval(() => {
+          fluxo.enviar('tick', { n: ++n, time: new Date().toISOString() });
+        }, 1000);
+        fluxo.aoFechar(() => { clearInterval(timer); difundir(); });
+      });
       return;
     }
 
@@ -880,7 +753,7 @@ const server = http.createServer(async (req, res) => {
     // onde a resposta é a verdadeira.
     if (url.pathname === '/api/runtime') {
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ limites: limitesDoCgroup(), gpu: gpuDoServidor(), segredo: segredo() }));
+      res.end(JSON.stringify({ limites: limitesDoCgroup(), gpu: gpuDoAmbiente(), segredo: segredo() }));
       return;
     }
 
@@ -893,7 +766,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // O static-spa devolve false quando não atendeu: 404 é decisão de quem compõe as rotas.
+    // O `spa` devolve false quando não atendeu: 404 é decisão de quem compõe as rotas.
     if (await spa(req, res, url)) return;
 
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
@@ -903,23 +776,26 @@ const server = http.createServer(async (req, res) => {
     if (!res.headersSent) res.writeHead(500, { 'Content-Type': 'text/plain' });
     res.end('erro interno\n');
   }
-});
+}));
 
-escutar(server)
+// `escutar` lê `$VSSH_APP_SOCKET`, limpa um socket órfão por tentativa de conexão, põe o modo
+// 0600 e anuncia `[<id>] versão <v> escutando em <onde>` no stdout. Com `--tcp host:porta` na
+// linha de comando ele abre uma porta, para a bancada.
+servidor.escutar(server)
   .then(({ transporte, endereco }) => {
-    log('listening', { transporte, endereco, appId: APP_ID, tokenRequired: Boolean(APP_TOKEN) });
+    log('listening', { transporte, endereco, appId: APP_ID, tokenRequired: Boolean(process.env.VSSH_APP_TOKEN) });
   })
   .catch((err) => {
-    // `VSSH_APP_JA_ESCUTANDO` não é falha: significa que outra instância já atende neste endereço,
-    // e o lifecycle trata sair-em-silêncio como sucesso (é o mesmo contrato do `exit 0` do
-    // `vssh-app-run` quando encontra alguém escutando). Qualquer outro erro é fatal e tem de
-    // aparecer: um backend que não escuta e não reclama vira janela em branco sem causa.
-    if (err.code === 'VSSH_APP_JA_ESCUTANDO') {
+    // `JA_ESCUTANDO` não é falha: outra instância já atende neste endereço, e o lifecycle trata
+    // sair em silêncio como sucesso (é o mesmo contrato do `exit 0` do `vssh-app-run` quando
+    // encontra alguém escutando). Qualquer outro erro é fatal e tem de aparecer: um backend que
+    // não escuta e não reclama vira janela em branco sem causa.
+    if (err.code === servidor.JA_ESCUTANDO) {
       log('already-listening', { message: err.message });
       process.exit(0);
     }
     log('listen-failed', { message: err.message, code: err.code });
-    console.error('[hello-world-node] não consegui escutar:', err.message);
+    servidor.registrar(`não consegui escutar: ${err.message}`);
     process.exit(1);
   });
 

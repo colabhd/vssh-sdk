@@ -13,6 +13,7 @@ cópia da mesma pergunta, com uma a mais para esquecer de atualizar.
 import importlib.util
 import json
 import os
+import sys
 import tempfile
 import unittest
 import unittest.mock
@@ -20,13 +21,16 @@ import unittest.mock
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 TEMPLATE = os.path.join(RAIZ, "templates", "hello-vssh-app")
 
-# As libs do template chegam pelo `installCommand` do manifesto (`pip install --target vendor/py`),
-# e é de `vendor/py` que o `backend/main.py` as importa. Um checkout sem esse passo não tem o que
-# medir: o módulo inteiro se pula dizendo o comando, em vez de reprovar por ausência de ambiente.
-VENDOR = os.path.join(TEMPLATE, "vendor", "py")
-SEM_LIBS = None if os.path.isdir(VENDOR) else (
-    "sem as libs do template em templates/hello-vssh-app/vendor/py: rode o installCommand do "
-    "vssh-app.json (pip install --target vendor/py ...)")
+# O runtime `vssh` que o `backend/main.py` importa: o do `PYTHONPATH` quando há um (a fonte, ou o
+# que `scripts/ambiente-de-dev.sh` exporta), e a cópia gerada em `runtime/python` deste checkout
+# quando não há. Um checkout esparso sem nenhum dos dois não tem o que medir: o módulo inteiro se
+# pula dizendo o que falta, em vez de reprovar por ausência de ambiente.
+RUNTIME = os.path.join(RAIZ, "runtime", "python")
+if importlib.util.find_spec("vssh") is None and os.path.isdir(os.path.join(RUNTIME, "vssh")):
+    sys.path.insert(0, RUNTIME)
+SEM_LIBS = None if importlib.util.find_spec("vssh") else (
+    "sem o runtime `vssh` neste checkout: o canal do sistema o escreve em runtime/python, ou "
+    "exporte PYTHONPATH")
 
 
 def carregar_backend(env):
@@ -154,14 +158,38 @@ class TestLimites(BaseTemplate):
 
 
 class TestGpu(BaseTemplate):
-    def test_nao_sei_NAO_e_nao_tem(self):
-        # Um servidor sem `/sys/class/drm` cai aqui, e chamar isso de ausência de GPU seria a peça
-        # mentindo sobre o servidor.
-        m = self.carregar({"VSSH_GPU_SYSFS": "/caminho/que/nao/existe"})
-        r = m.gpu_do_servidor()
-        self.assertFalse(r["sei"])
-        self.assertIn("motivo", r)
+    """A GPU é o que o lançador concedeu, lido do registro dele; o app não vasculha `/sys`."""
+
+    def _conceder(self, *dispositivos):
+        """O registro que o `vssh-app-run` deixa ao lado do diretório de dados, com a decisão."""
+        with open(os.path.join(self.tmp, "limits.json"), "w", encoding="utf-8") as fh:
+            json.dump({"gpu": "concedida", "gpuInfo": {"dispositivos": list(dispositivos)}}, fh)
+
+    def test_sem_registro_do_lancador_a_resposta_e_nao_com_motivo(self):
+        # O app subiu por fora do lançador (a bancada, o `--tcp` de quem desenvolve). Não há
+        # decisão a ler, e a peça diz isso; inventar um inventário seria a peça mentindo sobre o
+        # que o ambiente decidiu.
+        m = self.carregar()
+        r = m.gpu_do_ambiente()
+        self.assertFalse(r["concedida"])
+        self.assertIn("registro", r["motivo"])
         self.assertEqual(r["dispositivos"], [])
+        self.assertIn("cudaVisibleDevices", r)
+
+    def test_o_que_o_lancador_concedeu_e_o_que_a_peca_mostra(self):
+        m = self.carregar({"CUDA_VISIBLE_DEVICES": "0"})
+        self._conceder(
+            {"card": "card0", "fabricante": "AMD", "driver": "amdgpu", "virtual": False,
+             "video": "vaapi", "renderNode": "/dev/dri/renderD128", "acesso": "ok"},
+            {"card": "card1", "fabricante": "NVIDIA", "driver": "nvidia", "virtual": False,
+             "video": "nvenc", "renderNode": "/dev/dri/renderD129", "acesso": "negado"},
+        )
+        r = m.gpu_do_ambiente()
+        self.assertTrue(r["concedida"])
+        self.assertIsNone(r["motivo"])
+        # Só o que este processo abre: a placa sem acesso não entra no que se pode usar.
+        self.assertEqual([d["card"] for d in r["dispositivos"]], ["card0"])
+        self.assertEqual(r["cudaVisibleDevices"], "0")
 
     def test_a_falha_da_GPU_e_CLASSIFICADA_porque_as_causas_pedem_acoes_OPOSTAS(self):
         m = self.carregar()
@@ -230,22 +258,21 @@ class TestGpu(BaseTemplate):
         self.assertNotIn('"-hwaccel"', fonte)
         self.assertNotIn("'-hwaccel'", fonte)
 
-    def _bancada(self, vendor, driver):
-        """Uma `/sys/class/drm` + `/dev/dri` de mentira com UMA placa, no formato do kernel."""
-        raiz = tempfile.mkdtemp(prefix="vssh-gpu-")
-        disp = os.path.join(raiz, "sys", "card0", "device")
-        os.makedirs(os.path.join(disp, "drm", "renderD128"))
-        os.makedirs(os.path.join(raiz, "dev"))
-        with open(os.path.join(disp, "vendor"), "w") as fh:
-            fh.write(vendor + "\n")
-        with open(os.path.join(disp, "uevent"), "w") as fh:
-            fh.write("DRIVER=%s\n" % driver)
-        open(os.path.join(raiz, "dev", "renderD128"), "w").close()
-        return {"VSSH_GPU_SYSFS": os.path.join(raiz, "sys"), "VSSH_GPU_DEV": os.path.join(raiz, "dev")}
+    # O que o lançador teria concedido: uma placa, com o caminho de codificação que o
+    # `vssh-gpu-info` do sistema anota a partir do driver.
+    NVIDIA = {"card": "card0", "fabricante": "NVIDIA", "driver": "nvidia", "virtual": False,
+              "video": "nvenc", "renderNode": "/dev/dri/renderD128", "acesso": "ok"}
+    AMD = {"card": "card0", "fabricante": "AMD", "driver": "amdgpu", "virtual": False,
+           "video": "vaapi", "renderNode": "/dev/dri/renderD128", "acesso": "ok"}
+    INTEL = {"card": "card0", "fabricante": "Intel", "driver": "i915", "virtual": False,
+             "video": "vaapi", "renderNode": "/dev/dri/renderD128", "acesso": "ok"}
+    VIRTIO = {"card": "card0", "fabricante": "virtio", "driver": "virtio_gpu", "virtual": True,
+              "video": None, "renderNode": "/dev/dri/renderD128", "acesso": "ok"}
 
-    def _argvs_do_benchmark(self, vendor, driver):
+    def _argvs_do_benchmark(self, dispositivo):
         """Roda o benchmark com um `subprocess.run` que só ANOTA, e devolve o que ele chamaria."""
-        m = self.carregar(self._bancada(vendor, driver))
+        m = self.carregar()
+        self._conceder(dispositivo)
         chamadas = []
 
         def falso_run(argv, **kw):
@@ -256,11 +283,10 @@ class TestGpu(BaseTemplate):
             r = m.benchmark_gpu()
         return m, r, [c for c in chamadas if c[0] == "ffmpeg" and "-version" not in c]
 
-    def test_o_codificador_e_escolhido_pelo_DRIVER_e_NVIDIA_e_NVENC(self):
+    def test_o_codificador_e_o_que_o_lancador_anotou_e_NVIDIA_e_NVENC(self):
         # O servidor de verdade: NVIDIA, `renderD128` presente, e o benchmark antigo tentava
         # `h264_vaapi` ali — falhava, e o diagnóstico mandava instalar driver.
-        m, r, ffmpegs = self._argvs_do_benchmark("0x10de", "nvidia")
-        self.assertEqual(m.gpu_do_servidor()["dispositivos"][0]["video"], "nvenc")
+        m, r, ffmpegs = self._argvs_do_benchmark(self.NVIDIA)
         self.assertEqual(r["video"], "nvenc")
         gpu = next(c for c in ffmpegs if "h264_nvenc" in c)
         self.assertNotIn("-vaapi_device", gpu, "NVENC não passa pelo render node")
@@ -269,9 +295,9 @@ class TestGpu(BaseTemplate):
         self.assertTrue(r["gpu"]["ok"])
 
     def test_AMD_e_Intel_continuam_em_VAAPI(self):
-        for vendor, driver in (("0x1002", "amdgpu"), ("0x8086", "i915")):
-            m, r, ffmpegs = self._argvs_do_benchmark(vendor, driver)
-            self.assertEqual(r["video"], "vaapi", driver)
+        for dispositivo in (self.AMD, self.INTEL):
+            m, r, ffmpegs = self._argvs_do_benchmark(dispositivo)
+            self.assertEqual(r["video"], "vaapi", dispositivo["driver"])
             gpu = next(c for c in ffmpegs if "h264_vaapi" in c)
             self.assertIn("-vaapi_device", gpu)
             self.assertFalse(any("h264_nvenc" in c for c in ffmpegs))
@@ -280,13 +306,13 @@ class TestGpu(BaseTemplate):
     def test_placa_virtual_nao_tenta_codificador_nenhum(self):
         # Tentar VA-API numa virtio é o que produzia "driver ausente" para uma placa que não tem,
         # nem vai ter, codificador. Agora ela nem chega ao ffmpeg.
-        m, r, ffmpegs = self._argvs_do_benchmark("0x1af4", "virtio_gpu")
+        m, r, ffmpegs = self._argvs_do_benchmark(self.VIRTIO)
         self.assertIsNone(r["video"])
         self.assertFalse(r["gpu"]["ok"])
         self.assertIn("VIRTUAL", r["gpu"]["erro"])
         self.assertEqual([c for c in ffmpegs if "h264_vaapi" in c or "h264_nvenc" in c], [])
 
-    def _benchmark_de_mentira(self, lados, vendor="0x10de", driver="nvidia"):
+    def _benchmark_de_mentira(self, lados, dispositivo=NVIDIA):
         """O benchmark com relógio e processador FALSOS: nada roda, e cada lado é um perfil.
 
         `lados[rotulo] = (partida_ms, ms_por_quadro, nucleos)` — o que um ffmpeg daquele lado
@@ -297,7 +323,8 @@ class TestGpu(BaseTemplate):
         import re
         import types
 
-        m = self.carregar(self._bancada(vendor, driver))
+        m = self.carregar()
+        self._conceder(dispositivo)
         relogio = {"parede": 0.0, "cpu": 0.0}
 
         def falso_run(argv, **kw):
@@ -382,76 +409,47 @@ class TestManifesto(unittest.TestCase):
         # precisa da placa para medir.
         self.assertIs(m["gpu"], True)
 
-    def test_declara_o_ffmpeg_e_o_pip(self):
+    def test_declara_o_ffmpeg(self):
         m = self.manifesto()
         self.assertIn("ffmpeg", m["requiredPackages"],
                       "o benchmark usa ffmpeg e o manifesto não o declara")
-        self.assertIn("python3-pip", m["requiredPackages"],
-                      "o installCommand instala com pip e o manifesto não o declara: o servidor "
-                      "sem pip só descobre isso quando o primeiro usuário abre o app")
 
-    def test_o_installCommand_e_idempotente_e_respeita_o_REBUILD(self):
-        # Ele roda DUAS vezes — root no install, e por usuário no primeiro run. A segunda tem de
-        # conferir sem refazer; e um reinstall --force precisa de um jeito de forçar mesmo assim.
-        cmd = self.manifesto()["backend"]["installCommand"]
-        self.assertIn("VSSH_APP_REBUILD", cmd)
-        self.assertIn("test -d vendor/py", cmd)
-        # `--target vendor/py`: grava na execução ROOT, onde /opt/vssh-apps/<id>/ é gravável. Um
-        # venv ou um `--user` mudaria o dono do que é instalado.
-        self.assertIn("--target vendor/py", cmd)
-        # Tarball, e não `git+https`: sem exigir `git` no alvo — a mesma propriedade que o npm tem.
-        self.assertIn("archive/refs/tags", cmd)
-        self.assertNotIn("git+", cmd)
+    def test_o_healthcheck_e_o_saude_que_o_runtime_responde(self):
+        # O `servidor.Pedido` responde `GET /saude` antes de chamar o app; um manifesto apontando
+        # para outro caminho receberia 404 da sondagem, que o lifecycle conta como pronto.
+        self.assertEqual(self.manifesto()["backend"]["healthcheckPath"], "/saude")
 
 
-class OEnderecoVemDoToolkit(BaseTemplate):
-    """Quem abre o endereço é o `criar_servidor()` do toolkit, e não um servidor montado à mão.
+class OEnderecoVemDoRuntime(BaseTemplate):
+    """Quem abre o endereço é o `servidor.escutar()` do runtime, e não um servidor montado à mão.
 
     A diferença não aparece num smoke: um `UnixStreamServer` escrito à mão binda o socket e serve a
-    página igual. O que se perde é o que a lib faz em volta — limpar o socket órfão por tentativa de
-    CONEXÃO (nunca por `exists`, que derrubaria a instância viva), o modo 0600 contra o umask, e o
-    erro nomeado de "já está escutando", que o lifecycle trata como sucesso em vez de como falha.
+    página igual. O que se perde é o que a lib faz em volta: limpar o socket órfão por tentativa de
+    conexão (nunca por `exists`, que derrubaria a instância viva), o modo 0600 contra o umask, o
+    portão de token e o `/saude`, e a saída com `0` quando outra instância já atende, que o
+    lifecycle trata como sucesso em vez de como falha.
 
-    Medido substituindo a função DENTRO do módulo do toolkit, que é de onde o template a importa: se
+    Medido substituindo a função dentro do módulo do runtime, que é de onde o template a chama: se
     ele passar a montar o servidor por conta própria, o dublê não é chamado e o teste fica vermelho.
     """
 
-    def test_o_main_pega_o_servidor_do_toolkit(self):
-        # O import vem DEPOIS do `carregar()`: é o `main.py` que põe `vendor/py` no `sys.path`.
+    def test_o_main_pede_o_servidor_ao_runtime(self):
         modulo = self.carregar()
-        import vssh_app_toolkit.listen as listen
-
-        class Parou(Exception):
-            pass
-
-        class ServidorDeMentira:
-            endereco_vssh = {"transport": "socket", "socket": "/tmp/x.sock"}
-
-            def serve_forever(self):
-                raise Parou()
-
-            def server_close(self):
-                pass
+        from vssh import servidor
 
         chamadas = []
-        # O `main()` registra "listening" antes de servir, e o log do template escreve em stdout por
-        # padrão — o que sujaria a saída da suíte com uma linha de NDJSON por execução.
+        # O `main()` registra o boot antes de servir, e o log do template escreve em stdout por
+        # padrão, o que sujaria a saída da suíte com uma linha de NDJSON por execução.
         modulo.log = lambda *a, **kw: None
-        original = listen.criar_servidor
-        try:
-            listen.criar_servidor = lambda *a, **kw: (chamadas.append(a), ServidorDeMentira())[1]
-            # O template importa o nome, então rebindar só o módulo não basta: é o nome DELE que
-            # importa, e é por isso que o dublê entra nos dois lugares.
-            modulo.criar_servidor = listen.criar_servidor
-            with self.assertRaises(Parou):
-                modulo.main()
-        finally:
-            listen.criar_servidor = original
+        with unittest.mock.patch.object(servidor, "escutar",
+                                        lambda pedido, argv=None, nome=None: (chamadas.append(pedido), 0)[1]):
+            self.assertEqual(modulo.main(), 0)
 
-        self.assertEqual(len(chamadas), 1,
-                         "o backend do template não pediu o servidor ao toolkit")
-        self.assertIs(chamadas[0][0], modulo.Handler,
-                      "o servidor foi criado com outro handler que não o do template")
+        self.assertEqual(len(chamadas), 1, "o backend do template não pediu o servidor ao runtime")
+        self.assertIs(chamadas[0], modulo.Pedido,
+                      "o servidor foi pedido com outro handler que não o do template")
+        self.assertTrue(issubclass(modulo.Pedido, servidor.Pedido),
+                        "o handler do template não herda o portão de token e o /saude do runtime")
 
 
 if __name__ == "__main__":

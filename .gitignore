@@ -6,7 +6,6 @@ __pycache__/
 *.log
 .dev.vars
 
-# As libs que o `installCommand` de um template Python instala dentro dele (`pip --target`).
+# As libs que o `installCommand` de um exemplo Python instala dentro dele (`pip --target`).
 # O que sobe no tarball de um app é o que está versionado; aqui elas são só bancada.
-templates/*/vendor/
 examples/*/vendor/py/
