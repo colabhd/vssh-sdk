@@ -17,6 +17,7 @@ on:
       - 'api/**'
       - 'site/**'
       - 'scripts/gerar-site.js'
+      - 'scripts/realce.js'
       - 'MIGRATION.md'
       - 'README.md'
       - '.github/workflows/site.yml'

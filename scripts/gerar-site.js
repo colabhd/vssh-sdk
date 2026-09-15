@@ -7,8 +7,14 @@
 // O gerador é próprio, sem parser vendorizado, e implementa só o subconjunto de Markdown que a
 // documentação usa: cabeçalho, parágrafo, lista, tabela GFM, cerca, citação, código inline,
 // negrito e link. O que ele não conhece (imagem, tag HTML, régua horizontal, código por
-// indentação) derruba o build nomeando o arquivo e a linha. Um parser completo aceitaria em
-// silêncio o que ninguém revisou, e a página sairia com um `<div>` cru no meio do texto.
+// indentação, linguagem de cerca fora da tabela do realce) derruba o build nomeando o arquivo e
+// a linha. Um parser completo aceitaria em silêncio o que ninguém revisou, e a página sairia com
+// um `<div>` cru no meio do texto.
+//
+// Duas cercas são deste site, além do Markdown: ```html vivo``` renderiza a amostra na página,
+// com o Tuff que o site carrega, e põe o markup realçado embaixo; ```tuff-icones``` vira a grade
+// do sprite. É a única porta por onde HTML entra numa página, e ela recusa `<script>`; toda classe
+// `tuff-*` e todo `#ico-*` citados são conferidos contra `api/tuff/` (ver `lerTuff`).
 //
 // A âncora de um cabeçalho é a do GitHub (minúsculas, só letra, número, espaço e hífen, espaço
 // vira hífen), para que os `#…` que os `.md` já usam continuem valendo. A mesma regra vive no
@@ -19,6 +25,7 @@
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, posix, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { LINGUAGENS, realcar } from './realce.js';
 
 const REPOSITORIO = 'https://github.com/colabhd/vssh-sdk';
 const SAIDA_PADRAO = '_site';
@@ -43,6 +50,22 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ESCAPES[c]);
 
 /** A âncora que o GitHub dá a um cabeçalho. */
 export const ancora = (titulo) => titulo.trim().toLowerCase().replace(/[^\p{L}\p{N} -]/gu, '').replace(/ /g, '-');
+
+/**
+ * Uma classe do Tuff citada em código inline (`.tuff-btn`, `tuff-btn--primario`): o build confere
+ * cada uma contra as folhas de `api/tuff/`. Um nome de arquivo (`tuff-tokens.css`) e um caminho
+ * (`_sdk/tuff/tuff.js`) não são classes, e ficam de fora pelo que os cerca.
+ */
+const CLASSE_TUFF_INLINE = /(?<![\w/-])\.?(tuff-[a-z0-9-]*[a-z0-9])(?![\w./-])/g;
+
+/** As classes `tuff-*` de uma amostra: só as que estão num atributo `class`. */
+function classesDaAmostra(html) {
+  const classes = new Set();
+  for (const m of html.matchAll(/\bclass="([^"]*)"/g)) {
+    for (const c of m[1].split(/\s+/)) if (/^tuff-/.test(c)) classes.add(c);
+  }
+  return classes;
+}
 
 const PONTUACAO_ASCII = /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/;
 
@@ -116,6 +139,7 @@ function inline(s, ctx, linha) {
       if (cod) {
         html += `<code>${esc(cod.conteudo)}</code>`;
         texto += cod.conteudo;
+        for (const m of cod.conteudo.matchAll(CLASSE_TUFF_INLINE)) ctx.classes?.add({ classe: m[1], linha });
         i = cod.fim;
         continue;
       }
@@ -158,7 +182,9 @@ function inline(s, ctx, linha) {
 
 // ─── Blocos ──────────────────────────────────────────────────────────────────
 
-const CERCA = /^(\s*)(`{3,}|~{3,})\s*([\w+-]*)\s*$/;
+// A linha de abertura de uma cerca: a marca, a linguagem e, depois dela, palavras de opção
+// (`html vivo`). A linguagem tem de estar na tabela do realce; `vivo` só vale com `html`.
+const CERCA = /^(\s*)(`{3,}|~{3,})\s*([\w+-]*)((?:\s+[\w-]+)*)\s*$/;
 const CABECALHO = /^(#{1,6})\s+(.*?)\s*$/;
 const CITACAO = /^\s*>/;
 const ITEM = /^(\s*)([-*+]|\d{1,9}[.)])(\s+)(.*)$/;
@@ -252,6 +278,55 @@ function lerLista(ls, i) {
   return { itens, ordenada, frouxa: frouxa || brancoEntreItens, fim: i };
 }
 
+/** O `<pre>` de um trecho de código, realçado pela linguagem. */
+function preDeCodigo(codigo, linguagem) {
+  const classe = linguagem ? ` class="linguagem-${esc(linguagem)}"` : '';
+  const corpo = linguagem ? realcar(codigo, linguagem) : esc(codigo);
+  return `<pre><code${classe}>${corpo}${codigo ? '\n' : ''}</code></pre>`;
+}
+
+/**
+ * Uma cerca de código, nas três formas que a documentação usa:
+ *
+ *   ```js …```            o trecho realçado; a linguagem tem de ser uma que o realce conhece
+ *   ```html vivo …```     a amostra RENDERIZADA na página, e abaixo dela o markup realçado. É a
+ *                         única porta por onde HTML entra numa página, e ela recusa `<script>`:
+ *                         uma amostra é marcação do Tuff, e comportamento vem dos scripts que o
+ *                         site já carrega
+ *   ```tuff-icones```     a grade de todos os ícones do sprite, lida do `tuff-icones.js` no
+ *                         build (`ctx.icones`); o corpo da cerca fica vazio
+ */
+function cerca(codigo, linguagem, opcoes, ctx, linha) {
+  if (linguagem === 'tuff-icones') {
+    if (codigo.trim()) throw erro(ctx, linha, 'a cerca `tuff-icones` não leva corpo: a grade sai do sprite');
+    if (!ctx.icones) throw erro(ctx, linha, 'cerca `tuff-icones` sem o sprite: o gerador não recebeu a lista de ícones');
+    const celulas = ctx.icones.map((nome) =>
+      `<div class="site-icone"><svg class="tuff-ico tuff-ico--lg" aria-hidden="true"><use href="#ico-${esc(nome)}"></use></svg><code>${esc(nome)}</code></div>`);
+    return { tipo: 'icones', html: `<div class="site-icones">\n${celulas.join('\n')}\n</div>`, texto: ctx.icones.join(' ') };
+  }
+  for (const o of opcoes) {
+    if (o !== 'vivo') throw erro(ctx, linha, `opção de cerca desconhecida: '${o}' (a única é \`vivo\`, com \`html\`)`);
+    if (linguagem !== 'html') throw erro(ctx, linha, `\`vivo\` só vale numa cerca \`html\`, e esta é \`${linguagem || 'sem linguagem'}\``);
+  }
+  if (linguagem && !LINGUAGENS.has(linguagem)) {
+    throw erro(ctx, linha, `linguagem de cerca desconhecida: '${linguagem}' (conhecidas: ${[...LINGUAGENS].join(', ')})`);
+  }
+  if (!opcoes.includes('vivo')) return { tipo: 'cerca', html: preDeCodigo(codigo, linguagem), texto: codigo };
+
+  if (/<\s*script\b/i.test(codigo)) throw erro(ctx, linha, 'amostra viva com `<script>`: uma amostra é marcação, e o comportamento vem do site');
+  if (/\bon[a-z]+\s*=/i.test(codigo)) throw erro(ctx, linha, 'amostra viva com atributo `on…=`: uma amostra é marcação, e o comportamento vem do site');
+  for (const c of classesDaAmostra(codigo)) ctx.classes?.add({ classe: c, linha });
+  // Um `<use href="#ico-…">` que não resolve não lança: fica um quadrado vazio na amostra, sem
+  // uma linha no console. Com o sprite em mãos, o build recusa o nome que não existe.
+  if (ctx.icones) {
+    for (const m of codigo.matchAll(/href="#ico-([a-z0-9-]+)"/g)) {
+      if (!ctx.icones.includes(m[1])) throw erro(ctx, linha, `amostra viva com o ícone \`${m[1]}\`, que não existe no sprite`);
+    }
+  }
+  const html = `<div class="site-vivo">\n<div class="site-vivo-amostra">\n${codigo}\n</div>\n${preDeCodigo(codigo, 'html')}\n</div>`;
+  return { tipo: 'vivo', html, texto: codigo };
+}
+
 /** Renderiza uma sequência de linhas como blocos. Cada bloco sai com HTML e texto plano. */
 function blocos(ls, ctx) {
   const saida = [];
@@ -273,9 +348,9 @@ function blocos(ls, ctx) {
         j++;
       }
       if (j >= ls.length) throw erro(ctx, linha, 'cerca de código sem fechamento');
-      const classe = linguagem ? ` class="linguagem-${esc(linguagem)}"` : '';
+      const opcoes = m[4].trim().split(/\s+/).filter(Boolean);
       const codigo = corpo.join('\n');
-      saida.push({ tipo: 'cerca', html: `<pre><code${classe}>${esc(codigo)}${codigo ? '\n' : ''}</code></pre>`, texto: codigo });
+      saida.push(cerca(codigo, linguagem, opcoes, ctx, linha));
       i = j + 1;
       continue;
     }
@@ -371,13 +446,17 @@ function blocos(ls, ctx) {
 /**
  * Renderiza uma página Markdown. `opcoes.arquivo` nomeia o arquivo nas mensagens de erro;
  * `opcoes.link(alvo, linha)` resolve cada alvo de link e devolve `{ href, externo }` (por padrão,
- * o alvo como está). Devolve `{ html, titulo, cabecalhos, texto }`: o título é o único h1, ou
- * `null` quando a página não tem um.
+ * o alvo como está); `opcoes.icones` é a lista de nomes do sprite, para a cerca `tuff-icones`;
+ * `opcoes.classes`, quando é um Set, recebe `{ classe, linha }` por classe `tuff-*` citada em
+ * código, para quem chama conferir contra as folhas. Devolve `{ html, titulo, cabecalhos, texto }`:
+ * o título é o único h1, ou `null` quando a página não tem um.
  */
 export function renderizar(markdown, opcoes = {}) {
   const ctx = {
     arquivo: opcoes.arquivo || '<texto>',
     link: opcoes.link || ((alvo) => ({ href: alvo, externo: /^[a-z][a-z0-9+.-]*:/i.test(alvo) })),
+    icones: opcoes.icones || null,
+    classes: opcoes.classes || null,
     ancoras: new Map(),
     cabecalhos: [],
   };
@@ -487,6 +566,7 @@ function documento(p, secoes, ordem) {
 <link rel="stylesheet" href="${raiz}api/tuff/tuff-tokens.css">
 <link rel="stylesheet" href="${raiz}api/tuff/tuff-base.css">
 <link rel="stylesheet" href="${raiz}api/tuff/tuff.css">
+<link rel="stylesheet" href="${raiz}api/tuff/tuff-midia.css">
 <link rel="stylesheet" href="${raiz}site.css">
 <script src="${raiz}api/tuff/tuff-icones.js" defer></script>
 <script src="${raiz}site.js" defer></script>
@@ -525,6 +605,27 @@ ${rodape}
 }
 
 /**
+ * O que o site lê do Tuff copiado em `api/tuff/`: os nomes do sprite (`id="ico-…"` no
+ * `tuff-icones.js`) e o conjunto de classes `tuff-*` que as folhas definem. Sem o diretório (um
+ * checkout anterior à primeira rodada do canal), as duas conferências ficam desligadas, e a cerca
+ * `tuff-icones` recusa a página.
+ */
+function lerTuff(raiz) {
+  const dir = join(raiz, 'api', 'tuff');
+  if (!existsSync(dir)) return { icones: null, classesDoTuff: null };
+  const sprite = join(dir, 'tuff-icones.js');
+  const icones = existsSync(sprite)
+    ? [...new Set([...readFileSync(sprite, 'utf8').matchAll(/id="ico-([a-z0-9-]+)"/g)].map((m) => m[1]))]
+    : null;
+  const classesDoTuff = new Set();
+  for (const nome of readdirSync(dir)) {
+    if (!nome.endsWith('.css')) continue;
+    for (const m of readFileSync(join(dir, nome), 'utf8').matchAll(/\.(tuff-[a-z0-9-]*[a-z0-9])/g)) classesDoTuff.add(m[1]);
+  }
+  return { icones, classesDoTuff };
+}
+
+/**
  * Gera o site de `raiz` (um checkout do vssh-sdk) em `saida`. Derruba o build com a lista inteira
  * do que está errado: página fora do índice, página do índice que não existe, link para arquivo
  * que não existe na saída, âncora sem cabeçalho.
@@ -556,9 +657,16 @@ export function gerar(raiz, saida = join(raiz, SAIDA_PADRAO)) {
   }
   if (problemas.length) throw new Error(problemas.join('\n'));
 
+  // O que a documentação do Tuff cita tem de existir: a lista de ícones vem do sprite, e toda
+  // classe `tuff-*` escrita numa amostra ou num código inline é conferida contra as folhas. Uma
+  // amostra com uma classe que folha nenhuma define renderiza como texto sem estilo, e ninguém
+  // vê; um build vermelho vê.
+  const { icones, classesDoTuff } = lerTuff(raiz);
+
   // Renderiza cada página, resolvendo os links contra o conjunto de páginas, o `api/` copiado e
   // o repositório no GitHub. Os alvos internos ficam anotados para a conferência do fim.
   const ligacoes = [];
+  const classesSemFolha = [];
   for (const p of paginas.values()) {
     const link = (alvo, linha) => {
       if (/^[a-z][a-z0-9+.-]*:/i.test(alvo)) return { href: alvo, externo: true };
@@ -589,8 +697,12 @@ export function gerar(raiz, saida = join(raiz, SAIDA_PADRAO)) {
       }
       return { href: `${REPOSITORIO}/${pasta ? 'tree' : 'blob'}/main/${repo}${frag}`, externo: true };
     };
-    const r = renderizar(readFileSync(join(raiz, p.arquivo), 'utf8'), { arquivo: p.arquivo, link });
+    const classes = new Set();
+    const r = renderizar(readFileSync(join(raiz, p.arquivo), 'utf8'), { arquivo: p.arquivo, link, icones, classes });
     if (!r.titulo) throw new Error(`${p.arquivo}: página sem h1; o título do documento sai dele`);
+    for (const { classe, linha } of classes) {
+      if (classesDoTuff && !classesDoTuff.has(classe)) classesSemFolha.push(`${p.arquivo}:${linha}: a classe \`${classe}\` não existe em nenhuma folha de api/tuff/`);
+    }
     Object.assign(p, r);
     p.ids = new Set(r.cabecalhos.map((c) => c.id));
   }
@@ -601,6 +713,7 @@ export function gerar(raiz, saida = join(raiz, SAIDA_PADRAO)) {
     }
   }
   const ordem = secoes.flatMap((s) => s.paginas).filter((q) => q.pagina).map((q) => q.pagina);
+  if (classesSemFolha.length) throw new Error(classesSemFolha.join('\n'));
 
   // Escreve a saída: o `api/` inteiro (a galeria do Tuff abre com as folhas ao lado, o `vssh.d.ts`
   // é baixável), as folhas e scripts do site, uma página por `.md`, e o índice da busca.

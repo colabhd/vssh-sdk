@@ -261,3 +261,81 @@ body { overflow: hidden; }
   .site-rodape { flex-direction: column; }
   .site-vizinha { max-width: none; }
 }
+
+/* ── O realce de código ─────────────────────────────────────────────────────── */
+
+/* As cores são as de sintaxe do arquivo de tokens (`--tuff-green2`, `--tuff-blue`, `--tuff-orange`,
+   `--tuff-yellow`, `--tuff-cyan`, `--tuff-purple`): a mesma paleta que um editor dentro do ambiente
+   usaria, e nenhuma escolhida aqui. `rc-` é o prefixo que `scripts/realce.js` emite. */
+.rc-com { color: var(--ds-text-dim); font-style: italic; }
+.rc-str { color: var(--tuff-orange); }
+.rc-num { color: var(--tuff-yellow); }
+.rc-lit { color: var(--tuff-blue); }
+.rc-kw { color: var(--tuff-blue); }
+.rc-var { color: var(--tuff-cyan); }
+.rc-chave { color: var(--tuff-cyan); }
+.rc-prop { color: var(--tuff-cyan); }
+.rc-sel { color: var(--tuff-yellow); }
+.rc-tag { color: var(--tuff-blue); }
+.rc-atr { color: var(--tuff-cyan); }
+.rc-add { color: var(--tuff-green2); }
+.rc-del { color: var(--ds-danger); }
+.rc-hunk { color: var(--tuff-purple); }
+.rc-meta { color: var(--ds-text-dim); }
+
+/* ── A amostra viva ─────────────────────────────────────────────────────────── */
+
+/* Uma cerca `html vivo`: a marcação renderizada em cima, com o Tuff que o site já carrega, e o
+   markup realçado colado embaixo. A amostra é um contêiner (`container-type`) para a gaveta e a
+   barra medirem a largura dela, e não a da janela, como fariam num painel de app. */
+.site-vivo { margin: 0 0 var(--ds-gap-xl); }
+.site-vivo-amostra {
+  container-type: inline-size;
+  padding: var(--ds-gap-xl);
+  font-size: var(--tuff-size-md);
+  line-height: 1.5;
+  background: var(--ds-bg);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg) var(--ds-radius-lg) 0 0;
+}
+.site-vivo-amostra > * + * { margin-top: var(--ds-gap-md); }
+/* O que o reset do Tuff dá a uma página de app, e que a folha de leitura do site tira: dentro da
+   amostra o parágrafo e o cabeçalho voltam a medir como num app. */
+.site-vivo-amostra p, .site-vivo-amostra h1, .site-vivo-amostra h2, .site-vivo-amostra h3 { margin: 0; }
+.site-vivo-amostra ul, .site-vivo-amostra ol { margin: 0; padding: 0; list-style: none; }
+.site-vivo-amostra li { margin: 0; }
+.site-vivo-amostra a { text-decoration: none; }
+.site-vivo-amostra code { padding: 0; font-size: inherit; background: none; color: inherit; }
+.site-vivo > pre {
+  margin: 0;
+  border-top: 0;
+  border-radius: 0 0 var(--ds-radius-lg) var(--ds-radius-lg);
+}
+
+/* ── A grade de ícones ──────────────────────────────────────────────────────── */
+
+.site-icones {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--ds-gap-sm);
+  margin: 0 0 var(--ds-gap-xl);
+}
+.site-icone {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-gap-md);
+  padding: var(--ds-gap-md);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg2);
+}
+.site-icone .tuff-ico { color: var(--ds-text-mid); }
+.site-icone code {
+  padding: 0;
+  font-size: var(--tuff-size-xs);
+  background: none;
+  color: var(--ds-text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
