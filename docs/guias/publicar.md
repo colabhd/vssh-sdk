@@ -17,7 +17,8 @@ como secret `VSSH_REPO_PUBLISH_TOKEN` no repositório do app.
 
 ## Empacotar e enviar
 
-O `vssh-app-publish`, no toolkit, faz os três primeiros movimentos:
+O `vssh-app-publish`, em [`scripts/`](../../scripts/vssh-app-publish) deste repositório, faz os
+três primeiros movimentos:
 
 1. valida o `vssh-app.json` inteiro contra o schema. Todo objeto fecha com
    `additionalProperties: false`, então um campo digitado errado é recusado aqui, nomeando o
@@ -28,7 +29,7 @@ O `vssh-app-publish`, no toolkit, faz os três primeiros movimentos:
    exclui só `.git`, `data`, `__pycache__` e `*.pyc`;
 3. calcula o `sha256`, faz `POST /v1/publish/app` e manda o ícone junto, se houver.
 
-Por CI, o repositório do app chama o reusable workflow do toolkit, sem PAT, porque o toolkit é
+Por CI, o repositório do app chama o reusable workflow deste repositório, sem PAT, porque ele é
 público:
 
 ```yaml
@@ -38,7 +39,7 @@ on:
   workflow_dispatch:
 jobs:
   publish:
-    uses: colabhd/vssh-app-toolkit/.github/workflows/_publish-app-reusable.yml@v4
+    uses: colabhd/vssh-sdk/.github/workflows/_publish-app-reusable.yml@main
     with:
       app_dir: "."
       repo_api: "https://vssh-repo.colabh.org"
@@ -58,15 +59,13 @@ export VSSH_REPO_PUBLISH_TOKEN="vsshp_..."
 bash scripts/vssh-app-publish ~/meu-app --version 1.2.3
 ```
 
-## A tag, e nunca `main`
+## Por que `main`
 
-Referencie o toolkit por tag, `@v4`, nos dois lugares: o `uses:` do reusable e o `#v4` da
-dependência npm. Puxar de `main` faria a validação do seu CI e as suas libs mudarem debaixo de
-você a cada commit do toolkit, inclusive num push que você não viu. Bumps compatíveis movem a `v4`;
-uma mudança incompatível cria a `v5`.
-
-Não use `@v1`. Ela é do toolkit original, anterior a `lib/`, `schema/` e `docs/`; um repositório
-pinado ali publica com validação mínima, avisando numa linha de log que ninguém lê.
+O `uses:` aponta para `main` porque o schema que o publish valida é gerado a partir do portal
+que está no ar: a ponta de `main` responde "o portal de hoje aceita este manifesto?", e uma tag
+congelaria um contrato que o portal já deixou para trás. Quem precisar fixar uma revisão passa
+`tools_ref`. As libs de backend não entram nessa conta: elas são o runtime que o servidor tem, e
+o app não as declara.
 
 ## O que o publish recusa
 
@@ -74,10 +73,7 @@ pinado ali publica com validação mínima, avisando numa linha de log que ningu
 |---|---|
 | campo que o schema não conhece, em qualquer objeto | recusa, nomeando o vizinho |
 | `secrets[].value` (ou `valor`, `default`) | recusa: o valor seria commitado e distribuído a todo servidor |
-| libs do toolkit de outra major que a do script | recusa: outra major carrega mudança incompatível |
-| libs de menor ou patch diferentes | avisa, e publica |
-| `vendor/vssh/` ainda no pacote | recusa: cópia da era anterior à v4, código morto competindo com as libs instaladas |
-| declara a dependência do toolkit, não leva `node_modules` e não tem `installCommand` com npm | recusa: o backend morreria no primeiro `require`, no servidor |
+| `vssh-app-toolkit` no `package.json`, no `installCommand` ou num `requirements` | avisa, nomeando a versão, e publica: as libs de backend são o runtime `vssh` do servidor, e a troca está no [`MIGRATION.md`](../../MIGRATION.md) |
 | `requiredPackages` com nome fora de `^[a-z0-9][a-z0-9+.-]*$` | recusa: o valor chega a um gerenciador de pacotes, e um metacaractere ali seria injeção |
 | `cpuQuota: "2"` | recusa: `"2"` é 2%, e `"100%"` é um núcleo |
 
