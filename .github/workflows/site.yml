@@ -1,0 +1,59 @@
+name: Site
+
+# O site da documentação, em https://colabhd.github.io/vssh-sdk/. O build é
+# `scripts/gerar-site.js` sobre `docs/`, `MIGRATION.md`, `README.md` e o `api/` copiado
+# inteiro; ele derruba o job quando uma página está fora do índice ou um link não chega a
+# lugar nenhum, então o que sobe é o que passou por essa conferência.
+#
+# `api/` e `docs/referencia/` entram nos gatilhos porque mudam por commit de robô (o canal de
+# publicação do `vssh-sso`), e uma referência nova só apareceria no site na próxima edição
+# humana de um guia.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'api/**'
+      - 'site/**'
+      - 'scripts/gerar-site.js'
+      - 'MIGRATION.md'
+      - 'README.md'
+      - '.github/workflows/site.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Um deploy de cada vez, e o que está em voo termina: cancelar um deploy do Pages no meio deixa
+# a publicação num estado que o próximo run não conserta sozinho.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Gerar o site
+        run: node scripts/gerar-site.js --saida _site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
