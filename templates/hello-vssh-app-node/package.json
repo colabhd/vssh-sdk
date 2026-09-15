@@ -1,6 +1,6 @@
 {
   "name": "hello-vssh-app-node",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "private": true,
   "description": "Template de vssh-app com backend Node — copie este diretório para começar o seu.",
   "license": "MIT",

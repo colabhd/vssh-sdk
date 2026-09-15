@@ -1,6 +1,6 @@
 {
   "name": "vssh-print-engine",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "private": true,
   "description": "Motor de impressão do ambiente: gera PDF com o chromium do próprio servidor.",
   "license": "MIT",
