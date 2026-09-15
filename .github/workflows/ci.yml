@@ -20,9 +20,9 @@ name: CI
 on:
   push:
     branches: [main]
-    paths: ['api/**', 'runtime/**', 'scripts/**', 'templates/**', 'examples/**', 'tests/**', 'package.json', '.github/workflows/ci.yml', '.github/actions/**']
+    paths: ['api/**', 'runtime/**', 'scripts/**', 'templates/**', 'examples/**', 'tests/**', 'docs/**', 'site/**', 'MIGRATION.md', 'README.md', 'package.json', '.github/workflows/ci.yml', '.github/actions/**']
   pull_request:
-    paths: ['api/**', 'runtime/**', 'scripts/**', 'templates/**', 'examples/**', 'tests/**', 'package.json', '.github/workflows/ci.yml', '.github/actions/**']
+    paths: ['api/**', 'runtime/**', 'scripts/**', 'templates/**', 'examples/**', 'tests/**', 'docs/**', 'site/**', 'MIGRATION.md', 'README.md', 'package.json', '.github/workflows/ci.yml', '.github/actions/**']
   workflow_dispatch:
 
 jobs:
