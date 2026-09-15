@@ -19,7 +19,7 @@ repositório de app, de uma organização ou de uma conta pessoal, e o script é
 | [`runtime/`](runtime/) | As libs de backend, o pacote `vssh` em Node e em Python, para a máquina de quem escreve e para o CI; em produção elas vêm do servidor, em `/opt/vssh/sdk`. | O sistema, copiando de `infra/sdk/` a cada rodada. |
 | [`scripts/ambiente-de-dev.sh`](scripts/ambiente-de-dev.sh), [`.ps1`](scripts/ambiente-de-dev.ps1) | Para `source`: `VSSH_SDK`, `NODE_PATH` e `PYTHONPATH` apontando para o `runtime/` deste checkout. | Pessoas. |
 | [`.github/actions/preparar-sdk/`](.github/actions/preparar-sdk/action.yml) | A ação composta que o CI de um app chama antes de `npm test`, para importar `vssh` como no servidor. | Pessoas. |
-| [`docs/`](docs/) | Os conceitos e os guias de quem escreve um app, e a referência da API, gerada em `docs/referencia/`. | Pessoas, e o sistema na referência. |
+| [`docs/`](docs/) | Os conceitos, os guias e a aparência (o Tuff, com amostras vivas) de quem escreve um app, e a referência da API, gerada em `docs/referencia/`. Publicado em [colabhd.github.io/vssh-sdk](https://colabhd.github.io/vssh-sdk/). | Pessoas, e o sistema na referência. |
 | [`templates/hello-vssh-app/`](templates/hello-vssh-app/) | Template Python e galeria de capacidades do ambiente. Copie e adapte. | Pessoas. |
 | [`templates/hello-vssh-app-node/`](templates/hello-vssh-app-node/) | O mesmo app, em Node. A escolha entre os dois é de linguagem, e de mais nada: `tests/galeria-paridade.test.js` reprova qualquer deriva entre eles. | Pessoas. |
 | [`examples/`](examples/) | Apps de referência completos (`palco`, `print-engine`), feitos para serem instalados. | Pessoas. |

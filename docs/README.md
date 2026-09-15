@@ -4,9 +4,10 @@ Este portal é para quem vai escrever um vssh-app: um pacote com frontend HTML e
 instalado num servidor Linux do VSSH e aberto como uma janela do ambiente. O público são as pessoas
 da casa e os parceiros que escrevem apps para pesquisa. O tom é de manual.
 
-O portal tem três seções. A referência é gerada pelo sistema a partir da tabela de exportação da
-ponte, verbo a verbo, e ninguém a edita. As duas seções autoradas estão aqui: os conceitos, que
-dizem como o sistema é, e os guias, que levam do zero a um app funcionando.
+O portal tem quatro seções. A referência é gerada pelo sistema a partir da tabela de exportação
+da ponte, verbo a verbo, e ninguém a edita. As três seções autoradas estão aqui: os conceitos, que
+dizem como o sistema é, os guias, que levam do zero a um app funcionando, e a aparência, que
+documenta o Tuff, o ambiente visual que um app recebe pronto.
 
 ## Referência
 
@@ -42,6 +43,20 @@ descrição do verbo, na tabela do sistema, e chega aqui na rodada seguinte.
 | [Avisos e atividades](guias/avisos-e-atividades.md) | Escolher entre notificação, aviso efêmero e atividade, e emitir cada um com janela aberta ou de um backend sem janela. |
 | [GPU](guias/gpu.md) | O que `recursos.gpu.modo` declara, o que o lançador faz com isso, e como o backend e a janela perguntam o que receberam por `vssh.gpu`. |
 | [Publicar](guias/publicar.md) | Empacotar, publicar no repositório de artefatos e instalar num servidor, por CI ou à mão. |
+
+## Aparência
+
+| página | o que ela promete |
+|---|---|
+| [O Tuff](aparencia/o-tuff.md) | O que o ambiente visual é, o que chega a um app em `_sdk/tuff/`, a camada que deixa o app vencer, a cor de destaque, e a régua do que é do Tuff e do que é do desktop. |
+| [Tokens](aparencia/tokens.md) | A paleta, o texto, o destaque que muda em runtime, os status, a tipografia e as medidas, token a token. |
+| [Componentes](aparencia/componentes.md) | Painel, botões, campos, switch, linha de configuração, controle segmentado, estado, dica, vazio, espera e ícones, cada um com a amostra viva e o markup. |
+| [Listas e navegação](aparencia/listas-e-navegacao.md) | Lista, chave e valor, barra de ferramentas, a gaveta de navegação e o `TuffGaveta`, busca, detalhe e tooltip. |
+| [Mídia](aparencia/midia.md) | Palco, chrome, trilha, transporte, grade virtualizada, tira e visor, e o `TuffMidia` que os liga. |
+| [Ícones](aparencia/icones.md) | Como se usa um ícone do sprite, e a grade com todos os que existem, lida do sprite no build. |
+
+A galeria com todos os componentes numa página só, para julgar olhando, continua em
+[`api/tuff/docs/componentes.html`](../api/tuff/docs/componentes.html).
 
 ## Sobre os nomes dos verbos
 

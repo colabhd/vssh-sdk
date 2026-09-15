@@ -45,7 +45,13 @@
     {
       "titulo": "Aparência",
       "paginas": [
-        { "url": "api/tuff/docs/componentes.html", "titulo": "Componentes do Tuff" }
+        "docs/aparencia/o-tuff.md",
+        "docs/aparencia/tokens.md",
+        "docs/aparencia/componentes.md",
+        "docs/aparencia/listas-e-navegacao.md",
+        "docs/aparencia/midia.md",
+        "docs/aparencia/icones.md",
+        { "url": "api/tuff/docs/componentes.html", "titulo": "Catálogo (galeria)" }
       ]
     },
     {

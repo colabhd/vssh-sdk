@@ -138,5 +138,6 @@ Rode o que a sua mudança alcança, com `node --test --test-concurrency=1 --test
 | O CI deste repositório | `.github/workflows/ci.yml` |
 | Os templates | `templates/hello-vssh-app{,-node}/` + `tests/galeria-paridade.test.js` + `tests/template-galeria.test.js` + `tests/python/test_template.py` + `tests/browser/template-fora-do-ambiente.test.js` (o SDK de verdade, num Chrome) |
 | Os exemplos | `examples/palco/` (testes em `examples/palco/test/`), `examples/print-engine/` |
-| Conceitos e guias | `docs/` |
+| Conceitos, guias e a aparência (o Tuff) | `docs/`; `docs/aparencia/` é autorado, e o que ele cita (classe `tuff-*`, ícone `#ico-*`) é conferido no build do site contra `api/tuff/` |
+| O site da documentação | `scripts/gerar-site.js` (o Markdown que ele aceita, mais as cercas `html vivo` e `tuff-icones`), `scripts/realce.js` (o realce, uma tabela de regras por linguagem), `site/` (índice, folha, busca), `.github/workflows/site.yml`; `tests/site.test.js` gera o site de verdade e mede a saída |
 | O emulador | `emulador/`, na etapa seguinte |
