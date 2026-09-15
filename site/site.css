@@ -1,0 +1,263 @@
+/* O site da documentação: o que o Tuff não tem, porque uma janela de app não é um artigo.
+   Tipografia de leitura (margens de parágrafo, cabeçalho e lista), código em cerca, tabela,
+   citação, o `<kbd>`, a largura de leitura, a busca e o rodapé com anterior/próxima.
+
+   Fora de `@layer` de propósito: regra sem camada vence a da biblioteca em qualquer empate, e é
+   isso que deixa `p { margin }` valer sobre o `p { margin: 0 }` de `tuff-base.css`. */
+
+/* A janela inteira é a gaveta: quem rola é o corpo dela, e a lateral fica parada respondendo
+   "onde eu estou". */
+html, body { height: 100%; }
+body { overflow: hidden; }
+.site-gaveta { height: 100%; }
+
+/* ── A lateral ──────────────────────────────────────────────────────────────── */
+
+.site-marca {
+  display: block;
+  margin: var(--ds-gap-sm) var(--ds-gap-md) var(--ds-gap-md);
+  font-size: var(--tuff-size-lg);
+  font-weight: var(--tuff-weight-b);
+  letter-spacing: .2px;
+  color: var(--ds-text-mid);
+}
+.site-marca:hover { text-decoration: none; color: var(--ds-accent-h); }
+
+/* O item da gaveta é um `<a>` aqui, e a biblioteca o desenhou como `<button>`. */
+.tuff-gaveta-item:hover { text-decoration: none; }
+.tuff-gaveta-item--ativo:hover { color: var(--ds-accent-h); }
+
+/* ── A barra ────────────────────────────────────────────────────────────────── */
+
+.site-secao {
+  flex-shrink: 0;
+  color: var(--ds-text-mid);
+  white-space: nowrap;
+}
+
+.site-busca {
+  position: relative;
+  flex: 0 1 320px;
+  min-width: 120px;
+}
+.site-busca-resultados {
+  position: absolute;
+  top: calc(100% + var(--ds-gap-sm));
+  right: 0;
+  left: 0;
+  z-index: 4;
+  max-height: min(60vh, 480px);
+  padding: var(--ds-gap-sm);
+  background: var(--ds-bg2);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-md);
+  box-shadow: var(--ds-shadow-lg);
+}
+/* O `display: flex` da `.tuff-lista` venceria o `[hidden]` do navegador, e a caixa vazia
+   apareceria aberta sob a busca em toda página. */
+.site-busca-resultados[hidden] { display: none; }
+.site-busca-resultados .tuff-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--ds-gap-md);
+  padding: 5px var(--ds-gap-md);
+  color: var(--ds-text);
+}
+.site-busca-resultados .tuff-item:hover { text-decoration: none; }
+.site-busca-resultados .tuff-item > span { overflow: hidden; text-overflow: ellipsis; }
+.site-busca-resultados .tuff-item > .tuff-tag { justify-self: end; }
+.site-busca-resultados .site-busca-nada {
+  padding: 5px var(--ds-gap-md);
+  font-size: var(--tuff-size-sm);
+  color: var(--ds-text-dim);
+}
+
+@container (max-width: 640px) {
+  .site-busca { flex: 1 1 160px; }
+}
+
+/* ── O artigo ───────────────────────────────────────────────────────────────── */
+
+.site-conteudo {
+  max-width: calc(80ch + 2 * var(--ds-gap-xl));
+  margin: 0 auto;
+  font-size: var(--tuff-size-lg);
+  line-height: 1.6;
+}
+
+.site-artigo h1 {
+  margin: var(--ds-gap-md) 0 var(--ds-gap-xl);
+  font-size: 26px;
+  line-height: 1.2;
+}
+.site-artigo h2 {
+  margin: var(--ds-gap-2xl) 0 var(--ds-gap-lg);
+  padding-top: var(--ds-gap-lg);
+  border-top: 1px solid var(--ds-border);
+  font-size: 19px;
+}
+.site-artigo h3 { margin: var(--ds-gap-xl) 0 var(--ds-gap-md); font-size: var(--tuff-size-xl); }
+.site-artigo h4 { margin: var(--ds-gap-xl) 0 var(--ds-gap-md); font-size: var(--tuff-size-lg); }
+.site-artigo h5, .site-artigo h6 {
+  margin: var(--ds-gap-lg) 0 var(--ds-gap-md);
+  font-size: var(--tuff-size-md);
+  font-weight: var(--tuff-weight-b);
+  color: var(--ds-text-mid);
+}
+.site-artigo h1 code, .site-artigo h2 code, .site-artigo h3 code,
+.site-artigo h4 code, .site-artigo h5 code, .site-artigo h6 code {
+  font-size: .9em;
+  background: none;
+  padding: 0;
+}
+
+/* A âncora de um cabeçalho fica visível para quem chega por link: a barra fixa cobre o topo do
+   corpo, e sem esta folga o título aterrissa atrás dela. */
+.site-artigo :is(h1, h2, h3, h4, h5, h6) { scroll-margin-top: 48px; }
+
+.site-artigo p { margin: 0 0 var(--ds-gap-lg); }
+.site-artigo ul, .site-artigo ol { margin: 0 0 var(--ds-gap-lg); padding-left: 1.6em; }
+.site-artigo li { margin: 0 0 var(--ds-gap-sm); }
+.site-artigo li > p { margin-bottom: var(--ds-gap-md); }
+.site-artigo li > pre { margin-top: var(--ds-gap-md); }
+.site-artigo a { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--ds-accent-h) 40%, transparent); text-underline-offset: 2px; }
+.site-artigo a:hover { text-decoration-color: currentColor; }
+.site-artigo strong { color: var(--ds-text-mid); }
+/* Código dentro de link herda a cor do link: na tabela de verbos da referência, cada assinatura
+   é um link, e com a cor do código ela se disfarçaria de texto. */
+.site-artigo a > code { color: inherit; }
+
+.site-artigo code {
+  padding: 1px 5px;
+  font-size: .88em;
+  color: var(--ds-text-mid);
+  background: var(--ds-bg3);
+  border-radius: var(--ds-radius-sm);
+}
+.site-artigo pre {
+  margin: 0 0 var(--ds-gap-lg);
+  padding: var(--ds-gap-lg) var(--ds-gap-xl);
+  overflow-x: auto;
+  font-size: var(--tuff-size-sm);
+  line-height: 1.55;
+  background: var(--ds-bg2);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  tab-size: 4;
+}
+.site-artigo pre code {
+  padding: 0;
+  font-size: inherit;
+  color: var(--ds-text);
+  background: none;
+  border-radius: 0;
+}
+
+.site-artigo kbd {
+  display: inline-block;
+  min-width: 18px;
+  padding: 1px 5px;
+  font: var(--tuff-weight-m) var(--tuff-size-xs) var(--ds-font-mono);
+  text-align: center;
+  color: var(--ds-text-mid);
+  background: var(--ds-bg3);
+  border: 1px solid var(--ds-border);
+  border-bottom-width: 2px;
+  border-radius: var(--ds-radius-sm);
+}
+
+/* A citação tem a cara da `.tuff-dica`: barra à esquerda, texto contido. É o aviso "página
+   gerada" da referência, e ele deve ler como nota, sem competir com o artigo. */
+.site-artigo blockquote {
+  margin: 0 0 var(--ds-gap-xl);
+  padding: var(--ds-gap-sm) 0 var(--ds-gap-sm) var(--ds-gap-lg);
+  border-left: 2px solid var(--ds-border);
+  font-size: var(--tuff-size-md);
+  color: var(--ds-text-dim);
+}
+.site-artigo blockquote p:last-child { margin-bottom: 0; }
+
+/* A tabela pode ser mais larga que a coluna de leitura; ela rola sozinha, e a página nunca. */
+.site-tabela {
+  margin: 0 0 var(--ds-gap-xl);
+  overflow-x: auto;
+}
+.site-artigo table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--tuff-size-md);
+  line-height: 1.5;
+}
+.site-artigo th, .site-artigo td {
+  padding: var(--ds-gap-sm) var(--ds-gap-md);
+  border: 1px solid var(--ds-border);
+  vertical-align: top;
+  text-align: left;
+}
+.site-artigo th {
+  font-weight: var(--tuff-weight-b);
+  color: var(--ds-text-mid);
+  background: var(--ds-bg2);
+}
+.site-artigo tbody tr:nth-child(even) { background: color-mix(in srgb, var(--ds-bg2) 50%, transparent); }
+.site-artigo td code { white-space: nowrap; }
+
+/* "Nesta página": a lista dos h2, logo abaixo do título. */
+.site-sumario {
+  margin: 0 0 var(--ds-gap-xl);
+  padding: var(--ds-gap-md) var(--ds-gap-lg);
+  font-size: var(--tuff-size-md);
+  background: var(--ds-bg2);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+}
+.site-sumario-titulo {
+  margin-bottom: var(--ds-gap-sm);
+  font-size: var(--tuff-size-2xs);
+  font-weight: var(--tuff-weight-b);
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  color: var(--ds-text-dim);
+}
+.site-sumario ul { margin: 0; padding-left: 1.2em; columns: 2; column-gap: var(--ds-gap-xl); }
+.site-sumario li { margin: 0 0 2px; break-inside: avoid; }
+.site-sumario a { text-decoration: none; }
+
+/* ── O rodapé: anterior e próxima ───────────────────────────────────────────── */
+
+.site-rodape {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--ds-gap-lg);
+  margin-top: var(--ds-gap-2xl);
+  padding-top: var(--ds-gap-xl);
+  border-top: 1px solid var(--ds-border);
+}
+.site-vizinha {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-gap-md);
+  max-width: 48%;
+  padding: var(--ds-gap-md) var(--ds-gap-lg);
+  color: var(--ds-text);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+}
+.site-vizinha:hover { text-decoration: none; background: var(--ds-bg-hover); border-color: var(--ds-accent); }
+.site-vizinha--proxima { text-align: right; }
+.site-vizinha small {
+  display: block;
+  font-size: var(--tuff-size-2xs);
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  color: var(--ds-text-dim);
+}
+.site-vizinha .tuff-ico { flex: none; color: var(--ds-text-dim); }
+
+@container (max-width: 640px) {
+  .site-conteudo { font-size: var(--tuff-size-md); }
+  .site-artigo h1 { font-size: 22px; }
+  .site-sumario ul { columns: 1; }
+  .site-rodape { flex-direction: column; }
+  .site-vizinha { max-width: none; }
+}
