@@ -39,7 +39,7 @@ descrição do verbo, na tabela do sistema, e chega aqui na rodada seguinte.
 | [Uma janela](guias/uma-janela.md) | Título, tamanho, controles, várias janelas sobre um backend, restauração de sessão e a barra de título desenhada pelo app. |
 | [Arquivos com consentimento](guias/arquivos-com-consentimento.md) | Ler e gravar na home do usuário pela File System Access API, reabrir o que já foi concedido, vigiar mudanças e arrastar arquivos nas duas direções. |
 | [Avisos e atividades](guias/avisos-e-atividades.md) | Escolher entre notificação, aviso efêmero e atividade, e emitir cada um com janela aberta ou de um backend sem janela. |
-| [GPU](guias/gpu.md) | O que declarar `gpu: true` faz hoje, como ler o veredito do servidor de dentro do app, e o desenho de `vssh.gpu`, que ainda não pousou. |
+| [GPU](guias/gpu.md) | O que `recursos.gpu.modo` declara, o que o lançador faz com isso, e como o backend e a janela perguntam o que receberam por `vssh.gpu`. |
 | [Publicar](guias/publicar.md) | Empacotar, publicar no repositório de artefatos e instalar num servidor, por CI ou à mão. |
 
 ## Sobre os nomes dos verbos

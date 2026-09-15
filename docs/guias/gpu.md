@@ -1,15 +1,19 @@
 # GPU
 
-Ao terminar este guia você sabe o que declarar `gpu: true` faz hoje, como o seu backend lê o
-veredito do servidor de dentro do processo, o que o ambiente contém e o que ele não contém. A
-última seção é desenho: o espaço `vssh.gpu`, que a sub-etapa da etapa 5 responsável por ele ainda
-não implementou. Nada do que está lá existe no sistema de hoje, e nenhum app depende disso.
+Ao terminar este guia você sabe como declarar o que o seu app quer de GPU, o que o lançador faz
+com a declaração, como o backend e a janela perguntam o que receberam, e o que o ambiente contém
+e o que ele não contém.
 
-## O que existe: declarar no manifesto
+## Declarar no manifesto
 
 ```json
-{ "gpu": true }
+{ "recursos": { "gpu": { "modo": "opcional" } } }
 ```
+
+`modo` tem dois valores. `opcional` sobe com ou sem placa, e o app pergunta o que recebeu.
+`necessaria` recusa subir num servidor sem GPU utilizável (e também quando o servidor não sabe
+responder): a recusa vira uma falha de start com o motivo no `run.log` e no estado do serviço,
+sem laço de reinício. A grafia anterior, `gpu: true`, continua aceita e vale como `opcional`.
 
 Declarar faz duas coisas, e elas são independentes.
 
@@ -24,8 +28,8 @@ A segunda é o portão, e ele é só de CUDA. Quem não declara recebe `CUDA_VIS
 runtime CUDA não enumera dispositivo nenhum; é o que deixa um app de inferência conviver com os
 vizinhos que não pediram a placa. Quem declara não recebe a variável.
 
-O veredito fica em quatro estados, gravados em `~/.vssh-apps/<id>/limits.json` e mostrados em
-Configurações, na seção Serviços:
+O veredito fica em quatro estados, gravados em `~/.vssh-apps/<id>/limits.json` (com o motivo em
+`gpuMotivo` quando a placa não veio) e mostrados no gerenciador de tarefas:
 
 | `gpu` | quer dizer |
 |---|---|
@@ -34,14 +38,38 @@ Configurações, na seção Serviços:
 | `sem-gpu` | pediu, e o servidor não entrega, com o motivo no `run.log` |
 | `nao-sei` | pediu, e não deu para consultar (um servidor sem o `vssh-gpu-info`) |
 
-A quarta não é a terceira: um servidor que não sabe responder não é um servidor sem placa. E
-declarar num servidor sem GPU não impede o app de subir. GPU ausente costuma significar "mais
-lento", e quem sabe se dá para seguir em CPU é o app; o motivo fica dito no log.
+A quarta é diferente da terceira: um servidor que não sabe responder é outra coisa que um servidor
+sem placa, e é por isso que `necessaria` recusa nos dois casos. Com `opcional`, GPU ausente costuma
+significar "mais lento", e quem sabe se dá para seguir em CPU é o app; o motivo fica dito no log.
 
-## O que existe: ler o veredito de dentro do app
+## Perguntar o que o app recebeu
 
-O backend lê o mesmo que o ambiente lê, e a leitura é a única resposta que não é suposição. Do
-manifesto sai o que se pediu; do processo sai o que se recebeu:
+No backend, `vssh.gpu.concedida()` lê o veredito que o lançador gravou e devolve a mesma resposta
+nas duas línguas: `{ concedida, dispositivos, motivo }`, com os dispositivos do inventário a que
+o processo tem acesso e o motivo quando a placa não veio.
+
+```python
+from vssh import gpu
+veredito = gpu.concedida()
+if not veredito["concedida"]:
+    registrar(f"seguindo em CPU: {veredito['motivo']}")
+```
+
+```js
+const { gpu } = require('vssh');
+const { concedida, dispositivos, motivo } = gpu.concedida();
+```
+
+Na janela, `vssh.gpu.estado()` responde com a mesma forma, e é o que permite esconder o botão
+"acelerar por GPU" num servidor sem placa e dizer o motivo certo quando algo falta, porque "sem
+GPU" e "a placa existe e você não tem permissão" pedem ações opostas.
+
+```js
+const { concedida, motivo } = await vssh.gpu.estado();
+```
+
+Quem quiser ver por dentro lê o mesmo que o ambiente lê. Do manifesto sai o que se pediu; do
+processo sai o que se recebeu:
 
 ```js
 const fs = require('node:fs');
@@ -72,26 +100,14 @@ A memória, sim, é contida: o app sobe num escopo do systemd com `MemoryHigh` e
 treino que cresce sem controle é pressionado antes de ser morto, em vez de levar a sessão inteira
 junto. A memória da placa fica fora disso.
 
-## Desenho: `vssh.gpu`
+## Os limites do espaço `vssh.gpu`
 
-O que segue é desenho. A sub-etapa da etapa 5 que o implementa ainda não pousou, e os nomes abaixo
-podem mudar até lá.
+Dois limites são decisão:
 
-O espaço `vssh.gpu` abstrairia a pergunta "o que este app pode usar de GPU neste servidor", feita
-do frontend, com a mesma resposta que o `limits.json` já carrega: o estado (`negada`, `concedida`,
-`sem-gpu`, `nao-sei`), o inventário (fabricante, driver, virtual, acesso ao render node) e as APIs
-que o servidor tem (CUDA, ROCm, Vulkan, OpenCL, VA-API, NVENC). O app usaria isso para esconder o
-que não faz sentido (um botão "acelerar por GPU" num servidor sem placa) e para dizer o motivo
-certo quando algo falta, porque "sem GPU" e "a placa existe e você não tem permissão" pedem ações
-opostas.
+- o espaço não pede a placa. Pedir é o `recursos.gpu` do manifesto, aplicado na subida, porque o
+  ambiente de um processo é fixado no `spawn` e um pedido em runtime não teria a quem chegar;
+- o espaço não mede uso. Quanto de memória da placa o app está ocupando é pergunta do gerenciador
+  de tarefas, e a resposta lá vem do servidor.
 
-Dois limites já decididos no desenho:
-
-- o espaço não pediria a placa. Pedir continua sendo o `gpu: true` do manifesto, decidido na
-  instalação e aplicado na subida, porque o ambiente de um processo é fixado no `spawn` e um
-  pedido em runtime não teria a quem chegar;
-- o espaço não mediria uso. Quanto de memória da placa o app está ocupando é pergunta do
-  gerenciador de tarefas, e a resposta lá vem do servidor.
-
-O que o desenho deixa em aberto é a arbitragem entre dois apps que pediram a mesma placa. Hoje os
-dois a recebem inteira, e quem reparte é o driver.
+O que fica em aberto é a arbitragem entre dois apps que pediram a mesma placa. Hoje os dois a
+recebem inteira, e quem reparte é o driver.
