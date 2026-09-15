@@ -1,0 +1,63 @@
+{
+  "//": "A navegação do site, na ordem em que aparece. Uma entrada é o caminho de uma página (o rótulo sai do h1 dela), `{ \"arquivo\", \"titulo\" }` para dar outro rótulo, `{ \"url\", \"titulo\" }` para um endereço fora do conjunto de páginas, ou `{ \"espacos\": \"api/abi.json\" }`, que vira uma página `docs/referencia/<espaco>.md` por espaço, na ordem da tabela. Toda página de `docs/` tem de estar aqui: o gerador recusa página órfã.",
+  "secoes": [
+    {
+      "titulo": "Início",
+      "paginas": [
+        { "arquivo": "docs/README.md", "titulo": "Conceitos e guias" }
+      ]
+    },
+    {
+      "titulo": "Conceitos",
+      "paginas": [
+        "docs/conceitos/o-que-e-um-vssh-app.md",
+        "docs/conceitos/as-duas-familias.md",
+        "docs/conceitos/o-manifesto.md",
+        "docs/conceitos/ciclo-de-vida.md",
+        "docs/conceitos/atribuicao.md",
+        "docs/conceitos/a-janela.md",
+        "docs/conceitos/consentimento.md",
+        "docs/conceitos/o-que-o-sistema-garante.md"
+      ]
+    },
+    {
+      "titulo": "Guias",
+      "paginas": [
+        "docs/guias/o-primeiro-app-python.md",
+        "docs/guias/o-primeiro-app-node.md",
+        "docs/guias/uma-janela.md",
+        "docs/guias/arquivos-com-consentimento.md",
+        "docs/guias/avisos-e-atividades.md",
+        "docs/guias/gpu.md",
+        "docs/guias/publicar.md"
+      ]
+    },
+    {
+      "titulo": "Referência",
+      "paginas": [
+        { "arquivo": "docs/referencia/README.md", "titulo": "Visão geral" },
+        { "espacos": "api/abi.json" },
+        "docs/referencia/manifesto.md",
+        "docs/referencia/ambiente.md"
+      ]
+    },
+    {
+      "titulo": "Aparência",
+      "paginas": [
+        { "url": "api/tuff/docs/componentes.html", "titulo": "Componentes do Tuff" }
+      ]
+    },
+    {
+      "titulo": "Migração",
+      "paginas": [
+        "MIGRATION.md"
+      ]
+    },
+    {
+      "titulo": "Repositório",
+      "paginas": [
+        { "arquivo": "README.md", "titulo": "Sobre este repositório" }
+      ]
+    }
+  ]
+}

@@ -9,3 +9,6 @@ __pycache__/
 # As libs que o `installCommand` de um exemplo Python instala dentro dele (`pip --target`).
 # O que sobe no tarball de um app é o que está versionado; aqui elas são só bancada.
 examples/*/vendor/py/
+
+# O site gerado por `scripts/gerar-site.js`; o GitHub Pages o publica a partir do workflow.
+_site/
