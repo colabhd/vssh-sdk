@@ -328,12 +328,16 @@ done <<< "${INFO}"
 [ -z "${WARN}" ] || anotar warning "validação parcial" "${WARN}"
 [ -z "${ERR}" ] || { echo "ERRO: vssh-app.json inválido (${ERR})." >&2; exit 1; }
 
-# ── 2b. As libs que o app leva são desta geração? ──────────────────────────────
+# ── 2b. As libs de backend que o app leva são desta geração? ───────────────────
 #
 # As libs de backend chegam ao app pelo gerenciador de pacotes do runtime dele
 # (`npm i github:colabhd/vssh-app-toolkit#v4`, ou o `pip install` do `installCommand`). O que esta
 # seção lê é o que o gerenciador instalou dentro do pacote: o `package.json` do `node_modules` ou
 # o `.dist-info` do `vendor/py`, números que o próprio instalador escreveu.
+#
+# Só o backend entra na conta. O SDK web (`_sdk/vssh.js`) e a biblioteca de UI são servidos pelo
+# sistema de dentro do espaço de URL do app, e o pacote não os leva; uma cópia que um app
+# carregue por conta própria é dele, e este portão não a procura.
 #
 # A versão de REFERÊNCIA, contra a qual o app é comparado, é lida de `runtime/package.json` deste
 # repositório: é o diretório em que o sistema publica as libs. Enquanto ele não existe (as libs
@@ -349,18 +353,6 @@ HERE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # libs" logo abaixo é justamente o caso que a ausência do arquivo produz.
 NOSSA_LIB="$(sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
   "${HERE_ROOT}/runtime/package.json" 2>/dev/null | head -1 || true)"
-
-# Uma cópia das libs feita à mão (o marcador `.vssh-lib-version` da era do `vssh-app-lib-sync`)
-# é erro, e não aviso: um `vendor/vssh/` no pacote é código morto que o app pode estar carregando
-# no lugar das libs instaladas, e duas cópias com o mesmo nome é o defeito.
-LEGADO="$(find "${PKG}" -name .vssh-lib-version -not -path '*/.git/*' 2>/dev/null | head -1 || true)"
-if [ -n "${LEGADO}" ]; then
-  anotar error "libs copiadas à mão" \
-    "${LEGADO#${PKG}/}: a cópia vendorizada saiu na v4 das libs. Instale-as pelo gerenciador de pacotes do runtime
-(npm i github:colabhd/vssh-app-toolkit#v4, ou o pip do installCommand) e troque os
-require('./vendor/vssh/node/<x>') por require('vssh-app-toolkit/<x>'). Ver MIGRATION.md."
-  exit 1
-fi
 
 if [ -z "${NOSSA_LIB}" ]; then
   anotar warning "libs não conferidas" \

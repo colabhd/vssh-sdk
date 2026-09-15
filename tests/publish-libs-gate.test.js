@@ -1,12 +1,13 @@
 'use strict';
 
-// O portão de versão das libs, dentro do `vssh-app-publish`.
+// O portão de versão das libs de backend, dentro do `vssh-app-publish`.
 //
 // Um app leva as libs de backend consigo, e um app publicado contra outra geração delas quebra no
 // servidor, longe daqui. O portão lê o que o gerenciador de pacotes instalou dentro do pacote (o
 // `package.json` do `node_modules`, o `.dist-info` do `vendor/py`) e compara com a versão de
 // referência, lida de `runtime/package.json` deste repositório. Ele é a última linha antes do
-// servidor, e por isso tem bancada própria.
+// servidor, e por isso tem bancada própria. O SDK web fica de fora: o sistema o serve em `_sdk/`,
+// e o pacote de um app não o leva.
 //
 // O trecho é recortado do script pelos delimitadores (`── 2b.` até `── 3.`), e nunca por número
 // de linha: o script cresce, as linhas andam, e um recorte por número passaria a medir outra
@@ -75,7 +76,7 @@ function rodar(app, { nossaVersao = '4.0.0' } = {}) {
  * `instaladaPy` põe o `.dist-info` que o `pip install --target` escreve — é dali que o portão lê a
  * versão do lado Python, e o nome daquele diretório é normativo (PEP 376), não convenção nossa.
  */
-function app({ manifesto = {}, declara = false, instalada = null, legado = false, script = null,
+function app({ manifesto = {}, declara = false, instalada = null, script = null,
                instaladaPy = null } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vssh-app-'));
   fs.writeFileSync(path.join(dir, 'vssh-app.json'), JSON.stringify({
@@ -98,11 +99,6 @@ function app({ manifesto = {}, declara = false, instalada = null, legado = false
   if (script) {
     fs.mkdirSync(path.join(dir, path.dirname(script.caminho)), { recursive: true });
     fs.writeFileSync(path.join(dir, script.caminho), script.corpo);
-  }
-  if (legado) {
-    const v = path.join(dir, 'backend', 'vendor', 'vssh');
-    fs.mkdirSync(v, { recursive: true });
-    fs.writeFileSync(path.join(v, '.vssh-lib-version'), 'origin=colabhd/vssh-app-toolkit@v3\nlib_version=3.0.0\n');
   }
   return dir;
 }
@@ -182,14 +178,6 @@ test('app que não usa as libs passa, e o portão diz que não tinha o que confe
   const r = rodar(app({}));
   assert.equal(r.code, 0);
   assert.match(r.saida, /notice\|sem libs do toolkit/);
-});
-
-test('cópia vendorizada antiga é ERRO, não aviso', seNaoTemBash, () => {
-  // Um `vendor/vssh/` no pacote depois da v4 é código morto que o app pode estar carregando NO
-  // LUGAR das libs instaladas — duas noções da mesma coisa, que é o defeito, não o sintoma.
-  const r = rodar(app({ declara: true, instalada: '4.0.0', legado: true }));
-  assert.equal(r.code, 1);
-  assert.match(r.saida, /error\|libs copiadas à mão/);
 });
 
 test('sem saber a própria versão, o portão diz que NÃO conferiu', seNaoTemBash, () => {
