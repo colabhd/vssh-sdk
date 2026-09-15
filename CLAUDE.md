@@ -12,17 +12,29 @@ qualquer repositório de app com o `github.token` padrão. Nada que exija creden
 O sistema (o portal, o shell, os motores) mora no repositório privado `vssh-sso`. Trabalho dele
 não se planeja aqui.
 
-## Dois diretórios são gerados, e ninguém os edita
+## Três diretórios são gerados, e ninguém os edita
 
-`api/` e `runtime/` são escritos por um job de CI do `vssh-sso` depois de cada deploy
-(`scripts/gerar-sdk.js` de lá). O gerador confere o que está no destino contra os hashes do
-`api/build-info.json` antes de escrever: um arquivo editado à mão para a rodada com o nome dele na
-mensagem, e só um `--force` de uma pessoa passa por cima. Uma mudança que alguém queira em `api/`
-se faz na fonte, no `vssh-sso`.
+`api/`, `runtime/` e `docs/referencia/` são escritos por um job de CI do `vssh-sso` depois de
+cada deploy (`scripts/gerar-sdk.js` de lá). O gerador confere o que está no destino contra os
+hashes do `api/build-info.json` antes de escrever: um arquivo editado à mão para a rodada com o
+nome dele na mensagem, e só um `--force` de uma pessoa passa por cima. Uma mudança que alguém
+queira em `api/` se faz na fonte, no `vssh-sso`. `tests/docs-links.test.js` só confere um link
+para dentro desses diretórios quando o diretório existe: um checkout anterior à primeira rodada do
+canal não os tem, e a documentação autorada já aponta para eles.
 
 `runtime/` hoje tem só um README: as libs de backend ainda vêm do `vssh-app-toolkit`, e é isso que
 o `installCommand` dos templates e dos exemplos declara. Quando o canal passar a publicá-las aqui,
 o que muda está descrito em [MIGRATION.md](MIGRATION.md).
+
+## O SDK web não viaja no pacote de um app
+
+O sistema serve `_sdk/vssh.js` (a ponte `vssh.*` e o polyfill de File System Access, num arquivo
+montado da tabela da ponte) e `_sdk/tuff/<arquivo>` dentro do espaço de URL de cada app. Os
+templates e os exemplos incluem esses caminhos por `injectScripts`/`inject_scripts` e
+`injectStyles`/`inject_styles`, sem `mounts` e sem cópia: um `_sdk/` presente no disco de um app
+sairia carimbado (`?v=`) e seria uma cópia vendorizada, que é o que esta forma existe para não
+ter. Fora do ambiente ninguém serve `_sdk/`, e a galeria dos templates diz isso na peça
+"Ambiente"; `api/vssh.js` é o mesmo arquivo, para quem quiser servi-lo em desenvolvimento.
 
 ## Comandos
 
@@ -30,6 +42,12 @@ o que muda está descrito em [MIGRATION.md](MIGRATION.md).
 npm test            # a suíte Node (tests/); sem python3 os testes do validador se pulam
 npm run test:py     # o template Python e os exemplos Python; pede as libs em vendor/py (abaixo)
 ```
+
+`tests/browser/template-fora-do-ambiente.test.js` sobe o backend do template Node num socket unix,
+serve `api/vssh.js` e `api/tuff/` na frente dele como o sistema faz, e abre a página num Chrome
+headless. Sem Chrome, sem `api/vssh.js` ou sem socket unix ele se pula dizendo o que falta;
+`VSSH_SDK_WEB`, `VSSH_SDK_TUFF` e `VSSH_TEMPLATE_URL` apontam para outras cópias e para um backend
+já de pé (um relay de dentro do WSL, no Windows).
 
 As libs de um template se instalam pelo `installCommand` do manifesto dele, que é o que o
 servidor roda. Para o Python: `cd templates/hello-vssh-app && bash -c "$(python3 -c 'import json;print(json.load(open("vssh-app.json"))["backend"]["installCommand"])')"`.
@@ -116,7 +134,7 @@ Rode o que a sua mudança alcança, com `node --test --test-concurrency=1 --test
 | O reusable que o CI de um app chama | `.github/workflows/_publish-app-reusable.yml` |
 | Publicar os templates e exemplos daqui | `.github/workflows/publish-apps.yml` (pede o secret `VSSH_REPO_PUBLISH_TOKEN` e a var `VSSH_REPO_API`) |
 | O CI deste repositório | `.github/workflows/ci.yml` |
-| Os templates | `templates/hello-vssh-app{,-node}/` + `tests/galeria-paridade.test.js` + `tests/template-galeria.test.js` + `tests/python/test_template.py` |
+| Os templates | `templates/hello-vssh-app{,-node}/` + `tests/galeria-paridade.test.js` + `tests/template-galeria.test.js` + `tests/python/test_template.py` + `tests/browser/template-fora-do-ambiente.test.js` (o SDK de verdade, num Chrome) |
 | Os exemplos | `examples/palco/` (testes em `examples/palco/test/`), `examples/print-engine/` |
 | Conceitos e guias | `docs/` |
 | O emulador | `emulador/`, na etapa seguinte |

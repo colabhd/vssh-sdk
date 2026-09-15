@@ -18,9 +18,9 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join, resolve, relative } from 'node:path';
+import { dirname, join, resolve, relative, sep } from 'node:path';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -29,6 +29,17 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 // de fora a skill de prosa que o CLAUDE.md declara como passo de toda mudança. Um link quebrado
 // ali é lido com a autoridade de uma referência.
 const OCULTOS_QUE_ENTRAM = new Set(['.claude', '.github']);
+
+// Os diretórios que o canal de publicação do sistema escreve, e que um checkout pode não ter
+// ainda: a documentação autorada aponta para eles (a referência gerada, o SDK web em `api/`),
+// e um link para dentro de um deles só é conferido quando o diretório existe. Sem a exceção, a
+// página que cita a referência ficaria vermelha até a primeira rodada do canal, e o conserto
+// seria apagar o link certo. Com o diretório presente, o alvo tem de existir como qualquer outro.
+const GERADOS = ['api', 'runtime', 'docs/referencia'].map((d) => resolve(ROOT, d));
+const geradoAusente = (abs) => {
+  const dir = GERADOS.find((g) => abs.startsWith(g + sep));
+  return Boolean(dir) && !existsSync(dir);
+};
 
 function markdowns(dir, out = []) {
   for (const nome of readdirSync(dir)) {
@@ -90,6 +101,7 @@ test('todo link relativo aponta para um arquivo que existe', () => {
       const alvo = m[1];
       if (!alvo || /^(https?:|mailto:|data:|#)/.test(alvo)) continue;
       const abs = resolve(dirname(p), decodeURIComponent(alvo));
+      if (geradoAusente(abs)) continue;
       try { statSync(abs); } catch {
         quebrados.push(`${relative(ROOT, p)} -> ${alvo}`);
       }

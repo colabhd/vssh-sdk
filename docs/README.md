@@ -4,9 +4,18 @@ Este portal é para quem vai escrever um vssh-app: um pacote com frontend HTML e
 instalado num servidor Linux do VSSH e aberto como uma janela do ambiente. O público são as pessoas
 da casa e os parceiros que escrevem apps para pesquisa. O tom é de manual.
 
-O portal tem cinco seções. A referência é gerada a partir da tabela de exportação da ponte, verbo a
-verbo, e chega com a sub-etapa 5.2. As duas seções autoradas estão aqui: os conceitos, que dizem
-como o sistema é, e os guias, que levam do zero a um app funcionando.
+O portal tem três seções. A referência é gerada pelo sistema a partir da tabela de exportação da
+ponte, verbo a verbo, e ninguém a edita. As duas seções autoradas estão aqui: os conceitos, que
+dizem como o sistema é, e os guias, que levam do zero a um app funcionando.
+
+## Referência
+
+A referência mora em [`referencia/`](referencia/README.md): um capítulo por espaço da API
+(`vssh.app`, `vssh.janela`, `vssh.arquivos`, `vssh.avisos`, `vssh.dialogos`, `vssh.segredos`,
+`vssh.midia`, `vssh.impressao`, `vssh.gpu`), com a assinatura de cada verbo, o que ele responde e
+os eventos que o shell manda de volta. O canal de publicação do sistema a escreve depois de cada
+deploy, junto de [`api/`](../api/) e [`runtime/`](../runtime/); uma correção nela se faz na
+descrição do verbo, na tabela do sistema, e chega aqui na rodada seguinte.
 
 ## Conceitos
 
@@ -36,28 +45,23 @@ como o sistema é, e os guias, que levam do zero a um app funcionando.
 ## Sobre os nomes dos verbos
 
 Os nomes públicos da API são em português, um espaço por assunto: `vssh.app`, `vssh.janela`,
-`vssh.arquivos`, `vssh.avisos`, `vssh.dialogos`, `vssh.segredos`, `vssh.midia` e
-`vssh.impressao`. O código dos guias usa esses nomes.
+`vssh.arquivos`, `vssh.avisos`, `vssh.dialogos`, `vssh.segredos`, `vssh.midia`, `vssh.impressao`
+e `vssh.gpu`. O código dos guias usa esses nomes, e é o SDK servido pelo sistema em
+`_sdk/vssh.js` que os expõe; a forma de assinar um evento é `vssh.<espaco>.ao('<evento>', cb)`.
 
-Duas ressalvas valem para todo guia deste portal:
+A referência gerada é a fonte dos nomes de verbo. Onde um nome de verbo neste portal divergir da
+referência, vale a referência. O shim que o toolkit distribuía (`lib/web/vssh-app-shim.js`) fala
+os nomes antigos, em inglês (`vssh.notify`, `vssh.pickFile`, `vssh.window.minimize`), e a
+correspondência entre os dois, verbo a verbo, está no [`MIGRATION.md`](../MIGRATION.md).
 
-- o SDK que expõe esses nomes chega com a sub-etapa 5.2. O shim que o toolkit distribui hoje
-  (`lib/web/vssh-app-shim.js`) fala os nomes antigos, em inglês: `vssh.notify`, `vssh.pickFile`,
-  `vssh.window.minimize`, `vssh.dialog.confirm`. O que os guias descrevem do comportamento vale
-  para os dois; o que muda é a grafia;
-- a referência gerada é a fonte dos nomes de verbo. Onde um nome de verbo neste portal divergir da
-  referência, vale a referência. Os espaços e os três verbos de `vssh.app` (`capacidades`, `titulo`,
-  `lembrarRota`) já estão na tabela de exportação; os demais espaços estão sendo preenchidos, e os
-  guias os descrevem pelo que cada um abstrai. A forma de assinar um evento adotada aqui é
-  `vssh.<espaco>.ao('<evento>', cb)`.
-
-Cinco espaços aparecem só como desenho, com a etapa em que entram escrita ao lado: `vssh.gpu` (a
-sub-etapa da etapa 5 que o implementa ainda não pousou), e `vssh.rede`, `vssh.filas`,
-`vssh.terminal` e `vssh.processos` (etapa 7). Nenhum deles existe no sistema de hoje, e nenhum
-guia depende deles.
+Quatro espaços aparecem só como desenho, com a etapa em que entram escrita ao lado: `vssh.rede`,
+`vssh.filas`, `vssh.terminal` e `vssh.processos` (etapa 7). Nenhum deles existe no sistema de
+hoje, e nenhum guia depende deles.
 
 ## Onde estão as fontes
 
-O sistema é o repositório privado `vssh-sso`; o autor de app enxerga o SDK gerado a partir dele e o
-toolkit público [`colabhd/vssh-app-toolkit`](https://github.com/colabhd/vssh-app-toolkit), que traz
-o schema do manifesto, os dois templates, as bibliotecas de backend e o script de publicação.
+O sistema é o repositório privado `vssh-sso`; o autor de app enxerga o que o sistema gera aqui
+(`api/`, `runtime/`, `referencia/`) e o que as pessoas escrevem aqui: os dois templates, os
+exemplos, o script de publicação e estas páginas. As libs de backend ainda vêm do toolkit público
+[`colabhd/vssh-app-toolkit`](https://github.com/colabhd/vssh-app-toolkit), e o `MIGRATION.md` diz
+quando isso muda.
