@@ -102,7 +102,7 @@ test('os manifestos declaram as mesmas capacidades', () => {
 
   // O que o AMBIENTE decide por um app: se um declarasse `gpu` e o outro não, a mesma peça daria
   // respostas diferentes nos dois — e a diferença pareceria do servidor, não do manifesto.
-  for (const campo of ['gpu', 'resources', 'secrets', 'opens', 'handles', 'minShellVersion']) {
+  for (const campo of ['gpu', 'recursos', 'resources', 'secrets', 'opens', 'handles', 'minShellVersion']) {
     assert.deepEqual(b[campo], a[campo], `os manifestos divergem em '${campo}'`);
   }
   assert.deepEqual(b.contributes?.contextMenu, a.contributes?.contextMenu,

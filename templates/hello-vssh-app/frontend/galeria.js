@@ -204,6 +204,64 @@ function montarGaleria() {
     b.disabled = false; b.textContent = antes;
   });
 
+  // ── A fila de processamento ──────────────────────────────────────────────────
+  //
+  // Lida no boot como o runtime: "disponível ou não, e por quê" vale para esta execução do
+  // processo, e o motivo mais comum (o app ainda não reiniciou desde que declarou) só ajuda se
+  // estiver na tela antes de alguém clicar.
+  async function lerFila() {
+    escrever('filaout', 'lendo...');
+    try {
+      const r = await fetch('api/fila');
+      const d = await r.json();
+      const linhas = [
+        `fila    ${d.disponivel ? `disponível: cluster ${d.cluster}` : `indisponível: ${d.motivo || 'sem resposta'}`}`,
+        d.gpus?.length
+          ? `GPUs    ${d.gpus.map((g) => `${g.tipo} (${g.memoriaGiB} GiB)`).join(', ')}`
+          : (d.disponivel ? 'GPUs    nenhuma neste cluster' : null),
+        d.disponivel ? `quotas  ${d.quotas?.maxJobs} jobs, ${d.quotas?.maxGpus} GPUs, prazo até ${d.quotas?.maxPrazoS} s` : null,
+        d.disponivel ? `em uso  ${d.uso?.ativos ?? 0} jobs, ${d.uso?.gpus ?? 0} GPUs` : null,
+        '',
+        JSON.stringify(d, null, 2),
+      ].filter((l) => l !== null);
+      escrever('filaout', linhas.join('\n'));
+    } catch (e) { falhar('filaout', e); }
+  }
+  $('fila-ler').addEventListener('click', lerFila);
+  lerFila();
+
+  // A sonda. O POST devolve na hora, com o id; o resto é acompanhar. A galeria lê o registro do
+  // backend a cada dois segundos em vez de assinar o SSE: o processo é quem acompanha o job, e a
+  // janela pode fechar e reabrir no meio sem perder nada.
+  $('fila-sonda').addEventListener('click', async (ev) => {
+    const b = ev.currentTarget; const antes = b.textContent;
+    b.disabled = true; b.textContent = 'submetendo…';
+    escrever('filaout', 'submetendo o nvidia-smi ao cluster…');
+    try {
+      const r = await fetch('api/fila/sonda', { method: 'POST' });
+      let d = await r.json();
+      if (!d.ok) { escrever('filaout', `não deu para submeter: ${d.motivo}`); return; }
+      const pintar = () => escrever('filaout', [
+        `job     ${d.id}`,
+        `estado  ${d.estado}${d.motivo ? ` (${d.motivo})` : ''}`,
+        d.gpu ? `GPU     1× ${d.gpu}` : 'GPU     nenhuma pedida',
+        '',
+        ...(d.eventos || []).map((l) => `  ${l}`),
+        d.saida != null ? `\n${d.saida}` : null,
+      ].filter((l) => l !== null).join('\n'));
+      pintar();
+      b.textContent = 'acompanhando…';
+      while (!d.fim) {
+        await new Promise((ok) => setTimeout(ok, 2000));
+        const s = await fetch(`api/fila/sonda/${encodeURIComponent(d.id)}`);
+        if (!s.ok) break;
+        d = await s.json();
+        pintar();
+      }
+    } catch (e) { falhar('filaout', e); }
+    finally { b.disabled = false; b.textContent = antes; }
+  });
+
   // O segredo, pedido de dentro do app. É a correção de desenho: quem sabe que falta credencial, e
   // sabe na hora em que falta, é o app, e não a tela de Configurações. O valor não passa por aqui:
   // `pedir` abre o campo de senha do ambiente, grava no servidor e responde só os nomes.

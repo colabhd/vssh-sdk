@@ -31,6 +31,7 @@ const path = require('node:path');
 //   avisos     notificar, atividade em curso e bandeja, para um app sem janela
 //   app        quem sou, e onde guardo as coisas
 //   gpu        o que o lançador concedeu de GPU a este processo
+//   fila       delegar um container ao cluster Kubernetes, e acompanhá-lo
 //
 // As duas vozes de um app sem janela dizem coisas diferentes, e trocar uma pela outra é o erro
 // que enche o sino de quem usa o ambiente: `avisos.notificar` registra um fato que aconteceu, e
@@ -39,7 +40,7 @@ const path = require('node:path');
 // `vssh.avisos.bandeja` do SDK web: aquele morre com a janela; este escreve um arquivo que o
 // portal lê, e o clique volta como POST, porque a rede é assimétrica (o portal alcança o app; o
 // app não alcança o portal).
-const { servidor, web, eventos, dados, avisos, app, gpu } = require('vssh');
+const { servidor, web, eventos, dados, avisos, app, gpu, fila } = require('vssh');
 
 // Onde este backend escuta é decisão do lifecycle, não deste arquivo: socket unix em
 // $VSSH_APP_SOCKET. Quem lê a variável,
@@ -187,6 +188,68 @@ function limitesDoCgroup() {
  */
 function gpuDoAmbiente() {
   return { ...gpu.concedida(), cudaVisibleDevices: process.env.CUDA_VISIBLE_DEVICES ?? null };
+}
+
+// ── A fila de processamento ───────────────────────────────────────────────────
+//
+// A quarta coisa que o app declara e o ambiente decide: `recursos.fila` no manifesto pede ao
+// portal a credencial (`VSSH_PORTAL_URL` + `VSSH_PORTAL_TOKEN`), e com ela o backend manda um
+// container ao cluster em vez de rodá-lo nesta máquina. A sonda abaixo é o menor trabalho que
+// prova o caminho inteiro: `nvidia-smi` numa imagem CUDA, com uma GPU do cluster, e a tabela volta
+// como arquivo de saída.
+
+const sondas = new Map();
+
+function registrarSonda(id, evento, campos) {
+  const atual = sondas.get(id) || { id, eventos: [], saida: null };
+  if (evento) atual.eventos.push(evento);
+  Object.assign(atual, campos);
+  sondas.set(id, atual);
+  const registro = { ...atual, eventos: [...atual.eventos] };
+  difundirEvento('fila', registro);
+  return registro;
+}
+
+/**
+ * Submete o `nvidia-smi` ao cluster e acompanha em segundo plano. Devolve o registro inicial.
+ *
+ * O comando escreve em `/vssh/saidas/placa.txt`, que é o que o pod sobe ao terminar; `baixar` traz
+ * o arquivo para o diretório de dados do app, e a galeria mostra o conteúdo. Uma GPU só entra no
+ * pedido quando o cluster oferece algum tipo: sem GPU o job roda do mesmo jeito e o `nvidia-smi`
+ * diz que não achou placa, o que também é uma medição.
+ */
+async function sondarFila() {
+  const oferta = await fila.disponivel();
+  if (!oferta.disponivel) return { ok: false, motivo: oferta.motivo };
+  const tipo = oferta.gpus?.[0]?.tipo;
+  const trabalho = {
+    nome: 'sonda-gpu',
+    imagem: 'nvidia/cuda:12.6.0-base-ubuntu24.04',
+    comando: ['sh', '-c', 'nvidia-smi > /vssh/saidas/placa.txt 2>&1'],
+    saidas: ['placa.txt'],
+    cpu: '1', memoria: '1Gi', prazo: 600,
+  };
+  if (tipo) trabalho.gpu = { quantidade: 1, tipo };
+  const id = await fila.submeter(trabalho);
+  const registro = registrarSonda(id, null, { estado: 'enviado', gpu: tipo ?? null });
+
+  (async () => {
+    try {
+      const final = await fila.acompanhar(id, (evento, job) => registrarSonda(id,
+        `${evento}: ${job.estado}${job.motivo ? ` (${job.motivo})` : ''}`,
+        { estado: job.estado, motivo: job.motivo ?? null }));
+      let saida = null;
+      if (final.estado === 'concluido') {
+        const fs = require('node:fs');
+        const destino = path.join(app.dados(), 'fila', id);
+        for (const caminho of await fila.baixar(id, destino)) saida = fs.readFileSync(caminho, 'utf8').slice(0, 4000);
+      }
+      registrarSonda(id, null, { estado: final.estado, motivo: final.motivo ?? null, exit: final.exit ?? null, saida, fim: true });
+    } catch (err) {
+      registrarSonda(id, null, { estado: 'falhou', motivo: err.mensagem || err.message, fim: true });
+    }
+  })();
+  return { ok: true, ...registro };
 }
 
 /**
@@ -763,6 +826,31 @@ const server = http.createServer(servidor.portao(async (req, res) => {
       const r = benchmarkGpu();
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(r));
+      return;
+    }
+
+    // A fila: o que este servidor oferece (cluster, GPUs, quotas), e por que não.
+    if (url.pathname === '/api/fila' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(await fila.disponivel()));
+      return;
+    }
+
+    // A sonda: um job de verdade no cluster. POST, porque cria trabalho lá fora.
+    if (url.pathname === '/api/fila/sonda' && req.method === 'POST') {
+      let r;
+      try { r = await sondarFila(); } catch (err) {
+        r = { ok: false, motivo: `o portal recusou (${err.status ?? '?'}): ${err.mensagem || err.message}` };
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(r));
+      return;
+    }
+
+    if (url.pathname.startsWith('/api/fila/sonda/') && req.method === 'GET') {
+      const registro = sondas.get(url.pathname.slice('/api/fila/sonda/'.length));
+      res.writeHead(registro ? 200 : 404, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(registro || { error: 'sonda desconhecida' }));
       return;
     }
 

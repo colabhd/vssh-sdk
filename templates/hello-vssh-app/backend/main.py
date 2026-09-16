@@ -50,6 +50,7 @@ from urllib.parse import parse_qs, urlsplit
 #   avisos     notificar, atividade em curso e bandeja, para um app sem janela
 #   app        quem sou, e onde guardo as coisas
 #   gpu        o que o lançador concedeu de GPU a este processo
+#   fila       delegar um container ao cluster Kubernetes, e acompanhá-lo
 #
 # As duas vozes de um app sem janela dizem coisas diferentes, e trocar uma pela outra é o erro
 # que enche o sino de quem usa o ambiente: `avisos.notificar` registra um fato que aconteceu, e
@@ -58,7 +59,7 @@ from urllib.parse import parse_qs, urlsplit
 # `vssh.avisos.bandeja` do SDK web: aquele morre com a janela; este escreve um arquivo que o
 # portal lê, e o clique volta como POST, porque a rede é assimétrica (o portal alcança o app; o
 # app não alcança o portal).
-from vssh import app, avisos, dados, eventos, gpu, servidor, web
+from vssh import app, avisos, dados, eventos, fila, gpu, servidor, web
 
 _AQUI = os.path.dirname(os.path.abspath(__file__))
 
@@ -202,6 +203,75 @@ def gpu_do_ambiente():
     lançador", que é informação e não erro.
     """
     return {**gpu.concedida(), "cudaVisibleDevices": os.environ.get("CUDA_VISIBLE_DEVICES")}
+
+
+# ── A fila de processamento ───────────────────────────────────────────────────
+#
+# A quarta coisa que o app declara e o ambiente decide: `recursos.fila` no manifesto pede ao
+# portal a credencial (`VSSH_PORTAL_URL` + `VSSH_PORTAL_TOKEN`), e com ela o backend manda um
+# container ao cluster em vez de rodá-lo nesta máquina. A sonda abaixo é o menor trabalho que
+# prova o caminho inteiro: `nvidia-smi` numa imagem CUDA, com uma GPU do cluster, e a tabela volta
+# como arquivo de saída.
+
+_sondas = {}
+_tranca_da_fila = threading.Lock()
+
+
+def _registrar_sonda(ident, evento=None, **campos):
+    with _tranca_da_fila:
+        atual = _sondas.setdefault(ident, {"id": ident, "eventos": [], "saida": None})
+        if evento:
+            atual["eventos"].append(evento)
+        atual.update(campos)
+        registro = dict(atual)
+    difundir_evento("fila", registro)
+    return registro
+
+
+def sondar_fila():
+    """Submete o `nvidia-smi` ao cluster e acompanha numa thread. Devolve o registro inicial.
+
+    O comando escreve em `/vssh/saidas/placa.txt`, que é o que o pod sobe ao terminar; `baixar`
+    traz o arquivo para o diretório de dados do app, e a galeria mostra o conteúdo. Uma GPU só
+    entra no pedido quando o cluster oferece algum tipo: sem GPU o job roda do mesmo jeito e o
+    `nvidia-smi` diz que não achou placa, o que também é uma medição.
+    """
+    oferta = fila.disponivel()
+    if not oferta["disponivel"]:
+        return {"ok": False, "motivo": oferta["motivo"]}
+    tipo = (oferta["gpus"] or [{}])[0].get("tipo")
+    trabalho = {
+        "nome": "sonda-gpu",
+        "imagem": "nvidia/cuda:12.6.0-base-ubuntu24.04",
+        "comando": ["sh", "-c", "nvidia-smi > /vssh/saidas/placa.txt 2>&1"],
+        "saidas": ["placa.txt"],
+        "cpu": "1", "memoria": "1Gi", "prazo": 600,
+    }
+    if tipo:
+        trabalho["gpu"] = {"quantidade": 1, "tipo": tipo}
+    ident = fila.submeter(trabalho)
+    registro = _registrar_sonda(ident, estado="enviado", gpu=tipo)
+
+    def acompanhar():
+        try:
+            final = fila.acompanhar(ident, lambda evento, job: _registrar_sonda(
+                ident, evento=f"{evento}: {job.get('estado')}" + (f" ({job['motivo']})" if job.get("motivo") else ""),
+                estado=job.get("estado"), motivo=job.get("motivo")))
+            saida = None
+            if final.get("estado") == "concluido":
+                destino = os.path.join(app.dados(), "fila", ident)
+                for caminho in fila.baixar(ident, destino):
+                    with open(caminho, encoding="utf-8", errors="replace") as fh:
+                        saida = fh.read(4000)
+            _registrar_sonda(ident, estado=final.get("estado"), motivo=final.get("motivo"),
+                             exit=final.get("exit"), saida=saida, fim=True)
+        except fila.ErroDaFila as err:
+            _registrar_sonda(ident, estado="falhou", motivo=err.mensagem, fim=True)
+        except Exception as err:  # noqa: BLE001
+            _registrar_sonda(ident, estado="falhou", motivo=str(err), fim=True)
+
+    threading.Thread(target=acompanhar, daemon=True).start()
+    return {"ok": True, **registro}
 
 
 def segredo():
@@ -726,6 +796,28 @@ class Pedido(servidor.Pedido):
             # ninguém pediu.
             if caminho == "/api/gpu/benchmark" and metodo == "POST":
                 self._json(200, benchmark_gpu())
+                return
+
+            # A fila: o que este servidor oferece (cluster, GPUs, quotas), e por que não.
+            if caminho == "/api/fila" and metodo == "GET":
+                self._json(200, fila.disponivel())
+                return
+
+            # A sonda: um job de verdade no cluster. POST, porque cria trabalho lá fora.
+            if caminho == "/api/fila/sonda" and metodo == "POST":
+                try:
+                    self._json(200, sondar_fila())
+                except fila.ErroDaFila as err:
+                    self._json(200, {"ok": False, "motivo": f"o portal recusou ({err.status}): {err.mensagem}"})
+                return
+
+            if caminho.startswith("/api/fila/sonda/") and metodo == "GET":
+                with _tranca_da_fila:
+                    registro = _sondas.get(caminho[len("/api/fila/sonda/"):])
+                if registro is None:
+                    self._json(404, {"error": "sonda desconhecida"})
+                else:
+                    self._json(200, registro)
                 return
 
             # O spa devolve False quando não atendeu: 404 é decisão de quem compõe as rotas.

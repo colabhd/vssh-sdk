@@ -167,6 +167,35 @@
       </p>
     </section>
 
+    <section id="c-fila" class="tuff-painel larga">
+      <h2>A fila de processamento: um container no cluster, e não nesta máquina</h2>
+      <p class="tuff-sec-desc">
+        A GPU acima é a da estação. Um trabalho que não cabe nela (ou uma estação sem placa) vai
+        para o cluster Kubernetes: o app declara <code>recursos.fila</code> no manifesto, o portal
+        escreve <code>VSSH_PORTAL_URL</code> e <code>VSSH_PORTAL_TOKEN</code> no ambiente do
+        processo a cada subida, e o backend chama <code>vssh.fila.submeter()</code> com imagem,
+        comando, entradas e os nomes das saídas. O portal cria o Job no cluster que
+        <em>este servidor</em> aponta, acompanha, e as saídas voltam por <code>baixar()</code>.
+        Nada da estação é montado lá: o que o job vê é o que o app mandou.
+      </p>
+      <ul class="tuff-sec-desc">
+        <li>A primeira leitura é <code>vssh.fila.disponivel()</code>, e um botão de "mandar para o
+          cluster" só deve aparecer quando ela diz sim. Sem o par de variáveis (o manifesto não
+          declara, ou o app não reiniciou desde que passou a declarar), sem cluster apontado para
+          este servidor, ou com o portal sem <code>VSSH_FILA_CLUSTERS</code>, a resposta diz
+          <em>qual</em> dos três é o motivo.</li>
+        <li>A sonda é o menor job que prova o caminho inteiro: <code>nvidia-smi</code> numa imagem
+          CUDA, com uma GPU do cluster, escrevendo em <code>/vssh/saidas/placa.txt</code>. O que
+          aparece abaixo é o arquivo <em>baixado de volta</em> para o diretório de dados deste
+          app, e a placa listada é a do cluster, não a desta máquina.</li>
+      </ul>
+      <div class="tuff-acoes">
+        <button class="tuff-btn" id="fila-ler">ler api/fila</button>
+        <button class="tuff-btn" id="fila-sonda">nvidia-smi no cluster (leva um minuto)</button>
+      </div>
+      <pre class="saida" id="filaout">—</pre>
+    </section>
+
     <section class="tuff-painel">
       <h2>Backend próprio</h2>
       <p class="tuff-sec-desc">
