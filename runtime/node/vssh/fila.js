@@ -33,6 +33,10 @@ function credencial(env = process.env) {
 function modulo(url) { return url.startsWith('https:') ? https : http; }
 
 /** Um pedido ao portal. Com `stream`, resolve com a resposta crua (para SSE). */
+// O SDK se apresenta pelo nome, como o de Python: o portal fica atrás do Cloudflare, e a regra de
+// bots dele julga pelo User-Agent. O Node não manda nenhum, e passa; o nome diz no log quem chamou.
+const AGENTE = 'vssh-sdk-fila/node';
+
 function pedir(metodo, rota, { corpo, env, stream = false } = {}) {
   const cred = credencial(env);
   if (!cred) return Promise.reject(new ErroDaFila(0, 'o app não tem credencial da fila: declare recursos.fila no manifesto e reinicie o app'));
@@ -42,7 +46,7 @@ function pedir(metodo, rota, { corpo, env, stream = false } = {}) {
     const req = modulo(u.href).request(u, {
       method: metodo,
       headers: {
-        authorization: `Bearer ${cred.token}`, accept: 'application/json',
+        authorization: `Bearer ${cred.token}`, accept: 'application/json', 'user-agent': AGENTE,
         ...(dados ? { 'content-type': 'application/json', 'content-length': String(dados.length) } : {}),
       },
       timeout: stream ? 0 : 60_000,

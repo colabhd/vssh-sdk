@@ -65,13 +65,19 @@ def _credencial(env=None):
     return url, token
 
 
+# O SDK se apresenta pelo nome. O portal fica atrás do Cloudflare, e a regra de bots dele
+# recusa o `Python-urllib/3.x` que o urllib manda por padrão (erro 1010, "browser signature
+# banned"); um nome próprio passa, e diz no log do portal quem chamou.
+_AGENTE = 'vssh-sdk-fila/python'
+
+
 def _pedir(metodo, rota, corpo=None, env=None, stream=False):
     cred = _credencial(env)
     if not cred:
         raise ErroDaFila(0, 'o app não tem credencial da fila: declare recursos.fila no manifesto e reinicie o app')
     url, token = cred
     dados = None
-    cabecalhos = {'Authorization': 'Bearer ' + token, 'Accept': 'application/json'}
+    cabecalhos = {'Authorization': 'Bearer ' + token, 'Accept': 'application/json', 'User-Agent': _AGENTE}
     if corpo is not None:
         dados = json.dumps(corpo).encode('utf-8')
         cabecalhos['Content-Type'] = 'application/json'
