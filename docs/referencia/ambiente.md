@@ -20,6 +20,7 @@ servidor. O que o processo encontra é o mesmo nos três.
 | `VSSH_APP_TOKEN` | um segredo por usuário e app, que o portal sorteia e reaproveita enquanto o app está de pé | o portão do backend: cada pedido que o portal encaminha traz `X-Vssh-App-Token` com este valor, e `vssh.servidor` responde 403 com `X-Vssh-Token: recusado` ao que chega sem ele |
 | `VSSH_APP_BASE_PATH` | `/proxy/app/<id>/` | o prefixo sob o qual o app é servido, sem o servidor na frente; a URL pública é `/<serverId>/proxy/app/<id>/`, e o cabeçalho `X-Forwarded-Prefix` de cada pedido traz o prefixo inteiro |
 | `VSSH_APP_INSTALLED_HASH` | o hash do pacote instalado | o portal o compara com o do disco a cada abertura, e reinicia um processo que subiu com código que já mudou |
+| `VSSH_PORTAL_URL`, `VSSH_PORTAL_TOKEN` | a URL pública do portal e a credencial deste app diante dele; só para um app com `recursos.fila` no manifesto | `vssh.fila`: é com eles que o backend submete um trabalho ao cluster e o acompanha. O token nasce a cada subida, só alcança `/api/fila/*`, e o `stop` o revoga. Sem o par, `vssh.fila.disponivel()` diz por quê |
 | `PYTHONPATH`, `NODE_PATH` | `/opt/vssh/sdk/python` e `/opt/vssh/sdk/node`, na frente do que já havia | de onde `from vssh import servidor` e `require('vssh')` resolvem: o runtime que o sistema instala em cada servidor |
 | `PATH` | `<pacote>/.venv/bin` e `~/.vssh-apps/<id>/.venv/bin`, na frente do que já havia | um venv que o `installCommand` cria entra sem o app fazer nada |
 | `CUDA_VISIBLE_DEVICES` | vazia, e só quando o manifesto não pede GPU | o runtime CUDA de um app que não pediu placa não enumera dispositivo nenhum; quem pediu pergunta `vssh.gpu.concedida()` |
@@ -29,7 +30,8 @@ servidor. O que o processo encontra é o mesmo nos três.
 O portal escreve `VSSH_APP_TOKEN` e `VSSH_APP_BASE_PATH` no arquivo `env` antes de chamar o
 lançador, e o lançador dá `source` nesse arquivo em qualquer caminho de subida; é o que faz um
 relançamento pelo supervisor subir com o mesmo token que o portal espera. As preferências que o
-portal tem para um app específico (o layout de teclado do motor X11) entram no mesmo arquivo.
+portal tem para um app específico (o layout de teclado do motor X11) e a credencial da fila, para
+quem a declarou, entram no mesmo arquivo.
 
 Cada pedido HTTP que o portal encaminha ao backend traz três cabeçalhos: `X-Vssh-App-Token`, o
 `X-Forwarded-Prefix` com o prefixo público do app, e `X-Vssh-Portas`, um modelo com `{{porta}}`
@@ -41,7 +43,7 @@ O diretório é `0700`, do usuário. O que há nele, e quem escreve cada coisa:
 
 | arquivo | quem escreve | o que é |
 |---|---|---|
-| `env` | o portal, a cada start | `VSSH_APP_TOKEN`, `VSSH_APP_BASE_PATH` e as preferências do portal. Existir é o estado desejado "rodando": o supervisor relança um app que tem `env` e caiu, e o `stop` apaga o arquivo |
+| `env` | o portal, a cada start | `VSSH_APP_TOKEN`, `VSSH_APP_BASE_PATH`, as preferências do portal e, para um app com `recursos.fila`, `VSSH_PORTAL_URL` e `VSSH_PORTAL_TOKEN`. Existir é o estado desejado "rodando": o supervisor relança um app que tem `env` e caiu, e o `stop` apaga o arquivo |
 | `secrets.json` | o portal, quando a pessoa grava uma credencial | o cofre: um objeto nome/valor, `0600`, carregado depois do `env`, e um nome que colida vence a preferência do portal. O app pede uma credencial por `vssh.segredos.pedir`, e o valor nunca passa por ele |
 | `app.sock` | o backend | o socket unix em que ele escuta, `0600`. O arquivo sobrevive ao processo; quem limpa o órfão é o lançador, depois de tentar conectar |
 | `data/` | o backend | `VSSH_APP_DATA_DIR`: o que não pode se perder. O `app.log` de `vssh.servidor.criar_log` mora aqui |

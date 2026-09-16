@@ -355,6 +355,18 @@ sobe; o run.log nomeia o motivo, e o supervisor o mostra como falha de start, se
 até alguém pedir a subida de novo. Declare `necessaria` só para um app que não tem caminho em CPU:
 um servidor sem placa, ou um usuário fora do grupo `render`, deixa esse app parado em vez de lento.
 
+### `recursos.fila`
+
+`boolean`, opcional, padrão `false`.
+
+A fila de processamento: o app delega trabalho pesado (um container com imagem, comando e arquivos)
+ao cluster Kubernetes que o servidor do usuário aponta, em vez de rodá-lo na GPU da estação.
+Declarar faz o portal escrever `VSSH_PORTAL_URL` e `VSSH_PORTAL_TOKEN` no ambiente do app a cada
+subida; com eles o backend chama `vssh.fila` (`submeter`, `acompanhar`, `baixar`, `cancelar`). O
+token é a identidade do app diante do portal, só alcança `/api/fila/*`, e morre com o app (`stop` o
+revoga). Sem esta declaração o app não recebe o par, e `vssh.fila.disponivel()` diz por quê. Um
+servidor sem cluster configurado responde o mesmo: o app pergunta antes de prometer.
+
 ## `gpu`
 
 `boolean`, opcional, padrão `false`.

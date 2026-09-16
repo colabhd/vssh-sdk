@@ -14,7 +14,7 @@
 //   import { createRequire } from 'node:module';
 //   const { servidor } = createRequire(import.meta.url)('vssh');
 //
-// Os sete módulos carregam sob demanda: quem só notifica não paga o servidor.
+// Os oito módulos carregam sob demanda: quem só notifica não paga o servidor.
 //
 //   servidor   o socket unix do app, o portão de token, o `/saude`, o log
 //   web        a SPA do app, com o SDK web e o Tuff injetados no `<head>`
@@ -23,6 +23,7 @@
 //   avisos     notificar, atividade em curso e bandeja, para um app sem janela
 //   app        quem sou, o diretório de dados, a versão do pacote instalado
 //   gpu        o que o sistema concedeu de GPU a este app, e por que não
+//   fila       delegar um container ao cluster Kubernetes, e acompanhá-lo
 
 const modulos = {
   servidor: './servidor.js',
@@ -32,6 +33,7 @@ const modulos = {
   avisos: './avisos.js',
   app: './app.js',
   gpu: './gpu.js',
+  fila: './fila.js',
 };
 
 for (const [nome, caminho] of Object.entries(modulos)) {
