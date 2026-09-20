@@ -39,6 +39,10 @@ do campo na mensagem. Obrigatórios: `id`, `version`, `backend`.
 | [`icon`](#icon) | `string` | não |
 | [`category`](#category) | `string` | não |
 | [`description`](#description) | `string` | não |
+| [`developer`](#developer) | `object` | não |
+| [`publisher`](#publisher) | `object` | não |
+| [`homepage`](#homepage) | `string` | não |
+| [`license`](#license) | `string` | não |
 | [`handles`](#handles) | `string` ou `null` | não |
 | [`opens`](#opens) | `object` | não |
 | [`backend`](#backend) | `object` | sim |
@@ -427,6 +431,60 @@ usuário procura por FUNÇÃO.
 ## `description`
 
 `string`, opcional.
+
+## `developer`
+
+`object`, opcional, sem campo além dos listados.
+
+Quem fez o software que este app entrega. Para um app escrito para o VSSH é quem o escreveu; para um
+port (um Recoll, um Xpra) é o projeto original, e é esse nome que a loja mostra em 'por'. O campo é
+uma declaração do manifesto, e a loja o mostra como tal: quem de fato publicou cada versão é
+registro do repositório, e sai de lá.
+
+### `developer.name`
+
+`string`, obrigatório, comprimento mínimo 1.
+
+Como a loja escreve o nome: uma pessoa, um projeto ou uma organização.
+
+### `developer.url`
+
+`string`, opcional.
+
+Onde encontrar quem assina: o site do projeto, o perfil ou o repositório.
+
+## `publisher`
+
+`object`, opcional, sem campo além dos listados.
+
+Quem empacotou o software para o VSSH, quando difere de `developer`: a pessoa ou o grupo que fez o
+port e responde por ele. Sem este campo a loja entende que quem desenvolveu também empacotou. Com
+ele, a loja escreve 'portado por' ao lado de 'por'.
+
+### `publisher.name`
+
+`string`, obrigatório, comprimento mínimo 1.
+
+Como a loja escreve o nome: uma pessoa, um projeto ou uma organização.
+
+### `publisher.url`
+
+`string`, opcional.
+
+Onde encontrar quem assina: o site do projeto, o perfil ou o repositório.
+
+## `homepage`
+
+`string`, opcional.
+
+A página do app: documentação, site do projeto ou o repositório. A loja a mostra na ficha do app.
+
+## `license`
+
+`string`, opcional, comprimento mínimo 1.
+
+A licença do software, como identificador SPDX ('MIT', 'GPL-3.0-or-later', 'Apache-2.0'). Texto
+livre também passa; o identificador é o que a loja consegue ligar ao texto da licença.
 
 ## `handles`
 

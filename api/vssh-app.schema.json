@@ -290,6 +290,56 @@
     "description": {
       "type": "string"
     },
+    "developer": {
+      "type": "object",
+      "description": "Quem fez o software que este app entrega. Para um app escrito para o VSSH é quem o escreveu; para um port (um Recoll, um Xpra) é o projeto original, e é esse nome que a loja mostra em 'por'. O campo é uma declaração do manifesto, e a loja o mostra como tal: quem de fato publicou cada versão é registro do repositório, e sai de lá.",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Como a loja escreve o nome: uma pessoa, um projeto ou uma organização."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Onde encontrar quem assina: o site do projeto, o perfil ou o repositório."
+        }
+      }
+    },
+    "publisher": {
+      "type": "object",
+      "description": "Quem empacotou o software para o VSSH, quando difere de `developer`: a pessoa ou o grupo que fez o port e responde por ele. Sem este campo a loja entende que quem desenvolveu também empacotou. Com ele, a loja escreve 'portado por' ao lado de 'por'.",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Como a loja escreve o nome: uma pessoa, um projeto ou uma organização."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Onde encontrar quem assina: o site do projeto, o perfil ou o repositório."
+        }
+      }
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "description": "A página do app: documentação, site do projeto ou o repositório. A loja a mostra na ficha do app."
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A licença do software, como identificador SPDX ('MIT', 'GPL-3.0-or-later', 'Apache-2.0'). Texto livre também passa; o identificador é o que a loja consegue ligar ao texto da licença."
+    },
     "handles": {
       "type": [
         "string",
