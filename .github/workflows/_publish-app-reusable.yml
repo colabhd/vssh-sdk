@@ -42,6 +42,10 @@ on:
         description: 'Ref deste repositório de onde puxar o script de publish (precisa conter api/)'
         type: string
         default: 'main'
+      notes:
+        description: 'Notas de versão em markdown (o que mudou nesta versão), para a ficha do app na loja. Ex.: github.event.release.body'
+        type: string
+        default: ''
     secrets:
       publish_token:
         description: 'Token de publicação escopado (app:<id> ou kind:app)'
@@ -77,6 +81,9 @@ jobs:
         env:
           VSSH_REPO_API: ${{ inputs.repo_api }}
           VSSH_REPO_PUBLISH_TOKEN: ${{ secrets.publish_token }}
+          # Pelo ambiente, e não interpolado no `run`: o corpo de um release tem aspas, crases e
+          # cifrões, e qualquer um deles dentro do script viraria sintaxe.
+          VSSH_RELEASE_NOTES: ${{ inputs.notes }}
         run: |
           ARGS=()
           [ -n "${{ inputs.version }}" ] && ARGS+=(--version "${{ inputs.version }}")

@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 # vssh-app-publish: empacota um vssh-app e o publica no Worker do repositório.
 # Uso: vssh-app-publish <diretorio|git-url> [--version X] [--repo-api URL] [--token TOKEN] [--icon PATH]
+#                        [--notes TEXTO | --notes-file ARQUIVO]
 #
 # Lê VSSH_REPO_API e VSSH_REPO_PUBLISH_TOKEN do ambiente (ou das flags). Valida o vssh-app.json
 # contra `api/vssh-app.schema.json` deste repositório, empacota, confere o sha256 e faz
 # POST /v1/publish/app (e o ícone, se houver). Roda no CI do repositório do app, pelo
 # `_publish-app-reusable.yml`, e na máquina de quem desenvolve.
+#
+# As notas de versão (`--notes`, `--notes-file`, ou VSSH_RELEASE_NOTES no ambiente) são o que
+# mudou NESTA versão, em markdown, e vão para a ficha do app na loja. Um changelog inteiro não é
+# isso; o Worker recusa acima de 16 KiB.
 #
 # Empacotamento: quando a fonte é um repositório git, entram só os arquivos rastreados
 # (`git archive`), então um `vendor/` ou `node_modules` commitado viaja no tarball e o que o
@@ -16,12 +21,16 @@ set -euo pipefail
 SRC="" VERSION_OVERRIDE="" ICON_OVERRIDE=""
 REPO_API="${VSSH_REPO_API:-}"
 TOKEN="${VSSH_REPO_PUBLISH_TOKEN:-}"
+NOTES="${VSSH_RELEASE_NOTES:-}"
 while [ $# -gt 0 ]; do
   case "$1" in
-    --version)  VERSION_OVERRIDE="$2"; shift 2 ;;
-    --repo-api) REPO_API="$2"; shift 2 ;;
-    --token)    TOKEN="$2"; shift 2 ;;
-    --icon)     ICON_OVERRIDE="$2"; shift 2 ;;
+    --version)    VERSION_OVERRIDE="$2"; shift 2 ;;
+    --repo-api)   REPO_API="$2"; shift 2 ;;
+    --token)      TOKEN="$2"; shift 2 ;;
+    --icon)       ICON_OVERRIDE="$2"; shift 2 ;;
+    --notes)      NOTES="$2"; shift 2 ;;
+    --notes-file) [ -f "$2" ] || { echo "ERRO: --notes-file '$2' não existe." >&2; exit 1; }
+                  NOTES="$(cat "$2")"; shift 2 ;;
     -h|--help)  grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)          [ -z "${SRC}" ] && SRC="$1" || { echo "Argumento inesperado: $1" >&2; exit 1; }; shift ;;
   esac
@@ -231,7 +240,7 @@ if msv is not None and (not isinstance(msv, str) or not re.match(r'^[0-9]+(\.[0-
 # (id/runtime/entrypoint).
 #
 # Validador do subconjunto de JSON Schema que o arquivo usa (type, required, properties, enum,
-# pattern, items, minimum/maximum, additionalProperties:false). Sem dependência: este repositório
+# pattern, items, minimum/maximum, minLength, additionalProperties:false). Sem dependência: este repositório
 # não tem node_modules, e o script precisa rodar em qualquer runner.
 # "campo desconhecido: requiredPackage" está correto e não ajuda: quem publica olha para o próprio
 # manifesto, vê o campo escrito lá, e o erro parece dizer que o schema é que está velho. Nomear o
@@ -279,6 +288,8 @@ def _validate(node, schema, path='', errors=None):
         bad(f"valor inválido {node!r}; esperado um de {schema['enum']}")
     if isinstance(node, str) and 'pattern' in schema and not re.search(schema['pattern'], node):
         bad(f"{node!r} não casa com {schema['pattern']}")
+    if isinstance(node, str) and 'minLength' in schema and len(node) < schema['minLength']:
+        bad(f"vazio; precisa de ao menos {schema['minLength']} caractere(s)")
     if isinstance(node, int) and not isinstance(node, bool):
         if 'minimum' in schema and node < schema['minimum']: bad(f"{node} < mínimo {schema['minimum']}")
         if 'maximum' in schema and node > schema['maximum']: bad(f"{node} > máximo {schema['maximum']}")
@@ -402,8 +413,15 @@ MANIFEST_B64="$(base64 < "${MANIFEST}" | tr -d '\n')"
 BUILT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 echo "Publicando app ${APP_ID}@${VERSION} (${SHA256}, $(stat -c%s "${TARBALL}" 2>/dev/null || wc -c < "${TARBALL}") bytes)"
 
+# As notas vão em base64 num header, como o manifesto: um header não carrega quebra de linha, e
+# markdown é feito delas.
+NOTES_ARGS=()
+if [ -n "${NOTES}" ]; then
+  NOTES_ARGS=(-H "X-Vssh-Notes: $(printf '%s' "${NOTES}" | base64 | tr -d '\n')")
+fi
+
 # ── 4. POST do tarball ─────────────────────────────────────────────────────────
-curl -fsS -X POST "${REPO_API}/v1/publish/app" \
+RESPOSTA="$(curl -fsS -X POST "${REPO_API}/v1/publish/app" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/gzip" \
   -H "X-Vssh-App-Id: ${APP_ID}" \
@@ -413,8 +431,17 @@ curl -fsS -X POST "${REPO_API}/v1/publish/app" \
   -H "X-Vssh-Built-At: ${BUILT_AT}" \
   -H "X-Vssh-Sha256: ${SHA256}" \
   -H "X-Vssh-Manifest: ${MANIFEST_B64}" \
-  --data-binary "@${TARBALL}"
-echo
+  "${NOTES_ARGS[@]}" \
+  --data-binary "@${TARBALL}")"
+echo "${RESPOSTA}"
+# O Worker confere o manifesto contra o schema uma segunda vez, e diz quando não conseguiu ler o
+# schema. É a mesma situação do checkout sem `api/`: publicou, e alguém precisa saber que foi
+# sem o gate de lá.
+case "${RESPOSTA}" in
+  *'"schemaConferido": false'*|*'"schemaConferido":false'*)
+    anotar warning "Worker não conferiu o schema" \
+      "O repositório publicou ${APP_ID}@${VERSION} sem conseguir ler o schema do manifesto; valeu só a validação deste script." ;;
+esac
 
 # ── 5. Ícone (opcional) ────────────────────────────────────────────────────────
 ICON_PATH=""

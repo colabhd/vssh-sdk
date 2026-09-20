@@ -29,6 +29,15 @@ três primeiros movimentos:
    exclui só `.git`, `data`, `__pycache__` e `*.pyc`;
 3. calcula o `sha256`, faz `POST /v1/publish/app` e manda o ícone junto, se houver.
 
+O Worker confere o manifesto contra o mesmo schema uma segunda vez, e guarda de cada versão quem
+a publicou (o nome que o admin deu ao token) e quando. Os dois aparecem na ficha do app na loja.
+
+### Notas de versão
+
+O que mudou nesta versão, em markdown, para a ficha do app na loja: `--notes "texto"`,
+`--notes-file CHANGELOG-1.2.3.md`, ou a variável `VSSH_RELEASE_NOTES`. É o texto de uma versão,
+e não o changelog inteiro; o Worker recusa acima de 16 KiB. Sem notas a versão entra sem elas.
+
 Por CI, o repositório do app chama o reusable workflow deste repositório, sem PAT, porque ele é
 público:
 
@@ -44,11 +53,13 @@ jobs:
       app_dir: "."
       repo_api: "https://vssh-repo.colabh.org"
       version: "1.0.${{ github.run_number }}"
+      notes: ${{ github.event.head_commit.message }}
     secrets:
       publish_token: ${{ secrets.VSSH_REPO_PUBLISH_TOKEN }}
 ```
 
-Push em `main` publica. O `version` do workflow reescreve o do manifesto dentro do pacote, e a
+Push em `main` publica. O `notes` é opcional; num workflow disparado por release,
+`${{ github.event.release.body }}` é o texto que a pessoa escreveu na página do release. O `version` do workflow reescreve o do manifesto dentro do pacote, e a
 instalação é idempotente por versão, então auto-versionar pelo número do run é seguro.
 
 À mão, sem CI:
@@ -56,7 +67,7 @@ instalação é idempotente por versão, então auto-versionar pelo número do r
 ```bash
 export VSSH_REPO_API="https://vssh-repo.colabh.org"
 export VSSH_REPO_PUBLISH_TOKEN="vsshp_..."
-bash scripts/vssh-app-publish ~/meu-app --version 1.2.3
+bash scripts/vssh-app-publish ~/meu-app --version 1.2.3 --notes-file notas-1.2.3.md
 ```
 
 ## Por que `main`
