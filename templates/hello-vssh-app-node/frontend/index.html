@@ -135,9 +135,9 @@
           "não existe". É por isso que ele aparece <em>junto</em> da decisão, e nunca no lugar
           dela. Fora do lançador não há registro, e a peça diz isso.</li>
         <li><strong>Cofre</strong> — o app declara o <em>nome</em> (<code>HELLO_SEGREDO</code>); o
-          valor você guarda em <strong>Configurações → Segredos</strong>, e ele mora no
-          <em>seu</em> servidor, não no portal. Depois de guardar,
-          <strong>reinicie o app</strong>: o ambiente de um processo é fixado no start.</li>
+          valor você guarda pelo botão abaixo, e ele mora no <em>seu</em> servidor, não no
+          portal. Depois de guardar, <strong>reinicie o app</strong>: o ambiente de um processo é
+          fixado no start.</li>
       </ul>
       <div class="tuff-acoes">
         <button class="tuff-btn" id="runtime">ler api/runtime</button>
@@ -162,8 +162,8 @@
         <strong>O segredo se guarda AQUI, no app</strong> — não em Configurações. É o app que sabe
         que falta credencial, e sabe na hora exata em que ela falta. O botão chama
         <code>vssh.segredos.pedir()</code>: o campo é do desktop, o valor vai direto para o seu
-        servidor, e o app <em>nunca o toca</em> — nem no envio, nem na volta. Em Configurações →
-        Cofre você confere o que já está guardado.
+        servidor, e o app <em>nunca o toca</em> — nem no envio, nem na volta. No Chaveiro, a
+        janela do ambiente, você confere, troca e apaga o que já está guardado.
       </p>
     </section>
 
@@ -590,6 +590,35 @@
         <button class="tuff-btn" id="rota-limpar">esquecer</button>
       </div>
       <pre class="saida" id="rota">—</pre>
+    </section>
+
+    <section class="tuff-painel larga">
+      <h2>A seção deste app em Configurações</h2>
+      <p class="tuff-sec-desc">
+        <code>configuracoes.js</code> registra uma seção em Configurações do ambiente
+        (<code>contributes.settings</code> no manifesto). Este template a declara opcional
+        (<code>contributes.settingsOptIn</code>): a seção só aparece para quem a ligar aqui, com
+        <code>vssh.configuracoes.ligar()</code>, e a escolha acompanha a pessoa em qualquer
+        servidor. Um app cuja seção é preferência de quem o usa não declara nada, e ela existe
+        sempre.
+      </p>
+      <div class="tuff-grupo">
+        <div class="tuff-linha">
+          <div class="tuff-linha-corpo">
+            <div class="tuff-linha-titulo">Mostrar em Configurações</div>
+            <div class="tuff-linha-desc" id="secao-estado">—</div>
+          </div>
+          <div class="tuff-linha-ctrl">
+            <label class="tuff-switch">
+              <input type="checkbox" id="secao-ligar" aria-label="Mostrar a seção deste app em Configurações">
+              <span class="tuff-switch-trilho"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="tuff-acoes">
+        <button class="tuff-btn" id="secao-abrir">abrir em Configurações</button>
+      </div>
     </section>
 
     <section class="tuff-painel">

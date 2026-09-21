@@ -4,7 +4,6 @@
   "version": "5.0.0",
   "icon": "icon.svg",
   "category": "Utility",
-  "optIn": true,
   "developer": { "name": "colabhd", "url": "https://github.com/colabhd" },
   "license": "MIT",
   "description": "Template de vssh-app com backend Node e galeria das capacidades do ambiente — ponte com o desktop, File System Access, bandeja, som, impressão, duas janelas sobre um backend só, e o que o ambiente decide por um app: limite de recurso, GPU, cofre de segredos e a fila de processamento no cluster.",
@@ -34,6 +33,7 @@
   "handles": "editor",
   "contributes": {
     "settings": "configuracoes.js",
+    "settingsOptIn": true,
     "contextMenu": [
       {
         "id": "painel",

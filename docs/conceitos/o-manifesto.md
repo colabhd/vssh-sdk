@@ -28,7 +28,6 @@ nenhum `id` no código.
 | `version` | semver, obrigatório. A instalação pelo repositório é idempotente por versão: mesma versão instalada, nada acontece; versão diferente é atualização |
 | `name`, `description`, `icon` | o que a pessoa vê no menu e na loja. `icon` é caminho relativo à raiz do pacote |
 | `category` | a seção do menu iniciar e do launchpad, no vocabulário do menu freedesktop (`Development`, `Office`, `Utility`, `System`). Sem ela o app cai em `Other` |
-| `optIn` | `true` diz "não sou para todos": o app fica instalado e supervisionado como qualquer outro, e não aparece a ninguém (menu iniciar, launchpad, "Abrir com", Configurações) até a pessoa ligá-lo em Configurações, na seção Aplicativos opcionais. É para o app que existe no servidor por outro motivo que não o uso geral: os dois templates Hello World o declaram. O padrão é `false` |
 | `developer`, `publisher`, `homepage`, `license` | a autoria, para a ficha do app na loja. `developer` é quem fez o software (num port, o projeto original); `publisher` é quem empacotou para o VSSH, só quando difere; os dois são `{ "name", "url" }`. `homepage` é a página do app e `license` o identificador SPDX. Quem de fato publicou cada versão é registro do repositório, e a loja o mostra ao lado |
 
 ### Dois eixos: `type` e `kind`
@@ -77,7 +76,11 @@ ao app, que passa a responder pelos gestos dela. `type: engine` ignora o bloco i
 
 - `contributes.settings` é um caminho de script que registra uma seção em Configurações. O script
   roda na origem do shell, com a confiança do shell, e carrega quando a janela de Configurações
-  abre, não no boot;
+  abre, não no boot. `contributes.settingsOptIn: true` deixa a seção esperando um gesto: ela só
+  aparece para quem a ligar de dentro do app, por `vssh.configuracoes.ligar(true)` (`ligada()`
+  lê o estado, `abrir()` leva até ela), e a escolha acompanha a pessoa. É para a seção que é
+  exemplo ou ferramenta, e não preferência de quem usa o app; os dois templates Hello World
+  declaram, e o app em si continua no menu iniciar como qualquer outro;
 - `contributes.contextMenu` é dado: itens no clique direito de um arquivo, de uma pasta, da área
   de trabalho ou do ícone do app (a jump list). O app declara; quem monta, ordena e executa é o
   shell. Teto de 8 itens por app, rótulo de até 48 caracteres, `ordem` medida contra os itens do

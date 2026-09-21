@@ -262,6 +262,39 @@ function montarGaleria() {
     finally { b.disabled = false; b.textContent = antes; }
   });
 
+  // A seção deste app em Configurações. O manifesto a declara opcional (`settingsOptIn`), então
+  // ela só existe para quem a ligar aqui: `ligada()` lê o estado, `ligar()` grava a escolha (por
+  // usuário, e ela acompanha a pessoa), e `abrir()` leva a Configurações na seção. Num app que
+  // não declara, `ligada()` responde `{ ligada: true, opcional: false }`, e o interruptor não
+  // teria o que fazer.
+  const secaoEstado = $('secao-estado');
+  const secaoLigar = $('secao-ligar');
+  const pintarSecao = (r) => {
+    if (r === null) {
+      secaoLigar.disabled = true;
+      secaoEstado.textContent = 'sem ponte com o ambiente (dev local).';
+      return;
+    }
+    secaoLigar.checked = r.ligada;
+    secaoLigar.disabled = !r.opcional;
+    secaoEstado.textContent = r.opcional
+      ? (r.ligada ? 'ligada: a seção está na lateral de Configurações.' : 'desligada: Configurações não a lista.')
+      : 'este app não declara settingsOptIn: a seção existe sempre.';
+  };
+  if (window.vssh?.configuracoes) vssh.configuracoes.ligada().then(pintarSecao).catch(() => pintarSecao(null));
+  else pintarSecao(null);
+  secaoLigar.addEventListener('change', async () => {
+    try { pintarSecao(await vssh.configuracoes.ligar(secaoLigar.checked)); }
+    catch (e) { secaoEstado.textContent = String(e?.message || e); }
+  });
+  $('secao-abrir').addEventListener('click', async () => {
+    if (!window.vssh?.configuracoes) return pintarSecao(null);
+    try {
+      const r = await vssh.configuracoes.abrir();
+      secaoEstado.textContent = r?.secao ? `aberta em Configurações, na seção ${r.secao}.` : 'Configurações abriu no índice: a seção está desligada.';
+    } catch (e) { secaoEstado.textContent = String(e?.message || e); }
+  });
+
   // O segredo, pedido de dentro do app. É a correção de desenho: quem sabe que falta credencial, e
   // sabe na hora em que falta, é o app, e não a tela de Configurações. O valor não passa por aqui:
   // `pedir` abre o campo de senha do ambiente, grava no servidor e responde só os nomes.
