@@ -44,7 +44,7 @@ O diretório é `0700`, do usuário. O que há nele, e quem escreve cada coisa:
 | arquivo | quem escreve | o que é |
 |---|---|---|
 | `env` | o portal, a cada start | `VSSH_APP_TOKEN`, `VSSH_APP_BASE_PATH`, as preferências do portal e, para um app com `recursos.fila`, `VSSH_PORTAL_URL` e `VSSH_PORTAL_TOKEN`. Existir é o estado desejado "rodando": o supervisor relança um app que tem `env` e caiu, e o `stop` apaga o arquivo |
-| `secrets.json` | o portal, quando a pessoa grava uma credencial | o cofre: um objeto nome/valor, `0600`, carregado depois do `env`, e um nome que colida vence a preferência do portal. O app pede uma credencial por `vssh.segredos.pedir`, e o valor nunca passa por ele |
+| `secrets.json` | o agente do sistema, quando a pessoa grava uma credencial | o cofre: um objeto nome/valor, `0600`, carregado depois do `env`, e um nome que colida vence a preferência do portal. Ao lado, `secrets.meta.json` guarda quando cada nome foi gravado, e é o que o Chaveiro mostra como data. O app pede uma credencial por `vssh.segredos.pedir`, e o valor nunca passa por ele |
 | `app.sock` | o backend | o socket unix em que ele escuta, `0600`. O arquivo sobrevive ao processo; quem limpa o órfão é o lançador, depois de tentar conectar |
 | `data/` | o backend | `VSSH_APP_DATA_DIR`: o que não pode se perder. O `app.log` de `vssh.servidor.criar_log` mora aqui |
 | `run.pid` | o lançador, logo antes do `exec` | o PID do processo; a liveness que o portal e o supervisor conferem, junto do `VSSH_APP_ID` no `environ` dele |

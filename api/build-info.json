@@ -2,7 +2,7 @@
   "shellVersion": "5.0.0-rc0",
   "artifacts": {
     "api/abi.json": {
-      "sha256": "aefe5cb4df4c334aba8cf7c8a03f1717e573566de69b6208a46eb8e8d6be3365"
+      "sha256": "4bca70770cfaff7da15b27d2466e2024bb64841102941e0d54ea8a783ae50ce6"
     },
     "api/electron.js": {
       "sha256": "802402efad47701fd6b50d90404fd04aae3b477820a720224ddd8ed3fa148269"
@@ -26,7 +26,7 @@
       "sha256": "e17babd26529d20b7d59cb9c983566d30aade025def7325e754f4a85dae046df"
     },
     "api/tuff/tuff-icones.js": {
-      "sha256": "56c91b31b8b8a13a5cb3c7dbeefe00765f276398cfeaa77b9c6bf6a812cd1535"
+      "sha256": "bc818d6c5ff5440085f1d79d29e57f9abd509d3264e763581d9f37ee26bba42c"
     },
     "api/tuff/tuff-midia.css": {
       "sha256": "afe01b05ee0d8ba2bb0164b8988114dc69dea837c801f6f6c509919a6ceaaaac"
@@ -44,19 +44,19 @@
       "sha256": "01cc5ffbb59fbd94615dcef470ca6972278653089a84a8af7b94faa3a40297d4"
     },
     "api/vssh-app.schema.json": {
-      "sha256": "367641a46953b26b0c1f6f46b45083b8c2c77c378567b1529334ba55649f3507"
+      "sha256": "2920fad59b3ae738428e53693dc6e225c27c3ce1d6483f18fdeddc0b8f858fb5"
     },
     "api/vssh.d.ts": {
-      "sha256": "b63707cba1e222f45a9134b3253940de57bc161fdf7b415c3e2911acba20dabd"
+      "sha256": "7e08682224869e1bca53b7134c8180d48b31bea4973094706927fd23ba6ddcf6"
     },
     "api/vssh.js": {
-      "sha256": "97eb2d85b88bb63c00920a6f50a7cf3d857d0ddf3a3f675c43085880d452f8d0"
+      "sha256": "dd71eacb9a3360b23057434dfab0497ac6e442d870424f8b47c9317100d63d8c"
     },
     "docs/referencia/README.md": {
-      "sha256": "72f7418c00d43ca0cfe54c73cd21bcad2be248e4647255f0f72eba0b611143aa"
+      "sha256": "ae4016122d66e4ffc0b1feb06bd04582f70776ca6bfe8c78b934f01d131582ea"
     },
     "docs/referencia/ambiente.md": {
-      "sha256": "651e91e334eeb6d9a36082f2445213400a7d3bc84a5000f4ee5f81f0aa0d90cc"
+      "sha256": "593da303907e106431d8f7121f0219a0a3ddf19d26ca5acebf1888a9370856e2"
     },
     "docs/referencia/app.md": {
       "sha256": "063a04d3ca07ae8fdccab180884b94886d9f5cd325546cf766c28aa50a3864c3"
@@ -80,13 +80,13 @@
       "sha256": "72df24420240c6de566ffd23805f453e5e5ca1bd483dca404a660c96f3aa6a48"
     },
     "docs/referencia/manifesto.md": {
-      "sha256": "f08b794523cf6e0c6f633f9bdc46a9e79188dd16ce20df517ed364614137ee86"
+      "sha256": "da960ec8f5c13f82ea6af8e22661de957ddff69f1415649d3c6c213d6250f704"
     },
     "docs/referencia/midia.md": {
       "sha256": "189b0de451e02e02c80829dc3c5dd844a0a4d0648a57b1c3514a8faae8a05015"
     },
     "docs/referencia/segredos.md": {
-      "sha256": "40cc3edb61888c0ee165eb13a98c84f0fe866fff9f38bed21f094d711f7e6ff2"
+      "sha256": "9833abbc96dd9f0b422342a7e113966ce2b94612cb9fdd8cb25ad2865d4ec159"
     },
     "runtime/README.md": {
       "sha256": "3e922bb272ece2d510a4599142915c5956dcb2ec99213739bfeb541e67c683c1"

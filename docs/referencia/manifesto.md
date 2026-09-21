@@ -37,6 +37,7 @@ do campo na mensagem. Obrigatórios: `id`, `version`, `backend`.
 | [`gpu`](#gpu) | `boolean` | não |
 | [`secrets`](#secrets) | `array` de `object` | não |
 | [`icon`](#icon) | `string` | não |
+| [`optIn`](#optin) | `boolean` | não |
 | [`category`](#category) | `string` | não |
 | [`description`](#description) | `string` | não |
 | [`developer`](#developer) | `object` | não |
@@ -417,6 +418,17 @@ quem sabe degradar é o app.
 `string`, opcional.
 
 Caminho relativo à raiz do pacote (.svg/.png/.jpg).
+
+## `optIn`
+
+`boolean`, opcional, padrão `false`.
+
+Um app que declara `true` não aparece a ninguém até a pessoa ligá-lo em Configurações (Aplicativos
+opcionais): fora do menu iniciar, do Launchpad, de 'Abrir com', do menu de contexto e das seções de
+Configurações que ele contribui. É para o app que existe no servidor por outro motivo que não o uso
+de todos: um template de demonstração do SDK, uma ferramenta de quem escreve apps. Uma vez ligado,
+ele é um app como qualquer outro. O padrão é `false`, e a preferência é por usuário: o app continua
+instalado e supervisionado do mesmo jeito.
 
 ## `category`
 

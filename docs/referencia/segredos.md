@@ -4,7 +4,8 @@
 > do sistema. Uma mudança se faz na fonte, `vssh-client/js/app/abi.js` do `vssh-sso`.
 
 O cofre: o app pede uma credencial pelo nome, o shell mostra o campo e grava, e o valor nunca passa
-pelo app.
+pelo app. A pessoa confere, troca e apaga o que guardou no Chaveiro, a janela do ambiente que lista
+as credenciais de todo app.
 
 ## Verbos
 

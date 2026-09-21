@@ -283,6 +283,12 @@
       "type": "string",
       "description": "Caminho relativo à raiz do pacote (.svg/.png/.jpg)."
     },
+    "optIn": {
+      "type": "boolean",
+      "default": false,
+      "description": "Um app que declara `true` não aparece a ninguém até a pessoa ligá-lo em Configurações (Aplicativos opcionais): fora do menu iniciar, do Launchpad, de 'Abrir com', do menu de contexto e das seções de Configurações que ele contribui. É para o app que existe no servidor por outro motivo que não o uso de todos: um template de demonstração do SDK, uma ferramenta de quem escreve apps. Uma vez ligado, ele é um app como qualquer outro. O padrão é `false`, e a preferência é por usuário: o app continua instalado e supervisionado do mesmo jeito.",
+      "examples": [true]
+    },
     "category": {
       "type": "string",
       "description": "A seção do Start Menu/Launchpad onde este app aparece — use o nome de categoria do menu freedesktop ('Development', 'Office', 'Graphics', 'Utility', 'System'…) para cair junto do que faz a mesma coisa. Quem não declara cai em 'Other'. O agrupamento é por este campo e nada mais: não há seção de 'apps integrados' que recolha vssh-app por ser vssh-app, porque isso separa por PROCEDÊNCIA o que o usuário procura por FUNÇÃO."

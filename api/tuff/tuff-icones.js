@@ -170,7 +170,9 @@
   'cpu':
     '<symbol id="ico-cpu" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4.5" width="7" height="7" rx="1"/><path d="M6.5 2v2.5M9.5 2v2.5M6.5 11.5V14M9.5 11.5V14M2 6.5h2.5M2 9.5h2.5M11.5 6.5H14M11.5 9.5H14"/></symbol>',
 
-  // A seção de Segredos, em Configurações.
+  // O Chaveiro: uma credencial de app é uma chave; a seção de atalho em Configurações usa o escudo.
+  'key':
+    '<symbol id="ico-key" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.25" cy="10.75" r="3"/><path d="M7.4 8.6 13.5 2.5M11 5l2 2M9.25 6.75l2 2"/></symbol>',
   'shield':
     '<symbol id="ico-shield" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.75 13 3.5v4.25c0 3-2.1 5.4-5 6.5-2.9-1.1-5-3.5-5-6.5V3.5L8 1.75z"/></symbol>',
   'bar-bottom':

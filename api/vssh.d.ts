@@ -397,7 +397,8 @@ declare namespace vssh {
 
   /**
    * O cofre: o app pede uma credencial pelo nome, o shell mostra o campo e grava, e o valor nunca
-   * passa pelo app.
+   * passa pelo app. A pessoa confere, troca e apaga o que guardou no Chaveiro, a janela do ambiente
+   * que lista as credenciais de todo app.
    */
   namespace segredos {
     /** Os nomes guardados para este app, em `names`. Só os nomes: o cofre não devolve valor. */
