@@ -37,7 +37,6 @@ do campo na mensagem. Obrigatórios: `id`, `version`, `backend`.
 | [`gpu`](#gpu) | `boolean` | não |
 | [`secrets`](#secrets) | `array` de `object` | não |
 | [`icon`](#icon) | `string` | não |
-| [`optIn`](#optin) | `boolean` | não |
 | [`category`](#category) | `string` | não |
 | [`description`](#description) | `string` | não |
 | [`developer`](#developer) | `object` | não |
@@ -160,6 +159,18 @@ Caminho, relativo à raiz do PACOTE, de um script que registra uma seção em Co
 que ninguém configura não custa nada, e o ambiente não passa a depender de N apps para subir.
 ATENÇÃO ao que isto concede: o script roda na origem do shell, com a confiança do shell. O portão é
 o mesmo do resto do modelo — quem pode rodar `vssh-app-install`.
+
+### `contributes.settingsOptIn`
+
+`boolean`, opcional, padrão `false`.
+
+A seção que `settings` traz só aparece em Configurações depois que a pessoa a liga de dentro do app,
+por `vssh.configuracoes.ligar(true)`; `vssh.configuracoes.ligada()` diz o estado, e
+`vssh.configuracoes.abrir()` abre a seção. É para o app cuja seção é exemplo ou ferramenta de quem
+escreve apps, e não preferência de quem o usa: os dois templates Hello World declaram. O app
+continua no menu iniciar, no Launchpad e em "Abrir com" como qualquer outro; só a seção espera o
+gesto. A escolha fica em `secoesDeApps`, por usuário, e acompanha a pessoa. Sem `settings`, não faz
+nada.
 
 ### `contributes.contextMenu`
 
@@ -418,17 +429,6 @@ quem sabe degradar é o app.
 `string`, opcional.
 
 Caminho relativo à raiz do pacote (.svg/.png/.jpg).
-
-## `optIn`
-
-`boolean`, opcional, padrão `false`.
-
-Um app que declara `true` não aparece a ninguém até a pessoa ligá-lo em Configurações (Aplicativos
-opcionais): fora do menu iniciar, do Launchpad, de 'Abrir com', do menu de contexto e das seções de
-Configurações que ele contribui. É para o app que existe no servidor por outro motivo que não o uso
-de todos: um template de demonstração do SDK, uma ferramenta de quem escreve apps. Uma vez ligado,
-ele é um app como qualquer outro. O padrão é `false`, e a preferência é por usuário: o app continua
-instalado e supervisionado do mesmo jeito.
 
 ## `category`
 

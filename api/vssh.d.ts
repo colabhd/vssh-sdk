@@ -423,6 +423,35 @@ declare namespace vssh {
   }
 
   /**
+   * A seção que o app traz a Configurações do ambiente (`contributes.settings`). Um app que a
+   * declara opcional (`contributes.settingsOptIn`) a liga e desliga daqui, de dentro dele; a
+   * escolha é por usuário e acompanha a pessoa.
+   */
+  namespace configuracoes {
+    /**
+     * Se a seção deste app aparece em Configurações, em `ligada`, e se ela é opcional, em
+     * `opcional`. Um app sem `settingsOptIn` lê `ligada: true` sempre.
+     */
+    function ligada(): Promise<unknown>;
+    /**
+     * Liga (`true`) ou desliga (`false`) a seção deste app em Configurações, e responde o mesmo que
+     * `ligada`. Só faz efeito num app com `settingsOptIn`; nos outros a seção existe sempre, e a
+     * resposta diz isso.
+     */
+    function ligar(ligado: boolean): Promise<unknown>;
+    /**
+     * Abre Configurações na seção deste app. Com a seção desligada, ou antes de ela ter sido
+     * carregada, abre Configurações no índice; a resposta traz em `secao` o id da seção aberta, ou
+     * `null`.
+     */
+    function abrir(): Promise<unknown>;
+
+    /** Este espaço não declara eventos: `ao` não aceita nome nenhum. */
+    interface Eventos {}
+    function ao<E extends keyof Eventos>(evento: E, cb: (dados: Eventos[E]) => void): () => void;
+  }
+
+  /**
    * O que o app está tocando, o transporte que ele sabe fazer e o volume que o usuário deixou para
    * ele.
    */

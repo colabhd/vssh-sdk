@@ -240,6 +240,8 @@
   };
   EVENTOS.segredos = {
   };
+  EVENTOS.configuracoes = {
+  };
   EVENTOS.midia = {
     // O volume que o mixer do ambiente aplica a este app, de 0 a 1, com o mudo à parte. Chega no load da janela e a cada mexida no mixer. O SDK já o aplica à mídia e ao GainNode do app; um app só lê isto para desenhar o próprio controle.
     volume: ['volume', { ganho: 'gain', mudo: 'muted' }],
@@ -395,6 +397,18 @@
     apagar: (nome) => ponte.chamar('segredos.apagar', { type: 'secrets', op: 'del', nome: nome }, 5000),
     // Este espaço não declara eventos: qualquer nome aqui é recusado.
     ao: (evento, cb) => ponte.escutar('segredos', evento, cb),
+  };
+
+  // ── configuracoes: A seção que o app traz a Configurações do ambiente (`contributes.settings`). Um app que a declara opcional (`contributes.settingsOptIn`) a liga e desliga daqui, de dentro dele; a escolha é por usuário e acompanha a pessoa.
+  vssh.configuracoes = {
+    // Se a seção deste app aparece em Configurações, em `ligada`, e se ela é opcional, em `opcional`. Um app sem `settingsOptIn` lê `ligada: true` sempre.
+    ligada: () => ponte.chamar('configuracoes.ligada', { type: 'settings-section', op: 'get' }, 5000),
+    // Liga (`true`) ou desliga (`false`) a seção deste app em Configurações, e responde o mesmo que `ligada`. Só faz efeito num app com `settingsOptIn`; nos outros a seção existe sempre, e a resposta diz isso.
+    ligar: (ligado) => ponte.chamar('configuracoes.ligar', { type: 'settings-section', op: 'set', ligado: ligado }, 5000),
+    // Abre Configurações na seção deste app. Com a seção desligada, ou antes de ela ter sido carregada, abre Configurações no índice; a resposta traz em `secao` o id da seção aberta, ou `null`.
+    abrir: () => ponte.chamar('configuracoes.abrir', { type: 'settings-section', op: 'open' }, 5000),
+    // Este espaço não declara eventos: qualquer nome aqui é recusado.
+    ao: (evento, cb) => ponte.escutar('configuracoes', evento, cb),
   };
 
   // ── midia: O que o app está tocando, o transporte que ele sabe fazer e o volume que o usuário deixou para ele.

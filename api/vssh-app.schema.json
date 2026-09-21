@@ -90,6 +90,12 @@
           "pattern": "^[A-Za-z0-9][A-Za-z0-9/._-]*\\.js$",
           "description": "Caminho, relativo à raiz do PACOTE, de um script que registra uma seção em Configurações (`SettingsRegistry.register`). Carregado quando a janela de Configurações abre — não no boot: um app que ninguém configura não custa nada, e o ambiente não passa a depender de N apps para subir. ATENÇÃO ao que isto concede: o script roda na origem do shell, com a confiança do shell. O portão é o mesmo do resto do modelo — quem pode rodar `vssh-app-install`."
         },
+        "settingsOptIn": {
+          "type": "boolean",
+          "default": false,
+          "description": "A seção que `settings` traz só aparece em Configurações depois que a pessoa a liga de dentro do app, por `vssh.configuracoes.ligar(true)`; `vssh.configuracoes.ligada()` diz o estado, e `vssh.configuracoes.abrir()` abre a seção. É para o app cuja seção é exemplo ou ferramenta de quem escreve apps, e não preferência de quem o usa: os dois templates Hello World declaram. O app continua no menu iniciar, no Launchpad e em \"Abrir com\" como qualquer outro; só a seção espera o gesto. A escolha fica em `secoesDeApps`, por usuário, e acompanha a pessoa. Sem `settings`, não faz nada.",
+          "examples": [true]
+        },
         "contextMenu": {
           "type": "array",
           "maxItems": 8,
@@ -282,12 +288,6 @@
     "icon": {
       "type": "string",
       "description": "Caminho relativo à raiz do pacote (.svg/.png/.jpg)."
-    },
-    "optIn": {
-      "type": "boolean",
-      "default": false,
-      "description": "Um app que declara `true` não aparece a ninguém até a pessoa ligá-lo em Configurações (Aplicativos opcionais): fora do menu iniciar, do Launchpad, de 'Abrir com', do menu de contexto e das seções de Configurações que ele contribui. É para o app que existe no servidor por outro motivo que não o uso de todos: um template de demonstração do SDK, uma ferramenta de quem escreve apps. Uma vez ligado, ele é um app como qualquer outro. O padrão é `false`, e a preferência é por usuário: o app continua instalado e supervisionado do mesmo jeito.",
-      "examples": [true]
     },
     "category": {
       "type": "string",
