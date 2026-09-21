@@ -28,6 +28,7 @@ nenhum `id` no código.
 | `version` | semver, obrigatório. A instalação pelo repositório é idempotente por versão: mesma versão instalada, nada acontece; versão diferente é atualização |
 | `name`, `description`, `icon` | o que a pessoa vê no menu e na loja. `icon` é caminho relativo à raiz do pacote |
 | `category` | a seção do menu iniciar e do launchpad, no vocabulário do menu freedesktop (`Development`, `Office`, `Utility`, `System`). Sem ela o app cai em `Other` |
+| `optIn` | `true` diz "não sou para todos": o app fica instalado e supervisionado como qualquer outro, e não aparece a ninguém (menu iniciar, launchpad, "Abrir com", Configurações) até a pessoa ligá-lo em Configurações, na seção Aplicativos opcionais. É para o app que existe no servidor por outro motivo que não o uso geral: os dois templates Hello World o declaram. O padrão é `false` |
 | `developer`, `publisher`, `homepage`, `license` | a autoria, para a ficha do app na loja. `developer` é quem fez o software (num port, o projeto original); `publisher` é quem empacotou para o VSSH, só quando difere; os dois são `{ "name", "url" }`. `homepage` é a página do app e `license` o identificador SPDX. Quem de fato publicou cada versão é registro do repositório, e a loja o mostra ao lado |
 
 ### Dois eixos: `type` e `kind`
