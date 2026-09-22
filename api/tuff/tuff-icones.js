@@ -67,6 +67,8 @@
     '<symbol id="ico-search" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4.5"/><path d="M11 11L14.5 14.5"/></symbol>',
   'refresh':
     '<symbol id="ico-refresh" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 7A6 6 0 1 1 10.5 2.5"/><path d="M10.5 1V4H14"/></symbol>',
+  'cut':
+    '<symbol id="ico-cut" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="4.5" cy="11.5" r="2"/><circle cx="11.5" cy="11.5" r="2"/><path d="M6 10 12.5 2.5M10 10 3.5 2.5"/></symbol>',
   'copy':
     '<symbol id="ico-copy" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="8" height="9" rx="1"/><path d="M6 5V3.5A1.5 1.5 0 0 1 7.5 2H12.5A1.5 1.5 0 0 1 14 3.5v6A1.5 1.5 0 0 1 12.5 11H10"/></symbol>',
   'paste':
