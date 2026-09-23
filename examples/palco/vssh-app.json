@@ -1,13 +1,18 @@
 {
   "id": "palco",
   "name": "Palco",
-  "version": "0.1.0",
+  "version": "5.0.0",
   "icon": "icon.svg",
   "category": "AudioVideo",
-  "description": "O player do ambiente. Toca o que está no servidor — inclusive o que o navegador não abre sozinho —, decidindo por arquivo se ele sai direto, reembalado ou convertido, com base no que ESTA máquina consegue tocar. Faixas de áudio e legendas selecionáveis, retomar de onde parou, próximo da pasta, janela flutuante e as teclas de mídia do sistema.",
+  "developer": { "name": "colabhd", "url": "https://github.com/colabhd" },
+  "license": "MIT",
+  "description": "O player de vídeo e música do ambiente. Toca o arquivo aberto no gerenciador de arquivos e segue pela pasta, continuando de onde você parou. Quando o navegador não abre um formato sozinho, como AVI ou áudio AC3, o servidor o converte enquanto ele toca. Troca a faixa de áudio e a legenda, e mostra a capa das músicas.",
   "requiredPackages": [
     "ffmpeg"
   ],
+  "recursos": {
+    "gpu": { "modo": "opcional" }
+  },
   "resources": {
     "memoryMax": "1G",
     "tasksMax": "128"
@@ -22,9 +27,6 @@
       "video/mpeg", "video/ogg", "video/x-ms-wmv", "video/x-flv", "video/mp2t",
       "audio/mpeg", "audio/mp4", "audio/flac", "audio/wav", "audio/ogg", "audio/aac",
       "audio/x-ms-wma", "audio/x-matroska"
-    ],
-    "urls": [
-      "youtube.com", "*.youtube.com", "youtu.be", "youtube-nocookie.com"
     ]
   },
   "minShellVersion": "5.0.0",
@@ -32,14 +34,14 @@
     "runtime": "python3",
     "transport": "socket",
     "entrypoint": "backend/main.py",
-    "installCommand": "( [ \"${VSSH_APP_REBUILD:-}\" != 1 ] && test -d vendor/py ) || python3 -m pip install --no-cache-dir --target vendor/py \"https://github.com/colabhd/vssh-app-toolkit/archive/refs/tags/v4.tar.gz\" yt-dlp",
-    "healthcheckPath": "/healthz",
+    "healthcheckPath": "/saude",
     "aoFechar": "encerrar"
   },
   "window": {
     "title": "Palco",
-    "width": 1000,
-    "height": 660,
+    "width": 960,
+    "height": 600,
+    "minimos": { "largura": 480, "altura": 320 },
     "multiplasJanelas": true
   }
 }

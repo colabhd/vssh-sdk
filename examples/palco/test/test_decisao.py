@@ -249,6 +249,37 @@ class TestMusica(unittest.TestCase):
         self.assertIsNone(s.video)
         d = decidir(s, CHROME)
         self.assertEqual((d.modo, d.video), ("direto", "nenhum"))
+        # A capa vira o que ela é, e é por ela que a tela da música tem imagem.
+        self.assertEqual(s.capa, 0)
+
+    def test_as_etiquetas_vem_do_format_ou_do_stream_conforme_o_container(self):
+        # MP3 guarda as etiquetas no `format`; Opus e Ogg guardam no stream de áudio (comentários
+        # Vorbis), em maiúsculas. As duas formas chegam à tela iguais.
+        mp3 = ffprobe("mp3", [audio("mp3", indice=0)], duracao="212.5")
+        mp3["format"]["tags"] = {"title": "Asa Branca", "artist": "Luiz Gonzaga",
+                                 "album": "Asa Branca (1947)"}
+        self.assertEqual(sondar(mp3, "asa.mp3").etiquetas,
+                         {"titulo": "Asa Branca", "artista": "Luiz Gonzaga",
+                          "album": "Asa Branca (1947)"})
+
+        opus = ffprobe("ogg", [audio("opus", indice=0, tags={"TITLE": "Carinhoso",
+                                                              "ARTIST": "Pixinguinha"})])
+        self.assertEqual(sondar(opus, "carinhoso.opus").etiquetas,
+                         {"titulo": "Carinhoso", "artista": "Pixinguinha"})
+
+    def test_um_video_se_chama_pelo_NOME_do_arquivo(self):
+        # Um MKV nomeia as faixas de áudio ("Original", "Comentários") no stream, e o título do
+        # `format` costuma ser o de quem codificou. Lido como etiqueta, o episódio apareceria na
+        # tela como "Original".
+        mkv = ffprobe("matroska,webm", [video("h264"), audio("ac3", tags={"title": "Original"})])
+        mkv["format"]["tags"] = {"title": "Serie.S01E10.1080p.x264-GRUPO"}
+        self.assertEqual(sondar(mkv, "episodio.mkv").etiquetas, {})
+
+    def test_etiqueta_vazia_e_ausente_e_o_album_artist_e_o_recuo(self):
+        s = ffprobe("flac", [audio("flac", indice=0)])
+        s["format"]["tags"] = {"title": "  ", "album_artist": "Vários"}
+        self.assertEqual(sondar(s, "faixa.flac").etiquetas, {"artista": "Vários"})
+        self.assertEqual(sondar(ffprobe("mp3", [audio("mp3", indice=0)]), "x.mp3").etiquetas, {})
 
     def test_flac_toca_direto_embora_o_MSE_recuse(self):
         # ⚠ O par que mais deixa claro por que a pergunta certa importa: `audio/flac` é `probably`

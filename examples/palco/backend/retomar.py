@@ -4,13 +4,14 @@
     retomada(dir, caminho, assinatura=None) -> segundos ou None
     esquecer(dir, caminho)
     todas(dir) -> {caminho: {…}}
+    recentes(dir, limite) -> [{caminho, seg, dur}], do mais recente ao mais antigo
 
 Retomar é o que separa um player de um `<video>`: ninguém assiste um filme de uma vez, e
-reencontrar o minuto 47 à mão é justamente o trabalho que o programa existe para não passar adiante.
+reencontrar o minuto 47 à mão é o trabalho que o programa existe para poupar.
 
 ⚠ **Mas lembrar sempre é pior do que não lembrar**, e as três exceções abaixo são a maior parte
-deste arquivo. As marcas moram em `VSSH_APP_DATA_DIR` — nunca em OPFS, que é do navegador de uma
-máquina só (critério 3.2): trocar de computador não pode apagar onde a pessoa parou.
+deste arquivo. As marcas moram no diretório de dados do app, no servidor, e não no navegador:
+trocar de computador não pode apagar onde a pessoa parou.
 """
 
 import json
@@ -137,29 +138,38 @@ def esquecer(dir_dados, caminho):
 
 
 def assinatura_de(caminho):
-    """`tamanho:mtime` — o mesmo par que o gerenciador de arquivos usa para dizer "mudou"."""
+    """`tamanho:mtime`, o mesmo par que o gerenciador de arquivos usa para dizer "mudou"."""
     try:
         st = os.stat(caminho)
         return f"{st.st_size}:{int(st.st_mtime)}"
     except OSError:
         return None
 
-# ── A chave de um vídeo do YouTube ───────────────────────────────────────────
-#
-# ⚠ **Um prefixo, e não uma segunda tabela.** Repetir, retomar, esquecer e o teto de `_TETO`
-# entradas já existem e funcionam; separar as origens duplicaria os quatro para ganhar nada —
-# "onde parei" é a mesma pergunta, e a lista de recentes fica mais útil misturada do que dividida.
-#
-# `yt:` nunca colide com um caminho: um caminho absoluto começa com `/`, e nenhum arquivo que este
-# app abre é nomeado por um id de onze caracteres do YouTube depois de dois-pontos.
 
-_PREFIXO_DE_VIDEO = "yt:"
+def recentes(dir_dados, limite=12):
+    """O que a pessoa deixou pela metade, do mais recente ao mais antigo.
 
-
-def marca_de_video(vid):
-    return f"{_PREFIXO_DE_VIDEO}{vid}"
-
-
-def e_marca_de_video(chave):
-    return isinstance(chave, str) and chave.startswith(_PREFIXO_DE_VIDEO)
+    Só entra o que ainda está no disco, com a mesma assinatura de quando foi marcado: um arquivo
+    apagado ou trocado por outro com o mesmo nome não tem de onde continuar. Marcas sem caminho
+    absoluto (de versões que guardavam outras chaves) ficam de fora, e a poda do `_TETO` as leva.
+    """
+    lista = []
+    for caminho, marca in reversed(list(todas(dir_dados).items())):
+        if len(lista) >= limite:
+            break
+        if not isinstance(marca, dict) or not isinstance(caminho, str) or not os.path.isabs(caminho):
+            continue
+        if not os.path.isfile(caminho):
+            continue
+        guardada = marca.get("sig")
+        if guardada is not None and guardada != assinatura_de(caminho):
+            continue
+        try:
+            seg = int(marca["seg"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        dur = marca.get("dur")
+        lista.append({"caminho": caminho, "seg": seg,
+                      "dur": dur if isinstance(dur, (int, float)) and dur > 0 else None})
+    return lista
 

@@ -29,11 +29,7 @@ api/**/*.md    text eol=lf
 *.ttf   binary
 *.otf   binary
 
-# As bibliotecas de terceiro vendorizadas no pacote de um app são TEXTO, e o `text=auto` acima as
-# converteria, destruindo a única propriedade que torna um arquivo vendorizado conferível: ser
-# byte a byte o que o upstream publicou. A procedência fica em `PROCEDENCIA.md` ao lado, com a
-# versão e o sha256, e ela só vale enquanto o arquivo não muda.
-examples/*/frontend/vendor/*.js binary
+
 # As três raízes geradas pelo canal nascem em LF e ficam em LF em qualquer checkout, para o
 # diff da rodada seguinte medir só o que o gerador mudou.
 api/** text=auto eol=lf

@@ -21,7 +21,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 
 from decisao import Decisao  # noqa: E402
 from midia import (  # noqa: E402
-    Gpu, achar_gpu, argv_de_fluxo, argv_de_legenda, argv_de_sonda, argv_de_teste, escolher_gpu,
+    Gpu, achar_gpu, argv_de_corte, argv_de_fluxo, argv_de_legenda, argv_de_sonda, argv_de_teste,
+    candidatos, escolher_gpu,
 )
 
 ARQ = "/home/ana/Vídeos/o filme.mkv"
@@ -42,8 +43,8 @@ class TestOCanoTemDeTOCAR(unittest.TestCase):
     def test_os_tres_movflags_estao_la(self):
         # A forma; o VALOR de cada um está medido em `test_ffmpeg_real.py`. Em resumo do que se
         # mediu: sem `frag_keyframe` o ffmpeg recusa a saída não-buscável e não escreve byte algum,
-        # e é `empty_moov` que faz aparecerem as caixas `moof` — a forma que o MSE exige, e para
-        # onde a Fase 7 vai.
+        # e é `empty_moov` que faz aparecerem as caixas `moof`, a forma de fMP4 que o navegador lê
+        # de um fluxo.
         argv = argv_de_fluxo(REMUX, ARQ)
         flags = argv[pos(argv, "-movflags") + 1]
         self.assertIn("frag_keyframe", flags)
@@ -65,6 +66,16 @@ class TestBusca(unittest.TestCase):
         self.assertLess(pos(argv, "-ss"), pos(argv, "-i"),
                         "busca de saída: decodifica e descarta tudo até o ponto")
         self.assertEqual(argv[pos(argv, "-ss") + 1], "2400")
+
+    def test_o_cano_e_o_ponto_de_corte_buscam_com_o_MESMO_ss(self):
+        # O ponto de corte pergunta ao ffmpeg onde um cano com aquele `-ss` começa; um `-ss`
+        # escrito de outro jeito no cano faria a pergunta sobre outra busca.
+        for inicio in (8.3333333, 2400, 0.5):
+            argv = argv_de_fluxo(REMUX, ARQ, inicio=inicio)
+            corte = argv_de_corte(ARQ, inicio)
+            self.assertEqual(argv[pos(argv, "-ss") + 1], corte[pos(corte, "-ss") + 1], inicio)
+        argv = argv_de_fluxo(REMUX, ARQ, inicio=8.3333333)
+        self.assertEqual(argv[pos(argv, "-ss") + 1], "8.333")
 
     def test_sem_busca_nao_ha_ss(self):
         # Um `-ss 0` não é inofensivo: ele faz o ffmpeg procurar um keyframe e pode cortar o
@@ -173,18 +184,15 @@ class TestOAacQueVemEmADTS(unittest.TestCase):
 
 
 class TestOTesteDaPLACA(unittest.TestCase):
-    """⚠ Existir `/dev/dri/renderD*` NÃO prova que o VAAPI funciona, e a versão anterior desta
-    função perguntava exatamente isso — com um comentário ao lado dizendo que não bastava. É o
-    formato mais teimoso de dívida: o defeito escrito ao lado do código que o causa.
-
-    O que aconteceu num servidor de verdade:
+    """⚠ Uma placa concedida não prova que ela codifica vídeo. Numa GPU virtual (virtio), que
+    existe para desenhar tela, o transcode morre assim:
 
         libva: virtio_gpu_drv_video.so init failed
         Failed to initialise VAAPI connection: 2 (resource allocation failed)
         status 251, zero byte
 
-    Uma GPU **virtual** — ela existe para desenhar tela, não para codificar vídeo, nenhum pacote
-    resolve, e num ambiente virtualizado ela é o caso COMUM. Enumerar acerta onde não importa.
+    Nenhum pacote resolve, e num ambiente virtualizado ela é o caso comum. Por isso cada
+    candidata passa por meio segundo de codificação de verdade.
     """
 
     def test_a_linha_de_teste_SOBE_o_quadro_para_a_placa(self):
@@ -259,12 +267,27 @@ class TestOTesteDaPLACA(unittest.TestCase):
         self.assertIsNone(gpu)
         self.assertTrue(motivo, "devolveu None sem dizer por quê")
 
-    def test_achar_gpu_nao_LANCA_onde_nao_ha_dev_dri(self):
-        # O app roda em Linux, mas a suíte roda onde quem desenvolve estiver — e um `achar_gpu` que
-        # lançasse no boot mataria o processo antes de ele escutar.
-        gpu, motivo = achar_gpu(tempo_limite=5)
-        self.assertTrue(motivo)
-        self.assertTrue(gpu is None or isinstance(gpu, Gpu))
+    def test_sem_concessao_do_lancador_nada_e_testado_e_o_motivo_e_o_DELE(self):
+        # Sem `recursos.gpu` no manifesto, ou sem placa no servidor, o lançador diz não, e esse
+        # "não" é a resposta: o processo nem abriria a placa. O motivo que vai para o log é o do
+        # lançador, que é o que diz o que fazer.
+        gpu, motivo = achar_gpu({"concedida": False, "dispositivos": [],
+                                 "motivo": "não declarada no manifesto"})
+        self.assertIsNone(gpu)
+        self.assertEqual(motivo, "não declarada no manifesto")
+        self.assertEqual(achar_gpu(None)[0], None)
+
+    def test_a_via_de_cada_placa_vem_do_que_o_lancador_CONCEDEU(self):
+        # O campo `video` do dispositivo é o caminho de codificação que o lançador achou. Uma placa
+        # sem caminho (só desenha tela) não é candidata, e uma VA-API sem render node também não.
+        concedida = {"concedida": True, "motivo": None, "dispositivos": [
+            {"fabricante": "nvidia", "video": "nvenc", "renderNode": "/dev/dri/renderD128"},
+            {"fabricante": "intel", "video": "vaapi", "renderNode": "/dev/dri/renderD129"},
+            {"fabricante": "virtio", "video": None, "renderNode": "/dev/dri/renderD130"},
+            {"fabricante": "amd", "video": "vaapi"},
+        ]}
+        self.assertEqual(candidatos(concedida),
+                         [Gpu("nvenc"), Gpu("vaapi", "/dev/dri/renderD129")])
 
 
 class TestFaixas(unittest.TestCase):

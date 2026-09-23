@@ -1,23 +1,18 @@
-"""O ffmpeg de verdade, com um arquivo de verdade — porque argv não prova saída.
+"""O ffmpeg de verdade, com um arquivo de verdade, porque argv não prova saída.
 
-`test_midia.py` mede a FORMA da linha de comando; este mede o que ela produz. Os dois são
-necessários e nenhum substitui o outro: uma linha bem formada pode gerar bytes que ninguém toca, e
-foi exatamente o que aconteceu comigo aqui.
+`test_midia.py` mede a FORMA da linha de comando; este mede o que ela produz. Uma linha bem
+formada pode gerar bytes que ninguém toca, e só a execução mostra.
 
-⚠ **O comentário que este arquivo corrigiu.** Eu havia escrito que, sem `empty_moov`, o ffmpeg
-"sai com status zero e entrega bytes que player nenhum abre". Medido, é falso nas duas metades:
+O que a execução mostrou sobre os `movflags`:
 
-    sem movflags NENHUM    ele RECUSA, alto: "muxer does not support non seekable output",
-                           status 127, zero byte. Não é falha silenciosa.
-    sem `empty_moov`       o cano flui igual (primeiro byte em 0,03 s nos dois casos). O que muda
-                           é a estrutura: com ele saem caixas `moof`, sem ele não sai nenhuma.
+    sem movflags NENHUM    o ffmpeg recusa, alto: "muxer does not support non seekable output",
+                           status 127, zero byte.
+    sem `empty_moov`       o cano flui igual (primeiro byte em 0,03 s nos dois casos), e a saída
+                           sai sem caixas `moof`, que é a forma de fMP4 que o navegador lê de um
+                           fluxo sem índice no fim.
 
-Ou seja: `frag_keyframe` é o que torna o cano possível, e `empty_moov` é o que torna a saída um
-fMP4 de verdade — que é o que o MSE exige, e é para lá que a Fase 7 (dash.js) vai. Manter os dois
-é barato e correto; a justificativa é que estava errada.
-
-Sem ffmpeg os testes se PULAM, pelo mesmo motivo dos de navegador: falha por ausência de ambiente é
-ruído, e quem só mexeu em análise de URL não pode ficar com a suíte vermelha por isso.
+Sem ffmpeg os testes se PULAM: falha por ausência de ambiente é ruído, e quem só mexeu na ordem da
+pasta não pode ficar com a suíte vermelha por isso.
 """
 
 import json
@@ -32,7 +27,9 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "backend"))
 
 from decisao import Perfil, decidir  # noqa: E402
-from midia import argv_de_fluxo, argv_de_legenda, sondar_arquivo  # noqa: E402
+from midia import (  # noqa: E402
+    argv_de_fluxo, argv_de_legenda, corte_para_frente, ponto_de_corte, sondar_arquivo,
+)
 
 TEM_FFMPEG = bool(shutil.which("ffmpeg") and shutil.which("ffprobe"))
 PULAR = unittest.skipUnless(TEM_FFMPEG, "sem ffmpeg/ffprobe neste ambiente")
@@ -147,10 +144,8 @@ class TestComArquivoDeVerdade(unittest.TestCase):
         self.assertEqual(codecs, ["aac", "h264"], "o vídeo tinha de passar intacto e o áudio virar AAC")
 
     def test_a_saida_e_fMP4_de_verdade_e_os_movflags_SAO_carregantes(self):
-        # ⚠ A refutação, medida em vez de afirmada. Sem `movflags` nenhum o ffmpeg RECUSA a saída
-        # não-buscável e não escreve byte algum — não é falha silenciosa, é falha alta. E é o
-        # `empty_moov` que faz aparecer `moof`, que é a forma que o MSE exige (e para onde a
-        # Fase 7, com dash.js, vai).
+        # Sem `movflags` nenhum o ffmpeg recusa a saída não-buscável e não escreve byte algum. E é o
+        # `empty_moov` que faz aparecer `moof`, a forma de fMP4 que o navegador lê de um fluxo.
         d = decidir(sondar_arquivo(self.arquivo), MAGRO)
         nosso, _, codigo = self._canalizar(argv_de_fluxo(d, self.arquivo))
         self.assertEqual(codigo, 0)
@@ -179,6 +174,41 @@ class TestComArquivoDeVerdade(unittest.TestCase):
         self.assertEqual(codigo, 0, erro)
         self.assertLess(len(do_meio), len(inteiro) * 0.85,
                         "buscar aos 2 s de 4 s tinha de render bem menos bytes")
+
+    def test_o_cano_COPIADO_comeca_onde_o_ponto_de_corte_diz(self):
+        # A amostra tem um quadro-chave por segundo e AC3, que começa em −0,006 s. Com a imagem
+        # copiada o cano começa num quadro-chave antes do pedido, e qual deles o ffmpeg decide:
+        # pedido em 2 s ele cai no de 1 s, porque soma o `start_time` à busca. Em todo pedido, o
+        # cano tem de durar o que falta a partir do ponto de corte; é esse ponto que o frontend usa
+        # como `base`, e a diferença seria o relógio e a legenda adiantados em relação à imagem.
+        d = decidir(sondar_arquivo(self.arquivo), MAGRO)
+        self.assertEqual(d.video, "copiar")
+        pontos = {}
+        for pedido in (1.5, 2.0, 2.5, 3.2):
+            corte = ponto_de_corte(self.arquivo, pedido)
+            self.assertLessEqual(corte, pedido + 0.01)
+            saida, erro, codigo = self._canalizar(argv_de_fluxo(d, self.arquivo, inicio=pedido))
+            self.assertEqual(codigo, 0, erro)
+            arq = os.path.join(self.dir, "do-corte.mp4")
+            with open(arq, "wb") as fh:
+                fh.write(saida)
+            dur = float(subprocess.run(
+                ["ffprobe", "-v", "quiet", "-show_entries", "format=duration",
+                 "-of", "default=nw=1:nk=1", arq], capture_output=True, check=True).stdout)
+            self.assertAlmostEqual(dur, 4.0 - corte, delta=0.1, msg=f"pedido em {pedido}")
+            pontos[pedido] = round(corte)
+        # E o ponto nem sempre é o quadro-chave logo abaixo do pedido: em 2 s, é o de 1 s.
+        self.assertEqual(pontos, {1.5: 1, 2.0: 1, 2.5: 2, 3.2: 3})
+
+    def test_a_busca_para_FRENTE_nao_volta_no_tempo(self):
+        # Pedido em 2 s, o `-ss` cai no quadro-chave de 1 s (ver acima): para frente, isso é voltar
+        # no tempo. A busca vai ao quadro-chave de 2 s, e o pedido devolvido é o que leva o ffmpeg
+        # até ele.
+        pedido, inicio = corte_para_frente(self.arquivo, 2.0)
+        self.assertAlmostEqual(inicio, 2.0, delta=0.05)
+        self.assertAlmostEqual(ponto_de_corte(self.arquivo, pedido), inicio, delta=0.001)
+        # Onde o corte já cai perto do pedido, nada muda.
+        self.assertEqual(corte_para_frente(self.arquivo, 2.2)[0], 2.2)
 
     def test_o_AAC_em_ADTS_so_entra_no_MP4_com_o_FILTRO(self):
         """O defeito de verdade, com um arquivo de verdade — e a refutação junto.

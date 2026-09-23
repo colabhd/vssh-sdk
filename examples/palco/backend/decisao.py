@@ -20,17 +20,15 @@ desktop inteiro.
     3. servidor transcode VAAPI     GPU, quase de graça
     4. servidor CPU                 último, e a interface diz que está trabalhando
 
-⚠ Falta o quinto degrau — decodificação WASM no cliente (hevc.js), que caberia entre 3 e 4 quando o
-servidor não tem GPU. Ele não está aqui de propósito: exige a biblioteca vendorizada no pacote, o
-que é da Fase 7. A costura é o `Perfil`: um cliente que carregue o hevc.js declara `hevc` em
-`video` e este módulo já responde `remux` sem mudar uma linha.
+A costura com o cliente é o `Perfil`: um navegador que passe a decodificar um codec novo o declara
+em `video`, e este módulo responde `remux` ou `direto` sem mudar uma linha.
 
 Nada aqui executa `ffprobe` nem toca em arquivo: entra JSON, sai decisão.
 """
 
 import os
 from dataclasses import dataclass, field
-from typing import List, Optional, Set
+from typing import Dict, List, Optional, Set
 
 # ⚠ `format_name` do ffprobe é uma LISTA de demuxers, não um nome: `.mkv` e `.webm` respondem os
 # dois `matroska,webm`, e o navegador abre o segundo e não o primeiro. Quem desempata é a extensão.
@@ -105,6 +103,10 @@ class Sonda:
     video: Optional[Faixa] = None
     audios: List[Faixa] = field(default_factory=list)
     legendas: List[Faixa] = field(default_factory=list)
+    # O índice do stream de capa (`attached_pic`) de uma música, e o título, o artista e o álbum
+    # das etiquetas. É o que a tela de uma música mostra no lugar de um retângulo preto.
+    capa: Optional[int] = None
+    etiquetas: Dict[str, str] = field(default_factory=dict)
 
 
 @dataclass
@@ -198,6 +200,7 @@ def sondar(bruto, nome=""):
         duracao = None
 
     video = None
+    capa = None
     audios = []
     legendas = []
     for s in streams:
@@ -215,9 +218,11 @@ def sondar(bruto, nome=""):
         tipo = s.get("codec_type")
         if tipo == "video":
             # ⚠ A capa do álbum é um stream de VÍDEO. Um MP3 com capa traz `mjpeg` com
-            # `attached_pic: 1`, e sem filtrar isso toda música com capa vira "vídeo em MJPEG" e
-            # cai em transcode — a 100% de CPU para tocar o que sairia direto.
+            # `attached_pic: 1`; tratado como vídeo, toda música com capa cairia em transcode, a
+            # 100% de CPU para tocar o que sai direto. Ela vira `capa`, e a tela a mostra.
             if disp.get("attached_pic"):
+                if capa is None:
+                    capa = comum["indice"]
                 continue
             if video is None:
                 video = Faixa(largura=int(s.get("width") or 0), altura=int(s.get("height") or 0),
@@ -228,7 +233,36 @@ def sondar(bruto, nome=""):
             legendas.append(Faixa(**comum))
 
     return Sonda(container=container, duracao=duracao, video=video, audios=audios,
-                 legendas=legendas)
+                 legendas=legendas, capa=capa,
+                 etiquetas=_etiquetas(formato, streams) if video is None else {})
+
+
+# O nome curto de cada etiqueta, e as chaves que a carregam. `album_artist` é o recuo de `artist`:
+# coletâneas trazem "Vários" num e o artista da faixa no outro, e o da faixa é o que se quer.
+_ETIQUETAS = {"titulo": ("title",), "artista": ("artist", "album_artist"), "album": ("album",)}
+
+
+def _etiquetas(formato, streams):
+    """Título, artista e álbum de uma música, de onde o container os guarda.
+
+    MP3, MP4 e FLAC guardam as etiquetas no `format`; Ogg e Opus as guardam no stream de áudio
+    (comentários Vorbis). As chaves variam de caixa entre containers (`TITLE`, `title`), então a
+    comparação é sem caixa. Etiqueta vazia é etiqueta ausente.
+
+    Só música: num vídeo o título de um stream é o nome da faixa ("Original", "Comentários"), o do
+    `format` costuma ser o de quem codificou, e a pessoa reconhece o arquivo pelo nome dele.
+    """
+    fontes = [formato.get("tags") or {}]
+    fontes += [s.get("tags") or {} for s in streams if s.get("codec_type") == "audio"]
+    achadas = {}
+    for nome, chaves in _ETIQUETAS.items():
+        for chave in chaves:
+            valor = next((str(v).strip() for f in fontes for k, v in f.items()
+                          if isinstance(k, str) and k.lower() == chave and str(v).strip()), None)
+            if valor:
+                achadas[nome] = valor
+                break
+    return achadas
 
 
 def decidir(sonda, perfil=None):

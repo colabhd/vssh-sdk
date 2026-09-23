@@ -1,43 +1,34 @@
-/* Palco — o comportamento.
+/* Palco: o comportamento.
  *
- * ─── A decisão que organiza o arquivo inteiro ───────────────────────────────
+ * ─── A decisão que organiza o arquivo ───────────────────────────────────────
  *
- * ⚠ **Quem sabe o que esta máquina toca é esta máquina**, e por isso a primeira coisa que o app faz
- * é se perguntar. O perfil vai junto com o caminho em `api/abrir`, e o servidor decide o modo com
- * as duas metades na mão. Um servidor decidindo sozinho, por tabela, transcodificaria a 180% de CPU
- * para metade dos clientes — e entregaria a eles vídeo pior que o original.
+ * ⚠ **Quem sabe o que esta máquina toca é esta máquina.** A primeira coisa que o app faz é se
+ * perguntar, e o perfil vai junto com o caminho em `api/abrir`: o servidor decide o modo com as
+ * duas metades na mão. Daí saem dois caminhos muito diferentes:
  *
- * Daí saem dois caminhos, e eles são MUITO diferentes:
+ *   direto   `vssh.arquivos.urlFor(caminho)`: o portal serve com Range, busca nativa, zero CPU.
+ *   cano     `api/fluxo`: ffmpeg, sem Content-Length e sem Range. A régua verdadeira vem do
+ *            `ffprobe` e entra na `TuffMidia` por `opcoes.tempo`; buscar é reiniciar o cano com
+ *            `?t=`.
  *
- *   direto   `vssh.arquivos.urlFor(caminho)` → o portal serve com Range, busca nativa, zero CPU.
- *            O backend não vê um byte.
- *   cano     `api/fluxo` → ffmpeg. Sem Content-Length, sem Range, sem busca do navegador. A régua
- *            verdadeira vem do `ffprobe` e entra na `TuffMidia` por `opcoes.tempo`; buscar é
- *            reiniciar o cano com `?t=`.
- *
- * ⚠ **Nada roda até o `DOMContentLoaded`**, e não é zelo: `criar_spa_estatica` injeta os scripts
- * antes de `</head>` e **sem `defer`** — de propósito, porque o SDK precisa existir antes dos
- * scripts diferidos de qualquer bundle. O efeito é que este arquivo executa com o `<body>` ainda
- * vazio: `getElementById` devolve `null` e a primeira linha que ligar um ouvinte lança. O app
- * inteiro morre ali, e o sintoma é uma janela que aparece e não faz nada.
+ * ⚠ Nada roda até o `DOMContentLoaded`: o `web.spa` injeta os scripts antes de `</head>` e sem
+ * `defer`, para o SDK existir antes de qualquer outro script, e este arquivo executa com o
+ * `<body>` ainda vazio.
  */
 function montarPalco() {
   'use strict';
 
   const $ = (id) => document.getElementById(id);
+  const janela = $('janela');
   const video = $('video');
   const palco = $('palco');
 
   // ── O perfil desta máquina ──────────────────────────────────────────────
   //
-  // ⚠ `canPlayType`, e **não** `MediaSource.isTypeSupported`. São perguntas diferentes:
-  //
-  //   canPlayType(t)          "eu demuxo isto sozinho?"  → o caminho DIRETO, que é `<video src>`
-  //   MediaSource.isType…(t)  "eu aceito por MSE?"       → para onde um remux teria de ir
-  //
-  // Medido em Chrome 151, elas discordam em metade dos containers que importam: `matroska`, `flac`
-  // e `ogg/opus` são "sim" na primeira e "não" na segunda. Perguntar a errada faria o servidor
-  // remuxar todo `.mkv` — o formato mais comum de filme que existe — por nada.
+  // ⚠ `canPlayType`, e não `MediaSource.isTypeSupported`. O caminho direto é `<video src>`, que
+  // não passa por MSE, e as duas perguntas discordam em metade dos containers que importam:
+  // medido em Chrome 151, `matroska`, `flac` e `ogg/opus` são "sim" na primeira e "não" na
+  // segunda. Perguntar a errada faria o servidor remuxar todo `.mkv` por nada.
 
   const CONTAINERS = {
     mp4: 'video/mp4; codecs="avc1.640028"',
@@ -71,10 +62,9 @@ function montarPalco() {
 
   function sondarPerfil() {
     const v = document.createElement('video');
-    // ⚠ `canPlayType` devolve `''`, `'maybe'` ou `'probably'`. `'maybe'` só conta quando NÃO demos
-    // parâmetro `codecs` — ali ele é a resposta mais forte que a API sabe dar (`audio/wav` é o
-    // caso). Com codecs declarados, `'maybe'` é dúvida de verdade, e a assimetria manda recusar:
-    // um "não" errado custa 2% de CPU no servidor; um "sim" errado custa tela preta.
+    // `canPlayType` responde `''`, `'maybe'` ou `'probably'`. `'maybe'` só conta sem `codecs`
+    // (`audio/wav` é o caso): com codecs declarados ele é dúvida, e um "sim" errado custa tela
+    // preta, enquanto um "não" errado custa 2% de CPU no servidor.
     const serve = (t) => {
       const r = v.canPlayType(t);
       return r === 'probably' || (r === 'maybe' && !t.includes('codecs'));
@@ -85,152 +75,217 @@ function montarPalco() {
 
   const PERFIL = sondarPerfil();
 
+  const EXT_DE_AUDIO = new Set(['mp3', 'm4a', 'flac', 'wav', 'ogg', 'opus', 'aac', 'wma', 'mka']);
+  const extensao = (nome) => {
+    const i = String(nome || '').lastIndexOf('.');
+    return i > 0 ? nome.slice(i + 1).toLowerCase() : '';
+  };
+  const semExtensao = (nome) => {
+    const i = String(nome || '').lastIndexOf('.');
+    return i > 0 ? nome.slice(0, i) : nome;
+  };
+  const nomeDaPasta = (caminho) => {
+    const partes = String(caminho || '').split('/').filter(Boolean);
+    return partes.length ? partes[partes.length - 1] : '/';
+  };
+
   // ── Estado ──────────────────────────────────────────────────────────────
   let atual = null;      // a resposta de `api/abrir`
-  let base = 0;          // onde o cano foi cortado: `atual()` = base + video.currentTime
-  let vizinhos = [];     // os irmãos de pasta
+  let base = 0;          // onde o cano foi cortado: o tempo do filme é base + video.currentTime
+  let fila = [];         // os irmãos de pasta, `{nome, caminho}`
   let indice = -1;
-  // ⚠ Toda abertura ganha um número, e as respostas assíncronas dela conferem o seu antes de tocar
-  // no estado. Sem isso, abrir B enquanto A ainda carrega faz a resposta de A — que chega depois —
-  // sobrescrever a lista de B, e o "próximo" passa a apontar para a pasta errada.
+  // Toda abertura ganha um número, e as respostas assíncronas dela conferem o seu antes de mexer
+  // no estado: abrir B enquanto A carrega não pode deixar a resposta de A, que chega depois,
+  // trocar a fila de B.
   let geracao = 0;
-  let repetir = 'nao';   // nao | lista | uma
+  let repetir = 'nao';   // nao | pasta | um
   let aleatorio = false;
   let filtro = '';
+  let selecionado = -1;  // a linha da fila com o foco do teclado
 
-  // ── O idioma de quem assiste ────────────────────────────────────────────
-  //
-  // ⚠ **Sem isto o YouTube devolve o título TRADUZIDO**, e não uma interface em inglês. O yt-dlp
-  // fixa `hl: "en"` quando ninguém diz o contrário; medido buscando "receita de bolo", os mesmos
-  // vídeos brasileiros voltam como "I MADE IT IN 4 MINUTES!! THE SIMPLEEST AND CHEAPEST CAKE".
-  // Quem busca em português recebe uma grade em inglês macarrônico e conclui que o app procurou
-  // no lugar errado.
-  //
-  // ⚠ E o valor vai CRU de propósito: `navigator.language` devolve `pt-BR`, que o YouTube **não
-  // aceita** — quem negocia (`pt-BR` → `pt`) é o servidor, contra a lista que mora dentro do
-  // yt-dlp e muda com ele. Traduzir aqui congelaria uma cópia dessa lista no navegador.
-  const IDIOMA = navigator.language || '';
-  const comIdioma = (rota) => (IDIOMA ? `${rota}&hl=${encodeURIComponent(IDIOMA)}` : rota);
+  // As preferências que valem só para esta pessoa neste navegador. `localStorage` pode lançar
+  // (janela privada, dados bloqueados), e aí o app segue com os padrões.
+  const PREF = 'palco:';
+  const lerPref = (k, padrao) => {
+    try { const v = localStorage.getItem(PREF + k); return v === null ? padrao : JSON.parse(v); }
+    catch { return padrao; }
+  };
+  const gravarPref = (k, v) => { try { localStorage.setItem(PREF + k, JSON.stringify(v)); } catch { /* sem armazenamento */ } };
 
   /**
-   * Uma chamada à API do app. O corpo do ERRO viaja junto, e isso não é cortesia.
-   *
-   * ⚠ **A versão anterior jogava o corpo fora**, e com ele tudo que o servidor sabia dizer. Ele
-   * manda `erro` e `conserto` desde sempre — "este canal não tem vídeos publicados", "este vídeo é
-   * protegido por DRM", "o extractor pode estar desatualizado" —, e aqui isso virava
-   * `Error('api/yt/abrir: 502')`. Quem chamava só tinha uma frase genérica para pôr na tela, e a
-   * pessoa ficava com "não abriu" diante de três causas que pedem três respostas diferentes.
-   *
-   * ⚠ O `youtube.js` ao lado já fazia certo, e a divergência é o defeito: duas portas para a mesma
-   * API, uma delas cega. Um `.json()` que falha não pode derrubar a mensagem de erro, então o corpo
-   * é opcional — um 502 do portal vem em HTML.
+   * Uma chamada à API do app. O corpo do erro viaja junto: o servidor diz o que falhou
+   * (`{error}`), e um 502 do portal chega em HTML, então o `.json()` é opcional.
    */
   const api = (rota, opts) => fetch(rota, opts).then(async (r) => {
     let corpo = null;
     try { corpo = await r.json(); } catch { /* nem toda resposta é JSON */ }
     if (!r.ok) {
-      throw Object.assign(new Error((corpo && corpo.erro) || `${rota}: ${r.status}`),
+      throw Object.assign(new Error((corpo && corpo.error) || `${rota}: ${r.status}`),
                           { corpo: corpo || {}, status: r.status });
     }
     return corpo;
   });
 
-  const tempoDe = (s) => (window.TuffMidia ? TuffMidia.tempo(s) : '--:--');
+  const tempo = (s) => TuffMidia.tempo(s);
+  // Sem barra inicial em nenhuma rota: o app é servido sob `/<servidor>/proxy/app/palco/`, e um
+  // `/api/…` sairia do prefixo e cairia num 404 do portal.
+  const urlDaCapa = (caminho) => `api/capa?caminho=${encodeURIComponent(caminho)}`;
 
   // ── Onde buscar os bytes ────────────────────────────────────────────────
 
   const noCano = () => !!atual && atual.modo !== 'direto' && atual.modo !== 'desconhecido';
+  let faixaEscolhida = null;
 
   function urlDoCano(t) {
-    const p = new URLSearchParams({ caminho: atual.caminho, t: String(Math.floor(t || 0)) });
-    p.set('perfil', JSON.stringify(PERFIL));
-    // ⚠ Sem barra inicial. O app é servido sob `/<serverId>/proxy/app/<id>/`, e um `/api/…` sairia
-    // do prefixo — chegando num 404 do portal em vez do backend.
+    const p = new URLSearchParams({ caminho: atual.caminho, t: String(t || 0),
+                                    perfil: JSON.stringify(PERFIL) });
+    if (faixaEscolhida !== null) p.set('audio', String(faixaEscolhida));
     return `api/fluxo?${p}`;
   }
 
-  function duracaoReal() {
-    if (atual && atual.duracao) return atual.duracao;   // o ffprobe sabe; o cano não
-    return video.duration;
-  }
-  function agoraReal() {
-    return noCano() ? base + video.currentTime : video.currentTime;
-  }
+  const duracaoReal = () => (atual && atual.duracao) || video.duration;
+  const agoraReal = () => (noCano() ? base + video.currentTime : video.currentTime);
 
   function buscar(t) {
+    if (!atual) return;
     const alvo = Math.max(0, Math.min(t, (duracaoReal() || 0)));
     if (!noCano()) { video.currentTime = alvo; return; }
-    // Busca do lado do SERVIDOR: o cano não tem Range, então trocar de posição é reiniciar o
-    // ffmpeg com `-ss`. O `base` é o que faz a linha do tempo continuar mostrando o tempo do
-    // FILME, e não o do pedaço que está chegando.
-    const tocando = !video.paused;
-    base = alvo;
-    mostrarPreparando(true);
-    video.src = urlDoCano(alvo);
-    video.load();
-    if (tocando) video.play().catch(() => {});
+    carregarCano(alvo, undefined, !video.paused, alvo > agoraReal());
   }
 
-  // ── Abrir ───────────────────────────────────────────────────────────────
+  /**
+   * O cano, a partir de `t`. O cano não tem Range: mudar de posição é reiniciar o ffmpeg com
+   * `-ss`, e o `base` faz a linha do tempo continuar mostrando o tempo do filme, e não o do pedaço
+   * que está chegando.
+   *
+   * ⚠ Com a imagem copiada (remux e só áudio) o ffmpeg começa num quadro-chave antes do pedido,
+   * e o `base` tem de ser esse quadro, que o servidor diz em `api/corte` perguntando ao próprio
+   * ffmpeg com o mesmo `-ss`. Somando o `t` pedido, o relógio e as legendas ficariam adiantados em
+   * relação à imagem, às vezes em mais de 8 s. Convertendo a imagem, o ffmpeg decodifica até o
+   * ponto exato, e o pedido é o ponto.
+   *
+   * `adiante` marca uma busca para frente: ela não pode cair atrás de onde a mídia já está, e o
+   * servidor a leva ao quadro-chave seguinte quando o de antes do pedido fica muito para trás.
+   */
+  let cortes = 0;
+  async function carregarCano(t, texto, tocar, adiante) {
+    const minha = ++cortes;
+    const deste = geracao;
+    // Em milésimos, para o corte e o cano pedirem a mesma busca.
+    let pedido = Math.round(Math.max(0, t) * 1000) / 1000;
+    preparando(true, texto);
+    let inicio = pedido;
+    if (pedido > 0 && atual.temVideo && atual.modo !== 'transcode') {
+      try {
+        const r = await api(`api/corte?caminho=${encodeURIComponent(atual.caminho)}&t=${pedido}`
+                            + (adiante ? '&adiante=1' : ''));
+        if (typeof r.inicio === 'number' && typeof r.pedido === 'number') {
+          inicio = r.inicio;
+          pedido = r.pedido;
+        }
+      } catch { /* sem o ponto, o cano começa assim mesmo, com o desvio do quadro-chave */ }
+      if (minha !== cortes || deste !== geracao) return;
+    }
+    base = inicio;
+    deslocarLegendas();
+    video.src = urlDoCano(pedido);
+    video.load();
+    if (tocar) video.play().catch(() => {});
+  }
 
-  function mostrarPreparando(sim, texto) {
+  // ── O que aparece sobre o palco ─────────────────────────────────────────
+
+  function preparando(sim, texto) {
     $('preparando').hidden = !sim;
     if (texto) $('preparando-t').textContent = texto;
   }
 
-  /**
-   * O aviso, sobre o palco.
-   *
-   * ⚠ Ele NÃO some sozinho, ao contrário de `.retomar`. Um aviso que expira é um aviso que quem
-   * saiu da janela por dez segundos nunca leu — e a pessoa volta para um vídeo parado sem
-   * explicação, que é exatamente o estado que ele existe para evitar. Sai quando o próximo arquivo
-   * abre, que é o momento em que ele deixou de valer.
-   */
+  // O aviso não some sozinho: quem saiu da janela por dez segundos voltaria para uma mídia parada
+  // sem explicação. Ele sai quando outro arquivo abre.
   function avisar(texto) {
     $('aviso-t').textContent = texto || '';
     $('aviso').hidden = !texto;
   }
 
-  /**
-   * Abre um item da fila — venha ele da pasta ou de uma playlist do YouTube.
-   *
-   * ⚠ **A fila é UMA**, e é o que faz próximo/anterior, `ended`, repetir, aleatório e os botões da
-   * central de mídia funcionarem para as duas origens sem nenhum deles saber que existem duas. Uma
-   * segunda lista, só para o YouTube, seria seis lugares para as duas divergirem — e cada
-   * divergência apareceria como "o próximo não anda" num dos casos.
-   */
-  /** `/home/ana/Vídeos/aula.mkv` → `/home/ana/Vídeos`. Serve nas duas convenções de separador (a barra do Windows entra por código, para
-   *  não virar escape dentro desta própria string).  */
-  function pastaDe(caminho) {
-    const s = String(caminho || '');
-    const corte = Math.max(s.lastIndexOf('/'), s.lastIndexOf(String.fromCharCode(92)));
-    return corte > 0 ? s.slice(0, corte) : '';
+  function mostrarRetomar(seg) {
+    const faixa = $('retomar');
+    clearTimeout(mostrarRetomar.t);
+    if (!seg) { faixa.hidden = true; return; }
+    $('retomar-t').textContent = tempo(seg);
+    faixa.hidden = false;
+    faixa.classList.remove('retomar--saindo');
+    mostrarRetomar.t = setTimeout(() => {
+      faixa.classList.add('retomar--saindo');
+      mostrarRetomar.t = setTimeout(() => { faixa.hidden = true; }, 300);
+    }, 6000);
   }
 
-  function abrirVizinho(v) {
-    if (!v) return undefined;
-    // ⚠ A fila viaja JUNTO ao andar nela. `abrirYoutube` limpa `vizinhos` na entrada — o que é
-    // certo, senão a lista do vídeo anterior sobreviveria e o "próximo" apontaria para outra
-    // coisa —, e sem repassá-la aqui o segundo item da playlist seria o último: a fila teria
-    // exatamente um passo de vida.
-    if (v.videoId) {
-      return abrirYoutube(`https://www.youtube.com/watch?v=${v.videoId}`, { fila: vizinhos });
-    }
-    return abrir(v.caminho);
+  $('btn-do-inicio').addEventListener('click', () => {
+    $('retomar').hidden = true;
+    buscar(0);
+    video.play().catch(() => {});
+  });
+
+  /** A capa de um item: a imagem embutida quando há, e o ícone do tipo por baixo dela. */
+  function pintarCapa(el, { audio, capa }) {
+    el.querySelector('use').setAttribute('href', audio ? '#ico-audio' : '#ico-video');
+    const img = el.querySelector('img');
+    img.hidden = true;
+    img.onload = () => { img.hidden = false; };
+    img.onerror = () => { img.hidden = true; };
+    if (capa) img.src = capa; else img.removeAttribute('src');
   }
+
+  // ── As três telas do palco ──────────────────────────────────────────────
+
+  function telaDoInicio() {
+    $('inicio').hidden = false;
+    $('musica').hidden = true;
+    video.hidden = true;
+    carregarRecentes();
+  }
+
+  function telaDe(r) {
+    $('inicio').hidden = true;
+    const musica = !r.temVideo;
+    $('musica').hidden = !musica;
+    video.hidden = musica;
+    const et = r.etiquetas || {};
+    const titulo = et.titulo || semExtensao(r.nome);
+    const sub = musica ? (et.artista || nomeDaPasta(r.pasta)) : nomeDaPasta(r.pasta);
+    const capa = r.capa ? urlDaCapa(r.caminho) : null;
+
+    $('agora-titulo').textContent = titulo;
+    $('agora-sub').textContent = sub;
+    pintarCapa($('agora-capa'), { audio: musica, capa });
+    if (musica) {
+      $('musica-titulo').textContent = titulo;
+      $('musica-artista').textContent = et.artista || '';
+      $('musica-album').textContent = et.album || '';
+      pintarCapa($('musica-capa'), { audio: true, capa });
+    }
+    document.title = `${titulo} — Palco`;
+    // O ambiente mostra na central de mídia o que o app declara; sem a declaração, ele leria o
+    // nome da URL, que no cano é `fluxo`.
+    vssh.midia.agora(titulo, sub, capa || undefined);
+    porMediaSession(titulo, sub, capa);
+    pintarFaixas();
+    pintarNavegacao();
+  }
+
+  // ── Abrir ───────────────────────────────────────────────────────────────
 
   async function abrir(caminho, opcoes) {
     const o = opcoes || {};
     const minha = ++geracao;
     avisar('');
-    // ⚠ A lista some ANTES do `await`. Ela é dos vizinhos do arquivo ANTERIOR até `api/vizinhos`
-    // responder, e nesse intervalo qualquer `ended` avançaria pela pasta errada — que é como uma
-    // falha no primeiro quadro conseguiu pôr o vídeo anterior de volta na tela.
-    vizinhos = [];
+    // A fila some antes do `await`: até `api/vizinhos` responder ela é a do arquivo anterior, e
+    // um `ended` nesse intervalo avançaria pela pasta errada.
+    fila = [];
     indice = -1;
-    porCentralDeMidia();   // pelo mesmo motivo de `abrirYoutube`: a fila anterior não sobrevive
-    soltarDash();
-    mostrarPreparando(true, 'Abrindo…');
+    faixaEscolhida = null;
+    porCentralDeMidia();
+    preparando(true, 'Abrindo…');
     let r;
     try {
       r = await api('api/abrir', {
@@ -240,360 +295,62 @@ function montarPalco() {
       });
     } catch (e) {
       if (minha !== geracao) return;
-      mostrarPreparando(false);
-      avisar('Não consegui abrir este arquivo.');
+      preparando(false);
+      const nome = String(caminho || '').split('/').pop();
+      avisar(e.status === 404 ? `${nome} não existe mais.` : `O Palco não conseguiu abrir ${nome}.`);
       return;
     }
-    if (minha !== geracao) return;   // alguém abriu outra coisa enquanto isto voltava
+    if (minha !== geracao) return;
 
     atual = r;
     base = 0;
-    $('vazio-palco').hidden = true;
-    $('agora-nome').textContent = r.nome;
-    document.title = `${r.nome} — Palco`;
+    telaDe(r);
+    // A sessão do ambiente reabre a janela nesta rota, e o Palco volta com o mesmo arquivo.
+    vssh.app.lembrarRota(`?caminho=${encodeURIComponent(r.caminho)}`);
 
     if (r.modo === 'desconhecido') {
-      mostrarPreparando(false);
-      avisar('Não reconheci este arquivo como mídia.');
+      preparando(false);
+      avisar('Este arquivo não tem vídeo nem áudio que o Palco reconheça.');
       return;
     }
 
-    // Onde começar: a retomada, a não ser que alguém tenha pedido o início.
     const de = o.doInicio ? 0 : (r.retomarEm || 0);
-
-    if (noCano()) {
-      base = de;
-      // ⚠ `preload` muda com o modo, e a diferença é grande no cano. `metadata` manda o navegador
-      // pegar o cabeçalho e SUSPENDER a rede — mas um cano não tem Range, então retomar de onde
-      // parou é impossível: reatar significa um ffmpeg NOVO, do zero, sobre o mesmo filme. No
-      // caminho direto `metadata` continua certo, porque ali suspender é de graça e retomar é um
-      // Range.
-      video.preload = 'auto';
-      // O cano leva um instante até o primeiro fragmento. Sem dizer isso, esses segundos parecem
-      // travamento e a pessoa clica de novo — que reinicia o ffmpeg e piora.
-      mostrarPreparando(true, 'Preparando o vídeo…');
-      video.src = urlDoCano(de);
-    } else {
-      video.preload = 'metadata';
-      mostrarPreparando(false);
-      video.src = vssh.arquivos.urlFor(caminho);
-      if (de) video.addEventListener('loadedmetadata', () => { video.currentTime = de; },
-                                    { once: true });
-    }
-    video.load();
-    video.play().catch(() => { /* autoplay recusado: o botão continua ali */ });
-
-    mostrarRetomar(o.doInicio ? 0 : r.retomarEm);
-    // Aqui o ambiente conseguiria adivinhar — o caminho está na URL do cano —, mas declarar custa
-    // uma linha e tira a adivinhação do caminho: a pasta é um subtítulo melhor que o título da
-    // janela, que repete o nome do arquivo que já está na linha de cima.
-    vssh.midia.agora(r.nome, pastaDe(r.caminho));
+    const tocar = o.tocar !== false;
     aplicarLegendas(r);
-    carregarVizinhos(caminho, minha);
-    porMediaSession(r);
-  }
-
-  // ── O YouTube ───────────────────────────────────────────────────────────
-  //
-  // ⚠ **O dash.js é carregado SOB DEMANDA, e isso é uma decisão, não uma otimização.** São 714 KB
-  // vendorizados no pacote (`vendor/PROCEDENCIA.md` diz de onde vieram e por quê). Injetá-los junto
-  // com o resto faria quem abre um `.mkv` da própria pasta baixar um cliente DASH inteiro para
-  // nunca usá-lo — e abrir arquivo local é o caso PRINCIPAL deste app, não o secundário.
-  //
-  // O `<video>` é o mesmo, e o transporte é o mesmo. Um vídeo do YouTube não é outra tela: é outra
-  // fonte de bytes para o player que já existe.
-
-  let dashPromessa = null;
-  let dashPlayer = null;
-
-  function carregarDash() {
-    if (dashPromessa) return dashPromessa;
-    dashPromessa = new Promise((ok, erro) => {
-      const s = document.createElement('script');
-      // Sem barra inicial, pelo mesmo motivo de `urlDoCano`: o app é servido sob um prefixo.
-      s.src = 'vendor/dash.mediaplayer.min.js';
-      s.onload = () => (window.dashjs ? ok(window.dashjs) : erro(new Error('dash.js não expôs a API')));
-      s.onerror = () => erro(new Error('não consegui carregar o dash.js'));
-      document.head.appendChild(s);
-    }).catch((e) => { dashPromessa = null; throw e; });   // deixa a próxima tentativa acontecer
-    return dashPromessa;
-  }
-
-  /**
-   * Desmonta o player DASH, antes de qualquer outra fonte assumir o `<video>`.
-   *
-   * ⚠ **Isto é higiene, e não o conserto de um sintoma — medido.** Eu esperava que sem o `destroy`
-   * o dash.js segurasse `MediaSource` e `SourceBuffer` no elemento e o arquivo local não tocasse.
-   * Não é o que acontece com o dash.js 5.2: nos dois cenários que exercitei — YouTube → arquivo
-   * local, e YouTube → outro YouTube — o resultado foi indistinguível com e sem ele (1,56 s contra
-   * 1,57 s de reprodução, 52 quadros nos dois, zero pedidos de bytes vazando depois da troca).
-   *
-   * Fica porque liberar explicitamente o que a API mandou criar é o certo — o objeto carrega
-   * timers, ouvintes e buffers —, e porque a próxima versão da biblioteca não deve nada à
-   * tolerância desta. Mas o comentário não vai afirmar um defeito que eu não consegui demonstrar.
-   */
-  function soltarDash() {
-    if (!dashPlayer) return;
-    try { dashPlayer.destroy(); } catch { /* já caiu */ }
-    dashPlayer = null;
-  }
-
-  /**
-   * O endereço é uma LISTAGEM (playlist, canal, busca) ou um vídeo?
-   *
-   * ⚠ A pergunta é de rota, e por isso é respondida aqui e não no servidor: a diferença decide
-   * qual ABA abre, e esperar uma ida ao backend para saber isso mostraria o player vazio por meio
-   * segundo antes de trocar de tela. O backend continua sendo quem decide o que a URL É — este
-   * reconhecimento é grosseiro de propósito, e o que ele errar cai no caminho do vídeo, que já
-   * sabe devolver ao navegador o que não é dele.
-   */
-  function ehListagem(url) {
-    let u;
-    try { u = new URL(url); } catch { return null; }
-    if (!/(^|\.)youtube(-nocookie)?\.com$/.test(u.hostname)) return null;
-    if (u.pathname === '/playlist' && u.searchParams.get('list')) return 'playlist';
-    if (u.pathname === '/results') return 'busca';
-    if (/^\/(@|c\/|user\/|channel\/)/.test(u.pathname)) return 'canal';
-    return null;
-  }
-
-  async function abrirYoutube(url, opcoes) {
-    const o = opcoes || {};
-    const minha = ++geracao;
-    avisar('');
-    vizinhos = [];
-    indice = -1;
-    // ⚠ **Declarar a fila VAZIA aqui, e não só quando uma fila chega.** Um vídeo solto do YouTube
-    // nunca chama `porFila`, então a central de mídia ficava com a declaração do que tocou ANTES —
-    // anterior/próximo desenhados sobre uma fila que não existe mais, e clicá-los não faz nada.
-    // É o mesmo formato do defeito da lista de vizinhos atrasada: estado correto, pintura velha.
-    porCentralDeMidia();
-    soltarDash();
-    mostrarPreparando(true, 'Consultando o YouTube…');
-
-    let r;
-    try {
-      r = await api(comIdioma(`api/yt/abrir?url=${encodeURIComponent(url)}`));
-    } catch (e) {
-      if (minha !== geracao) return;
-      mostrarPreparando(false);
-      // ⚠ E aqui NÃO ficamos com o link: quem não consegue mostrar devolve. A pessoa clicou num
-      // link e tem de chegar a algum lugar, mesmo que não seja aqui.
-      //
-      // ⚠ A frase vem do SERVIDOR, e é a diferença entre "não abriu" e "não abre aqui, e por quê".
-      // Ele distingue DRM (que nenhum player nosso remonta) de extractor velho (que o botão de
-      // Ferramentas conserta) do que o próprio YouTube recusou — e mandar a pessoa para o conserto
-      // errado gasta a única pista que ela tinha.
-      const c = e.corpo || {};
-      avisar([c.erro || 'Não consegui abrir este vídeo do YouTube.', c.conserto]
-        .filter(Boolean).join(' '));
-      vssh.arquivos.abrirLink(url, 'navegador');
-      return;
-    }
-    if (minha !== geracao) return;
-
-    // ⚠ `!r` faz parte da guarda, e não é paranoia: um corpo `null` é JSON válido, então o `fetch`
-    // resolve, o `.json()` resolve, e a linha seguinte levanta `TypeError` sem que nada tenha
-    // "falhado" — a pessoa fica com o spinner e o link some. Custou um teste que media nada.
-    if (!r || r.tipo !== 'video') {
-      // Playlist, canal e busca ainda não têm tela. Devolver é o caminho honesto — e é o que
-      // impede o deeplink de virar beco.
-      mostrarPreparando(false);
-      vssh.arquivos.abrirLink(url, 'navegador');
-      return;
-    }
-
-    let dashjs;
-    try {
-      dashjs = await carregarDash();
-    } catch (e) {
-      if (minha !== geracao) return;
-      mostrarPreparando(false);
-      avisar('Não consegui carregar o player de streaming.');
-      return;
-    }
-    if (minha !== geracao) return;
-
-    // ⚠ A troca de aba mora AQUI, e não em quem chama. Ela tem de acontecer depois de saber que é
-    // um vídeo — antes, um endereço que vai voltar ao navegador deixaria a pessoa olhando um
-    // palco vazio — e tem de valer para as DUAS portas: o link roteado e o duplo-clique num
-    // cartão da grade. Estava só na primeira, e abrir pela grade tocava o vídeo deixando a tela
-    // na aba de busca: o som começava e não havia imagem em lugar nenhum.
-    irPara('reproduzindo');
-
-    // ⚠ `atual` finge um arquivo em modo direto de propósito. É o que faz `noCano()` responder
-    // falso — e tem de responder: o DASH tem busca nativa por Range, e mandá-lo pelo caminho do
-    // cano trocaria um `seek` instantâneo por um ffmpeg reiniciando do zero, que aqui nem existe.
-    atual = {
-      caminho: null, nome: r.titulo, duracao: r.duracao, modo: 'direto',
-      temVideo: true, audios: [], legendas: [], youtube: r,
-    };
-    base = 0;
-    $('vazio-palco').hidden = true;
-    $('agora-nome').textContent = r.titulo;
-    document.title = `${r.titulo} — Palco`;
-
-    // ⚠ **A URL do manifesto vai ABSOLUTA, e é o dash.js quem obriga.** Ele resolve o `<BaseURL>`
-    // contra o endereço do MANIFESTO e propaga o que recebeu: dando-lhe uma URL relativa, todo
-    // segmento fica relativo também, e aí o CMCD faz `new URL(<relativa>)` a cada resposta e
-    // registra `Failed to construct 'URL': Invalid URL` no console — uma linha por segmento,
-    // enterrando qualquer erro de verdade que apareça no meio.
-    //
-    // ⚠ `document.baseURI`, e não `location.href` com um caminho qualquer: o app é servido sob
-    // `/<serverId>/proxy/app/palco/`, e é essa base — a mesma que resolve todo `fetch` relativo
-    // deste arquivo — que tem de valer aqui. Foi uma barra a mais que já custou uma reprodução
-    // inteira (`/api/yt/mpd`) e uma barra a menos que custou outra (`api/yt/api/yt/bytes`).
-    const manifesto = new URL(r.mpd, document.baseURI).href;
-
-    dashPlayer = dashjs.MediaPlayer().create();
-    // ⚠ **Sem este ouvinte a tela fica presa em "Preparando" para sempre**, e o defeito só apareceu
-    // ao investigar por que uma mutação não mordia. Quem esconde a faixa no caminho normal são os
-    // eventos `loadeddata`/`playing` do próprio `<video>` — e quando o dash.js falha (um MPD que
-    // não carrega, um segmento recusado, um codec que a máquina não aceita) nenhum dos dois chega.
-    // Nada falha visivelmente: a pessoa fica olhando um spinner que não termina.
-    // ⚠ **Um erro de segmento NÃO é o fim da reprodução, e tratá-lo como fim foi um defeito
-    // medido em uso:** o vídeo ficou parado um tempo, e ao voltar a pessoa recebeu
-    // "A reprodução falhou". A causa mais provável é a credencial do googlevideo — ela vale 6 h e
-    // o YouTube gira chaves antes disso —, e o servidor RESOLVE isso sozinho: `url_de` re-resolve
-    // quando a URL está por vencer, e o proxy tenta de novo quando ela é recusada.
-    //
-    // O que faltava era o outro lado. O manifesto aponta para nós, então refazê-lo do mesmo ponto
-    // é barato e pega exatamente esse caso: as trilhas são as mesmas, as URLs são as nossas, e o
-    // backend entrega credenciais novas. Uma tentativa, e só: um erro que persiste é um erro de
-    // verdade, e insistir para sempre seria um vídeo que nunca diz que não vai tocar.
-    // ⚠ **`seek()` logo depois de `initialize()` LANÇA, e foi assim que um vídeo voltou sozinho
-    // para o começo no meio da reprodução.** O `seek` do dash.js abre com
-    // `if (!streamingInitialized) throw` — e a inicialização do streaming é assíncrona: ela espera o
-    // manifesto chegar. Chamá-lo na linha seguinte é sempre cedo demais.
-    //
-    // Os dois efeitos foram medidos no fonte da biblioteca, e o segundo é pior que o relatado:
-    //
-    //   · na RETOMADA (dentro do ouvinte de erro) a exceção morre no despachante de eventos do
-    //     dash.js, o `seek` não acontece, e o vídeo reinicia do zero. É o "do nada ele parou e
-    //     voltou pro começo";
-    //   · no caminho NORMAL a exceção rejeita `abrirYoutube` e mata tudo que vem depois — legendas,
-    //     `mostrarRetomar`, `porMediaSession`, `vssh.midia.agora` e a fila. Sem uma linha na tela.
-    //     Só não mordia sempre porque só acontece quando há um `&t=` no link ou uma marca gravada.
-    //
-    // A saída é a própria API: `initialize(view, source, autoPlay, startTime)` — o quarto parâmetro
-    // (`r = NaN` na assinatura de 5.2.1) desce até o `attachSource`, e é aplicado quando o stream
-    // fica pronto, que é o único momento em que ele pode ser aplicado.
-    const DO_COMECO = NaN;   // o que a assinatura da biblioteca usa para "não busque nada"
-    let jaTentouDeNovo = false;
-    dashPlayer.on(dashjs.MediaPlayer.events.ERROR, (e) => {
-      if (minha !== geracao) return;
-      const msg = (e && e.error && (e.error.message || e.error.code)) || '';
-
-      if (!jaTentouDeNovo) {
-        jaTentouDeNovo = true;
-        const onde = video.currentTime || r.t || 0;
-        mostrarPreparando(true, 'Retomando…');
-        try {
-          dashPlayer.destroy();
-        } catch { /* já caiu */ }
-        dashPlayer = dashjs.MediaPlayer().create();
-        dashPlayer.on(dashjs.MediaPlayer.events.ERROR, (e2) => {
-          if (minha !== geracao) return;
-          const m2 = (e2 && e2.error && (e2.error.message || e2.error.code)) || msg;
-          mostrarPreparando(false);
-          avisar(`A reprodução deste vídeo do YouTube falhou${m2 ? ` (${m2})` : ''}.`);
-        });
-        dashPlayer.initialize(video, manifesto, true, onde > 0 ? onde : DO_COMECO);
-        return;
-      }
-
-      mostrarPreparando(false);
-      avisar(`A reprodução deste vídeo do YouTube falhou${msg ? ` (${msg})` : ''}.`);
-    });
-    // ⚠ O `&t=` do link GANHA da marca, e a ordem não é arbitrária: quem compartilhou "o vídeo a
-    // partir dos 4:12" está dizendo onde começar, e sobrepor isso com "onde EU parei" ignoraria o
-    // pedido de quem mandou o link — sem nada na tela explicando por que ele caiu noutro lugar.
-    const de = o.doInicio ? 0 : (r.t || r.retomarEm || 0);
-    dashPlayer.initialize(video, manifesto, true, de > 0 ? de : DO_COMECO);
-
-    aplicarLegendasDoYoutube(r);
-    mostrarRetomar(o.doInicio || r.t ? 0 : r.retomarEm);
-    porMediaSession({ nome: r.titulo, origem: r.canal });
-    // ⚠ **Declarar é obrigatório aqui, e não cortesia.** A fonte deste `<video>` é um `blob:` do
-    // MediaSource — não há nome de arquivo em URL nenhuma para o ambiente ler. Sem esta linha a
-    // central de mídia mostrava o UUID do blob como título, com o nome de verdade caindo na linha
-    // de baixo. Ver `vssh.midia.agora` na referência do SDK.
-    vssh.midia.agora(r.titulo, r.canal, `api/yt/miniatura?v=${r.id}`);
-
-    // ⚠ A fila vem DEPOIS de o vídeo já estar tocando, e nunca antes: carregar uma playlist de
-    // trinta itens é outra ida ao YouTube, e fazê-la primeiro adiaria a imagem por esse tempo para
-    // preencher uma lista que a pessoa talvez nem abra.
-    if (o.fila) {
-      // Veio da grade, ou de um passo dentro da própria fila: os itens já estão na mão, e pedi-los
-      // de novo seria uma consulta inteira para reconstruir o que acabou de ser exibido na tela.
-      porFila(o.fila, r.id, minha);
-    } else if (r.lista) {
-      carregarFila(r.lista, r.id, minha);
+    if (noCano()) {
+      // `auto`, e não `metadata`: um cano não tem Range, e suspender a rede depois do cabeçalho
+      // obrigaria a reatar com um ffmpeg novo, do zero.
+      video.preload = 'auto';
+      // O aviso de retomada diz de onde a mídia de fato continua, que no cano é o ponto de corte.
+      carregarCano(de, r.temVideo ? 'Preparando o vídeo…' : 'Preparando o áudio…', tocar)
+        .then(() => { if (minha === geracao) mostrarRetomar(de ? base : 0); });
     } else {
-      // ⚠ **Um vídeo solto também tem de LIMPAR a tela da fila anterior.** `vizinhos` já foi
-      // zerado na entrada, mas quem apaga as linhas da Biblioteca é `desenharTabela` — e sem
-      // chamá-la aqui a lista antiga fica na tela, com uma linha marcada como "tocando" que não
-      // está tocando nada. O defeito é de PINTURA sobre um estado correto, que é a variedade mais
-      // difícil de enxergar: o `<video>` está certo, os botões estão certos, e a tela mente.
-      porFila([], null, minha);
+      cortes++;   // um cano que ainda esperava o ponto de corte do arquivo anterior não assume
+      video.preload = 'metadata';
+      preparando(false);
+      video.src = vssh.arquivos.urlFor(r.caminho);
+      if (de) video.addEventListener('loadedmetadata', () => { video.currentTime = de; }, { once: true });
+      video.load();
+      if (tocar) video.play().catch(() => { /* autoplay recusado: o botão está ali */ });
+      mostrarRetomar(de);
     }
+
+    carregarFila(r.caminho, minha);
   }
 
-  /**
-   * A fila do YouTube assume, com o vídeo atual localizado dentro dela.
-   *
-   * ⚠ `fila` chega SEMPRE no formato interno (`{nome, videoId}`), venha da grade, do backend ou de
-   * um passo anterior na própria fila. Aceitar dois formatos aqui — `{titulo, id}` e
-   * `{nome, videoId}` — seria uma linha hoje e um lugar para o campo errado passar em silêncio
-   * depois; quem converte é quem conhece a origem.
-   */
-  function porFila(fila, videoAtual, minha) {
-    if (minha !== undefined && minha !== geracao) return;
-    vizinhos = fila || [];
-    indice = vizinhos.findIndex((v) => v.videoId === videoAtual);
-    desenharTabela();
-    porCentralDeMidia();
+  function abrirDaFila(i) {
+    const item = fila[i];
+    if (item) abrir(item.caminho);
   }
 
-  async function carregarFila(lista, videoAtual, minha) {
-    const url = `https://www.youtube.com/playlist?list=${lista}`;
-    try {
-      const r = await api(comIdioma(`api/yt/listar?url=${encodeURIComponent(url)}`));
-      if (minha !== geracao) return;
-      $('bib-pasta').textContent = r.titulo || 'Playlist';
-      porFila((r.itens || []).map((i) => ({ nome: i.titulo, videoId: i.id })), videoAtual, minha);
-    } catch {
-      // ⚠ Silêncio de propósito, e é a mesma regra de `carregarVizinhos`: a fila é secundária, e o
-      // vídeo que a pessoa pediu está tocando. Um aviso sobre a lista por cima de um vídeo que
-      // funciona diria que algo quebrou quando nada do que ela pediu quebrou.
-    }
-  }
-
-  function mostrarRetomar(seg) {
-    const faixa = $('retomar');
-    if (!seg) { faixa.hidden = true; return; }
-    $('retomar-t').textContent = tempoDe(seg);
-    faixa.hidden = false;
-    faixa.classList.remove('retomar--saindo');
-    clearTimeout(mostrarRetomar._t);
-    mostrarRetomar._t = setTimeout(() => {
-      faixa.classList.add('retomar--saindo');
-      setTimeout(() => { faixa.hidden = true; }, 300);
-    }, 6000);
-  }
-
-  $('btn-do-inicio').addEventListener('click', () => {
-    $('retomar').hidden = true;
-    if (!atual) return;
-    if (noCano()) buscar(0); else video.currentTime = 0;
-    video.play().catch(() => {});
-  });
-
-  // ── Legendas ────────────────────────────────────────────────────────────
+  // ── Legendas e faixas de áudio ──────────────────────────────────────────
   //
-  // ⚠ Só as de TEXTO chegam aqui — o backend já filtrou PGS e VobSub, que são bitmaps e viram um
-  // VTT vazio sem erro nenhum. Oferecer uma legenda que não aparece na tela ensina a pessoa a
-  // concluir que o player não sabe mostrar legenda.
+  // Só as legendas de TEXTO chegam aqui: o backend filtra PGS e VobSub, que são imagens.
+
+  const IDIOMAS = { por: 'Português', pob: 'Português (BR)', eng: 'Inglês', spa: 'Espanhol',
+                    fra: 'Francês', fre: 'Francês', deu: 'Alemão', ger: 'Alemão', ita: 'Italiano',
+                    jpn: 'Japonês', kor: 'Coreano', rus: 'Russo', zho: 'Chinês', chi: 'Chinês' };
+  const nomeDeIdioma = (c) => (c ? (IDIOMAS[c.toLowerCase()] || c.toUpperCase()) : null);
 
   function aplicarLegendas(r) {
     for (const t of [...video.querySelectorAll('track')]) t.remove();
@@ -603,498 +360,387 @@ function montarPalco() {
       t.label = l.titulo || nomeDeIdioma(l.idioma) || `Legenda ${l.indice}`;
       if (l.idioma) t.srclang = l.idioma;
       t.src = `api/legenda?caminho=${encodeURIComponent(r.caminho)}&faixa=${l.indice}`;
+      t.addEventListener('load', deslocarLegendas);
       video.appendChild(t);
     }
-    // Nenhuma ligada por padrão: legenda é escolha, e ligar sozinho tampa a imagem de quem não
-    // pediu. O menu Legenda é onde ela se liga.
+    // Nenhuma ligada por padrão: ligar sozinho tampa a imagem de quem não pediu.
     for (const t of video.textTracks) t.mode = 'disabled';
   }
 
-  /**
-   * As legendas de um vídeo do YouTube — mesmo `<track>`, mesma lista, mesmo menu.
-   *
-   * ⚠ **A URL não pode ser a do YouTube**, e não é uma escolha: `<track>` é sujeito à mesma origem
-   * e o host das legendas não responde CORS. Ela vem pelo nosso servidor, como todo o resto.
-   *
-   * ⚠ E o `<track>` entra DEPOIS do `initialize` do dash.js. Ele é filho do mesmo `<video>` que o
-   * dash.js está montando, e acrescentar filhos a um elemento no meio de uma troca de fonte é
-   * pedir para descobrir a ordem por acidente.
-   */
-  function aplicarLegendasDoYoutube(r) {
-    for (const t of [...video.querySelectorAll('track')]) t.remove();
-    for (const l of r.legendas || []) {
-      const t = document.createElement('track');
-      t.kind = 'subtitles';
-      // O `(automática)` no rótulo é o que permite decidir: legenda automática de fala espontânea
-      // erra nomes próprios e pontuação, e sem a marca a escolha entre "Português" e "Português"
-      // seria no escuro.
-      const nome = l.nome || nomeDeIdioma(l.idioma) || l.idioma;
-      t.label = l.automatica ? `${nome} (automática)` : nome;
-      if (l.idioma) t.srclang = l.idioma;
-      t.src = `api/yt/legenda?v=${encodeURIComponent(r.id)}`
-            + `&idioma=${encodeURIComponent(l.idioma)}${l.automatica ? '&auto=1' : ''}`;
-      video.appendChild(t);
+  // ⚠ No cano o `<video>` conta a partir do ponto em que o servidor cortou, e as falas estão no
+  // tempo do arquivo. Cada fala guarda o tempo original e é deslocada pelo `base` sempre que ele
+  // muda. Um `-ss` no ffmpeg da legenda não resolve: o demuxer de legenda não busca, e o ffmpeg só
+  // alinha a primeira fala ao zero.
+  function deslocarLegendas() {
+    const d = noCano() ? base : 0;
+    for (const t of video.textTracks) {
+      for (const c of t.cues || []) {
+        if (c.palcoInicio === undefined) { c.palcoInicio = c.startTime; c.palcoFim = c.endTime; }
+        c.startTime = c.palcoInicio - d;
+        c.endTime = c.palcoFim - d;
+      }
     }
-    for (const t of video.textTracks) t.mode = 'disabled';
   }
-
-  // Os de TRÊS letras vêm do ffmpeg (arquivo local); os de DUAS, do YouTube. Os dois idiomas de
-  // código convivem porque as duas origens convivem no mesmo menu.
-  const IDIOMAS = { por: 'Português', pob: 'Português (BR)', eng: 'Inglês', spa: 'Espanhol',
-                    fra: 'Francês', fre: 'Francês', deu: 'Alemão', ger: 'Alemão', ita: 'Italiano',
-                    jpn: 'Japonês', kor: 'Coreano', rus: 'Russo', zho: 'Chinês', chi: 'Chinês',
-                    pt: 'Português', 'pt-br': 'Português (BR)', 'pt-pt': 'Português (PT)',
-                    en: 'Inglês', es: 'Espanhol', fr: 'Francês', de: 'Alemão', it: 'Italiano',
-                    ja: 'Japonês', ko: 'Coreano', ru: 'Russo', zh: 'Chinês' };
-  const nomeDeIdioma = (c) => (c ? (IDIOMAS[c.toLowerCase()] || c.toUpperCase()) : null);
 
   function rotuloDeFaixa(f) {
-    // O que faz um seletor ser escolhível: idioma e título, e os canais só quando há mais de dois
-    // (é o que distingue "original 5.1" de "estéreo compatível").
+    // Idioma e título, e os canais só quando passam de dois: é o que distingue "original 5.1" de
+    // "estéreo compatível".
     const partes = [nomeDeIdioma(f.idioma), f.titulo].filter(Boolean);
     if (!partes.length) partes.push(`Faixa ${f.indice}`);
     if (f.canais > 2) partes.push(`${f.canais} canais`);
-    return partes.join(' · ');
+    return partes.join(', ');
   }
 
-  // ── O player da biblioteca ──────────────────────────────────────────────
+  const faixaDeAudioAtual = () => (faixaEscolhida !== null ? faixaEscolhida : atual && atual.faixaDeAudio);
 
-  TuffMidia.player(palco.closest('.janela'), video, {
-    tempo: { duracao: duracaoReal, atual: agoraReal, buscar },
-  });
-
-  video.addEventListener('loadeddata', () => mostrarPreparando(false));
-  video.addEventListener('playing', () => mostrarPreparando(false));
-  video.addEventListener('error', () => {
-    mostrarPreparando(false);
-    if (!atual) return;
-    avisar(noCano()
-      ? 'A conversão no servidor falhou. O registro do aplicativo diz o motivo.'
-      : 'A reprodução falhou. Tente abrir de novo.');
-    console.warn('[palco] erro de mídia', { modo: atual.modo, fonte: video.currentSrc,
-                                            codigo: video.error && video.error.code });
-  });
-
-  const trocarIcone = (botao, nome) =>
-    botao.querySelector('use').setAttribute('href', `#ico-${nome}`);
-
-  video.addEventListener('play', () => trocarIcone($('btn-play'), 'pause'));
-  video.addEventListener('pause', () => trocarIcone($('btn-play'), 'play'));
-  video.addEventListener('volumechange', () =>
-    trocarIcone($('btn-mudo'), video.muted || !video.volume ? 'volume-off' : 'volume-on'));
-
-  // `TuffMidia.player` liga o clique de `data-tuff-play` e escreve o `aria-label`; o ícone é nosso,
-  // e ele o preserva desde que o botão tenha um filho de elemento. (Antes não preservava: era
-  // `textContent`, que apagava o `<svg>`. Foi este app que revelou, e o conserto subiu para a lib.)
-
-  // ── Fim de arquivo: repetir, aleatório, próximo ──────────────────────────
-  //
-  // ⚠ **`ended` não quer dizer que o arquivo acabou** — quer dizer que os bytes acabaram, e no cano
-  // as duas coisas se separam. Um ffmpeg que morre no primeiro quadro fecha o corpo, o navegador
-  // dispara `ended`, e o avanço automático põe OUTRO vídeo tocando. Foi exatamente o que se viu com
-  // um `.avi`: um quadro, e o vídeo anterior de volta. O defeito ficou invisível porque o sintoma
-  // não parece falha — parece o player fazendo o que se espera dele.
-  //
-  // Quem desempata é a régua do `ffprobe`, que é a única coisa aqui que sabe o tamanho do filme.
-
-  function chegouAoFim() {
-    const dur = duracaoReal();
-    if (!dur || !isFinite(dur)) return true;   // sem régua verdadeira, não há de que desconfiar
-    // A tolerância é relativa porque o erro é: o cano termina alguns décimos antes ou depois da
-    // duração do contêiner de origem, e um limite fixo reprovaria o fim legítimo de um clipe curto.
-    return agoraReal() >= dur - Math.max(3, dur * 0.02);
-  }
-
-  video.addEventListener('ended', () => {
-    if (!chegouAoFim()) {
-      avisar(`A transmissão parou em ${tempoDe(agoraReal())}, antes do fim. `
-             + 'O registro do aplicativo diz o motivo.');
-      console.warn('[palco] fluxo truncado', { modo: atual && atual.modo, em: agoraReal(),
-                                               duracao: duracaoReal() });
-      return;
-    }
-    if (repetir === 'uma') { buscar(0); video.play().catch(() => {}); return; }
-    if (!vizinhos.length) return;
-    if (aleatorio && vizinhos.length > 1) {
-      let i = indice;
-      while (i === indice) i = Math.floor(Math.random() * vizinhos.length);
-      return abrirVizinho(vizinhos[i]);
-    }
-    if (indice + 1 < vizinhos.length) return abrirVizinho(vizinhos[indice + 1]);
-    if (repetir === 'lista') return abrirVizinho(vizinhos[0]);
-  });
-
-  // ── Marcar onde parou ───────────────────────────────────────────────────
-  //
-  // A cada 15 s e ao pausar/sair. ⚠ `visibilitychange` e não `unload`: num iframe de desktop a
-  // janela fecha sem passar por `unload` de forma confiável, e a marca do último trecho some.
-
-  /**
-   * Sob que nome este vídeo é lembrado — o caminho do arquivo, ou o id do vídeo do YouTube.
-   *
-   * ⚠ **Isto respondia 400 quinze em quinze segundos durante toda reprodução do YouTube.** No DASH
-   * `atual.caminho` é `null` — não existe arquivo —, e o `null` ia no corpo assim mesmo. O único
-   * sinal era uma linha vermelha no console de quem tivesse as ferramentas do navegador abertas;
-   * na tela, nada. E o efeito colateral era o recurso inteiro faltando: um vídeo longo do YouTube
-   * nunca lembrava onde a pessoa parou.
-   */
-  function chaveDaMarca() {
-    if (!atual) return null;
-    if (atual.caminho) return atual.caminho;
-    return atual.youtube?.id ? `yt:${atual.youtube.id}` : null;
-  }
-
-  function marcar() {
-    const chave = chaveDaMarca();
-    if (!chave || !video.duration) return;
-    navigator.sendBeacon?.('api/marca', new Blob([JSON.stringify({
-      caminho: chave, seg: Math.floor(agoraReal()), dur: duracaoReal(),
-    })], { type: 'application/json' }));
-  }
-  setInterval(marcar, 15000);
-  video.addEventListener('pause', marcar);
-  document.addEventListener('visibilitychange', () => { if (document.hidden) marcar(); });
-
-  // ── Os menus, desenhados pelo AMBIENTE ──────────────────────────────────
-
-  async function menu(botao, itens) {
-    const r = botao.getBoundingClientRect();
-    const escolha = await vssh.dialogos.menuDeContexto(r.left, r.bottom, itens);
-    if (escolha) executar(escolha);
-  }
-
-  const MENUS = {
-    midia: () => [
-      { id: 'abrir', label: 'Abrir arquivo…', icon: 'folder' },
-      { separator: true },
-      { id: 'anterior', label: 'Anterior', disabled: indice <= 0 },
-      { id: 'proximo', label: 'Próximo', disabled: indice < 0 || indice + 1 >= vizinhos.length },
-      { separator: true },
-      { id: 'fechar', label: 'Fechar', danger: true },
-    ],
-    reproducao: () => [
-      { id: 'tocar', label: video.paused ? 'Reproduzir' : 'Pausar' },
-      { id: 'parar', label: 'Parar', disabled: !atual },
-      { separator: true },
-      { id: 'v-10', label: 'Voltar 10 segundos' },
-      { id: 'a-10', label: 'Avançar 10 segundos' },
-      { separator: true },
-      { header: 'Velocidade' },
-      ...VELOCIDADES.map((v) => ({ id: `vel:${v}`, label: rotuloVelocidade(v),
-                                   checked: video.playbackRate === v })),
-      { separator: true },
-      { id: 'rep', label: 'Repetir', submenu: [
-        { id: 'rep:nao', label: 'Não repetir', checked: repetir === 'nao' },
-        { id: 'rep:lista', label: 'Repetir a pasta', checked: repetir === 'lista' },
-        { id: 'rep:uma', label: 'Repetir este', checked: repetir === 'uma' },
-      ] },
-      { id: 'aleat', label: 'Aleatório', checked: aleatorio },
-    ],
-    video: () => [
-      { id: 'tela', label: 'Tela cheia', checked: !!document.fullscreenElement },
-      { id: 'pip', label: 'Janela flutuante', checked: !!document.pictureInPictureElement,
-        disabled: !document.pictureInPictureEnabled },
-    ],
-    audio: () => [
-      { id: 'mudo', label: 'Mudo', checked: video.muted },
-      { separator: true },
-      { header: 'Faixa de áudio' },
-      ...(atual && atual.audios.length
-        ? atual.audios.map((f) => ({ id: `aud:${f.indice}`, label: rotuloDeFaixa(f),
-                                     checked: atual.faixaDeAudio === f.indice }))
-        : [{ label: 'Nenhuma', disabled: true }]),
-    ],
-    legenda: () => {
-      const faixas = [...video.textTracks];
-      return [
-        { id: 'leg:-1', label: 'Sem legenda',
-          checked: !faixas.some((t) => t.mode === 'showing') },
-        ...(faixas.length
-          ? faixas.map((t, i) => ({ id: `leg:${i}`, label: t.label, checked: t.mode === 'showing' }))
-          : [{ separator: true }, { label: 'Nenhuma neste arquivo', disabled: true }]),
-      ];
-    },
-    ferramentas: () => [
-      { id: 'info', label: 'Informações do arquivo', disabled: !atual },
-      // ⚠ `atual.caminho`, e não `atual`: um vídeo do YouTube não tem arquivo, e o item habilitado
-      // levava um `TypeError` sobre `null.replace` — o menu fechava e nada acontecia.
-      { id: 'mostrar', label: 'Mostrar no gerenciador de arquivos', disabled: !atual?.caminho },
-      { separator: true },
-      { id: 'esquecer', label: 'Esquecer onde parei', disabled: !atual },
-      { separator: true },
-      { id: 'yt-atualizar', label: 'Atualizar o yt-dlp' },
-      { id: 'sobre', label: 'Sobre o Palco' },
-    ],
-  };
-
-  /**
-   * Baixa o yt-dlp mais novo e o põe em uso, sem reabrir o app.
-   *
-   * ⚠ **É o que impede o Palco de funcionar por um mês e depois parar.** O YouTube quebra extractor
-   * toda semana, e o `pip install` da instalação congela a versão; sem esta saída, a única resposta
-   * para "parou de abrir vídeo" seria entrar no servidor como root.
-   *
-   * A frase final diz a VERSÃO, e não "pronto": quando o extractor já estava atualizado, o conserto
-   * é outro, e um "pronto" mandaria a pessoa procurar o defeito no lugar errado.
-   */
-  async function atualizarYtdlp() {
-    mostrarPreparando(true, 'Atualizando o yt-dlp…');
-    try {
-      const r = await api('api/yt/atualizar', { method: 'POST' });
-      avisar(r.mudou ? `yt-dlp atualizado: ${r.antes || 'ausente'} → ${r.versao}.`
-                     : `O yt-dlp já estava na versão mais nova (${r.versao}).`);
-    } catch (e) {
-      avisar(`Não consegui atualizar o yt-dlp${e.corpo?.detalhe ? ` (${e.corpo.detalhe})` : ''}.`);
-    } finally {
-      mostrarPreparando(false);
-    }
-  }
-
-  /**
-   * Que versão está rodando — do app, do extractor e do idioma escolhido.
-   *
-   * ⚠ **Existe porque a pergunta não tinha resposta, e sem ela um app velho e um conserto que não
-   * funcionou são indistinguíveis.** Foi exatamente o que aconteceu: um relato de "a thumbnail
-   * ainda não aparece e a lista ainda mostra só a primeira página" descrevia com precisão o
-   * comportamento de uma versão anterior à do conserto — e não havia como distinguir isso de um
-   * conserto que não pegou, a não ser entrando no servidor.
-   *
-   * É a mesma fronteira da tag `v4`: o que roda no servidor é outro arquivo do que está no disco
-   * de quem escreve, e ninguém percorre as duas pontas.
-   */
-  async function sobre() {
-    let texto = 'Não consegui falar com o servidor do Palco.';
-    try {
-      const r = await fetch('healthz');
-      texto = (await r.text()).trim();
-    } catch { /* fica a frase de cima */ }
-    // O `healthz` é texto de linhas `chave: valor`. A primeira é o `ok` que o supervisor lê, e
-    // ela não diz nada a quem abriu este diálogo.
-    const linhas = texto.split('\n').filter((l) => l && l !== 'ok');
-    vssh.dialogos.mostrar(linhas.join('\n') || texto, 'Sobre o Palco');
-  }
-
-  // ⚠ Sete valores, com o 1× no meio. Ciclar num botão só exigia quatro cliques para chegar ao
-  // vizinho e escondia quais são as opções — velocidade é coisa que se troca dezenas de vezes numa
-  // sessão de estudo, e cada troca não pode custar uma caçada.
-  const VELOCIDADES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
-  const rotuloVelocidade = (v) =>
-    (v === 1 ? 'Normal (1×)' : `${String(v).replace('.', ',')}×`);
-
-  function executar(id) {
-    if (id.startsWith('vel:')) return velocidade(parseFloat(id.slice(4)));
-    if (id.startsWith('rep:')) return porRepetir(id.slice(4));
-    if (id.startsWith('aud:')) return trocarAudio(parseInt(id.slice(4), 10));
-    if (id.startsWith('leg:')) return trocarLegenda(parseInt(id.slice(4), 10));
-    // Do menu de contexto de uma linha da biblioteca: ela diz QUAL, porque o menu foi aberto sobre
-    // ela e não sobre a que estava marcada.
-    if (id.startsWith('arq:')) {
-      const alvo = vizinhos[parseInt(id.slice(4), 10)];
-      if (alvo) { abrir(alvo.caminho); irPara('reproduzindo'); }
-      return undefined;
-    }
-    if (id.startsWith('pasta:')) {
-      const alvo = vizinhos[parseInt(id.slice(6), 10)];
-      if (alvo) vssh.arquivos.abrirPasta(alvo.caminho.replace(/[^/\\]+$/, ''));
-      return undefined;
-    }
-
-    const acoes = {
-      abrir: escolherArquivo,
-      fechar: () => vssh.janela.fechar(),
-      anterior: () => indice > 0 && abrirVizinho(vizinhos[indice - 1]),
-      proximo: () => indice >= 0 && indice + 1 < vizinhos.length
-                && abrirVizinho(vizinhos[indice + 1]),
-      tocar: () => (video.paused ? video.play().catch(() => {}) : video.pause()),
-      parar: () => { video.pause(); buscar(0); },
-      'v-10': () => buscar(agoraReal() - 10),
-      'a-10': () => buscar(agoraReal() + 10),
-      aleat: () => porAleatorio(!aleatorio),
-      mudo: () => { video.muted = !video.muted; },
-      tela: telaCheia,
-      pip: janelaFlutuante,
-      info: informacoes,
-      mostrar: () => atual && vssh.arquivos.abrirPasta(atual.caminho.replace(/[^/\\]+$/, '')),
-      esquecer: () => {
-        // A MESMA chave de `marcar()`. Duas formas de nomear a mesma coisa dariam um "esquecer"
-        // que apaga uma entrada que ninguém gravou, deixando a de verdade no lugar.
-        const chave = chaveDaMarca();
-        if (!chave) return;
-        fetch(`api/marca?caminho=${encodeURIComponent(chave)}`, { method: 'DELETE' });
-        $('retomar').hidden = true;
-      },
-      'yt-atualizar': atualizarYtdlp,
-      sobre,
-    };
-    (acoes[id] || (() => {}))();
-  }
-
-  for (const b of document.querySelectorAll('.menubar button')) {
-    b.addEventListener('click', () => menu(b, MENUS[b.dataset.menu]()));
-  }
-
-  // ── O menu de botão direito ─────────────────────────────────────────────
-  //
-  // ⚠ **Um programa de reprodução sem clique direito não parece um programa.** É onde a mão vai
-  // primeiro num player de desktop, e o VLC, o mpv e o Windows Media Player têm todos o mesmo. Sem
-  // ele, cada troca de velocidade ou de legenda custava uma viagem até a barra de menu no topo.
-  //
-  // Quem DESENHA continua sendo o ambiente, pelo mesmo `menuDeContexto` da barra de menu — então
-  // o menu do Palco se parece com o do gerenciador de arquivos porque é o mesmo menu. E o conteúdo
-  // depende de ONDE o clique caiu: um menu único para a janela inteira ofereceria "Mostrar no
-  // gerenciador" sobre um cartão do YouTube.
-  //
-  // ⚠ O `preventDefault` só acontece quando temos menu para aquele alvo. Sobre um campo de texto o
-  // menu do navegador (colar, selecionar tudo) é melhor que qualquer coisa que façamos aqui.
-
-  function menuEm(x, y, itens) {
-    vssh.dialogos.menuDeContexto(x, y, itens).then((escolha) => { if (escolha) executar(escolha); });
-  }
-
-  /** O menu do palco: o que se faz com o que está tocando. */
-  function menuDoPalco() {
-    const faixas = [...video.textTracks];
-    return [
-      { id: 'tocar', label: video.paused ? 'Reproduzir' : 'Pausar', disabled: !atual },
-      { id: 'v-10', label: 'Voltar 10 segundos', disabled: !atual },
-      { id: 'a-10', label: 'Avançar 10 segundos', disabled: !atual },
-      { separator: true },
-      { id: 'anterior', label: 'Anterior', disabled: indice <= 0 },
-      { id: 'proximo', label: 'Próximo',
-        disabled: indice < 0 || indice + 1 >= vizinhos.length },
-      { separator: true },
-      { id: 'veloc', label: 'Velocidade', submenu: VELOCIDADES.map((v) => ({
-        id: `vel:${v}`, label: rotuloVelocidade(v), checked: video.playbackRate === v })) },
-      // ⚠ Submenu de UM nível só — o contrato de `VsshItemDeMenu` não aceita mais, e uma
-      // legenda aninhada duas vezes sumiria sem erro.
-      { id: 'leg', label: 'Legenda', submenu: [
-        { id: 'leg:-1', label: 'Sem legenda',
-          checked: !faixas.some((t) => t.mode === 'showing') },
-        ...faixas.map((t, i) => ({ id: `leg:${i}`, label: t.label,
-                                   checked: t.mode === 'showing' })),
-      ] },
-      { separator: true },
-      { id: 'tela', label: 'Tela cheia', checked: !!document.fullscreenElement },
-      { id: 'pip', label: 'Janela flutuante', checked: !!document.pictureInPictureElement,
-        disabled: !document.pictureInPictureEnabled },
-      { separator: true },
-      { id: 'info', label: 'Informações do arquivo', disabled: !atual },
-    ];
-  }
-
-  document.addEventListener('contextmenu', (e) => {
-    // Campo de texto: o menu do navegador serve melhor, e tomar o clique dali seria tirar
-    // "colar" de uma caixa de busca.
-    if (e.target.closest('input, textarea, [contenteditable]')) return;
-
-    const linha = e.target.closest('.linha-arq');
-    if (linha) {
-      e.preventDefault();
-      // O clique direito SELECIONA antes de abrir, como em qualquer lista: sem isso o menu agiria
-      // sobre a linha que estava marcada, e não sobre a que a pessoa apontou.
-      const i = Number(linha.dataset.i);
-      const alvo = vizinhos[i];
-      if (!alvo) return;
-      menuEm(e.clientX, e.clientY, [
-        { id: `arq:${i}`, label: 'Reproduzir' },
-        { id: `pasta:${i}`, label: 'Mostrar no gerenciador de arquivos' },
-      ]);
-      return;
-    }
-
-    if (e.target.closest('#palco, #transporte')) {
-      e.preventDefault();
-      menuEm(e.clientX, e.clientY, menuDoPalco());
-    }
-  });
-
-  // ── Os controles do transporte ──────────────────────────────────────────
-
-  $('btn-voltar10').addEventListener('click', () => buscar(agoraReal() - 10));
-  $('btn-avancar10').addEventListener('click', () => buscar(agoraReal() + 10));
-  $('btn-anterior').addEventListener('click', () => executar('anterior'));
-  $('btn-proximo').addEventListener('click', () => executar('proximo'));
-  $('btn-pip').addEventListener('click', janelaFlutuante);
-  $('btn-tela').addEventListener('click', telaCheia);
-
-  $('btn-veloc').addEventListener('click', (e) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    vssh.dialogos.menuDeContexto(r.left, r.top, [
-      { header: 'Velocidade' },
-      ...VELOCIDADES.map((v) => ({ id: String(v), label: rotuloVelocidade(v),
-                                   checked: video.playbackRate === v })),
-    ]).then((x) => x && velocidade(parseFloat(x)));
-  });
-
-  $('btn-ajustes').addEventListener('click', (e) => {
-    // Contextual: só oferece o que este arquivo tem. Um menu com "Faixa de áudio" vazio informa
-    // que o programa é complicado e não ajuda em nada.
+  function itensDeFaixas() {
     const itens = [];
     if (atual && atual.audios.length > 1) {
-      itens.push({ header: 'Faixa de áudio' },
-                 ...atual.audios.map((f) => ({ id: `aud:${f.indice}`, label: rotuloDeFaixa(f),
-                                               checked: atual.faixaDeAudio === f.indice })));
+      itens.push({ header: 'Áudio' }, ...atual.audios.map((f) => ({
+        id: `aud:${f.indice}`, label: rotuloDeFaixa(f), checked: faixaDeAudioAtual() === f.indice })));
     }
     const faixas = [...video.textTracks];
     if (faixas.length) {
       if (itens.length) itens.push({ separator: true });
       itens.push({ header: 'Legenda' },
-                 { id: 'leg:-1', label: 'Sem legenda',
-                   checked: !faixas.some((t) => t.mode === 'showing') },
-                 ...faixas.map((t, i) => ({ id: `leg:${i}`, label: t.label,
-                                            checked: t.mode === 'showing' })));
+                 { id: 'leg:-1', label: 'Desligada', checked: !faixas.some((t) => t.mode === 'showing') },
+                 ...faixas.map((t, i) => ({ id: `leg:${i}`, label: t.label, checked: t.mode === 'showing' })));
     }
-    if (!itens.length) itens.push({ label: 'Este arquivo tem uma faixa só', disabled: true });
-    const r = e.currentTarget.getBoundingClientRect();
-    vssh.dialogos.menuDeContexto(r.left, r.top, itens).then((x) => x && executar(x));
-  });
-
-  // Tri-estado, e o ícone TROCA no terceiro: cor sozinha distingue dois, não três.
-  $('btn-repetir').addEventListener('click', () =>
-    porRepetir({ nao: 'lista', lista: 'uma', uma: 'nao' }[repetir]));
-
-  function porRepetir(modo) {
-    repetir = modo;
-    const b = $('btn-repetir');
-    b.setAttribute('aria-pressed', String(modo !== 'nao'));
-    trocarIcone(b, modo === 'uma' ? 'repeat-one' : 'repeat');
-    b.setAttribute('aria-label',
-      { nao: 'Repetir', lista: 'Repetindo a pasta', uma: 'Repetindo este' }[modo]);
-    b.title = b.getAttribute('aria-label');
+    return itens;
   }
 
-  $('btn-aleatorio').addEventListener('click', () => porAleatorio(!aleatorio));
-  function porAleatorio(v) {
-    aleatorio = v;
-    $('btn-aleatorio').setAttribute('aria-pressed', String(v));
-  }
-
-  function velocidade(v) {
-    video.playbackRate = v;
-    const b = $('btn-veloc');
-    b.textContent = `${String(v).replace('.', ',')}×`;
-    // Destacado só quando NÃO é o normal: um controle que grita sempre deixa de significar algo.
-    b.dataset.alterada = v === 1 ? '0' : '1';
+  // O botão só aparece quando há o que escolher: um menu com uma faixa só não serve a ninguém.
+  function pintarFaixas() {
+    $('btn-faixas').hidden = !(atual && (atual.audios.length > 1 || (atual.legendas || []).length));
   }
 
   function trocarAudio(i) {
     if (!atual) return;
-    // ⚠ Trocar de faixa muda o que o servidor precisa fazer, então é um `abrir` novo — e ele volta
-    // para o mesmo segundo. Um `<video>` não expõe seleção de faixa de áudio em nenhum navegador
-    // de forma utilizável, e fingir que expõe daria um botão que não faz nada.
+    // Um `<video>` não expõe troca de faixa de áudio de forma utilizável; a troca é um cano novo
+    // com `-map` da faixa pedida, a partir do mesmo segundo.
     const onde = agoraReal();
-    atual.faixaDeAudio = i;
-    if (!noCano()) { avisar('Este arquivo toca direto: a faixa é a do arquivo.'); return; }
-    base = onde;
-    mostrarPreparando(true, 'Trocando a faixa de áudio…');
-    video.src = `${urlDoCano(onde)}&audio=${i}`;
-    video.load();
-    video.play().catch(() => {});
+    faixaEscolhida = i;
+    if (!noCano()) atual.modo = 'remux';
+    carregarCano(onde, 'Trocando a faixa de áudio…', true);
   }
 
   function trocarLegenda(i) {
     [...video.textTracks].forEach((t, k) => { t.mode = k === i ? 'showing' : 'disabled'; });
+    // Uma faixa desligada não expõe as falas, e o `base` pode ter mudado enquanto ela estava
+    // desligada; a que já tinha carregado não dispara `load` de novo.
+    deslocarLegendas();
   }
+
+  // ── O player do Tuff: trilha, tempo, volume ─────────────────────────────
+
+  TuffMidia.player(janela, video, { tempo: { duracao: duracaoReal, atual: agoraReal, buscar } });
+
+  video.addEventListener('loadeddata', () => preparando(false));
+  video.addEventListener('playing', () => preparando(false));
+  video.addEventListener('error', () => {
+    preparando(false);
+    if (!atual) return;
+    avisar(noCano()
+      ? 'A conversão no servidor falhou. O log do app diz o motivo.'
+      : 'A reprodução falhou. Abra o arquivo de novo.');
+  });
+
+  const trocarIcone = (botao, nome) => botao.querySelector('use').setAttribute('href', `#ico-${nome}`);
+  const pintarPlay = () => trocarIcone($('btn-play'), video.paused ? 'play' : 'pause');
+  video.addEventListener('play', pintarPlay);
+  video.addEventListener('pause', pintarPlay);
+  const pintarMudo = () => {
+    const nivel = video.muted || !video.volume ? 'volume-off' : video.volume < 0.5 ? 'volume-low' : 'volume-on';
+    trocarIcone($('btn-mudo'), nivel);
+    $('btn-mudo').setAttribute('aria-label', video.muted ? 'Ativar o som' : 'Silenciar');
+    $('btn-mudo').dataset.tuffDica = video.muted ? 'Ativar o som (M)' : 'Silenciar (M)';
+    gravarPref('volume', video.volume);
+    gravarPref('mudo', video.muted);
+  };
+  video.volume = Math.min(1, Math.max(0, Number(lerPref('volume', 1)) || 0));
+  video.muted = lerPref('mudo', false) === true;
+  video.addEventListener('volumechange', pintarMudo);
+  pintarMudo();
+
+  // ── Fim de arquivo: repetir, aleatório, próximo ─────────────────────────
+  //
+  // ⚠ `ended` quer dizer que os bytes acabaram, e no cano isso se separa do fim do arquivo: um
+  // ffmpeg que morre cedo fecha o corpo, e o avanço automático poria outra coisa para tocar. Quem
+  // desempata é a régua do `ffprobe`.
+
+  function chegouAoFim() {
+    const dur = duracaoReal();
+    if (!dur || !isFinite(dur)) return true;
+    return agoraReal() >= dur - Math.max(3, dur * 0.02);
+  }
+
+  function proximoIndice() {
+    if (!fila.length) return -1;
+    if (aleatorio && fila.length > 1) {
+      let i = indice;
+      while (i === indice) i = Math.floor(Math.random() * fila.length);
+      return i;
+    }
+    if (indice + 1 < fila.length) return indice + 1;
+    return repetir === 'pasta' ? 0 : -1;
+  }
+
+  video.addEventListener('ended', () => {
+    if (!chegouAoFim()) {
+      avisar(`A transmissão parou em ${tempo(agoraReal())}, antes do fim. O log do app diz o motivo.`);
+      return;
+    }
+    if (repetir === 'um') { buscar(0); video.play().catch(() => {}); return; }
+    const i = proximoIndice();
+    if (i >= 0) abrirDaFila(i);
+  });
+
+  const temAnterior = () => indice > 0 || (!!atual && agoraReal() > 3);
+  const temProximo = () => proximoIndice() >= 0;
+
+  function anterior() {
+    // Como em todo player: depois dos primeiros segundos, "anterior" volta ao começo desta faixa.
+    if (atual && agoraReal() > 3) { buscar(0); return; }
+    if (indice > 0) abrirDaFila(indice - 1);
+  }
+  function proximo() {
+    const i = proximoIndice();
+    if (i >= 0) abrirDaFila(i);
+  }
+
+  function pintarNavegacao() {
+    for (const id of ['btn-play', 'btn-voltar', 'btn-avancar', 'btn-veloc']) $(id).disabled = !atual;
+    $('btn-anterior').disabled = !temAnterior();
+    $('btn-proximo').disabled = !temProximo();
+    porCentralDeMidia();
+  }
+  video.addEventListener('timeupdate', () => {
+    // Só o limiar de três segundos muda o estado de "anterior"; repintar a cada quadro seria à toa.
+    const agora = temAnterior();
+    if (agora !== !$('btn-anterior').disabled) pintarNavegacao();
+  });
+
+  // ── Onde a pessoa parou ─────────────────────────────────────────────────
+  //
+  // A cada 15 s, ao pausar e quando a janela some. `visibilitychange`, porque uma janela do
+  // ambiente fecha sem passar por `unload` de forma confiável.
+
+  function marcar() {
+    if (!atual || !atual.caminho || !video.duration) return;
+    navigator.sendBeacon('api/marca', new Blob([JSON.stringify({
+      caminho: atual.caminho, seg: Math.floor(agoraReal()), dur: duracaoReal(),
+    })], { type: 'application/json' }));
+  }
+  setInterval(() => { if (!video.paused) marcar(); }, 15000);
+  video.addEventListener('pause', marcar);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) marcar(); });
+
+  function esquecer(caminho) {
+    fetch(`api/marca?caminho=${encodeURIComponent(caminho)}`, { method: 'DELETE' })
+      .then(() => carregarRecentes()).catch(() => {});
+  }
+
+  // ── O início: o que ficou pela metade ───────────────────────────────────
+
+  async function carregarRecentes() {
+    let r;
+    try { r = await api('api/recentes'); } catch { return; /* a lista que já está na tela fica */ }
+    const lista = $('continuar-lista');
+    lista.textContent = '';
+    for (const item of (r.itens || []).slice(0, 6)) {
+      const li = document.createElement('li');
+      const b = document.createElement('button');
+      b.className = 'continuar-item';
+      b.dataset.caminho = item.caminho;
+      const capa = document.createElement('div');
+      capa.className = 'capa capa--pequena';
+      capa.innerHTML = '<svg class="tuff-ico" aria-hidden="true"><use href="#ico-video"></use></svg><img alt="" hidden>';
+      // Numa música, a capa embutida quando ela existe; a rota responde 404 sem capa, e o ícone
+      // que está por baixo fica.
+      const audio = EXT_DE_AUDIO.has(extensao(item.nome));
+      pintarCapa(capa, { audio, capa: audio ? urlDaCapa(item.caminho) : null });
+      const nome = document.createElement('span');
+      nome.className = 'continuar-nome';
+      nome.textContent = semExtensao(item.nome);
+      nome.title = item.caminho;
+      const onde = document.createElement('span');
+      onde.className = 'continuar-onde';
+      onde.textContent = item.dur ? `${tempo(item.seg)} de ${tempo(item.dur)}` : tempo(item.seg);
+      const barra = document.createElement('span');
+      barra.className = 'continuar-barra';
+      const feito = document.createElement('span');
+      feito.style.width = `${item.dur ? Math.min(100, (item.seg / item.dur) * 100) : 0}%`;
+      barra.appendChild(feito);
+      b.append(capa, nome, onde, barra);
+      b.addEventListener('click', () => abrir(item.caminho));
+      li.appendChild(b);
+      lista.appendChild(li);
+    }
+    $('continuar').hidden = !lista.children.length;
+  }
+
+  // ── A fila ──────────────────────────────────────────────────────────────
+
+  async function carregarFila(caminho, minha) {
+    let r;
+    try { r = await api(`api/vizinhos?caminho=${encodeURIComponent(caminho)}`); }
+    catch { return; /* a pasta pode ter sumido; a mídia continua tocando */ }
+    if (minha !== geracao) return;
+    fila = r.itens || [];
+    indice = r.atual;
+    selecionado = indice;
+    $('fila-pasta').textContent = nomeDaPasta(r.pasta);
+    $('fila-pasta').title = r.pasta;
+    $('fila-busca').hidden = fila.length <= 12;
+    desenharFila();
+    pintarNavegacao();
+    // A fila abre sozinha só para quem nunca escolheu, e só para música: num álbum a lista é o
+    // que se olha; num filme, a imagem.
+    if (lerPref('fila', null) === null) mostrarFila(!atual.temVideo && fila.length > 1, false);
+  }
+
+  function desenharFila() {
+    const lista = $('fila-lista');
+    lista.textContent = '';
+    const busca = filtro.trim().toLowerCase();
+    fila.forEach((it, i) => {
+      if (busca && !it.nome.toLowerCase().includes(busca)) return;
+      const li = document.createElement('li');
+      li.className = 'fila-item' + (i === indice ? ' fila-item--tocando' : '');
+      li.setAttribute('role', 'option');
+      li.setAttribute('aria-selected', String(i === selecionado));
+      li.tabIndex = i === selecionado ? 0 : -1;
+      li.dataset.i = String(i);
+      const n = document.createElement('span');
+      n.className = 'fila-n';
+      if (i === indice) n.innerHTML = '<svg class="tuff-ico" aria-hidden="true"><use href="#ico-play"></use></svg>';
+      else n.textContent = String(i + 1);
+      const nome = document.createElement('span');
+      nome.className = 'fila-nome';
+      nome.textContent = semExtensao(it.nome);
+      nome.title = it.nome;
+      const ext = document.createElement('span');
+      ext.className = 'fila-ext';
+      ext.textContent = extensao(it.nome);
+      li.append(n, nome, ext);
+      lista.appendChild(li);
+    });
+    const tocando = lista.querySelector('.fila-item--tocando');
+    if (tocando && !$('fila').hidden) tocando.scrollIntoView({ block: 'nearest' });
+  }
+
+  function selecionar(i, focar) {
+    selecionado = i;
+    for (const li of $('fila-lista').children) {
+      const sim = Number(li.dataset.i) === i;
+      li.setAttribute('aria-selected', String(sim));
+      li.tabIndex = sim ? 0 : -1;
+      if (sim && focar) { li.focus(); li.scrollIntoView({ block: 'nearest' }); }
+    }
+  }
+
+  $('fila-lista').addEventListener('click', (e) => {
+    const li = e.target.closest('.fila-item');
+    if (li) selecionar(Number(li.dataset.i));
+  });
+  $('fila-lista').addEventListener('dblclick', (e) => {
+    const li = e.target.closest('.fila-item');
+    if (li) abrirDaFila(Number(li.dataset.i));
+  });
+  $('fila-lista').addEventListener('keydown', (e) => {
+    const visiveis = [...$('fila-lista').children].map((li) => Number(li.dataset.i));
+    const pos = visiveis.indexOf(selecionado);
+    const ir = (p) => { e.preventDefault(); if (visiveis.length) selecionar(visiveis[Math.max(0, Math.min(visiveis.length - 1, p))], true); };
+    if (e.key === 'ArrowDown') ir(pos + 1);
+    else if (e.key === 'ArrowUp') ir(pos - 1);
+    else if (e.key === 'Home') ir(0);
+    else if (e.key === 'End') ir(visiveis.length - 1);
+    else if (e.key === 'Enter' && selecionado >= 0) { e.preventDefault(); abrirDaFila(selecionado); }
+  });
+  $('fila-busca').addEventListener('input', (e) => { filtro = e.target.value; desenharFila(); });
+
+  function mostrarFila(sim, lembrar) {
+    $('fila').hidden = !sim;
+    $('btn-fila').setAttribute('aria-pressed', String(sim));
+    if (lembrar) gravarPref('fila', sim);
+    if (sim) {
+      const tocando = $('fila-lista').querySelector('.fila-item--tocando');
+      if (tocando) tocando.scrollIntoView({ block: 'nearest' });
+    }
+  }
+  $('btn-fila').addEventListener('click', () => mostrarFila($('fila').hidden, true));
+  mostrarFila(lerPref('fila', false) === true, false);
+
+  const mostrarNaPasta = (caminho) => vssh.arquivos.abrirPasta(caminho.replace(/[^/]+$/, ''));
+  $('btn-pasta').addEventListener('click', () => { if (atual) mostrarNaPasta(atual.caminho); });
+
+  // ── Repetir, aleatório, velocidade ──────────────────────────────────────
+
+  // Três estados, e o ícone muda no terceiro: cor sozinha distingue dois.
+  function porRepetir(modo) {
+    repetir = modo;
+    const b = $('btn-repetir');
+    b.setAttribute('aria-pressed', String(modo !== 'nao'));
+    trocarIcone(b, modo === 'um' ? 'repeat-one' : 'repeat');
+    const rotulo = { nao: 'Repetir', pasta: 'Repetindo a pasta', um: 'Repetindo este' }[modo];
+    b.setAttribute('aria-label', rotulo);
+    b.dataset.tuffDica = rotulo;
+    pintarNavegacao();
+  }
+  $('btn-repetir').addEventListener('click', () => porRepetir({ nao: 'pasta', pasta: 'um', um: 'nao' }[repetir]));
+
+  function porAleatorio(sim) {
+    aleatorio = sim;
+    $('btn-aleatorio').setAttribute('aria-pressed', String(sim));
+    pintarNavegacao();
+  }
+  $('btn-aleatorio').addEventListener('click', () => porAleatorio(!aleatorio));
+
+  const VELOCIDADES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+  const numero = (v) => String(v).replace('.', ',');
+  const rotuloVelocidade = (v) => (v === 1 ? 'Normal' : `${numero(v)}×`);
+  const itensDeVelocidade = () => VELOCIDADES.map((v) => ({
+    id: `vel:${v}`, label: rotuloVelocidade(v), checked: video.playbackRate === v }));
+
+  // `defaultPlaybackRate` junto: uma troca de fonte (o cano reiniciado por uma busca) volta o
+  // `playbackRate` ao padrão, e o padrão passa a ser o escolhido.
+  function velocidade(v) {
+    video.defaultPlaybackRate = v;
+    video.playbackRate = v;
+    const b = $('btn-veloc');
+    b.textContent = `${numero(v)}×`;
+    b.dataset.alterada = v === 1 ? '0' : '1';
+  }
+
+  // ── Tela cheia e janela flutuante ───────────────────────────────────────
+
+  function telaCheia() {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    else janela.requestFullscreen().catch(() => {});
+  }
+  document.addEventListener('fullscreenchange', () => {
+    const sim = !!document.fullscreenElement;
+    trocarIcone($('btn-tela'), sim ? 'fullscreen-exit' : 'fullscreen');
+    $('btn-tela').setAttribute('aria-label', sim ? 'Sair da tela cheia' : 'Tela cheia');
+    $('btn-tela').dataset.tuffDica = sim ? 'Sair da tela cheia (F)' : 'Tela cheia (F)';
+    acordar();
+  });
+
+  // Em tela cheia o transporte some com o ponteiro parado enquanto a mídia toca, e nunca com o
+  // foco dentro dele: sumir ali deixaria quem usa o teclado sem controle nenhum na tela.
+  let ocio = null;
+  function acordar() {
+    janela.classList.remove('ocioso');
+    clearTimeout(ocio);
+    if (!document.fullscreenElement) return;
+    ocio = setTimeout(() => {
+      if (!video.paused && !$('transporte').contains(document.activeElement)) janela.classList.add('ocioso');
+      else acordar();
+    }, 2500);
+  }
+  janela.addEventListener('pointermove', acordar);
+  video.addEventListener('pause', acordar);
+  $('transporte').addEventListener('focusin', acordar);
 
   async function janelaFlutuante() {
     try {
@@ -1103,91 +749,221 @@ function montarPalco() {
     } catch { avisar('A janela flutuante não está disponível aqui.'); }
   }
 
-  function telaCheia() {
-    if (document.fullscreenElement) document.exitFullscreen();
-    else palco.requestFullscreen().catch(() => {});
+  // ── Os menus, desenhados pelo ambiente ──────────────────────────────────
+
+  function menu(x, y, itens) {
+    vssh.dialogos.menuDeContexto(x, y, itens).then((id) => { if (id) executar(id); });
   }
-  document.addEventListener('fullscreenchange', () =>
-    trocarIcone($('btn-tela'), document.fullscreenElement ? 'fullscreen-exit' : 'maximize'));
+  function menuNoBotao(botao, itens) {
+    const r = botao.getBoundingClientRect();
+    menu(r.left, r.top, itens);
+  }
 
-  // ── Quantos quadros esta máquina está perdendo ──────────────────────────
-  //
-  // ⚠ **Isto responde à única pergunta que log de servidor nenhum responde**: "está travando?".
-  // O caminho até aqui tem quatro trechos — ffmpeg, portal, rede, navegador — e os três primeiros
-  // se medem no servidor. O quarto só se mede na máquina que desenha, e `getVideoPlaybackQuality`
-  // é o instrumento: quadros que o decodificador entregou contra quadros que a tela não conseguiu
-  // mostrar a tempo.
-  //
-  // É o mesmo número que o VLC põe em Ferramentas → Informações da mídia → Estatísticas, sob
-  // "quadros perdidos", e pelo mesmo motivo: quando alguém diz "está travado", é a diferença entre
-  // "chegou pouco" e "chegou e não coube".
-  //
-  // ⚠ Ele fica AQUI e não na tela. Contador de quadros na interface de quem quer assistir é ruído
-  // permanente por uma informação que importa em dez minutos de uma vida — e é justamente por isso
-  // que ele tem de ser fácil de achar quando esses dez minutos chegam.
+  function itensDoPalco() {
+    const faixas = itensDeFaixas();
+    return [
+      { id: 'tocar', label: video.paused ? 'Reproduzir' : 'Pausar', disabled: !atual },
+      { id: 'voltar', label: 'Voltar 10 segundos', disabled: !atual },
+      { id: 'avancar', label: 'Avançar 10 segundos', disabled: !atual },
+      { separator: true },
+      { id: 'anterior', label: 'Anterior', disabled: !temAnterior() },
+      { id: 'proximo', label: 'Próximo', disabled: !temProximo() },
+      { separator: true },
+      { id: 'veloc', label: 'Velocidade', submenu: itensDeVelocidade() },
+      ...(faixas.length ? [{ id: 'faixas', label: 'Áudio e legendas', submenu: faixas }] : []),
+      { separator: true },
+      { id: 'tela', label: 'Tela cheia', checked: !!document.fullscreenElement },
+      { id: 'pip', label: 'Janela flutuante', checked: !!document.pictureInPictureElement,
+        disabled: !document.pictureInPictureEnabled || !atual || !atual.temVideo },
+      { separator: true },
+      { id: 'info', label: 'Informações do arquivo', disabled: !atual },
+    ];
+  }
 
-  function qualidadeDaTela() {
-    const q = video.getVideoPlaybackQuality && video.getVideoPlaybackQuality();
-    if (!q || !q.totalVideoFrames) return null;
-    const pct = (q.droppedVideoFrames / q.totalVideoFrames) * 100;
-    return {
-      total: q.totalVideoFrames,
-      perdidos: q.droppedVideoFrames,
-      texto: `Quadros: ${q.totalVideoFrames} desenhados, ${q.droppedVideoFrames} perdidos`
-             + ` (${pct.toFixed(1)}%)`,
+  function itensDeMais() {
+    return [
+      { id: 'abrir', label: 'Abrir arquivo…', icon: 'folder' },
+      { id: 'mostrar', label: 'Mostrar no gerenciador de arquivos', disabled: !atual },
+      { separator: true },
+      { id: 'pip', label: 'Janela flutuante', checked: !!document.pictureInPictureElement,
+        disabled: !document.pictureInPictureEnabled || !atual || !atual.temVideo },
+      { id: 'info', label: 'Informações do arquivo', disabled: !atual },
+      { id: 'esquecer', label: 'Esquecer onde parei', disabled: !atual },
+      { separator: true },
+      { id: 'inicio', label: 'Voltar ao início', disabled: !atual },
+      { id: 'sobre', label: 'Sobre o Palco' },
+    ];
+  }
+
+  function executar(id) {
+    if (id.startsWith('vel:')) return velocidade(parseFloat(id.slice(4)));
+    if (id.startsWith('aud:')) return trocarAudio(parseInt(id.slice(4), 10));
+    if (id.startsWith('leg:')) return trocarLegenda(parseInt(id.slice(4), 10));
+    if (id.startsWith('fila:')) return abrirDaFila(parseInt(id.slice(5), 10));
+    if (id.startsWith('pasta:')) { const it = fila[parseInt(id.slice(6), 10)]; if (it) mostrarNaPasta(it.caminho); return undefined; }
+    if (id.startsWith('continuar:')) return abrir(id.slice(10));
+    if (id.startsWith('esquecer:')) return esquecer(id.slice(9));
+    const acoes = {
+      abrir: escolherArquivo,
+      mostrar: () => atual && mostrarNaPasta(atual.caminho),
+      tocar: () => { if (!atual) return; if (video.paused) video.play().catch(() => {}); else video.pause(); },
+      voltar: () => buscar(agoraReal() - 10),
+      avancar: () => buscar(agoraReal() + 10),
+      anterior,
+      proximo,
+      tela: telaCheia,
+      pip: janelaFlutuante,
+      info: informacoes,
+      esquecer: () => { if (atual) { esquecer(atual.caminho); $('retomar').hidden = true; } },
+      inicio: voltarAoInicio,
+      sobre,
     };
+    return (acoes[id] || (() => {}))();
   }
 
-  async function informacoes() {
+  $('btn-mais').addEventListener('click', (e) => menuNoBotao(e.currentTarget, itensDeMais()));
+  $('btn-veloc').addEventListener('click', (e) => menuNoBotao(e.currentTarget, itensDeVelocidade()));
+  $('btn-faixas').addEventListener('click', (e) => menuNoBotao(e.currentTarget, itensDeFaixas()));
+  $('btn-anterior').addEventListener('click', anterior);
+  $('btn-proximo').addEventListener('click', proximo);
+  $('btn-voltar').addEventListener('click', () => buscar(agoraReal() - 10));
+  $('btn-avancar').addEventListener('click', () => buscar(agoraReal() + 10));
+  $('btn-tela').addEventListener('click', telaCheia);
+
+  // O clique direito depende de onde caiu: numa linha da fila ou de "Continuar", ações sobre
+  // aquele item; no palco ou no transporte, sobre o que toca. Sobre um campo de texto, o menu do
+  // navegador (colar, selecionar tudo) serve melhor.
+  document.addEventListener('contextmenu', (e) => {
+    if (e.target.closest('input, textarea, [contenteditable]')) return;
+    const linha = e.target.closest('.fila-item');
+    if (linha) {
+      e.preventDefault();
+      const i = Number(linha.dataset.i);
+      selecionar(i);
+      menu(e.clientX, e.clientY, [
+        { id: `fila:${i}`, label: 'Reproduzir' },
+        { id: `pasta:${i}`, label: 'Mostrar no gerenciador de arquivos' },
+      ]);
+      return;
+    }
+    const recente = e.target.closest('.continuar-item');
+    if (recente) {
+      e.preventDefault();
+      const c = recente.dataset.caminho;
+      menu(e.clientX, e.clientY, [
+        { id: `continuar:${c}`, label: 'Continuar' },
+        { id: `esquecer:${c}`, label: 'Esquecer' },
+      ]);
+      return;
+    }
+    if (atual && e.target.closest('#palco, #transporte')) {
+      e.preventDefault();
+      menu(e.clientX, e.clientY, itensDoPalco());
+    }
+  });
+
+  // Um clique no vídeo alterna tocar e pausar; um duplo-clique alterna a tela cheia. O clique
+  // simples espera o intervalo de um duplo para não pausar e retomar a cada tela cheia.
+  let cliqueNoVideo = null;
+  video.addEventListener('click', () => {
+    clearTimeout(cliqueNoVideo);
+    cliqueNoVideo = setTimeout(() => executar('tocar'), 220);
+  });
+  video.addEventListener('dblclick', () => { clearTimeout(cliqueNoVideo); telaCheia(); });
+
+  // ── Informações e sobre ─────────────────────────────────────────────────
+
+  function informacoes() {
     if (!atual) return;
-    // ⚠ O detalhe técnico mora AQUI, e não numa barra de estado. É onde o VLC o põe, e é o lugar
-    // certo: quem quer saber vai buscar; quem só quer assistir não tropeça nele.
-    const q = qualidadeDaTela();
+    const q = video.getVideoPlaybackQuality && video.getVideoPlaybackQuality();
+    const modo = {
+      direto: 'direto do servidor, sem conversão',
+      remux: 'reembalado no servidor, sem recomprimir a imagem',
+      audio: 'só o áudio é convertido no servidor',
+      transcode: 'convertido no servidor',
+    }[atual.modo] || atual.modo;
+    const et = atual.etiquetas || {};
     const linhas = [
-      atual.nome,
-      atual.duracao ? `Duração: ${tempoDe(atual.duracao)}` : null,
-      video.videoWidth ? `Imagem: ${video.videoWidth}×${video.videoHeight}` : null,
-      `Faixas de áudio: ${atual.audios.length || 'nenhuma'}`,
-      atual.legendas.length ? `Legendas: ${atual.legendas.length}` : null,
+      atual.caminho,
       '',
-      `Como está sendo servido: ${{
-        direto: 'direto do seu ambiente, sem conversão',
-        remux: 'reembalado no servidor (o vídeo não é recomprimido)',
-        audio: 'só o áudio está sendo convertido no servidor',
-        transcode: 'convertido no servidor',
-      }[atual.modo] || atual.modo}`,
-      atual.motivo,
-      q ? '' : null,
-      q ? q.texto : null,
-      // A frase que transforma o número em decisão. Sem ela, "3,2%" não diz a ninguém se está bom.
-      //
-      // ⚠ E ela NÃO culpa a máquina, embora essa tenha sido a primeira versão. Medido: o mesmo
-      // arquivo perde 25% dos quadros numa máquina que toca 720p a 60 quadros por segundo sem
-      // perder um — a causa estava no arquivo, e apontar para o computador teria mandado quem lê
-      // procurar no lugar errado. Um diagnóstico que nomeia o culpado errado é pior que nenhum.
-      q ? (q.perdidos / q.total > 0.05
-        ? 'Perder mais de 5% é o que se vê como travamento. Os bytes chegaram — o que não coube '
-          + 'foi desenhar, e a causa pode ser o arquivo ou esta máquina.'
-        : 'Abaixo de 5% a reprodução é considerada lisa.') : null,
+      et.artista ? `Artista: ${et.artista}` : null,
+      et.album ? `Álbum: ${et.album}` : null,
+      atual.duracao ? `Duração: ${tempo(atual.duracao)}` : null,
+      atual.largura ? `Imagem: ${atual.largura} × ${atual.altura}` : null,
+      atual.audios.length ? `Faixas de áudio: ${atual.audios.length}` : null,
+      atual.legendas.length ? `Legendas: ${atual.legendas.length}` : null,
+      `Reprodução: ${modo}`,
+      atual.modo !== 'direto' ? atual.motivo : null,
+      // Os quadros perdidos respondem a "está travando?": o que o decodificador entregou e a tela
+      // não conseguiu mostrar a tempo. Acima de 5% é o que se vê como travamento.
+      q && q.totalVideoFrames
+        ? `Quadros: ${q.totalVideoFrames} desenhados, ${q.droppedVideoFrames} perdidos`
+          + ` (${numero(((q.droppedVideoFrames / q.totalVideoFrames) * 100).toFixed(1))}%)`
+        : null,
     ].filter((x) => x !== null);
-    await vssh.dialogos.mostrar(linhas.join('\n'), 'Informações do arquivo');
+    vssh.dialogos.mostrar(linhas.join('\n'), semExtensao(atual.nome));
   }
+
+  async function sobre() {
+    let texto = 'Palco';
+    try {
+      const s = await api('saude');
+      texto = [`Palco ${String(s.versao || '').replace(/\+.*$/, '')}`,
+               s.gpu ? `Conversão por GPU (${s.gpu})` : 'Conversão pela CPU'].join('\n');
+    } catch { /* fica o nome */ }
+    vssh.dialogos.mostrar(texto, 'Sobre o Palco');
+  }
+
+  // ── Abrir, soltar, voltar ao início ─────────────────────────────────────
 
   async function escolherArquivo() {
-    const p = await vssh.arquivos.escolherArquivo();
+    const p = await vssh.arquivos.escolherArquivo('Abrir no Palco',
+      'Vídeo e música (*.mp4 *.m4v *.mkv *.webm *.avi *.mov *.wmv *.flv *.ts *.mpg *.mpeg *.ogv '
+      + '*.mp3 *.m4a *.flac *.wav *.ogg *.opus *.aac *.wma *.mka);;Tudo (*)',
+      atual ? atual.pasta : undefined);
     if (p) abrir(p);
   }
-  $('btn-abrir-arquivo').addEventListener('click', escolherArquivo);
+  $('btn-abrir').addEventListener('click', escolherArquivo);
+
+  vssh.arquivos.aoSoltarArquivos((info) => {
+    const caminho = (info.caminhos || [])[0];
+    if (caminho) abrir(caminho);
+  }, { alvo: janela });
+
+  function voltarAoInicio() {
+    marcar();
+    geracao++;
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    atual = null;
+    fila = [];
+    indice = -1;
+    desenharFila();
+    avisar('');
+    preparando(false);
+    mostrarRetomar(0);
+    $('agora-titulo').textContent = 'Nada tocando';
+    $('agora-sub').textContent = '';
+    pintarCapa($('agora-capa'), { audio: false, capa: null });
+    $('fila-pasta').textContent = '';
+    document.title = 'Palco';
+    vssh.app.lembrarRota('');
+    pintarFaixas();
+    pintarNavegacao();
+    telaDoInicio();
+  }
 
   // ── Teclado ─────────────────────────────────────────────────────────────
 
   document.addEventListener('keydown', (e) => {
-    // ⚠ A guarda que todo player esquece: dentro de um campo de texto, espaço é espaço e as setas
-    // movem o cursor. Sem isto, filtrar a biblioteca pausa o vídeo a cada palavra.
     const alvo = e.target;
+    // Num campo de texto, espaço é espaço e as setas movem o cursor; na fila, as setas andam
+    // pela lista.
     if (alvo && (alvo.tagName === 'INPUT' || alvo.tagName === 'TEXTAREA' || alvo.isContentEditable)) return;
+    if (alvo && alvo.closest && alvo.closest('.fila-lista') && /^(Arrow|Home|End|Enter)/.test(e.key)) return;
+    if (alvo && alvo.getAttribute && alvo.getAttribute('role') === 'slider' && /^(Arrow|Home|End)/.test(e.key)) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-
     const teclas = {
       ' ': () => executar('tocar'),
       k: () => executar('tocar'),
@@ -1195,158 +971,66 @@ function montarPalco() {
       ArrowRight: () => buscar(agoraReal() + 10),
       j: () => buscar(agoraReal() - 30),
       l: () => buscar(agoraReal() + 30),
-      ArrowUp: () => { video.volume = Math.min(1, video.volume + 0.05); },
+      ArrowUp: () => { video.volume = Math.min(1, video.volume + 0.05); video.muted = false; },
       ArrowDown: () => { video.volume = Math.max(0, video.volume - 0.05); },
       m: () => { video.muted = !video.muted; },
       f: telaCheia,
       p: janelaFlutuante,
+      n: proximo,
+      b: anterior,
       Home: () => buscar(0),
       End: () => buscar((duracaoReal() || 0) - 1),
     };
     const fn = teclas[e.key] || teclas[e.key.toLowerCase()];
     if (!fn) return;
+    // Espaço sobre um botão já o aciona; tratar também aqui seria clicar duas vezes.
+    if (e.key === ' ' && alvo && alvo.tagName === 'BUTTON') return;
     e.preventDefault();
     fn();
   });
 
-  // ── As teclas de mídia do sistema ───────────────────────────────────────
+  // ── A central de mídia e as teclas de mídia ─────────────────────────────
   //
-  // O teclado com botão de play, o fone com botão de pausa. Sem isto o ambiente inteiro responde a
-  // eles e o Palco não — e a pessoa conclui que o player é que é estranho.
+  // O shell alcança este `<video>` sozinho e sabe tocar, pausar e buscar; o que ele não sabe é a
+  // fila, e sem a declaração ele não desenha anterior e próximo.
 
-  // ⚠ A central de mídia do AMBIENTE, que é outra coisa do `mediaSession` do sistema. O shell já
-  // alcança este `<video>` sozinho e sabe tocar, pausar e buscar; o que ele não tem é a FILA — e
-  // sem declarar, ele não desenha anterior/próximo, que é a resposta certa para quem abriu um
-  // arquivo solto. Declarar de novo a cada abertura é o ponto: a pasta muda, e com ela a resposta.
   function porCentralDeMidia() {
-    vssh.midia.transporte(indice > 0, indice >= 0 && indice + 1 < vizinhos.length);
+    vssh.midia.transporte(temAnterior(), temProximo());
   }
-  vssh.midia.ao('acao', ({ acao }) => executar(acao === 'anterior' ? 'anterior' : 'proximo'));
+  vssh.midia.ao('acao', ({ acao }) => (acao === 'anterior' ? anterior() : proximo()));
 
-  function porMediaSession(r) {
+  function porMediaSession(titulo, sub, capa) {
     if (!('mediaSession' in navigator)) return;
-    // O canal do YouTube quando há um; "Palco" quando o que está tocando é um arquivo da pasta e
-    // não existe autoria a mostrar. Repetir "Palco" havendo o nome do canal desperdiçaria a única
-    // linha secundária que a central de mídia oferece.
-    navigator.mediaSession.metadata = new MediaMetadata({
-      title: r.nome, artist: r.origem || 'Palco',
-    });
-    const liga = (acao, fn) => {
-      try { navigator.mediaSession.setActionHandler(acao, fn); } catch { /* não suportada */ }
-    };
+    const artwork = capa ? [{ src: new URL(capa, document.baseURI).href, type: 'image/jpeg' }] : [];
+    navigator.mediaSession.metadata = new MediaMetadata({ title: titulo, artist: sub || 'Palco', artwork });
+  }
+  if ('mediaSession' in navigator) {
+    const liga = (acao, fn) => { try { navigator.mediaSession.setActionHandler(acao, fn); } catch { /* não suportada */ } };
     liga('play', () => video.play());
     liga('pause', () => video.pause());
     liga('seekbackward', () => buscar(agoraReal() - 10));
     liga('seekforward', () => buscar(agoraReal() + 10));
-    liga('previoustrack', () => executar('anterior'));
-    liga('nexttrack', () => executar('proximo'));
-  }
-
-  // ── A Biblioteca ────────────────────────────────────────────────────────
-
-  async function carregarVizinhos(caminho, minha) {
-    try {
-      const r = await api(`api/vizinhos?caminho=${encodeURIComponent(caminho)}`);
-      if (minha !== undefined && minha !== geracao) return;   // é a pasta de um arquivo já trocado
-      vizinhos = r.itens;
-      indice = r.atual;
-      $('bib-pasta').textContent = r.pasta;
-      desenharTabela();
-      porCentralDeMidia();
-    } catch { /* a pasta pode ter sumido; o player continua tocando */ }
-  }
-
-  function desenharTabela() {
-    const corpo = $('tabela-corpo');
-    corpo.textContent = '';
-    const busca = filtro.trim().toLowerCase();
-    const vistos = vizinhos
-      .map((it, i) => ({ ...it, i }))
-      .filter((it) => !busca || it.nome.toLowerCase().includes(busca));
-
-    $('bib-vazio').hidden = vizinhos.length > 0;
-    $('tabela').hidden = vizinhos.length === 0;
-
-    for (const it of vistos) {
-      const linha = document.createElement('div');
-      linha.className = 'linha-arq' + (it.i === indice ? ' linha-arq--tocando' : '');
-      linha.setAttribute('role', 'row');
-      linha.tabIndex = 0;
-      linha.setAttribute('aria-selected', String(it.i === indice));
-      // O ÍNDICE no DOM: é o que permite ao clique direito agir sobre a linha apontada em vez da
-      // marcada. Sem ele, o menu precisaria de uma seleção — e a tabela não tem uma.
-      linha.dataset.i = String(it.i);
-      const ponto = it.nome.lastIndexOf('.');
-      for (const [cls, txt] of [['col-n', String(it.i + 1)], ['col-nome', it.nome],
-                                ['col-fmt', ponto > 0 ? it.nome.slice(ponto + 1).toUpperCase() : '']]) {
-        const c = document.createElement('span');
-        c.className = cls;
-        c.textContent = txt;
-        linha.appendChild(c);
-      }
-      // Duplo-clique E Enter: uma lista em que só o teclado abre é uma lista que o mouse não usa,
-      // e o contrário deixa quem navega por teclado sem saída.
-      const tocar = () => { abrir(it.caminho); irPara('reproduzindo'); };
-      linha.addEventListener('dblclick', tocar);
-      linha.addEventListener('keydown', (e) => { if (e.key === 'Enter') tocar(); });
-      corpo.appendChild(linha);
-    }
-  }
-
-  $('bib-busca').addEventListener('input', (e) => { filtro = e.target.value; desenharTabela(); });
-
-  // ── As abas ─────────────────────────────────────────────────────────────
-
-  function irPara(nome) {
-    for (const b of document.querySelectorAll('.aba')) {
-      const ativa = b.dataset.aba === nome;
-      b.classList.toggle('aba--ativa', ativa);
-      b.setAttribute('aria-selected', String(ativa));
-    }
-    for (const p of document.querySelectorAll('.painel')) {
-      p.classList.toggle('painel--ativo', p.id === `painel-${nome}`);
-    }
-    // O shell devolve a janela nesta rota quando a sessão é restaurada.
-    vssh.app.lembrarRota(nome === 'reproduzindo' ? '' : nome);
-  }
-  for (const b of document.querySelectorAll('.aba')) {
-    b.addEventListener('click', () => irPara(b.dataset.aba));
+    liga('previoustrack', anterior);
+    liga('nexttrack', proximo);
   }
 
   // ── A porta de entrada ──────────────────────────────────────────────────
   //
-  // É por aqui que o Palco recebe o arquivo que alguém mandou abrir com ele — o duplo-clique no
-  // gerenciador de arquivos, o "Abrir com", e (a partir da Fase 3) o link roteado.
+  // O arquivo chega pelo evento `abertura`: o duplo-clique no gerenciador de arquivos, o "Abrir
+  // com", o arraste de outro app. Uma janela que a sessão reabre chega com `?caminho=` na URL, e
+  // volta ao mesmo arquivo, pausada no ponto onde a pessoa parou.
 
   vssh.app.ao('abertura', (ctx) => {
-    if (ctx.tipo === 'pasta') return;          // pasta é a Biblioteca de outro dia
-    // ⚠ `tipo: 'url'` é o que o roteamento de link entrega (Fase 3). Ele já chega hoje por
-    // `vssh.arquivos.abrirLink` de outro app; o que ainda não acontece é o Palco ser ELEITO para os hosts do
-    // YouTube, e isso segue desligado de propósito — `opens.urls` só entra quando a aba cobrir
-    // playlist, canal e busca, senão o link vira beco.
-    if (ctx.tipo === 'url' && ctx.url) {
-      // ⚠ Playlist, canal e busca vão para a ABA; vídeo vai para o player. Sem esta bifurcação o
-      // Palco declararia `opens.urls` e devolveria ao navegador metade dos endereços que
-      // reivindicou — que é o beco que o roteamento existe para não produzir.
-      const lista = ehListagem(ctx.url);
-      if (lista && yt) { yt.abrirListagem(ctx.url, lista); return; }
-      // `abrirYoutube` troca de aba sozinho, e só depois de confirmar que é vídeo.
-      abrirYoutube(ctx.url);
-      return;
-    }
-    if (ctx.caminho) { irPara('reproduzindo'); abrir(ctx.caminho); return; }
-    if (ctx.rota) irPara(ctx.rota);
+    if (ctx && ctx.caminho && ctx.tipo !== 'pasta') abrir(ctx.caminho);
   });
-
-  // ── A aba do YouTube ────────────────────────────────────────────────────
-  //
-  // ⚠ Ela recebe o Palco por parâmetro, e não o contrário: quem toca é o player que já existe, e a
-  // aba só sabe pedir. Sem essa direção seriam dois donos do mesmo `<video>` — que é exatamente o
-  // desenho que faz um "app com YouTube dentro" virar dois apps colados.
-  const yt = window.montarYoutube ? montarYoutube({ abrirYoutube, irPara, comIdioma }) : null;
 
   porRepetir('nao');
   velocidade(1);
+  pintarFaixas();
+  pintarNavegacao();
+  const restaurado = new URLSearchParams(location.search).get('caminho');
+  if (restaurado) abrir(restaurado, { tocar: false });
+  else telaDoInicio();
 }
 
 if (document.readyState === 'loading') {

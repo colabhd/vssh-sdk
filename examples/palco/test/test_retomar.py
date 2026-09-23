@@ -20,7 +20,7 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "backend"))
 
 from retomar import (  # noqa: E402
-    e_marca_de_video, esquecer, lembrar, marca_de_video, retomada, todas,
+    assinatura_de, esquecer, lembrar, recentes, retomada, todas,
 )
 
 FILME = "/home/ana/Vídeos/o filme.mkv"
@@ -125,37 +125,45 @@ class TestNaoDerrubar(Base):
         self.assertEqual(retomada(alvo, FILME), 2400)
 
 
-class TestAChaveDeUmVideoDoYoutube(Base):
-    """Uma marca de vídeo do YouTube mora na MESMA tabela de um arquivo, sob um prefixo.
+class TestRecentes(Base):
+    """A lista "Continuar" da tela inicial: o que está pela metade e ainda pode continuar."""
 
-    ⚠ Repetir, esquecer e o teto de entradas já existem e funcionam; uma segunda tabela duplicaria
-    os três para ganhar nada — "onde parei" é a mesma pergunta.
-    """
+    def arquivo(self, nome, conteudo=b"x" * 64):
+        caminho = os.path.join(self.dir, "midia", nome)
+        os.makedirs(os.path.dirname(caminho), exist_ok=True)
+        with open(caminho, "wb") as fh:
+            fh.write(conteudo)
+        return caminho
 
-    def test_a_chave_NAO_se_confunde_com_um_caminho(self):
-        # ⚠ Sem prefixo, `dQw4w9WgXcQ` é indistinguível de um caminho relativo — e `assinatura_de`
-        # passaria a ser chamada sobre ele, `esquecer` deixaria de saber o que apaga, e um dia
-        # alguém escreveria uma regra por caminho que pegaria vídeos por acidente.
-        chave = marca_de_video("dQw4w9WgXcQ")
-        self.assertTrue(e_marca_de_video(chave))
-        self.assertNotEqual(chave, "dQw4w9WgXcQ")
-        for caminho in (FILME, "/home/ana/Vídeos/aula.mkv", "aula.mkv", "C:\\v\\a.mkv"):
-            self.assertFalse(e_marca_de_video(caminho), caminho)
+    def test_o_mais_recente_vem_primeiro(self):
+        a, b, c = self.arquivo("a.mkv"), self.arquivo("b.mkv"), self.arquivo("c.mkv")
+        for caminho in (a, b, c):
+            lembrar(self.dir, caminho, 600, 3600, assinatura=assinatura_de(caminho))
+        # Voltar a assistir o primeiro o põe de novo no topo.
+        lembrar(self.dir, a, 900, 3600, assinatura=assinatura_de(a))
+        self.assertEqual([r["caminho"] for r in recentes(self.dir)], [a, c, b])
+        self.assertEqual(recentes(self.dir)[0]["seg"], 900)
 
-    def test_dois_videos_diferentes_nao_compartilham_marca(self):
-        self.assertNotEqual(marca_de_video("aaaaaaaaaaa"), marca_de_video("bbbbbbbbbbb"))
+    def test_so_entra_o_que_AINDA_da_para_continuar(self):
+        vivo = self.arquivo("vivo.mkv")
+        apagado = self.arquivo("apagado.mkv")
+        trocado = self.arquivo("trocado.mkv")
+        for caminho in (vivo, apagado, trocado):
+            lembrar(self.dir, caminho, 600, 3600, assinatura=assinatura_de(caminho))
+        os.remove(apagado)
+        # Outro arquivo com o mesmo nome: a assinatura muda, e a marca não é dele.
+        with open(trocado, "wb") as fh:
+            fh.write(b"outro conteudo, outro tamanho")
+        # E uma marca de chave que não é caminho, como as que versões antigas gravavam.
+        lembrar(self.dir, "yt:dQw4w9WgXcQ", 300, 1800)
+        self.assertEqual([r["caminho"] for r in recentes(self.dir)], [vivo])
 
-    def test_a_marca_de_video_percorre_o_mesmo_caminho_de_um_arquivo(self):
-        chave = marca_de_video("dQw4w9WgXcQ")
-        lembrar(self.dir, chave, 300, 1800)
-        self.assertEqual(retomada(self.dir, chave), 300)
-        # E terminar apaga, como em qualquer outro: reabrir nos créditos é o defeito clássico.
-        lembrar(self.dir, chave, 1795, 1800)
-        self.assertIsNone(retomada(self.dir, chave))
-
-    def test_e_marca_de_video_recusa_o_que_nao_e_texto(self):
-        for lixo in (None, 0, [], {}):
-            self.assertFalse(e_marca_de_video(lixo))
+    def test_o_limite_corta_pelos_mais_antigos(self):
+        caminhos = [self.arquivo(f"ep{i:02d}.mkv") for i in range(20)]
+        for caminho in caminhos:
+            lembrar(self.dir, caminho, 600, 3600)
+        lista = recentes(self.dir, limite=5)
+        self.assertEqual([r["caminho"] for r in lista], caminhos[:-6:-1])
 
 
 if __name__ == "__main__":
