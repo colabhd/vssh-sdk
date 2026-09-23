@@ -218,8 +218,7 @@
      quando a pessoa escolhe uma cor. Um vssh-app acompanha a cor lendo estas
      custom properties do `<html>` do pai, pela ponte do SDK web, então os quatro
      nomes são um contrato: renomear um deles não quebra nada no shell e deixa a
-     janela de todo app instalado fora do tom, sem erro em lugar nenhum.
-     `tests/unit/tokens-de-app.test.js` guarda os nomes e quem os escreve. */
+     janela de todo app instalado fora do tom, sem erro em lugar nenhum. */
   --ds-accent:         var(--tuff-accent);
   --ds-accent-h:       var(--tuff-accent-h);
   --ds-accent-bg:      var(--tuff-accent-bg);

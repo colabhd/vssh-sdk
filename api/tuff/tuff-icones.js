@@ -27,9 +27,8 @@
 //
 // Um `<use href>` que não resolve não lança. Ele só não desenha, e um botão com um quadrado vazio
 // de 14×14 fica meses na tela sem uma linha no console. Por isso `TuffIcones.svg()` avisa no
-// console quando o nome não existe, e por isso `tests/unit/sprite-icons.test.js` e
-// `tests/unit/icones-que-o-shell-pede.test.js` recusam qualquer `#ico-…` pedido pelo shell que não
-// esteja aqui.
+// console quando o nome não existe, e por isso `tests/unit/sprite-icons.test.js` recusa qualquer
+// `#ico-…` pedido pelo shell que não esteja aqui.
 
 (function () {
 
