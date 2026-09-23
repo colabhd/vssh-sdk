@@ -28,11 +28,14 @@
     "api/tuff/tuff-icones.js": {
       "sha256": "c30d4a95ec27cd4462b24522500e64f42bdcb67ce26c8ecc21a1c7a01c6a62be"
     },
+    "api/tuff/tuff-imagem.js": {
+      "sha256": "b2e38a3d56a7b86638464d81b04bcbffb674923da4d8dc1e896b9d7977fe7557"
+    },
     "api/tuff/tuff-midia.css": {
-      "sha256": "afe01b05ee0d8ba2bb0164b8988114dc69dea837c801f6f6c509919a6ceaaaac"
+      "sha256": "b47ce34dfc60d9bc8af58d97ee0bfdb370af71a0ae151547c9727c38b84b538a"
     },
     "api/tuff/tuff-midia.js": {
-      "sha256": "03b946e49fbeae2288baa0f524b5cb4af39c25bb5b86a9756cf1b657c27f294b"
+      "sha256": "9b647e1d45783aaf9a10854e40a60b61080fe91823a436041476f34be7f76194"
     },
     "api/tuff/tuff-tokens.css": {
       "sha256": "880a3dca295b381d1a3174f820271bb612dc132f776809e2480f86005c947dad"
@@ -42,6 +45,12 @@
     },
     "api/tuff/tuff.js": {
       "sha256": "01cc5ffbb59fbd94615dcef470ca6972278653089a84a8af7b94faa3a40297d4"
+    },
+    "api/tuff/vendor/geotiff-LICENCAS.txt": {
+      "sha256": "48fe558bdf8ac64674a9104c2e679400368d529dd36de972419c9d0cfc9d4a40"
+    },
+    "api/tuff/vendor/geotiff.min.js": {
+      "sha256": "43e440ec551e92f28376acdecdf1b285362a85f5b4afddfb028fef2213929862"
     },
     "api/vssh-app.schema.json": {
       "sha256": "bbce7d71c554cbbf677890beac984b786b7d4048a5ed3455143a22182b1bb59b"

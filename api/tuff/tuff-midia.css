@@ -384,14 +384,21 @@
     min-height: 0;
   }
   .tuff-visor--arrastando { cursor: grabbing; }
+  /* O anel de foco por dentro: o visor costuma encostar nas bordas da janela, e o anel de
+     fora ficaria cortado por elas. */
+  .tuff-visor:focus-visible { outline-offset: -2px; }
   .tuff-visor-conteudo {
     position: absolute;
     top: 0;
     left: 0;
     transform-origin: 0 0;
-    will-change: transform;
   }
-  .tuff-visor-conteudo img { display: block; max-width: none; }
+  /* `will-change` só durante o gesto, que o script marca com `--movendo`. Fixo, ele faz o
+     Chrome rasterizar a camada uma vez e depois esticar o bitmap, e a imagem ampliada fica
+     borrada; ao fim do gesto a camada é rasterizada de novo na escala final. */
+  .tuff-visor--movendo .tuff-visor-conteudo { will-change: transform; }
+  .tuff-visor-conteudo img { display: block; max-width: none; -webkit-user-drag: none; user-select: none; }
+  .tuff-visor-conteudo canvas { display: block; }
 
   /* Sem transição durante o gesto: interpolar enquanto o dedo se move produz um
      atraso constante entre o ponteiro e a imagem, que se lê como travamento. A

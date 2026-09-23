@@ -2,24 +2,26 @@
 
 // Tuff: o comportamento das peças de mídia. Opt-in, como o CSS delas.
 //
-// Expõe `window.TuffMidia` com quatro peças:
+// Expõe `window.TuffMidia` com estas peças:
 //
 //     TuffMidia.player(raiz, video)   liga trilha, timecode, volume e o chrome que some
 //     TuffMidia.grade(el, opcoes)     grade de miniaturas virtualizada
-//     TuffMidia.visor(el, opcoes)     zoom e arraste
+//     TuffMidia.visor(el, opcoes)     zoom, arraste e rotação de uma imagem
 //     TuffMidia.tempo(segundos)       o timecode, como string
+//     TuffMidia.imagem(url, opcoes)   a imagem pronta para o visor, com TIFF e HEIC decodificados
+//     TuffMidia.decodificador()       o `TuffImagem`, para páginas e miniaturas sem desenhar nada
 //
 // Nasceu na biblioteca de componentes do toolkit de apps (`vssh-app-toolkit/lib/web/tuff/`); a
-// fonte é esta, e um app o recebe como `_sdk/tuff/tuff-midia.js`. Sem dependência e sem build.
-// Nada aqui fala com o shell: são peças de navegador, e funcionam igual num app Node, num app
-// Python e numa aba solta.
+// fonte é esta, e um app o recebe como `_sdk/tuff/tuff-midia.js`. Sem build, e a única dependência
+// é o decodificador ao lado (`tuff-imagem.js`), buscado só por `imagem()`. Nada aqui fala com o
+// shell: são peças de navegador, e funcionam igual num app Node, num app Python e numa aba solta.
 //
-// ─── Por que estas quatro peças ─────────────────────────────────────────────
+// ─── Por que estas peças ─────────────────────────────────────────────────────
 //
 // O que ninguém acerta sozinho é a grade que não trava com trinta mil arquivos, o scrub que não
-// briga com o `timeupdate`, o chrome que não some com o foco do teclado dentro, e o zoom que
-// acompanha o ponteiro. Que botão fica onde, e o que o app faz ao abrir um arquivo, é do app, e
-// um player pronto tomaria essa decisão por ele.
+// briga com o `timeupdate`, o chrome que não some com o foco do teclado dentro, o zoom que
+// acompanha o ponteiro e o TIFF que o navegador não abre. Que botão fica onde, e o que o app faz
+// ao abrir um arquivo, é do app, e um player pronto tomaria essa decisão por ele.
 
 (function () {
 
@@ -387,12 +389,12 @@
    * `montar(indice, no)` é chamada toda vez que um nó é reusado para outro índice. Ela recebe o nó
    * já posicionado e só precisa preencher o conteúdo.
    *
-   * Devolve `{ atualizar(total), selecionar(i), destruir() }`.
+   * Devolve `{ atualizar(total), selecionar(i), redimensionar(largura, altura), destruir() }`.
    */
   function grade(el, opcoes) {
     const o = opcoes || {};
-    const larguraItem = o.largura || 160;
-    const alturaItem = o.altura || 120;
+    let larguraItem = o.largura || 160;
+    let alturaItem = o.altura || 120;
     const espaco = o.gap != null ? o.gap : 8;
     const montar = o.montar || (() => {});
     let total = o.total || 0;
@@ -518,9 +520,25 @@
 
     medir(); desenhar();
 
+    /**
+     * Outro tamanho de item, com o primeiro item visível continuando no topo: sem isso, ampliar as
+     * miniaturas no meio de uma pasta de mil fotos jogaria a pessoa para outro trecho dela. Todo nó
+     * é montado de novo, porque o app pode querer uma miniatura maior para o item maior.
+     */
+    function redimensionar(largura, altura) {
+      const primeiro = Math.floor(el.scrollTop / (alturaItem + espaco)) * colunas;
+      larguraItem = largura;
+      alturaItem = altura;
+      medir();
+      el.scrollTop = Math.floor(primeiro / colunas) * (alturaItem + espaco);
+      for (const no of pool) no.__indice = null;
+      desenhar();
+    }
+
     return {
       atualizar(n) { total = n; medir(); desenhar(); },
       selecionar(i) { selecionar(i, false); },
+      redimensionar,
       destruir() {
         el.removeEventListener('scroll', aoRolar);
         el.removeEventListener('click', aoClicar);
@@ -534,20 +552,33 @@
   // ── O visor ────────────────────────────────────────────────────────────────
 
   /**
-   * Zoom e arraste sobre o primeiro filho de `el`.
+   * Zoom, arraste e rotação sobre o primeiro filho de `el` (uma `img`, um `canvas`, um `video`).
    *
    * Sem inércia, por escolha. Um visualizador aqui é ferramenta de trabalho (comparar duas regiões
    * de uma imagem científica, ler uma etiqueta), e uma imagem que continua deslizando depois que a
    * mão parou se lê como perda de controle. O momento que existe no trackpad já vem do sistema,
    * pela roda; o que se somaria é só no arraste com botão, onde ninguém pede.
    *
-   * Devolve `{ ajustar(), cem(), destruir() }`.
+   * A escala que entra e sai é em pixels do MONITOR: `1` põe um pixel da imagem num pixel da tela,
+   * que é o que "100%" quer dizer num visualizador de fotos. Em pixel CSS, uma tela a 150% mostraria
+   * a foto "a 100%" com cada pixel dela esticado em um e meio, borrada no único zoom em que a pessoa
+   * foi conferir nitidez.
+   *
+   * `opcoes`:
+   *   min, max    os limites da escala. `min` padrão é a escala de caber na janela, porque afastar
+   *               além dela só encolhe a imagem num canto; `max` padrão 40.
+   *   passo       o fator de `ampliar()` e `reduzir()`, e das teclas + e −. Padrão 1.25.
+   *   aoMudar     chamada com `{ escala, rotacao, ajustada }` quando a escala ou a rotação mudam.
+   *
+   * Devolve `{ ajustar, cem, ampliar, reduzir, definir, girar, trocar, escala, rotacao, ajustada,
+   * destruir }`.
    */
   function visor(el, opcoes) {
     const o = opcoes || {};
-    const minEscala = o.min || 0.05;
     const maxEscala = o.max || 40;
+    const passo = o.passo || 1.25;
     el.classList.add('tuff-visor');
+    if (!el.hasAttribute('tabindex')) el.tabIndex = 0;
 
     let conteudo = el.querySelector('.tuff-visor-conteudo');
     if (!conteudo) {
@@ -557,10 +588,109 @@
       el.appendChild(conteudo);
     }
 
-    let escala = 1, x = 0, y = 0;
+    // O estado é em pixel CSS (`s`), que é o que o `transform` entende; a conversão para pixel do
+    // monitor acontece só na borda, em `escala()` e `definir()`.
+    //
+    // `giro` acumula os graus sem voltar a zero, para a transição de 270 para 360 andar noventa
+    // graus no sentido do clique em vez de voltar trezentos e sessenta no outro.
+    let s = 1, x = 0, y = 0, giro = 0;
+    // Enquanto a pessoa não mexe no zoom, a imagem acompanha a janela: redimensionar, girar ou
+    // trocar de imagem volta a caber. O primeiro gesto de zoom solta a imagem da janela.
+    let seguirAjuste = true;
+    let avisado = null;
+
+    const dpr = () => window.devicePixelRatio || 1;
+    const rot = () => ((giro % 360) + 360) % 360;
+
+    const tamanho = () => {
+      const alvo = conteudo.firstElementChild;
+      // O `canvas` pelo tamanho intrínseco, que é o da imagem decodificada; o `offsetWidth` dele
+      // muda com qualquer CSS que o app puser.
+      const tela = alvo && alvo.tagName === 'CANVAS';
+      return {
+        w: (alvo && (alvo.naturalWidth || alvo.videoWidth || (tela && alvo.width) || alvo.offsetWidth)) || conteudo.offsetWidth || 1,
+        h: (alvo && (alvo.naturalHeight || alvo.videoHeight || (tela && alvo.height) || alvo.offsetHeight)) || conteudo.offsetHeight || 1,
+      };
+    };
+    // A caixa da imagem já girada: de lado, a largura é a altura.
+    const caixa = () => {
+      const { w, h } = tamanho();
+      return rot() % 180 ? { w: h, h: w } : { w, h };
+    };
+
+    /**
+     * Onde fica, na caixa girada, o ponto `(u, v)` da imagem sem giro, e o caminho de volta.
+     * É o `rotate` do CSS em torno da origem seguido do deslocamento que devolve a caixa ao
+     * quadrante positivo; `aplicar` monta o mesmo par.
+     */
+    const naCaixa = (u, v) => {
+      const { w, h } = tamanho();
+      switch (rot()) {
+        case 90: return { bx: h - v, by: u };
+        case 180: return { bx: w - u, by: h - v };
+        case 270: return { bx: v, by: w - u };
+        default: return { bx: u, by: v };
+      }
+    };
+    const daCaixa = (bx, by) => {
+      const { w, h } = tamanho();
+      switch (rot()) {
+        case 90: return { u: by, v: h - bx };
+        case 180: return { u: w - bx, v: h - by };
+        case 270: return { u: w - by, v: bx };
+        default: return { u: bx, v: by };
+      }
+    };
+    const deslocamento = () => {
+      const { w, h } = tamanho();
+      return { 90: [h, 0], 180: [w, h], 270: [0, w] }[rot()] || [0, 0];
+    };
+
+    const escalaDeAjuste = () => {
+      const { w, h } = caixa();
+      // Caber na janela sem passar de 1:1: um ícone de 32 pixels esticado até a janela vira um
+      // borrão, e o que a pessoa quer ver dele é o desenho.
+      return Math.min(el.clientWidth / w, el.clientHeight / h, 1 / dpr());
+    };
+    const piso = () => (o.min ? o.min / dpr() : escalaDeAjuste());
+    const teto = () => maxEscala / dpr();
+
+    // A imagem não sai da janela. Menor que a janela num eixo, ela fica no centro desse eixo;
+    // maior, a borda dela não descola da borda da janela. Tudo passa por aqui, então nenhum
+    // caminho (roda, arraste, teclado, rotação, janela redimensionada) solta a imagem no vazio.
+    const prender = () => {
+      const { w, h } = caixa();
+      const W = w * s, H = h * s, cx = el.clientWidth, cy = el.clientHeight;
+      x = W <= cx ? (cx - W) / 2 : limitar(x, cx - W, 0);
+      y = H <= cy ? (cy - H) / 2 : limitar(y, cy - H, 0);
+    };
+
+    const ajustada = () => Math.abs(s - escalaDeAjuste()) < 1e-6;
+    const avisar = () => {
+      if (!o.aoMudar) return;
+      const agora = { escala: s * dpr(), rotacao: rot(), ajustada: ajustada() };
+      if (avisado && avisado.escala === agora.escala && avisado.rotacao === agora.rotacao
+          && avisado.ajustada === agora.ajustada) return;
+      avisado = agora;
+      o.aoMudar({ ...agora });
+    };
 
     const aplicar = () => {
-      conteudo.style.transform = `translate(${x}px, ${y}px) scale(${escala})`;
+      prender();
+      const [tx, ty] = deslocamento();
+      conteudo.style.transform =
+        `translate(${x}px, ${y}px) scale(${s}) translate(${tx}px, ${ty}px) rotate(${giro}deg)`;
+      avisar();
+    };
+
+    // `will-change` só durante o gesto. Com ele fixo, o Chrome rasteriza a camada uma vez e depois
+    // só estica o bitmap, e a foto ampliada a 400% fica borrada; tirado ao fim do gesto, ele
+    // rasteriza de novo na escala final, e o pixel aparece nítido.
+    let fimDoGesto = null;
+    const emGesto = () => {
+      el.classList.add('tuff-visor--movendo');
+      clearTimeout(fimDoGesto);
+      fimDoGesto = setTimeout(() => el.classList.remove('tuff-visor--movendo'), 200);
     };
     const suave = (fn) => {
       el.classList.add('tuff-visor--suave');
@@ -568,89 +698,257 @@
       aplicar();
       setTimeout(() => el.classList.remove('tuff-visor--suave'), 200);
     };
-    const tamanho = () => {
-      const alvo = conteudo.firstElementChild;
-      return {
-        w: (alvo && (alvo.naturalWidth || alvo.offsetWidth)) || conteudo.offsetWidth || 1,
-        h: (alvo && (alvo.naturalHeight || alvo.offsetHeight)) || conteudo.offsetHeight || 1,
-      };
-    };
 
-    function ajustar() {
-      const { w, h } = tamanho();
-      const cx = el.clientWidth, cy = el.clientHeight;
-      suave(() => {
-        escala = Math.min(cx / w, cy / h);
-        x = (cx - w * escala) / 2;
-        y = (cy - h * escala) / 2;
-      });
-    }
-    function cem() {
-      const { w, h } = tamanho();
-      suave(() => {
-        escala = 1;
-        x = (el.clientWidth - w) / 2;
-        y = (el.clientHeight - h) / 2;
-      });
-    }
-
-    // Zoom no ponteiro: o ponto sob o cursor tem de ficar sob o cursor. Zoom no centro obriga a
-    // pessoa a arrastar de volta depois de cada passo, e é a diferença entre uma lupa e um
-    // controle de escala.
-    const aoRodar = (e) => {
-      e.preventDefault();
-      const r = el.getBoundingClientRect();
-      const px = e.clientX - r.left, py = e.clientY - r.top;
-      const nova = limitar(escala * (e.deltaY < 0 ? 1.12 : 1 / 1.12), minEscala, maxEscala);
-      const k = nova / escala;
+    /**
+     * Nova escala CSS com o ponto `(px, py)` de `el` parado sob o ponteiro. Chegar à escala de
+     * caber na janela, afastando até o fim, devolve a imagem ao modo que acompanha a janela.
+     */
+    const escalarEm = (nova, px, py) => {
+      nova = limitar(nova, Math.min(piso(), s), teto());
+      const k = nova / s;
       x = px - (px - x) * k;
       y = py - (py - y) * k;
-      escala = nova;
+      s = nova;
+      seguirAjuste = Math.abs(s - escalaDeAjuste()) < 1e-6;
+    };
+    const centro = () => ({ px: el.clientWidth / 2, py: el.clientHeight / 2 });
+
+    function ajustarJa() {
+      seguirAjuste = true;
+      s = escalaDeAjuste();
+      aplicar();
+    }
+    function ajustar() { suave(() => { seguirAjuste = true; s = escalaDeAjuste(); }); }
+    /** 1:1 em pixel do monitor, com o ponto `ponto` de `el` parado (o centro, sem ponto). */
+    function cem(ponto) {
+      const { px, py } = ponto ? { px: ponto.x, py: ponto.y } : centro();
+      suave(() => escalarEm(1 / dpr(), px, py));
+    }
+    function definir(escala, ponto) {
+      const { px, py } = ponto ? { px: ponto.x, py: ponto.y } : centro();
+      escalarEm(escala / dpr(), px, py);
+      aplicar();
+    }
+    const ampliar = () => suave(() => { const c = centro(); escalarEm(s * passo, c.px, c.py); });
+    const reduzir = () => suave(() => { const c = centro(); escalarEm(s / passo, c.px, c.py); });
+
+    /**
+     * Noventa graus no sentido horário (`sentido` 1) ou anti-horário (-1). Ajustada, a imagem
+     * continua cabendo na janela; ampliada, o ponto que estava no centro da janela continua lá.
+     */
+    function girar(sentido) {
+      const c = centro();
+      const { u, v } = daCaixa((c.px - x) / s, (c.py - y) / s);
+      suave(() => {
+        giro += sentido < 0 ? -90 : 90;
+        if (seguirAjuste) { s = escalaDeAjuste(); return; }
+        const { bx, by } = naCaixa(u, v);
+        x = c.px - bx * s;
+        y = c.py - by * s;
+      });
+    }
+
+    /**
+     * Troca o conteúdo sem recriar o visor, e a imagem nova volta a caber na janela, sem giro.
+     * Uma `img` que ainda não carregou fica escondida até ter tamanho: ajustar antes disso
+     * mediria 0×0.
+     */
+    function trocar(novo) {
+      conteudo.replaceChildren(novo);
+      giro = 0;
+      quandoTiverTamanho(novo, ajustarJa);
+    }
+    function quandoTiverTamanho(alvo, fn) {
+      if (alvo && alvo.tagName === 'IMG' && !(alvo.complete && alvo.naturalWidth)) {
+        conteudo.style.visibility = 'hidden';
+        const pronto = () => { conteudo.style.visibility = ''; fn(); };
+        alvo.addEventListener('load', pronto, { once: true });
+        alvo.addEventListener('error', () => { conteudo.style.visibility = ''; }, { once: true });
+        return;
+      }
+      fn();
+    }
+
+    // ── A roda e a pinça ──
+    //
+    // O fator é proporcional ao `deltaY`, e é o que separa a pinça do trackpad da roda do mouse.
+    // O Chrome entrega a pinça como `wheel` com `ctrlKey` e um `deltaY` de poucos pixels por
+    // evento, dezenas de eventos por gesto; um passo fixo por evento transformava um movimento
+    // curto dos dedos num salto de 300%. A fórmula é a do d3-zoom: um dente de roda (100 pixels)
+    // dá cerca de 15%, e a pinça, dez vezes mais sensível por pixel, acompanha os dedos.
+    // O zoom é no ponteiro: o ponto sob o cursor fica sob o cursor.
+    const aoRodar = (e) => {
+      e.preventDefault();
+      const porModo = e.deltaMode === 1 ? 0.05 : e.deltaMode ? 1 : 0.002;
+      const expoente = limitar(-e.deltaY * porModo * (e.ctrlKey ? 10 : 1), -1, 1);
+      const r = el.getBoundingClientRect();
+      escalarEm(s * Math.pow(2, expoente), e.clientX - r.left, e.clientY - r.top);
+      emGesto();
       aplicar();
     };
     el.addEventListener('wheel', aoRodar, { passive: false });
 
-    let arrastando = false, px0 = 0, py0 = 0;
+    // ── O arraste, e a pinça numa tela de toque ──
+    //
+    // Um dedo ou o botão do mouse arrasta. Dois dedos ampliam pela razão entre as distâncias e
+    // arrastam pelo ponto médio, os dois ao mesmo tempo, como numa foto de celular.
+    //
+    // O gesto só começa sobre a imagem ou sobre o fundo do visor. Um botão posto por cima dele
+    // (anterior, próximo) recebe o próprio clique: com a captura do ponteiro no visor, o `click`
+    // cairia no visor, e o botão nunca responderia.
+    const ponteiros = new Map();
+    let gestoAnterior = null;
+    const doVisor = (e) => e.target === el || conteudo.contains(e.target);
+    const medirGesto = () => {
+      const [a, b] = [...ponteiros.values()];
+      const r = el.getBoundingClientRect();
+      if (!b) return { mx: a.x - r.left, my: a.y - r.top, d: 0 };
+      return { mx: (a.x + b.x) / 2 - r.left, my: (a.y + b.y) / 2 - r.top,
+               d: Math.hypot(a.x - b.x, a.y - b.y) };
+    };
     const aoDescer = (e) => {
-      arrastando = true;
-      px0 = e.clientX - x; py0 = e.clientY - y;
+      if ((e.pointerType === 'mouse' && e.button !== 0) || !doVisor(e)) return;
+      ponteiros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      gestoAnterior = medirGesto();
       el.classList.add('tuff-visor--arrastando');
-      el.setPointerCapture(e.pointerId);
+      try { el.setPointerCapture(e.pointerId); } catch { /* ponteiro já solto */ }
     };
     const aoMover = (e) => {
-      if (!arrastando) return;
-      x = e.clientX - px0; y = e.clientY - py0;
+      if (!ponteiros.has(e.pointerId)) return;
+      ponteiros.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const agora = medirGesto();
+      if (agora.d && gestoAnterior.d) {
+        escalarEm(s * (agora.d / gestoAnterior.d), gestoAnterior.mx, gestoAnterior.my);
+      }
+      x += agora.mx - gestoAnterior.mx;
+      y += agora.my - gestoAnterior.my;
+      gestoAnterior = agora;
+      emGesto();
       aplicar();
     };
     const aoSubir = (e) => {
-      arrastando = false;
-      el.classList.remove('tuff-visor--arrastando');
+      if (!ponteiros.delete(e.pointerId)) return;
       try { el.releasePointerCapture(e.pointerId); } catch { /* já solto */ }
+      if (ponteiros.size) gestoAnterior = medirGesto();
+      else el.classList.remove('tuff-visor--arrastando');
     };
     el.addEventListener('pointerdown', aoDescer);
     el.addEventListener('pointermove', aoMover);
     el.addEventListener('pointerup', aoSubir);
     el.addEventListener('pointercancel', aoSubir);
+    // Uma `img` é arrastável por padrão: poucos pixels depois do `pointerdown` o navegador começa a
+    // arrastar a imagem para fora, cancela os ponteiros, e a foto para no meio do gesto com um
+    // fantasma dela preso no cursor.
+    const aoArrastarNativo = (e) => { if (doVisor(e)) e.preventDefault(); };
+    el.addEventListener('dragstart', aoArrastarNativo);
 
-    // Duplo-clique alterna entre "cabe na janela" e "1:1". São as duas escalas que se quer de volta
-    // depois de explorar, e ter as duas num gesto só dispensa dois botões.
-    const aoDuplo = () => { if (escala === 1) ajustar(); else cem(); };
+    // Duplo-clique alterna entre "cabe na janela" e "1:1", e o 1:1 abre no ponto clicado. São as
+    // duas escalas que se quer de volta depois de explorar, e ter as duas num gesto só dispensa
+    // dois botões.
+    const aoDuplo = (e) => {
+      if (!doVisor(e)) return;
+      if (ajustada()) {
+        const r = el.getBoundingClientRect();
+        cem({ x: e.clientX - r.left, y: e.clientY - r.top });
+      } else {
+        ajustar();
+      }
+    };
     el.addEventListener('dblclick', aoDuplo);
 
-    ajustar();
+    // ── O teclado, com o foco no visor ──
+    //
+    // + e − ampliam e reduzem, 0 volta a caber e 1 vai a 1:1, com ou sem Ctrl: com Ctrl, o
+    // navegador ampliaria a página inteira em volta do visor. As setas movem a imagem só no eixo
+    // em que ela é maior que a janela; no outro eixo não há para onde mover, e a seta segue para
+    // quem estiver em volta (um app usa ← e → para a foto anterior e a seguinte), com o
+    // `defaultPrevented` dizendo quando o visor ficou com ela.
+    const aoTeclar = (e) => {
+      if (e.altKey) return;
+      const k = e.key;
+      const acao = {
+        '+': ampliar, '=': ampliar, Add: ampliar,
+        '-': reduzir, _: reduzir, Subtract: reduzir,
+        0: ajustar, 1: () => cem(),
+      }[k];
+      if (acao) { e.preventDefault(); acao(); return; }
+      if (e.ctrlKey || e.metaKey) return;
+      const { w, h } = caixa();
+      const dx = { ArrowLeft: 1, ArrowRight: -1 }[k];
+      const dy = { ArrowUp: 1, ArrowDown: -1 }[k];
+      if (dx && w * s > el.clientWidth + 0.5) {
+        e.preventDefault();
+        suave(() => { x += dx * el.clientWidth * 0.2; });
+      } else if (dy && h * s > el.clientHeight + 0.5) {
+        e.preventDefault();
+        suave(() => { y += dy * el.clientHeight * 0.2; });
+      }
+    };
+    el.addEventListener('keydown', aoTeclar);
+
+    // A janela muda de tamanho: ajustada, a imagem acompanha; ampliada, só não sai da janela.
+    const ro = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(() => { if (seguirAjuste) s = escalaDeAjuste(); aplicar(); })
+      : null;
+    if (ro) ro.observe(el);
+
+    quandoTiverTamanho(conteudo.firstElementChild, ajustarJa);
 
     return {
-      ajustar, cem,
+      ajustar, cem, ampliar, reduzir, definir, girar, trocar,
+      escala: () => s * dpr(),
+      rotacao: rot,
+      ajustada,
       destruir() {
         el.removeEventListener('wheel', aoRodar);
         el.removeEventListener('pointerdown', aoDescer);
         el.removeEventListener('pointermove', aoMover);
         el.removeEventListener('pointerup', aoSubir);
         el.removeEventListener('pointercancel', aoSubir);
+        el.removeEventListener('dragstart', aoArrastarNativo);
         el.removeEventListener('dblclick', aoDuplo);
+        el.removeEventListener('keydown', aoTeclar);
+        if (ro) ro.disconnect();
+        clearTimeout(fimDoGesto);
       },
     };
   }
 
-  window.TuffMidia = { player, grade, visor, tempo };
+  // ── A imagem, decodificada quando o navegador não sabe ─────────────────────
+
+  // O endereço deste arquivo, lido na carga: o decodificador mora ao lado dele, em `_sdk/tuff/`
+  // num app e em `tuff/` no shell.
+  const ENDERECO = (document.currentScript && document.currentScript.src) || location.href;
+  let carregando = null;
+
+  /**
+   * O `TuffImagem` de `tuff-imagem.js`, buscado na primeira chamada. É o caminho para quem quer o
+   * documento sem desenhar a página: a miniatura embutida de um HEIC, as páginas de um TIFF.
+   */
+  function decodificador() {
+    if (!carregando) {
+      carregando = new Promise((ok, falhou) => {
+        if (window.TuffImagem) { ok(window.TuffImagem); return; }
+        const s = document.createElement('script');
+        s.src = new URL('tuff-imagem.js', ENDERECO).href;
+        s.onload = () => ok(window.TuffImagem);
+        s.onerror = () => { carregando = null; falhou(new Error('o decodificador de imagem não carregou')); };
+        document.head.appendChild(s);
+      });
+    }
+    return carregando;
+  }
+
+  /**
+   * `{ elemento, documento, reduzida }` para `url`: uma `img` para o que o navegador abre, ou o
+   * `canvas` de um TIFF ou HEIC, com o `documento` das páginas e da miniatura. O decodificador
+   * (`tuff-imagem.js`) é buscado na primeira chamada, e o geotiff dele só no primeiro TIFF, então
+   * um app que só mostra JPEG não paga por nenhum dos dois. `opcoes.nome` é o nome do arquivo, de
+   * onde sai o formato.
+   */
+  function imagem(url, opcoes) {
+    return decodificador().then((T) => T.elemento(url, opcoes));
+  }
+
+  window.TuffMidia = { player, grade, visor, tempo, imagem, decodificador };
 })();
