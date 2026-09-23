@@ -1,0 +1,80 @@
+{
+  "id": "lupa",
+  "name": "Lupa",
+  "version": "5.0.1",
+  "icon": "icon.svg",
+  "category": "Graphics",
+  "developer": {
+    "name": "colabhd",
+    "url": "https://github.com/colabhd"
+  },
+  "license": "MIT",
+  "description": "O visualizador de imagens e PDF do ambiente. Abre o arquivo do gerenciador de arquivos e segue pela pasta, com zoom, a tira de miniaturas e as informações da câmera. Abre TIFF e HEIC sem conversão, e grava a rotação de uma foto sem perda.",
+  "requiredPackages": [
+    "python3-pil",
+    "poppler-utils",
+    "libjpeg-turbo-progs"
+  ],
+  "opens": {
+    "extensions": [
+      "jpg",
+      "jpeg",
+      "png",
+      "gif",
+      "webp",
+      "avif",
+      "bmp",
+      "ico",
+      "svg",
+      "tif",
+      "tiff",
+      "heic",
+      "heif",
+      "pdf"
+    ],
+    "mimeTypes": [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "image/avif",
+      "image/bmp",
+      "image/vnd.microsoft.icon",
+      "image/x-icon",
+      "image/svg+xml",
+      "image/tiff",
+      "image/heic",
+      "image/heif",
+      "application/pdf"
+    ]
+  },
+  "contributes": {
+    "contextMenu": [
+      {
+        "id": "abrir-pasta",
+        "superficie": "pasta",
+        "rotulo": "Abrir na Lupa",
+        "ordem": 32,
+        "acao": "abrir"
+      }
+    ]
+  },
+  "minShellVersion": "5.0.0",
+  "backend": {
+    "runtime": "python3",
+    "transport": "socket",
+    "entrypoint": "backend/main.py",
+    "healthcheckPath": "/saude",
+    "aoFechar": "encerrar"
+  },
+  "window": {
+    "title": "Lupa",
+    "width": 960,
+    "height": 680,
+    "minimos": {
+      "largura": 400,
+      "altura": 300
+    },
+    "multiplasJanelas": true
+  }
+}

@@ -50,6 +50,13 @@ jobs:
         shell: bash
         run: npm test
 
+      # Os pacotes que os exemplos Python declaram em `requiredPackages`, que num servidor chegam
+      # pela instalação do app. Sem eles os testes que dependem deles se pulam, e o CI mediria menos
+      # do que diz.
+      - name: Os pacotes que os exemplos declaram
+        shell: bash
+        run: sudo apt-get update -q && sudo apt-get install -y -q python3-pil poppler-utils libjpeg-turbo-progs
+
       # Sem `setup-python`: um app Python roda com o interpretador que o servidor tem, e o do
       # runner é o do sistema, como lá.
       - name: Testes Python

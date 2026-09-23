@@ -1,0 +1,338 @@
+/* Lupa: o que é do app. O palco, o visor, a barra, a tira e os botões vêm do Tuff, e este arquivo
+   acrescenta o arranjo da janela, os botões de anterior e próximo nas bordas, a ficha de
+   informações, o início, o aviso e o comportamento em tela cheia.
+
+   A janela tem quatro áreas: a barra em cima, o palco com a imagem, a ficha à direita quando a
+   pessoa pede, e a tira de miniaturas embaixo. Em tela cheia a barra e a tira passam a flutuar
+   sobre a imagem e somem com o ponteiro parado. */
+
+html, body { height: 100%; }
+body { margin: 0; overflow: hidden; }
+
+.janela {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--ds-bg);
+}
+
+/* ── A barra ──────────────────────────────────────────────────────────────── */
+
+.barra { flex: none; min-width: 0; z-index: 3; }
+.barra[hidden] { display: none; }
+.titulo {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--ds-gap-md);
+}
+.nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ds-text);
+  font-weight: var(--tuff-weight-m);
+}
+.posicao {
+  flex: none;
+  font-size: var(--tuff-size-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text-dim);
+}
+.ferramentas { flex: none; display: flex; align-items: center; gap: var(--ds-gap-xs); }
+.ferramentas[hidden] { display: none; }
+/* O `display` do `.tuff-btn` é regra de autor, e ganha do `[hidden]` do navegador. */
+.barra .tuff-btn[hidden] { display: none; }
+.zoom { display: flex; align-items: center; }
+.escala {
+  min-width: 6ch;
+  padding-inline: var(--ds-gap-sm);
+  background: transparent;
+  border-color: transparent;
+  font-variant-numeric: tabular-nums;
+  color: var(--ds-text-dim);
+}
+.escala:hover { color: var(--ds-text); background: var(--ds-bg-hover); }
+/* A dica do último botão, alinhada pela direita: centrada, ela sairia pela borda da janela. */
+.dica-direita::after { left: auto; right: 0; transform: none; }
+
+/* ── O palco ──────────────────────────────────────────────────────────────── */
+
+.miolo { flex: 1; min-height: 0; display: flex; }
+.palco { flex: 1; min-width: 0; min-height: 0; }
+/* O visor cobre o palco inteiro, e os botões das bordas, o aviso e o início ficam por cima. */
+.visor { position: absolute; inset: 0; }
+.visor[hidden] { display: none; }
+/* O visor é a janela inteira, e o foco fica nele para + e − valerem sem clique. O anel de foco
+   emolduraria a foto a cada tecla. */
+.visor:focus-visible { outline: none; }
+
+/* Anterior e próximo ficam nas bordas do palco e aparecem com o ponteiro sobre ele. Numa tela sem
+   ponteiro que paire, eles ficam sempre à vista, porque um toque não tem como descobri-los. */
+.borda {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  width: 40px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: var(--ds-bg2);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  color: var(--ds-text);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--ds-dur) var(--ds-ease);
+}
+.borda[hidden] { display: none; }
+.borda--anterior { left: var(--ds-gap-md); }
+.borda--proximo { right: var(--ds-gap-md); }
+.palco:hover .borda, .borda:focus-visible { opacity: 1; }
+.borda:hover { background: var(--ds-bg-hover); }
+@media (hover: none) {
+  .borda { opacity: 1; }
+}
+
+.carregando {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.carregando[hidden] { display: none; }
+
+/* ── O PDF ────────────────────────────────────────────────────────────────── */
+
+/* Um controle que só vale para PDF: a janela diz o tipo aberto em `data-tipo`. */
+.janela:not([data-tipo="pdf"]) .so-pdf { display: none; }
+.pagina { display: flex; align-items: center; gap: var(--ds-gap-xs); margin-right: var(--ds-gap-sm); }
+.pagina-campo { width: 6ch; text-align: right; -moz-appearance: textfield; }
+.pagina-campo::-webkit-inner-spin-button,
+.pagina-campo::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.pagina-total {
+  font-size: var(--tuff-size-sm);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ds-text-dim);
+}
+
+.pdf { position: absolute; inset: 0; display: flex; background: var(--ds-bg); }
+.pdf[hidden] { display: none; }
+.pdf-area { position: relative; flex: 1; min-width: 0; }
+/* O pdf.js recusa um contêiner de rolagem que não esteja em posição absoluta. */
+.pdf-rolagem { position: absolute; inset: 0; overflow: auto; }
+.pdf-rolagem:focus-visible { outline: none; }
+
+/* A busca flutua no canto de cima do documento, como a do navegador. */
+.busca {
+  position: absolute;
+  top: var(--ds-gap-md);
+  right: var(--ds-gap-lg);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--ds-gap-xs);
+  padding: var(--ds-gap-xs) var(--ds-gap-xs) var(--ds-gap-xs) var(--ds-gap-sm);
+  background: var(--ds-bg2);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--ds-shadow-md);
+}
+.busca[hidden] { display: none; }
+.busca .tuff-btn[hidden] { display: none; }
+.busca-campo { width: 22ch; }
+.busca-contagem {
+  min-width: 9ch;
+  font-size: var(--tuff-size-sm);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ds-text-dim);
+}
+
+.pdf-lateral {
+  flex: none;
+  width: 200px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-gap-md);
+  padding: var(--ds-gap-md);
+  background: var(--ds-bg2);
+  border-right: 1px solid var(--ds-border);
+}
+.pdf-lateral[hidden],
+.pdf-abas[hidden],
+.pdf-miniaturas[hidden],
+.pdf-sumario[hidden] { display: none; }
+.pdf-miniaturas { display: flex; flex-direction: column; align-items: center; gap: var(--ds-gap-md); }
+.pdf-miniatura {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ds-gap-xs);
+  padding: 0;
+  background: none;
+  border: 0;
+  font-size: var(--tuff-size-xs);
+  color: var(--ds-text-dim);
+  cursor: pointer;
+}
+.pdf-miniatura .folha {
+  width: 120px;
+  min-height: 60px;
+  background: #fff;
+  border-radius: 2px;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+}
+.pdf-miniatura .folha > canvas { display: block; width: 100%; height: auto; }
+.pdf-miniatura[aria-selected="true"] .folha { outline-color: var(--ds-accent); }
+.pdf-miniatura[aria-selected="true"] .numero { color: var(--ds-text); }
+.pdf-sumario ul { list-style: none; margin: 0; padding-left: var(--ds-gap-md); }
+.pdf-sumario > ul { padding-left: 0; }
+.pdf-sumario button {
+  display: block;
+  width: 100%;
+  padding: 4px var(--ds-gap-sm);
+  background: none;
+  border: 0;
+  border-radius: var(--ds-radius-sm);
+  text-align: left;
+  font: inherit;
+  font-size: var(--tuff-size-sm);
+  color: var(--ds-text);
+  cursor: pointer;
+}
+.pdf-sumario button:hover { background: var(--ds-bg-hover); }
+
+/* ── A grade ──────────────────────────────────────────────────────────────── */
+
+.grade-moldura {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  padding: var(--ds-gap-md) 0 0 var(--ds-gap-md);
+  background: var(--ds-bg);
+}
+.grade-moldura[hidden] { display: none; }
+.grade { flex: 1; min-width: 0; }
+.grade .tuff-miniatura { color: var(--ds-text-dim); cursor: pointer; }
+.grade .tuff-miniatura > .tuff-ico { opacity: .5; }
+.grade .tuff-miniatura > canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.palco[hidden] { display: none; }
+
+/* ── A ficha ──────────────────────────────────────────────────────────────── */
+
+.info {
+  flex: none;
+  width: 280px;
+  overflow: auto;
+  padding: var(--ds-gap-lg);
+  background: var(--ds-bg2);
+  border-left: 1px solid var(--ds-border);
+}
+.info[hidden] { display: none; }
+.info-titulo {
+  margin: 0 0 var(--ds-gap-lg);
+  font-size: var(--tuff-size-md);
+  font-weight: var(--tuff-weight-m);
+  color: var(--ds-text);
+}
+.info-lista dd { overflow-wrap: anywhere; }
+
+/* ── A tira ───────────────────────────────────────────────────────────────── */
+
+.tira { flex: none; z-index: 3; }
+.tira[hidden] { display: none; }
+.tira .tuff-tira-item {
+  position: relative;
+  padding: 0;
+  border: 0;
+  color: var(--ds-text-dim);
+  cursor: pointer;
+}
+.tira .tuff-tira-item > .tuff-ico {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  opacity: .5;
+}
+/* Sem `position` na miniatura: posicionada, ela seria pintada por cima do contorno que marca a
+   atual. */
+.tira .tuff-tira-item > img,
+.tira .tuff-tira-item > canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ── O início ─────────────────────────────────────────────────────────────── */
+
+.inicio {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ds-gap-xl);
+  background: var(--ds-bg);
+}
+.inicio[hidden] { display: none; }
+.inicio .tuff-vazio { padding: 0; }
+
+/* ── O aviso ──────────────────────────────────────────────────────────────── */
+
+.aviso {
+  position: absolute;
+  left: 50%;
+  bottom: var(--ds-gap-lg);
+  transform: translateX(-50%);
+  z-index: 2;
+  max-width: min(90%, 56ch);
+  display: flex;
+  align-items: center;
+  gap: var(--ds-gap-md);
+  padding: var(--ds-gap-sm) var(--ds-gap-md);
+  background: var(--ds-bg2);
+  border: 1px solid var(--ds-warn);
+  border-radius: var(--ds-radius-lg);
+  box-shadow: var(--ds-shadow-md);
+  font-size: var(--tuff-size-sm);
+  color: var(--ds-text);
+}
+.aviso[hidden] { display: none; }
+.aviso .tuff-ico { flex: none; color: var(--ds-warn); }
+
+/* ── Tela cheia ───────────────────────────────────────────────────────────── */
+
+/* A barra e a tira flutuam sobre a imagem, em vez de tomar a altura dela: sem isso, cada vez que
+   o ponteiro se mexe a imagem encolheria para dar lugar às duas, e cresceria de novo ao parar. */
+.janela:fullscreen .barra,
+.janela:fullscreen .tira {
+  position: absolute;
+  left: 0;
+  right: 0;
+  transition: opacity var(--ds-dur) var(--ds-ease);
+}
+.janela:fullscreen .barra { top: 0; }
+.janela:fullscreen .tira { bottom: 0; }
+.janela.ocioso .barra,
+.janela.ocioso .tira,
+.janela.ocioso .borda { opacity: 0; pointer-events: none; }
+.janela.ocioso .palco { cursor: none; }

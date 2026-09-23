@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"
+     role="img" aria-label="Lupa">
+  <title>Lupa</title>
+  <!--
+    A lente e o cabo, sobre o mesmo ladrilho escuro do Palco, para os dois apps de mídia lerem
+    como família no menu iniciar.
+
+    O ladrilho sangra até a borda, sem raio próprio, porque quem arredonda os cantos é o shell.
+    As formas são duas, a lente e o cabo, pela mesma razão do Palco: a 22px um terceiro elemento
+    vira sujeira. O vidro da lente é a cor do app, um ciano que nenhum ícone do ambiente usa, e o
+    aro e o cabo são o branco quente do triângulo do Palco.
+
+    A caixa do desenho vai de 9 a 56 nos dois eixos, e o centro dela cai no centro do ladrilho: a
+    lente sobe e vai para a esquerda o que o cabo desce e vai para a direita.
+  -->
+  <rect width="64" height="64" fill="#15171c"/>
+  <circle cx="27" cy="27" r="15" fill="#3fc1d0" fill-opacity=".35" stroke="#f5f2ea" stroke-width="6"/>
+  <path d="M39 39l13 13" stroke="#f5f2ea" stroke-width="8" stroke-linecap="round"/>
+</svg>

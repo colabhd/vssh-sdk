@@ -12,6 +12,6 @@
     "//test": "Glob entre aspas: quem expande é o Node, e não o shell, senão quebra no cmd.exe do Windows. Sem dependência npm neste repositório: a suíte é `node --test` sobre a biblioteca padrão.",
     "test": "node --test \"tests/**/*.test.js\"",
     "//test:py": "O template Python e os apps Python de `examples/`. Fica fora do `test` porque `node --test` não sabe rodá-lo e porque a ausência de `python3` não pode reprovar quem só mexeu em JavaScript. Um diretório novo de teste tem de ser ACRESCENTADO aqui: `discover` não desce sozinho por `examples/*/test`.",
-    "test:py": "python3 -m unittest discover -s tests/python && python3 -m unittest discover -s examples/palco/test"
+    "test:py": "python3 -m unittest discover -s tests/python && python3 -m unittest discover -s examples/palco/test && python3 -m unittest discover -s examples/lupa/test"
   }
 }

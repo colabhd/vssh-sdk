@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lupa</title>
+  <!-- O SDK, o Tuff, o lupa.css e o lupa.js entram pelo `web.spa` do backend, que os injeta aqui
+       e carimba os arquivos do app com o hash do conteúdo. -->
+</head>
+<body>
+
+<div class="janela" id="janela">
+
+  <!-- O nome do arquivo, onde ele está na pasta, e o que se faz com ele. -->
+  <header class="tuff-barra barra" id="barra" hidden>
+    <div class="titulo">
+      <span class="nome" id="nome"></span>
+      <span class="posicao" id="posicao"></span>
+    </div>
+    <span class="tuff-barra-espaco"></span>
+    <div class="ferramentas" id="ferramentas">
+      <div class="pagina so-pdf">
+        <input class="tuff-campo pagina-campo" id="pdf-pagina" type="number" min="1" value="1" aria-label="Página">
+        <span class="pagina-total" id="pdf-total"></span>
+      </div>
+      <div class="zoom">
+        <button class="tuff-btn tuff-btn--icone" id="btn-menos" aria-label="Reduzir" data-tuff-dica="Reduzir (−)">
+          <svg class="tuff-ico" aria-hidden="true"><use href="#ico-zoom-out"></use></svg>
+        </button>
+        <button class="tuff-btn escala" id="btn-escala" aria-label="Caber na janela ou 1:1"
+                data-tuff-dica="Caber na janela (0) ou 1:1 (1)">100%</button>
+        <button class="tuff-btn tuff-btn--icone" id="btn-mais" aria-label="Ampliar" data-tuff-dica="Ampliar (+)">
+          <svg class="tuff-ico" aria-hidden="true"><use href="#ico-zoom-in"></use></svg>
+        </button>
+      </div>
+      <button class="tuff-btn tuff-btn--icone so-pdf" id="btn-largura" aria-label="Ajustar à largura"
+              data-tuff-dica="Ajustar à largura">
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-columns"></use></svg>
+      </button>
+      <button class="tuff-btn tuff-btn--icone so-pdf" id="btn-pagina-inteira" aria-label="Página inteira"
+              data-tuff-dica="Página inteira">
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-fit"></use></svg>
+      </button>
+      <button class="tuff-btn tuff-btn--icone" id="btn-girar" aria-label="Girar" data-tuff-dica="Girar (R)">
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-rotate-right"></use></svg>
+      </button>
+      <button class="tuff-btn tuff-btn--icone" id="btn-imprimir" aria-label="Imprimir" data-tuff-dica="Imprimir">
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-print"></use></svg>
+      </button>
+      <button class="tuff-btn tuff-btn--icone so-pdf" id="btn-buscar" aria-label="Buscar no documento"
+              data-tuff-dica="Buscar (Ctrl+F)">
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-search"></use></svg>
+      </button>
+      <button class="tuff-btn tuff-btn--icone so-pdf" id="btn-lateral" aria-pressed="false"
+              aria-label="Páginas e sumário" data-tuff-dica="Páginas e sumário">
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-bar-left"></use></svg>
+      </button>
+      <button class="tuff-btn tuff-btn--icone" id="btn-info" aria-pressed="false" aria-label="Informações"
+              data-tuff-dica="Informações (I)">
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-info"></use></svg>
+      </button>
+      <button class="tuff-btn tuff-btn--icone" id="btn-tira" aria-pressed="true" aria-label="Miniaturas"
+              data-tuff-dica="Miniaturas (T)">
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-bar-bottom"></use></svg>
+      </button>
+      <button class="tuff-btn tuff-btn--icone" id="btn-tela" aria-label="Tela cheia" data-tuff-dica="Tela cheia (F)">
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-fullscreen"></use></svg>
+      </button>
+    </div>
+    <button class="tuff-btn tuff-btn--icone" id="btn-grade" aria-label="A pasta" data-tuff-dica="A pasta (Esc)" hidden>
+      <svg class="tuff-ico" aria-hidden="true"><use href="#ico-grid"></use></svg>
+    </button>
+    <button class="tuff-btn tuff-btn--icone dica-direita" id="btn-abrir" aria-label="Abrir arquivo"
+            data-tuff-dica="Abrir arquivo">
+      <svg class="tuff-ico" aria-hidden="true"><use href="#ico-folder-open"></use></svg>
+    </button>
+  </header>
+
+  <div class="miolo">
+    <!-- A pasta inteira em miniaturas. A moldura dá a margem, porque a grade mede as colunas pela
+         própria largura e não conta padding. -->
+    <div class="grade-moldura" id="grade-moldura" hidden>
+      <div class="grade" id="grade" aria-label="Arquivos da pasta"></div>
+    </div>
+
+    <section class="palco tuff-palco" id="palco" aria-label="Imagem">
+      <div class="visor" id="visor"></div>
+
+      <!-- O PDF: as páginas em sequência, e a lateral com as miniaturas e o sumário. O pdf.js exige
+           o contêiner de rolagem em posição absoluta. -->
+      <div class="pdf" id="pdf" hidden>
+        <aside class="pdf-lateral" id="pdf-lateral" hidden aria-label="Páginas e sumário">
+          <div class="tuff-seg pdf-abas" id="pdf-abas" hidden>
+            <label class="tuff-seg-btn"><input type="radio" name="pdf-aba" value="paginas" checked>Páginas</label>
+            <label class="tuff-seg-btn"><input type="radio" name="pdf-aba" value="sumario">Sumário</label>
+          </div>
+          <div class="pdf-miniaturas" id="pdf-miniaturas"></div>
+          <nav class="pdf-sumario" id="pdf-sumario" hidden></nav>
+        </aside>
+        <div class="pdf-area">
+          <div class="pdf-rolagem" id="pdf-rolagem" tabindex="0">
+            <div class="pdfViewer" id="pdf-paginas"></div>
+          </div>
+          <div class="busca" id="busca" role="search" hidden>
+            <input class="tuff-busca busca-campo" id="busca-campo" type="search"
+                   placeholder="Buscar no documento" aria-label="Buscar no documento">
+            <span class="busca-contagem" id="busca-contagem" role="status"></span>
+            <button class="tuff-btn tuff-btn--icone" id="busca-anterior" aria-label="Ocorrência anterior"
+                    data-tuff-dica="Anterior (Shift+Enter)">
+              <svg class="tuff-ico" aria-hidden="true"><use href="#ico-chevron-up"></use></svg>
+            </button>
+            <button class="tuff-btn tuff-btn--icone" id="busca-proxima" aria-label="Próxima ocorrência"
+                    data-tuff-dica="Próxima (Enter)">
+              <svg class="tuff-ico" aria-hidden="true"><use href="#ico-chevron-down"></use></svg>
+            </button>
+            <button class="tuff-btn tuff-btn--icone dica-direita" id="busca-fechar" aria-label="Fechar a busca"
+                    data-tuff-dica="Fechar (Esc)">
+              <svg class="tuff-ico" aria-hidden="true"><use href="#ico-close"></use></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <button class="borda borda--anterior" id="btn-anterior" aria-label="Anterior" hidden>
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-arrow-left"></use></svg>
+      </button>
+      <button class="borda borda--proximo" id="btn-proximo" aria-label="Próximo" hidden>
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-arrow-right"></use></svg>
+      </button>
+
+      <div class="carregando" id="carregando" hidden><span class="tuff-spinner"></span></div>
+
+      <div class="inicio" id="inicio">
+        <div class="tuff-vazio">
+          <div class="tuff-vazio-titulo">Nada aberto</div>
+          <div class="tuff-vazio-msg">Abra uma imagem ou um PDF, ou arraste um arquivo para cá.</div>
+          <div class="tuff-acoes">
+            <button class="tuff-btn tuff-btn--primario" id="btn-abrir-inicio">
+              <svg class="tuff-ico" aria-hidden="true"><use href="#ico-folder-open"></use></svg>Abrir arquivo
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="aviso" id="aviso" role="status" hidden>
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-warning"></use></svg>
+        <span id="aviso-t"></span>
+      </div>
+    </section>
+
+    <!-- A ficha do arquivo aberto. -->
+    <aside class="info" id="info" hidden aria-labelledby="info-titulo">
+      <h2 class="info-titulo" id="info-titulo">Informações</h2>
+      <dl class="tuff-kv info-lista" id="info-lista"></dl>
+    </aside>
+  </div>
+
+  <!-- A pasta, em miniaturas, com a atual marcada. -->
+  <nav class="tuff-tira tira" id="tira" hidden aria-label="Arquivos da pasta"></nav>
+</div>
+
+</body>
+</html>

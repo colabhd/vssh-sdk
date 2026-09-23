@@ -22,7 +22,7 @@ repositório de app, de uma organização ou de uma conta pessoal, e o script é
 | [`docs/`](docs/) | Os conceitos, os guias e a aparência (o Tuff, com amostras vivas) de quem escreve um app, e a referência da API, gerada em `docs/referencia/`. Publicado em [colabhd.github.io/vssh-sdk](https://colabhd.github.io/vssh-sdk/). | Pessoas, e o sistema na referência. |
 | [`templates/hello-vssh-app/`](templates/hello-vssh-app/) | Template Python e galeria de capacidades do ambiente. Copie e adapte. | Pessoas. |
 | [`templates/hello-vssh-app-node/`](templates/hello-vssh-app-node/) | O mesmo app, em Node. A escolha entre os dois é de linguagem, e de mais nada: `tests/galeria-paridade.test.js` reprova qualquer deriva entre eles. | Pessoas. |
-| [`examples/`](examples/) | Apps de referência completos (`palco`, `print-engine`), feitos para serem instalados. | Pessoas. |
+| [`examples/`](examples/) | Apps de referência completos (`palco`, `lupa`, `print-engine`), feitos para serem instalados. | Pessoas. |
 | [`scripts/vssh-app-publish`](scripts/vssh-app-publish) | Valida o manifesto contra `api/vssh-app.schema.json`, empacota e publica no repositório de artefatos. Roda no CI e na sua máquina. | Pessoas. |
 | [`.github/workflows/_publish-app-reusable.yml`](.github/workflows/_publish-app-reusable.yml) | O workflow reutilizável que o CI do seu repositório de app chama com um `uses:`. | Pessoas. |
 | [`emulador/`](emulador/) | O ambiente de mentira para desenvolver sem servidor. Chega na etapa seguinte. | Pessoas. |
