@@ -311,13 +311,16 @@ class TestBackendDePe(unittest.TestCase):
         foto = os.path.join(pasta, "praia.jpg")
         exif = Image.Exif()
         exif[271], exif[272], exif[274] = "Canon", "Canon EOS R6", 6
-        e = exif.get_ifd(0x8769)
-        e[33434], e[33437], e[34855] = IFDRational(1, 250), IFDRational(28, 10), 400
-        e[36867], e[37386], e[42036] = "2024:05:01 10:20:30", IFDRational(35, 1), "RF24-105mm F4 L IS USM"
-        g = exif.get_ifd(0x8825)
-        g[1], g[2] = "S", (IFDRational(23, 1), IFDRational(33, 1), IFDRational(0, 1))
-        g[3], g[4] = "W", (IFDRational(46, 1), IFDRational(38, 1), IFDRational(0, 1))
+        # As sub-IFDs entram como dicionário inteiro: no Pillow 10.2 do Ubuntu 24.04, o `get_ifd`
+        # de um EXIF novo devolve um dicionário solto, e o que se põe nele não é gravado.
+        exif[0x8769] = {33434: IFDRational(1, 250), 33437: IFDRational(28, 10), 34855: 400,
+                        36867: "2024:05:01 10:20:30", 37386: IFDRational(35, 1),
+                        42036: "RF24-105mm F4 L IS USM"}
+        exif[0x8825] = {1: "S", 2: (IFDRational(23, 1), IFDRational(33, 1), IFDRational(0, 1)),
+                        3: "W", 4: (IFDRational(46, 1), IFDRational(38, 1), IFDRational(0, 1))}
         Image.new("RGB", (600, 400), (90, 90, 90)).save(foto, exif=exif)
+        with Image.open(foto) as im:
+            self.assertEqual(im.getexif().get_ifd(0x8825).get(1), "S", "a foto de teste nasceu sem GPS")
 
         status, f = self.json(f"/api/info?caminho={quote(foto)}")
         self.assertEqual(status, 200)

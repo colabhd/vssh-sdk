@@ -102,10 +102,20 @@ class Bancada(unittest.TestCase):
         im.paste((240, 240, 240), (w // 2, h // 2, w, h))
         return im.convert(modo)
 
-    def jpeg(self, nome, exif=None, tamanho=(64, 40), **opcoes):
+    def jpeg(self, nome, exif=None, tamanho=(64, 40), xmp=None, **opcoes):
+        """Um JPEG de quadrantes. O XMP entra à mão, como um APP1 depois dos outros segmentos APP:
+        o `xmp=` do `save` é do Pillow 11, e o 10.2 do Ubuntu 24.04 o ignora sem avisar."""
         caminho = os.path.join(self.tmp, nome)
         self.quadrantes(tamanho=tamanho).save(caminho, "JPEG", quality=92,
                                               **({"exif": exif} if exif else {}), **opcoes)
+        if xmp:
+            b = ler(caminho)
+            p = 2
+            while 0xE0 <= b[p + 1] <= 0xEF:
+                p += 2 + struct.unpack(">H", b[p + 2:p + 4])[0]
+            corpo = b"http://ns.adobe.com/xap/1.0/\x00" + xmp
+            with open(caminho, "wb") as fh:
+                fh.write(b[:p] + b"\xff\xe1" + struct.pack(">H", len(corpo) + 2) + corpo + b[p:])
         return caminho
 
     def na_tela(self, caminho):
@@ -207,10 +217,13 @@ class TestPelaEtiqueta(Bancada):
         from PIL.TiffImagePlugin import IFDRational
         exif = Image.Exif()
         exif[0x010F], exif[0x0110] = "Canon", "Canon EOS R6"
-        g = exif.get_ifd(0x8825)
-        g[1], g[2] = "S", (IFDRational(23, 1), IFDRational(33, 1), IFDRational(0, 1))
+        # A sub-IFD entra como dicionário inteiro: no Pillow 10.2, o `get_ifd` de um EXIF novo
+        # devolve um dicionário solto, e o que se põe nele não é gravado.
+        exif[0x8825] = {1: "S", 2: (IFDRational(23, 1), IFDRational(33, 1), IFDRational(0, 1))}
         foto = self.jpeg("sem-etiqueta.jpg", exif)
         antes = ler(foto)
+        with Image.open(foto) as im:
+            self.assertEqual(im.getexif().get_ifd(0x8825).get(1), "S", "a foto de teste nasceu sem GPS")
 
         self.assertEqual(girar.girar(foto, 180)["orientacao"], 3)
         self.assertEqual(dados_da_imagem(ler(foto)), dados_da_imagem(antes))
@@ -223,9 +236,11 @@ class TestPelaEtiqueta(Bancada):
         from PIL import Image
         exif = Image.Exif()
         exif[0x010F] = "Nikon"
-        exif.get_ifd(0x8769)[0x927C] = b"Nikon\x00\x02\x10\x00\x00MM\x00*\x00\x00\x00\x08"
+        exif[0x8769] = {0x927C: b"Nikon\x00\x02\x10\x00\x00MM\x00*\x00\x00\x00\x08"}
         foto = self.jpeg("makernote.jpg", exif)
         antes = ler(foto)
+        with Image.open(foto) as im:
+            self.assertIsNotNone(im.getexif().get_ifd(0x8769).get(0x927C), "a foto de teste nasceu sem MakerNote")
         with self.assertRaises(girar.NaoSabe):
             girar.girar(foto, 90)
         self.assertEqual(ler(foto), antes)
@@ -239,6 +254,7 @@ class TestPelaEtiqueta(Bancada):
                b'tiff:Orientation="1"/></rdf:RDF></x:xmpmeta>')
         foto = self.jpeg("com-xmp.jpg", exif, xmp=xmp)
         antes = ler(foto)
+        self.assertIn(b'tiff:Orientation="1"', antes)
         girar.girar(foto, 90)
         depois = ler(foto)
         self.assertIn(b'tiff:Orientation="6"', depois)
