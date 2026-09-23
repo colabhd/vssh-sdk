@@ -461,8 +461,11 @@
     return false;
   };
 
-  // O serverId é o primeiro segmento do caminho do app no portal (`/<serverId>/proxy/app/<id>/`).
-  const slugDoServidor = location.pathname.split('/').filter(Boolean)[0] || '';
+  // O serverId sai do caminho do app no portal (`/<serverId>/proxy/app/<id>/`). No cliente de
+  // desktop o app mora na raiz de uma origem própria, onde esse caminho não existe e tudo vai ao
+  // backend do app; ali o arquivo é pedido ao espaço `/_sdk/` da origem, que o relay leva ao
+  // `/api/fs/read` do servidor da janela.
+  const slugDoServidor = (location.pathname.match(/^\/([^/]+)\/proxy\/app\//) || [])[1] || '';
 
   /** O tipo MIME do arraste de arquivos do ambiente: caminhos absolutos, um por linha. */
   vssh.arquivos.MIME = 'application/x-vssh-files';
@@ -482,7 +485,8 @@
       console.warn(`[vssh] urlFor('${abs}'): caminho fora do que o usuário escolheu num seletor. `
         + 'A URL é devolvida assim mesmo, e o servidor pode recusar.');
     }
-    return `/${slugDoServidor}/api/fs/read?path=${encodeURIComponent(abs)}`;
+    const consulta = `?path=${encodeURIComponent(abs)}`;
+    return slugDoServidor ? `/${slugDoServidor}/api/fs/read${consulta}` : `/_sdk/fs/read${consulta}`;
   };
 
   /**
