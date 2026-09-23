@@ -136,6 +136,11 @@ TuffMidia.grade(document.getElementById('grade'), {
 });
 ```
 
+A grade devolve `{ atualizar(total), selecionar(i), redimensionar(largura, altura), destruir() }`.
+`redimensionar` troca o tamanho dos itens com o primeiro item visível parado no topo, que é o que
+um "Ctrl e a roda" de um app de fotos precisa, e chama `montar` de novo em cada célula, para o app
+pedir uma miniatura maior quando o item cresce.
+
 ```html vivo
 <div class="tuff-tira">
   <div class="tuff-tira-item" aria-selected="false"><span class="tuff-sec-desc">1</span></div>
@@ -147,15 +152,93 @@ TuffMidia.grade(document.getElementById('grade'), {
 
 ## O visor
 
-Roda para ampliar no ponteiro, arraste para mover, duplo-clique alterna entre caber na janela e
-1:1. Sem inércia, de propósito: ferramenta de trabalho não desliza depois que a mão parou.
-`.tuff-visor` é o contêiner, `.tuff-visor-conteudo` o que se move, e `--arrastando` troca o cursor
-durante o arraste.
+`TuffMidia.visor(el, opcoes)` amplia, move e gira o primeiro filho de `el`: uma `img`, um
+`canvas` ou um `video`. A roda amplia no ponteiro, e a pinça do trackpad acompanha os dedos, porque
+o fator é proporcional ao gesto. O arraste move a imagem ampliada sem deixá-la sair da janela, e
+numa tela de toque dois dedos ampliam e movem juntos. O duplo-clique alterna entre caber na janela
+e 1:1, com o 1:1 aberto no ponto clicado. Sem inércia, de propósito: ferramenta de trabalho não
+desliza depois que a mão parou.
+
+A imagem nasce cabendo na janela, sem passar de 1:1: um ícone de 32 pixels não vira um borrão do
+tamanho da tela. Enquanto ninguém mexe no zoom, ela acompanha a janela quando a janela muda de
+tamanho, e o primeiro gesto de zoom a solta.
+
+A escala é em pixels do monitor. `1` põe um pixel da imagem num pixel da tela, e é o que um "100%"
+na barra do app deve mostrar; numa tela a 150%, a escala em pixel CSS seria outra.
 
 ```js
-const visor = TuffMidia.visor(document.getElementById('visor'));
-img.onload = () => visor.ajustar();   // caber na janela
-botaoUmParaUm.onclick = () => visor.cem();   // 1:1
+const visor = TuffMidia.visor(document.getElementById('visor'), {
+  aoMudar: ({ escala, rotacao, ajustada }) => {
+    porcentagem.textContent = `${Math.round(escala * 100)}%`;
+  },
+});
+mais.onclick = () => visor.ampliar();
+menos.onclick = () => visor.reduzir();
+caber.onclick = () => visor.ajustar();
+umParaUm.onclick = () => visor.cem();
+girar.onclick = () => visor.girar(1);   // -1 gira no sentido anti-horário
+proxima.onclick = () => visor.trocar(outraImagem);   // volta a caber, sem giro
+```
+
+| método | o que faz |
+|---|---|
+| `ajustar()` | cabe na janela, sem passar de 1:1 |
+| `cem(ponto?)` | 1:1, com o ponto `{x, y}` do visor parado (o centro, sem ponto) |
+| `ampliar()`, `reduzir()` | um passo (`opcoes.passo`, padrão 1.25) em torno do centro |
+| `definir(escala, ponto?)` | uma escala exata, em pixels do monitor |
+| `girar(sentido)` | noventa graus; ajustada, a imagem continua cabendo, e ampliada, o centro da janela fica onde estava |
+| `trocar(elemento)` | troca o conteúdo sem recriar o visor; uma `img` que ainda carrega fica escondida até ter tamanho |
+| `escala()`, `rotacao()`, `ajustada()` | o estado atual |
+| `destruir()` | solta os ouvintes |
+
+`opcoes.min` e `opcoes.max` limitam a escala. O `min` padrão é a escala de caber na janela, e o
+`max` padrão é 40.
+
+Com o foco no visor, + e − ampliam e reduzem, 0 cabe na janela e 1 vai a 1:1, com ou sem Ctrl:
+com Ctrl, o navegador ampliaria a página inteira. As setas movem a imagem só no eixo em que ela é
+maior que a janela. No outro eixo a seta segue para a página, com `defaultPrevented` falso, e é
+assim que um app de fotos usa ← e → para a anterior e a seguinte sem brigar com o visor.
+
+O gesto só começa sobre a imagem ou sobre o fundo do visor: um botão posto por cima dele recebe o
+próprio clique. `.tuff-visor` é o contêiner, `.tuff-visor-conteudo` o que se move, e
+`--arrastando` troca o cursor durante o arraste.
+
+## A imagem que o navegador não abre
+
+O Chrome não decodifica TIFF nem HEIC. `TuffMidia.imagem(url, { nome })` devolve o elemento
+pronto para o visor: uma `img` para o que o navegador abre sozinho, e um `canvas` para TIFF e HEIC.
+O `nome` é o nome do arquivo, de onde sai o formato, porque a URL de `vssh.arquivos.urlFor` não
+tem extensão no caminho.
+
+```js
+const { elemento, documento, reduzida } = await TuffMidia.imagem(vssh.arquivos.urlFor(caminho), { nome });
+visor.trocar(elemento);
+if (documento && documento.paginas > 1) mostrarPaginas(documento.paginas);   // TIFF de várias páginas
+const miniatura = documento && await documento.miniatura();   // a que o arquivo já traz, ou null
+```
+
+O decodificador (`tuff-imagem.js`) é buscado na primeira chamada, e o geotiff dele (550 KB) só no
+primeiro TIFF: um app que só mostra JPEG não paga por nenhum dos dois. Os dois leem por `Range`,
+então abrir um TIFF grande ou pedir a miniatura de um HEIC não baixa o arquivo inteiro.
+
+O TIFF cobre várias páginas, as compressões comuns, BigTIFF, 16 bits e ponto flutuante; o que
+passa de 8 bits chega à tela esticado entre o mínimo e o máximo da imagem, e um NaN sai
+transparente. Acima de 64 megapixels a página sai do maior nível de redução que couber, e
+`reduzida` diz isso; `opcoes.teto` troca o limite. A miniatura de um TIFF é o menor nível de
+redução, e um TIFF sem níveis não tem uma.
+
+O HEIC vai ao `VideoDecoder` do WebCodecs, que decodifica HEVC pelo hardware da máquina. Onde o
+navegador não tem HEVC (Chrome no Linux sem VA-API, ou com a GPU desligada), a promessa rejeita
+com `codigo: 'sem-hevc'`, e o app diz isso na tela. A rotação da foto (`irot`) já vem aplicada, e
+a miniatura é a que o celular gravou dentro do arquivo.
+
+`documento.desenhar(pagina)` desenha outra página. Quem só quer o tamanho ou a miniatura, sem
+desenhar a página, pede o decodificador e abre o documento:
+
+```js
+const TuffImagem = await TuffMidia.decodificador();
+const doc = await TuffImagem.abrir(url, { nome });   // o índice, lido por Range
+const miniatura = await doc.miniatura();
 ```
 
 ## O player inteiro

@@ -20,6 +20,7 @@ defeito: ela para no tempo enquanto o ambiente segue.
 | `tuff.js` | o comportamento do núcleo: a gaveta de navegação (`TuffGaveta`) | quem tem gaveta |
 | `tuff-icones.js` | o sprite de ícones, instalado no documento ao carregar (`TuffIcones`) | quem usa ícone |
 | `tuff-midia.css`, `tuff-midia.js` | as peças de mídia: palco, chrome, transporte, trilha, grade, visor (`TuffMidia`) | opt-in: um app de formulário não paga por isto |
+| `tuff-imagem.js`, `vendor/geotiff.min.js` | o decodificador de TIFF e HEIC (`TuffImagem`) e o geotiff que ele usa | ninguém põe a tag: `TuffMidia.imagem` busca o primeiro na primeira chamada, e ele busca o segundo no primeiro TIFF |
 
 O `web.spa` do runtime injeta as tags no `index.html` do app, antes das do próprio app:
 
