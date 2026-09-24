@@ -478,12 +478,18 @@
    * Síncrona porque substitui `URL.createObjectURL(file)`, cujo retorno os apps põem direto no
    * `src`. O cookie de sessão acompanha a requisição, e a rota aceita `Range`. Fora do que foi
    * concedido a URL sai do mesmo jeito, com um aviso; quem recusa é o servidor.
+   *
+   * O aviso sai uma vez por página. Um visualizador que anda por uma pasta pede a URL de cada
+   * vizinho, e um aviso por arquivo enterraria o resto do console.
    */
+  let avisouUrlFor = false;
   vssh.arquivos.urlFor = (caminho) => {
     const abs = String(caminho || '');
-    if (!concedido(abs)) {
+    if (!avisouUrlFor && !concedido(abs)) {
+      avisouUrlFor = true;
       console.warn(`[vssh] urlFor('${abs}'): caminho fora do que o usuário escolheu num seletor. `
-        + 'A URL é devolvida assim mesmo, e o servidor pode recusar.');
+        + 'A URL é devolvida assim mesmo, e o servidor pode recusar. Os próximos caminhos fora '
+        + 'dele não avisam de novo.');
     }
     const consulta = `?path=${encodeURIComponent(abs)}`;
     return slugDoServidor ? `/${slugDoServidor}/api/fs/read${consulta}` : `/_sdk/fs/read${consulta}`;
