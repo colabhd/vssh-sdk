@@ -132,6 +132,7 @@ Rode o que a sua mudança alcança, com `node --test --test-concurrency=1 --test
 |---|---|
 | O contrato do manifesto | `api/vssh-app.schema.json`, gerado: a fonte é `schema/` do `vssh-sso` |
 | Validação e empacotamento de um app | `scripts/vssh-app-publish` (o validador é o heredoc Python) + `tests/publish-validacao.test.js` |
+| Publicar um motor de app (`motores` no manifesto) | `scripts/vssh-motor-publish` + `.github/actions/publicar-motor/` + `tests/publish-motor.test.js`; o guia é `docs/guias/motor.md` |
 | O portão de versão das libs | a seção `2b` do mesmo script + `tests/publish-libs-gate.test.js` |
 | O reusable que o CI de um app chama | `.github/workflows/_publish-app-reusable.yml` |
 | Publicar os templates e exemplos daqui | `.github/workflows/publish-apps.yml` (pede o secret `VSSH_REPO_PUBLISH_TOKEN` e a var `VSSH_REPO_API`) |

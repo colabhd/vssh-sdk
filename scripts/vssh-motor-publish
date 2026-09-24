@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+# vssh-motor-publish: publica um motor de um vssh-app e aponta o manifesto para ele.
+#
+# Uso: vssh-motor-publish <diretorio-do-app> --nome NOME --versao VERSAO --arquivo TARBALL
+#                         [--nome-no-repo NOME] [--confere CAMINHO] [--repo-api URL]
+#
+# Um motor é o que um app usa e que não cabe no pacote: o servidor web de um editor, um ambiente
+# Python com PyTorch, os pesos de um modelo. O servidor o baixa uma vez, na fase root do
+# `vssh-app-install`, a partir de `motores` no `vssh-app.json`; este script é o outro lado, e faz
+# três coisas, nesta ordem:
+#
+#   1. sobe o tarball direto ao R2, pela API S3 (multipart, sem teto de tamanho);
+#   2. registra o motor no vssh-repo (`POST /v1/publish/motor`), que confere que a chave existe e
+#      tem o tamanho declarado antes de gravar a linha;
+#   3. reescreve a entrada `NOME` em `motores` no manifesto do app, com a versão, a URL pública, o
+#      sha256 e o tamanho do que acabou de publicar.
+#
+# O terceiro passo é o que impede o artefato de ficar no ar com ninguém apontando para ele: quem
+# publica escreve o pino, no mesmo passo. Quem commita a mudança no manifesto é o chamador (a ação
+# `publicar-motor` deste repositório faz isso no CI).
+#
+# O tarball tem um diretório na raiz, que o servidor descarta ao extrair. `--confere` grava na
+# entrada um caminho que a extração precisa trazer (`bin/python`), e o servidor recusa o motor sem
+# ele; sem a flag, a entrada guarda o que já tinha.
+#
+# O nome do motor no vssh-repo é `<id do app>-<nome>` (`escriba-runtime`), porque os motores de
+# todos os apps dividem um espaço de nomes lá; `--nome-no-repo` o troca, para um motor publicado
+# antes desta convenção.
+#
+# Credenciais, todas do ambiente e nenhuma escrita em disco:
+#
+#   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY   a conta e a chave do R2, escopada ao bucket
+#   R2_BUCKET                                                o bucket (padrão: vssh-repo-blobs)
+#   VSSH_REPO_MOTOR_TOKEN                                    token de publicação, escopo motor:<nome no repo>
+#   VSSH_REPO_API                                            o vssh-repo (ou --repo-api)
+#
+# A subida usa o `aws` do PATH e, sem ele, o container `amazon/aws-cli`. Só biblioteca padrão do
+# Python para mexer no manifesto, como o `vssh-app-publish`.
+set -euo pipefail
+
+APP_DIR="" NOME="" VERSAO="" ARQUIVO="" NOME_NO_REPO="" CONFERE=""
+REPO_API="${VSSH_REPO_API:-}"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --nome)          NOME="$2"; shift 2 ;;
+    --versao)        VERSAO="$2"; shift 2 ;;
+    --arquivo)       ARQUIVO="$2"; shift 2 ;;
+    --nome-no-repo)  NOME_NO_REPO="$2"; shift 2 ;;
+    --confere)       CONFERE="$2"; shift 2 ;;
+    --repo-api)      REPO_API="$2"; shift 2 ;;
+    -h|--help)       grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *)               [ -z "${APP_DIR}" ] && APP_DIR="$1" || { echo "Argumento inesperado: $1" >&2; exit 1; }; shift ;;
+  esac
+done
+
+falta() { echo "ERRO: $1" >&2; exit 1; }
+[ -n "${APP_DIR}" ] || falta "informe o diretório do app."
+MANIFESTO="${APP_DIR%/}/vssh-app.json"
+[ -f "${MANIFESTO}" ] || falta "${MANIFESTO} não existe."
+[ -f "${ARQUIVO}" ] || falta "--arquivo '${ARQUIVO}' não existe."
+[[ "${NOME}" =~ ^[a-z][a-z0-9-]{0,31}$ ]] || falta "--nome '${NOME}' fora do padrão ^[a-z][a-z0-9-]{0,31}\$."
+[[ "${VERSAO}" =~ ^[0-9A-Za-z][0-9A-Za-z.+_-]{0,63}$ ]] || falta "--versao '${VERSAO}' fora do padrão do manifesto."
+if [ -n "${CONFERE}" ]; then
+  [[ "${CONFERE}" =~ ^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$ ]] && [[ "/${CONFERE}/" != *"/../"* ]] \
+    || falta "--confere '${CONFERE}' precisa ser um caminho relativo, sem '..'."
+fi
+[ -n "${REPO_API}" ] || falta "VSSH_REPO_API (ou --repo-api) não definido."
+for v in R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY VSSH_REPO_MOTOR_TOKEN; do
+  [ -n "${!v:-}" ] || falta "a variável ${v} não está definida."
+done
+BUCKET="${R2_BUCKET:-vssh-repo-blobs}"
+REPO_API="${REPO_API%/}"
+
+APP_ID="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("id",""))' "${MANIFESTO}")"
+[[ "${APP_ID}" =~ ^[a-z0-9-]+$ ]] || falta "o manifesto não tem um id válido."
+NOME_NO_REPO="${NOME_NO_REPO:-${APP_ID}-${NOME}}"
+[[ "${NOME_NO_REPO}" =~ ^[a-z0-9-]+$ ]] || falta "o nome no repositório '${NOME_NO_REPO}' fora de [a-z0-9-]+."
+
+SHA="$(sha256sum "${ARQUIVO}" | cut -d' ' -f1)"
+TAMANHO="$(stat -c%s "${ARQUIVO}" 2>/dev/null || stat -f%z "${ARQUIVO}")"
+CHAVE="motor/${NOME_NO_REPO}/${VERSAO}/motor.tar.gz"
+URL="${REPO_API}/v1/motor/${NOME_NO_REPO}/${VERSAO}"
+
+echo "==> motor '${NOME}' de ${APP_ID}, ${VERSAO}"
+echo "    arquivo : ${ARQUIVO} (${TAMANHO} bytes)"
+echo "    sha256  : ${SHA}"
+echo "    chave   : ${CHAVE}"
+
+# ─── 1. o blob, pela API S3 ─────────────────────────────────────────────────────
+#
+# A API S3, e não o REST da Cloudflare (o `wrangler`): ela aceita um token escopado a um bucket, e
+# faz multipart sozinha. O REST exige permissão de conta e tem teto perto de 300 MB por PUT, e um
+# motor de modelos passa de gigabytes.
+ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+echo "==> subindo para o R2"
+if command -v aws >/dev/null 2>&1; then
+  AWS_ACCESS_KEY_ID="${R2_ACCESS_KEY_ID}" AWS_SECRET_ACCESS_KEY="${R2_SECRET_ACCESS_KEY}" AWS_DEFAULT_REGION=auto \
+  AWS_REQUEST_CHECKSUM_CALCULATION=when_required AWS_RESPONSE_CHECKSUM_VALIDATION=when_required \
+    aws s3 cp "${ARQUIVO}" "s3://${BUCKET}/${CHAVE}" --endpoint-url "${ENDPOINT}" --content-type application/gzip
+else
+  command -v docker >/dev/null 2>&1 || falta "nem o 'aws' nem o 'docker' estão no PATH para subir ao R2."
+  dir_tar="$(cd "$(dirname "${ARQUIVO}")" && pwd)"
+  docker run --rm \
+    -e AWS_ACCESS_KEY_ID="${R2_ACCESS_KEY_ID}" -e AWS_SECRET_ACCESS_KEY="${R2_SECRET_ACCESS_KEY}" -e AWS_DEFAULT_REGION=auto \
+    -e AWS_REQUEST_CHECKSUM_CALCULATION=when_required -e AWS_RESPONSE_CHECKSUM_VALIDATION=when_required \
+    -v "${dir_tar}:/dados" amazon/aws-cli:latest \
+    s3 cp "/dados/$(basename "${ARQUIVO}")" "s3://${BUCKET}/${CHAVE}" --endpoint-url "${ENDPOINT}" --content-type application/gzip
+fi
+
+# ─── 2. o registro, pelo vssh-repo ──────────────────────────────────────────────
+#
+# É ele que torna o blob alcançável: sem esta linha o objeto existe no bucket e não tem rota. O
+# Worker faz `head()` na chave antes de gravar, então um registro só existe se o blob existir.
+echo "==> registrando em ${REPO_API}"
+BUILD_ID="${VSSH_BUILD_ID:-${GITHUB_SHA:-$(git -C "${APP_DIR}" rev-parse HEAD 2>/dev/null || echo local)}}"
+resposta=$(curl -sS -w '\n%{http_code}' -X POST "${REPO_API}/v1/publish/motor" \
+  -H "Authorization: Bearer ${VSSH_REPO_MOTOR_TOKEN}" \
+  -H "User-Agent: vssh-motor-publish" \
+  -H "X-Vssh-Name: ${NOME_NO_REPO}" \
+  -H "X-Vssh-Version: ${VERSAO}" \
+  -H "X-Vssh-Build-Id: ${BUILD_ID}" \
+  -H "X-Vssh-Sha256: ${SHA}" \
+  -H "X-Vssh-Size: ${TAMANHO}" \
+  -H "X-Vssh-R2-Key: ${CHAVE}" \
+  -H "X-Vssh-Built-At: $(date -u +%Y-%m-%dT%H:%M:%SZ)")
+codigo="$(printf '%s' "${resposta}" | tail -n1)"
+printf '%s\n' "${resposta}" | sed '$d'
+[ "${codigo}" = "201" ] || falta "o registro respondeu ${codigo}."
+
+# ─── 3. o pino, no manifesto ────────────────────────────────────────────────────
+#
+# A entrada é trocada no lugar, com a ordem das outras chaves e dos outros motores preservada, e o
+# arquivo volta com o recuo que tinha. Um motor que o manifesto ainda não declarava entra no fim.
+VSSH_NOME="${NOME}" VSSH_VERSAO="${VERSAO}" VSSH_URL="${URL}" VSSH_SHA="${SHA}" VSSH_TAMANHO="${TAMANHO}" \
+VSSH_CONFERE="${CONFERE}" python3 - "${MANIFESTO}" <<'PYEOF'
+import json, os, re, sys
+
+caminho = sys.argv[1]
+texto = open(caminho, encoding='utf-8').read()
+m = json.loads(texto)
+recuo = re.search(r'\n([ \t]+)"', texto)
+motores = m.get('motores')
+if not isinstance(motores, list):
+    motores = []
+nome = os.environ['VSSH_NOME']
+entrada = next((x for x in motores if isinstance(x, dict) and x.get('nome') == nome), None)
+if entrada is None:
+    entrada = {'nome': nome}
+    motores.append(entrada)
+entrada.update({'versao': os.environ['VSSH_VERSAO'], 'url': os.environ['VSSH_URL'],
+                'sha256': os.environ['VSSH_SHA'], 'tamanho': int(os.environ['VSSH_TAMANHO'])})
+if os.environ.get('VSSH_CONFERE'):
+    entrada['confere'] = os.environ['VSSH_CONFERE']
+m['motores'] = motores
+with open(caminho, 'w', encoding='utf-8') as f:
+    f.write(json.dumps(m, ensure_ascii=False, indent=recuo.group(1) if recuo else 2) + '\n')
+PYEOF
+
+echo "==> ${MANIFESTO} aponta para ${URL}"
