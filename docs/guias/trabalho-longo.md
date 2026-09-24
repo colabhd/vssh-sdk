@@ -58,8 +58,9 @@ depois, então um processo que abriu filhos não os deixa rodando. Um cancelamen
 porque quem cancelou já sabe.
 
 `registrar` decide a notificação do fim: `True` (o padrão) escreve uma genérica, `False` não
-escreve, e uma função recebe o registro final e devolve `{titulo, texto, level}`. `acoes` e `rota`
-são os de `avisos.notificar`, para a notificação levar um "Abrir".
+escreve, e uma função recebe o registro final e devolve `{titulo, texto, level}`. `abrir` é o
+caminho dentro do app aonde o clique na notificação leva (`abrir='?trabalho=3f2a'`). `acoes` e
+`rota` são os botões de `avisos.notificar`, que chegam ao seu backend por POST.
 
 ## Na fila
 
@@ -77,7 +78,8 @@ o log do container também chega ao app, sem as linhas de progresso.
 
 Aqui a biblioteca não escreve atividade nem notificação. O portal já põe o job em curso na bandeja
 de quem está com o ambiente aberto e avisa o fim, e escrever de novo daria duas linhas para o mesmo
-trabalho.
+trabalho. Para o aviso do portal levar a pessoa de volta ao trabalho, o pedido diz onde:
+`'abrir': '?trabalho=3f2a'`.
 
 ## Os eventos
 

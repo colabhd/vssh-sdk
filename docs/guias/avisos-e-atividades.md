@@ -50,6 +50,19 @@ faz "3 de 5 baixados" ser uma linha, e não cinco:
 vssh.avisos.notificar(`${feitos} de ${total} baixados`, { chave: 'downloads', prioridade: 'baixa' });
 ```
 
+O clique numa notificação abre o seu app. `abrir` diz onde: um caminho dentro dele, que o ambiente
+cola na URL da janela nova ou entrega à janela aberta no evento `abertura`, como a jump list faz
+(ver [Uma janela](uma-janela.md#o-contexto-de-abertura)). Sem ele, o clique abre o app onde ele
+estiver.
+
+```js
+vssh.avisos.notificar('Transcrição pronta.', { titulo: 'entrevista-03.m4a', nivel: 'success',
+  abrir: `?documento=${encodeURIComponent(caminho)}` });
+```
+
+Uma rota que sai do app (um esquema, um caminho absoluto, um `..`) é recusada, e o clique volta a
+abrir o app sem rota.
+
 Ver é ler: o ponteiro parado por 600 ms sobre o aviso na tela marca a notificação como lida, e o
 clique também. O que não marca é o aviso que some sozinho no tempo, porque esse é o caso inteiro
 que o histórico existe para atender: passou na tela enquanto ninguém olhava.
@@ -141,6 +154,7 @@ avisos.manter_atividades_vivas(); avisos.limpar_atividades_ao_sair(); avisos.lim
 
 avisos.notificar('Backup concluído: 4,2 GB em 12 min', titulo='Backup', nivel='success')
 avisos.notificar('Disco quase cheio', chave=f'disco-{hoje}')    # avisar uma vez só, mesmo rodando de hora em hora
+avisos.notificar('Transcrição pronta.', abrir='?documento=entrevista-03.transcricao')   # o clique leva lá
 
 avisos.atividade('sync', {'titulo': 'Sincronizando', 'formato': 'progresso',
                           'progresso': {'feito': 3, 'total': 12}})
