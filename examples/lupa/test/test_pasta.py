@@ -24,6 +24,12 @@ class TestOrdem(unittest.TestCase):
         self.assertEqual(em_ordem(["banana.png", "Abacaxi.png", "cereja.png"]),
                          ["Abacaxi.png", "banana.png", "cereja.png"])
 
+    def test_acento_nao_manda_o_nome_para_o_fim(self):
+        # Pelo código do caractere, `ç` vem depois de `n` e `É` depois de `z`. O nome inteiro
+        # desempata os dois que só diferem na caixa.
+        self.assertEqual(em_ordem(["zebra.jpg", "Évora.jpg", "animação.gif", "ação.pdf", "Ação.pdf"]),
+                         ["Ação.pdf", "ação.pdf", "animação.gif", "Évora.jpg", "zebra.jpg"])
+
     def test_a_extensao_em_maiuscula_da_camera_entra(self):
         # Câmeras e celulares gravam `IMG_0001.JPG` e `IMG_0002.HEIC`.
         self.assertEqual(em_ordem(["IMG_0002.HEIC", "IMG_0001.JPG", "Relatorio.PDF"]),

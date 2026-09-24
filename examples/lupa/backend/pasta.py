@@ -5,6 +5,7 @@ de nomes e sai a ordem; listar o diretório fica no chamador, que é a parte que
 """
 
 import re
+import unicodedata
 
 #: O que a Lupa abre. Esta lista e `opens.extensions` do manifesto dizem a mesma coisa, e
 #: `test/test_manifesto.py` confere as duas: uma extensão só no manifesto põe a Lupa no "Abrir
@@ -19,14 +20,23 @@ EXTENSOES = {
 _PEDACOS = re.compile(r"(\d+)")
 
 
+def _sem_acento(texto):
+    return "".join(c for c in unicodedata.normalize("NFD", texto) if not unicodedata.combining(c))
+
+
 def chave_natural(nome):
     """A ordem em que uma pessoa lê os nomes, com `IMG_2` antes de `IMG_10`.
 
     A ordem do byte compara `1` com `2` e põe `IMG_10` antes de `IMG_2`, e numa pasta de câmera a
     foto seguinte vira uma de outro dia. O `split` com grupo alterna texto e número sempre na
     mesma posição, então duas chaves nunca comparam `int` com `str`.
+
+    Acento e caixa não contam, como no gerenciador de arquivos: pelo código do caractere, o `ç`
+    vem depois do `n` e o `É` depois do `z`, e `ação` cairia depois de `animação`. O nome inteiro
+    desempata dois que só diferem no acento, e a ordem não depende da listagem do disco.
     """
-    return [int(p) if p.isdigit() else p.lower() for p in _PEDACOS.split(nome)]
+    return ([int(p) if p.isdigit() else _sem_acento(p).casefold() for p in _PEDACOS.split(nome)],
+            nome)
 
 
 def extensao_serve(nome):

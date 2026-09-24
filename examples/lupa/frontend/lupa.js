@@ -260,6 +260,10 @@ function montarLupa() {
   // pelo `urlFor` com Range e sem o download automático do resto: a primeira página aparece antes
   // de o arquivo inteiro chegar.
   //
+  // É a versão `legacy` do pdf.js. A outra é escrita para o navegador mais novo do momento: a 6.3
+  // chama `Map.prototype.getOrInsertComputed` no worker, que o Chromium 144 do cliente de desktop
+  // não tem, e todo PDF falhava lá com "não conseguiu abrir".
+  //
   // Dos pacotes opcionais do pdf.js, dois vão junto, e a escolha saiu de PDFs que precisam deles:
   // `cmaps`, sem o qual o texto de uma fonte CID não embutida (japonês, chinês) some da página, e
   // `wasm`, sem o qual uma imagem JPEG 2000 ou JBIG2, comum em documento escaneado, fica em branco.
