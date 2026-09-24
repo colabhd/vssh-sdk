@@ -46,6 +46,13 @@ on:
         description: 'Notas de versão em markdown (o que mudou nesta versão), para a ficha do app na loja. Ex.: github.event.release.body'
         type: string
         default: ''
+      # O runner do job. Um app de uma organização sem orçamento de Actions passa o scale set
+      # próprio dela (`colabhd-franca`, no colabhd); o padrão continua o da nuvem, para quem chama
+      # de uma conta pessoal, que não enxerga o scale set de ninguém.
+      runner:
+        description: 'O runner do job (runs-on): o padrão é o da nuvem; ex.: colabhd-franca'
+        type: string
+        default: 'ubuntu-latest'
     secrets:
       publish_token:
         description: 'Token de publicação escopado (app:<id> ou kind:app)'
@@ -54,8 +61,17 @@ on:
 jobs:
   publish:
     name: Publish app no repositório de artefatos
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     steps:
+      # O `vssh-app-publish` valida o manifesto com `python3`. O `ubuntu-latest` o traz de fábrica; a
+      # imagem de um runner próprio costuma ter só git, curl e jq, e sem ele o publish morre antes de
+      # empacotar.
+      - name: python3, se a imagem do runner não tiver
+        run: |
+          command -v python3 >/dev/null && exit 0
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends python3
+
       - name: Checkout do app (repo chamador)
         uses: actions/checkout@v5
         with:
