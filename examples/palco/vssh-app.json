@@ -18,6 +18,7 @@
     "tasksMax": "128"
   },
   "opens": {
+    "default": true,
     "extensions": [
       "mp4", "m4v", "mkv", "webm", "avi", "mov", "wmv", "flv", "ts", "mpg", "mpeg", "ogv",
       "mp3", "m4a", "flac", "wav", "ogg", "opus", "aac", "wma", "mka"

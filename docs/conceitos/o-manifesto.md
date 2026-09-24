@@ -68,6 +68,7 @@ ao app, que passa a responder pelos gestos dela. `type: engine` ignora o bloco i
 |---|---|
 | `handles` | o app se oferece como substituto de um dos cinco embutidos: `terminal`, `editor`, `fileBrowser`, `ide`, `browser`. A pessoa escolhe em Configurações. `vscode` é a grafia antiga de `ide` |
 | `opens.extensions`, `opens.mimeTypes` | os tipos de arquivo que o app abre. O app entra no submenu "Abrir com" e fica elegível a padrão do tipo. O arquivo chega pelo evento `abertura` |
+| `opens.default` | o app pede o duplo-clique nas extensões dele quando outro app instalado também as declara. É para quem mostra o arquivo (a Lupa com PDF), e não para quem o importa ou organiza (um gerenciador de referências que lê PDF). Com dois pedindo a mesma extensão, ninguém é eleito e a pessoa escolhe em Configurações; a escolha dela vence sempre |
 | `opens.urls` | os hosts cujos links o app abre (`youtube.com`, `*.youtube.com`). Só o host, sem esquema, porta ou caminho. `*.youtube.com` casa subdomínios e não é sufixo: `evilyoutube.com` não casa. `*`, `*.com`, IP literal e rótulo único (`localhost` incluído) são recusados |
 
 ### O que o app acrescenta ao ambiente
