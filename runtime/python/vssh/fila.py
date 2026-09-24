@@ -32,6 +32,10 @@ Estados de um job: `declarado`, `enviado`, `na_fila`, `rodando`, e os finais `co
 `cancelado`. Dentro do container, `VSSH_ENTRADAS` e `VSSH_SAIDAS` apontam os dois diretórios, e o
 diretório de trabalho é `/vssh`.
 
+Um trabalho que imprime linhas de `vssh.progresso` no stdout tem o progresso lido pelo portal: o
+`ao_evento` de `acompanhar` recebe `progresso` com o job, e `job['progresso']` traz `feito`,
+`total` e `etapa`. Quem já baixou as saídas chama `remover` para o dado sair do S3 na hora.
+
 Só biblioteca padrão, como o resto do pacote.
 """
 
@@ -40,7 +44,7 @@ import os
 import urllib.error
 import urllib.request
 
-__all__ = ['ErroDaFila', 'disponivel', 'submeter', 'estado', 'acompanhar', 'log', 'cancelar', 'baixar', 'listar']
+__all__ = ['ErroDaFila', 'disponivel', 'submeter', 'estado', 'acompanhar', 'log', 'cancelar', 'remover', 'baixar', 'listar']
 
 BLOCO = 4 * 1024 * 1024
 _TEMPO_HTTP = 60
@@ -252,6 +256,14 @@ def cancelar(ident, env=None):
     """Cancela; `True` quando o portal aceitou (um job já terminado também responde `True`)."""
     r = _pedir('POST', '/jobs/%s/cancelar' % ident, env=env)
     return bool(r and r.get('success'))
+
+
+def remover(ident, env=None):
+    """Apaga do S3 as entradas e as saídas de um job terminado, sem esperar a faxina da retenção.
+    Serve a quem já baixou o que precisava e não quer o dado no cluster nem mais um minuto. Um job
+    em curso responde 409: cancele antes."""
+    r = _pedir('DELETE', '/jobs/%s' % ident, env=env)
+    return bool(r and r.get('removido'))
 
 
 def baixar(ident, destino, nomes=None, env=None):

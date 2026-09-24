@@ -14,6 +14,10 @@
 //
 // Estados: `declarado`, `enviado`, `na_fila`, `rodando`, e os finais `concluido`, `falhou`
 // (`motivo`: `prazo`, `imagem`, `entrada:<nome>`, `codigo:<n>`, `sumiu`) e `cancelado`.
+//
+// Um trabalho que imprime linhas de `vssh/progresso` no stdout tem o progresso lido pelo portal:
+// o `aoEvento` de `acompanhar` recebe `progresso` com o job, e `job.progresso` traz `feito`,
+// `total` e `etapa`. Quem já baixou as saídas chama `remover` para o dado sair do S3 na hora.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -212,4 +216,14 @@ async function listar(env = process.env) {
   return (r && r.jobs) || [];
 }
 
-module.exports = { ErroDaFila, disponivel, submeter, estado, acompanhar, log, cancelar, baixar, listar };
+/**
+ * Apaga do S3 as entradas e as saídas de um job terminado, sem esperar a faxina da retenção. Serve
+ * a quem já baixou o que precisava e não quer o dado no cluster nem mais um minuto. Um job em
+ * curso responde 409: cancele antes.
+ */
+async function remover(id, env = process.env) {
+  const r = await pedir('DELETE', `/jobs/${id}`, { env });
+  return !!(r && r.removido);
+}
+
+module.exports = { ErroDaFila, disponivel, submeter, estado, acompanhar, log, cancelar, remover, baixar, listar };
