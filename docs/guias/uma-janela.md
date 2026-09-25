@@ -85,15 +85,15 @@ alcança uma janela já aberta.
 vssh.app.ao('abertura', ({ caminho, url, tipo, rota }) => {
   if (caminho) abrir(caminho);          // tipo: 'arquivo' ou 'pasta'
   if (url) tocar(url);                  // tipo: 'url'
-  if (rota) navegar(rota);              // a jump list, com a janela já aberta
+  if (rota) navegar(rota);              // a jump list ou uma notificação, com a janela já aberta
 });
 ```
 
 `caminho` e `url` nunca chegam juntos: são as duas formas de dizer o que abrir, e o ambiente sabe
-qual tem na mão. `rota` chega quando alguém usa a jump list do ícone com a janela já aberta; com o
-app fechado, a rota entra na URL e o app boota nela. Quem sabe se ir a `novo` é trocar de tela,
-abrir um painel ou criar um documento é o app. Sem tratar o evento, o item da jump list funciona
-só na primeira abertura.
+qual tem na mão. `rota` chega quando alguém usa a jump list do ícone, ou clica numa notificação que
+leva `abrir`, com a janela já aberta; com o app fechado, a rota entra na URL e o app boota nela.
+Quem sabe se ir a `novo` é trocar de tela, abrir um painel ou criar um documento é o app. Sem
+tratar o evento, o item da jump list e a notificação só levam ao lugar na primeira abertura.
 
 ## Voltar no lugar certo
 

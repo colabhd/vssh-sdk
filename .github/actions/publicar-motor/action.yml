@@ -1,0 +1,121 @@
+name: Publicar um motor de vssh-app
+description: >-
+  Sobe o tarball de um motor ao R2, registra no vssh-repo e aponta a entrada de `motores` do
+  vssh-app.json para ele, commitando a mudança. É o `scripts/vssh-motor-publish` deste repositório,
+  chamado do CI do app depois do passo que constrói o tarball.
+
+# No CI de um app, no mesmo job que construiu o tarball:
+#
+#   permissions:
+#     contents: write          # o commit do pino no manifesto
+#   steps:
+#     - uses: actions/checkout@v5
+#     - run: bash scripts/construir-motor.sh   # deixa runtime.tar.gz na raiz
+#     - uses: colabhd/vssh-sdk/.github/actions/publicar-motor@main
+#       with:
+#         nome: runtime
+#         versao: 2026.09.24-1
+#         arquivo: runtime.tar.gz
+#         confere: bin/python
+#         repo_api: https://vssh-repo.colabh.org
+#         r2_account_id: ${{ vars.R2_ACCOUNT_ID }}
+#         r2_access_key_id: ${{ secrets.R2_ACCESS_KEY_ID }}
+#         r2_secret_access_key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+#         motor_token: ${{ secrets.VSSH_REPO_MOTOR_TOKEN }}
+#
+# Uma ação composta, e não um workflow reutilizável: o tarball de um motor tem gigabytes e nasce
+# no job do app, e um workflow reutilizável roda em outro job, onde ele não está. As credenciais
+# são do repositório que chama, como no `_publish-app-reusable.yml`; nada delas mora aqui.
+
+inputs:
+  app_dir:
+    description: Diretório do app (onde está o vssh-app.json)
+    required: false
+    default: '.'
+  nome:
+    description: O nome do motor dentro do app (vira VSSH_MOTOR_<NOME> no servidor)
+    required: true
+  versao:
+    description: A versão do artefato
+    required: true
+  arquivo:
+    description: O tarball a publicar, com um diretório na raiz
+    required: true
+  confere:
+    description: Um caminho que a extração precisa trazer (ex. bin/python); vazio mantém o que o manifesto tem
+    required: false
+    default: ''
+  nome_no_repo:
+    description: O nome do motor no vssh-repo; o padrão é <id do app>-<nome>
+    required: false
+    default: ''
+  repo_api:
+    description: A base do vssh-repo
+    required: true
+  r2_account_id:
+    description: A conta Cloudflare do R2
+    required: true
+  r2_bucket:
+    description: O bucket de blobs do vssh-repo
+    required: false
+    default: vssh-repo-blobs
+  r2_access_key_id:
+    description: A chave S3 do R2, escopada ao bucket
+    required: true
+  r2_secret_access_key:
+    description: O segredo da chave S3 do R2
+    required: true
+  motor_token:
+    description: O token de publicação do vssh-repo, com escopo motor:<nome no repo>
+    required: true
+  commit:
+    description: "'true' commita e empurra o vssh-app.json com o pino novo"
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Publicar o motor
+      shell: bash
+      env:
+        VSSH_REPO_API: ${{ inputs.repo_api }}
+        R2_ACCOUNT_ID: ${{ inputs.r2_account_id }}
+        R2_BUCKET: ${{ inputs.r2_bucket }}
+        R2_ACCESS_KEY_ID: ${{ inputs.r2_access_key_id }}
+        R2_SECRET_ACCESS_KEY: ${{ inputs.r2_secret_access_key }}
+        VSSH_REPO_MOTOR_TOKEN: ${{ inputs.motor_token }}
+        APP_DIR: ${{ inputs.app_dir }}
+        NOME: ${{ inputs.nome }}
+        VERSAO: ${{ inputs.versao }}
+        ARQUIVO: ${{ inputs.arquivo }}
+        CONFERE: ${{ inputs.confere }}
+        NOME_NO_REPO: ${{ inputs.nome_no_repo }}
+      # O script sai da cópia desta ação, que o runner baixa na mesma revisão do `uses:`: a ação e
+      # o script nunca são de versões diferentes.
+      run: |
+        set -euo pipefail
+        args=("${APP_DIR}" --nome "${NOME}" --versao "${VERSAO}" --arquivo "${ARQUIVO}")
+        [ -n "${CONFERE}" ] && args+=(--confere "${CONFERE}")
+        [ -n "${NOME_NO_REPO}" ] && args+=(--nome-no-repo "${NOME_NO_REPO}")
+        bash "${GITHUB_ACTION_PATH}/../../../scripts/vssh-motor-publish" "${args[@]}"
+
+    - name: Commitar o pino no manifesto
+      if: inputs.commit == 'true'
+      shell: bash
+      env:
+        APP_DIR: ${{ inputs.app_dir }}
+        NOME: ${{ inputs.nome }}
+        VERSAO: ${{ inputs.versao }}
+      run: |
+        set -euo pipefail
+        manifesto="${APP_DIR%/}/vssh-app.json"
+        if git diff --quiet -- "${manifesto}"; then
+          echo "==> o manifesto já apontava para esta versão"
+          exit 0
+        fi
+        git config user.name "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add -- "${manifesto}"
+        git commit -m "motor ${NOME}: ${VERSAO}"
+        git push
