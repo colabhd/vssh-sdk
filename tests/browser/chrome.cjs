@@ -317,6 +317,17 @@ async function abrirNavegador({ timeoutMs = Number(process.env.VSSH_TEST_CHROME_
  * dentro da biblioteca sob teste — indistinguível de um defeito dela. Um servidor de dez linhas
  * troca esse falso positivo por uma origem `http://127.0.0.1:<porta>` comum.
  */
+/*
+ * As "portas ruins" do padrão Fetch acima de 1024 — as do IRC, do H.323, do SIP… —, que o navegador
+ * RECUSA carregar (`ERR_UNSAFE_PORT`) e o `fetch` do Node recusa pedir. Um `listen(0)` recebe a porta que
+ * o sistema sorteia, e no Windows a faixa dinâmica começa baixo o bastante para cair numa delas de vez
+ * em quando: o teste mediria uma página que nem carregou, e sozinho o arquivo passaria.
+ */
+const PORTAS_PROIBIDAS = new Set([
+  1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000, 6566,
+  6665, 6666, 6667, 6668, 6669, 6679, 6697, 10080,
+]);
+
 async function servirOrigem(rota) {
   const srv = http.createServer((req, res) => {
     // A rota opcional vem primeiro e pode responder o que quiser; devolver algo falso indica
@@ -326,7 +337,11 @@ async function servirOrigem(rota) {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     res.end('<!doctype html><meta charset="utf-8"><title>teste</title>');
   });
-  await new Promise((ok) => srv.listen(0, '127.0.0.1', ok));
+  for (let tentativa = 0; ; tentativa++) {
+    await new Promise((ok) => srv.listen(0, '127.0.0.1', ok));
+    if (!PORTAS_PROIBIDAS.has(srv.address().port) || tentativa >= 19) break;
+    await new Promise((ok) => srv.close(ok));
+  }
   const { port } = srv.address();
   return {
     url: `http://127.0.0.1:${port}/`,
