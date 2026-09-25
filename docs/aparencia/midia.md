@@ -116,6 +116,46 @@ O botão de repetir está ligado, e o de aleatório não. A diferença vem de `a
 que é o seletor do estado ligado; um alternador idêntico nos dois estados faz a fila fazer algo que
 ninguém pediu.
 
+## A forma de onda
+
+Para áudio, a trilha diz onde se está e não diz onde está a fala. `TuffMidia.onda` desenha os
+picos que o app mediu, uma barra por trecho, e pinta as regiões que o app declarar: os falantes de
+uma transcrição, os capítulos de um podcast, as faixas de um disco. O que já tocou fica aceso, o
+resto apagado, e a posição é uma linha de 1px em `--ds-text`. Ela cabe no lugar da trilha, no
+andar de cima do transporte, e o Escriba a usa assim.
+
+```js
+const onda = TuffMidia.onda(document.getElementById('onda'), picos, {
+  midia: audio,                      // o <audio> ou <video> que ela lê e move
+  duracao: 2512.4,                   // a posição antes de os metadados chegarem
+  regioes: [
+    { inicio: 0, fim: 41.2, cor: 'var(--app-falante-1)' },
+    { inicio: 41.9, fim: 88, cor: 'var(--app-falante-2)' },
+  ],
+});
+```
+
+`picos` é uma lista de números de 0 a 1, de qualquer tamanho: a peça agrupa os valores de cada
+barra pelo maior deles, e uma janela mais larga mostra mais barras, e não barras mais grossas.
+Quem mede é o backend do app. O Escriba decodifica o áudio com o ffmpeg em mono a 4 kHz e guarda o
+maior valor absoluto de cada um de 1600 trechos iguais: a lista tem o mesmo tamanho para um minuto
+ou para três horas, e nenhuma janela desenha mais barras que isso.
+
+As regiões chegam em ordem de início e sem sobreposição, e o vão entre duas fica na cor neutra. A
+cor é qualquer cor CSS, variável inclusive: a peça a resolve para o canvas uma vez por troca, e
+não a cada barra de cada quadro. `onda.definir({ regioes })` troca as regiões na hora, o que é o
+caso de alguém renomear ou fundir dois falantes; `definir` aceita também `picos` e `duracao`.
+
+O clique e o arraste buscam, e a captura de ponteiro segura o arraste mesmo quando a mão sai da
+onda. Sob o ponteiro, `.tuff-onda-previa` mostra o tempo daquele ponto. O teclado anda 5 s pelas
+setas, 1 s com Shift, e Home e End vão às pontas. A onda é um `slider` com `aria-valuetext` no
+formato do `TuffMidia.tempo`.
+
+Quando o app já tem a própria noção de tempo, como um editor que leva o texto junto com o áudio,
+`tempo: { atual, buscar, duracao }` no lugar de `midia` é a mesma régua que o `player` aceita, e
+aí quem chama `onda.pintar()` a cada quadro é o laço do app. `onda.destruir()` tira os ouvintes e
+o observador de tamanho.
+
 ## A grade de miniaturas e a tira
 
 `.tuff-grade` é uma grade virtualizada: com trinta mil arquivos, só as fileiras visíveis existem

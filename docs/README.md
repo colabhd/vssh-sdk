@@ -54,7 +54,7 @@ descrição do verbo, na tabela do sistema, e chega aqui na rodada seguinte.
 | [Tokens](aparencia/tokens.md) | A paleta, o texto, o destaque que muda em runtime, os status, a tipografia e as medidas, token a token. |
 | [Componentes](aparencia/componentes.md) | Painel, botões, campos, switch, linha de configuração, controle segmentado, estado, dica, vazio, espera e ícones, cada um com a amostra viva e o markup. |
 | [Listas e navegação](aparencia/listas-e-navegacao.md) | Lista, chave e valor, barra de ferramentas, a gaveta de navegação e o `TuffGaveta`, busca, detalhe e tooltip. |
-| [Mídia](aparencia/midia.md) | Palco, chrome, trilha, transporte, grade virtualizada, tira e visor, e o `TuffMidia` que os liga. |
+| [Mídia](aparencia/midia.md) | Palco, chrome, trilha, transporte, forma de onda, grade virtualizada, tira e visor, e o `TuffMidia` que os liga. |
 | [Ícones](aparencia/icones.md) | Como se usa um ícone do sprite, e a grade com todos os que existem, lida do sprite no build. |
 
 A galeria com todos os componentes numa página só, para julgar olhando, continua em
