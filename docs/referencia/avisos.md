@@ -9,7 +9,7 @@ Notificação, aviso efêmero, atividade em curso e bandeja, para um app com jan
 
 | verbo | responde |
 |---|---|
-| [`vssh.avisos.notificar(mensagem, titulo, nivel, prioridade, chave, acoes)`](#notificar) | sim, em até 5 s |
+| [`vssh.avisos.notificar(mensagem, titulo, nivel, prioridade, chave, acoes, abrir)`](#notificar) | sim, em até 5 s |
 | [`vssh.avisos.avisar(mensagem, titulo, nivel, duracao, chave)`](#avisar) | sim, em até 5 s |
 | [`vssh.avisos.atividade(chave, item)`](#atividade) | sim, em até 5 s |
 | [`vssh.avisos.encerrarAtividade(chave, registrar)`](#encerraratividade) | sim, em até 5 s |
@@ -18,14 +18,16 @@ Notificação, aviso efêmero, atividade em curso e bandeja, para um app com jan
 
 ### `notificar`
 
-`vssh.avisos.notificar(mensagem, titulo, nivel, prioridade, chave, acoes)`
+`vssh.avisos.notificar(mensagem, titulo, nivel, prioridade, chave, acoes, abrir)`
 
 Um fato que aconteceu, gravado no histórico do sino e anunciado num aviso: um caminho, um erro que a
 pessoa vai querer reencontrar. `nivel` é o tom (cor e ícone); `prioridade` é quanto interromper:
 `baixa` só marca o sino, `normal` mostra o aviso por alguns segundos, `alta` o deixa na tela até a
 pessoa responder. Um app não abre modal, e `critica` vira `alta`. A mesma `chave` substitui a
 notificação anterior no lugar de empilhar. O clique numa das `acoes` volta pelo evento
-`acaoDeNotificacao`. A resposta é o id da notificação.
+`acaoDeNotificacao`. `abrir` é onde o clique na notificação leva, um caminho dentro do app
+(`?documento=x`), que chega pelo evento `abertura` quando a janela já está aberta. A resposta é o id
+da notificação.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
 No fio: `type: "notify"`.
@@ -38,6 +40,7 @@ No fio: `type: "notify"`.
 | `prioridade` | `'baixa' \| 'normal' \| 'alta'` | sim | `prioridade` |
 | `chave` | `string` | sim | `chave` |
 | `acoes` | `{ id: string, label: string }[]` | sim | `actions` |
+| `abrir` | `string` | sim | `rota` |
 
 ### `avisar`
 

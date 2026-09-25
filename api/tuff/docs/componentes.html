@@ -423,6 +423,25 @@
       </div>
     </section>
 
+    <section class="tuff-painel" style="grid-column: 1 / -1">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Forma de onda</div>
+        <div class="tuff-sec-desc">
+          Os picos que o app mediu, uma barra por trecho, com regiões de cor: aqui, as falas de
+          duas pessoas numa entrevista. O que já tocou fica aceso e o resto apagado, e a linha é a
+          posição. Clique ou arraste para buscar; com o foco nela, as setas andam 5&nbsp;s, e 1&nbsp;s
+          com Shift. Ela lê e escreve o tempo pela mesma régua do player, e as duas nunca discordam.
+        </div>
+      </div>
+      <div class="tuff-transporte">
+        <div class="tuff-transporte-tempo">
+          <span class="tuff-tempo" id="cat-onda-agora">0:00</span>
+          <div id="cat-onda" aria-label="Posição na entrevista"></div>
+          <span class="tuff-tempo">3:10</span>
+        </div>
+      </div>
+    </section>
+
     <section class="tuff-painel">
       <div class="tuff-sec">
         <div class="tuff-sec-titulo">Grade virtualizada</div>
@@ -557,6 +576,26 @@
       it.innerHTML = `<img alt="quadro ${i}" src="${ladrilho(i * 5, 64, 44)}">`;
       tira.appendChild(it);
     }
+
+    // Uma entrevista de 3:10 inventada: picos de fala com pausas, e duas pessoas se alternando. O
+    // tempo anda sozinho, e a onda o acompanha pela régua `tempo`, como acompanharia um <audio>.
+    let agora = 0;
+    const picos = Array.from({ length: 900 }, (_, i) => (Math.sin(i / 7) > -0.6 ? 0.15 + 0.8 * Math.abs(Math.sin(i * 1.7) * Math.sin(i * 0.23)) : 0.02));
+    const regioes = [];
+    for (let t = 0, k = 0; t < 190; k++) {
+      const d = 6 + ((k * 7) % 11);
+      regioes.push({ inicio: t, fim: Math.min(190, t + d - 0.6), cor: k % 2 ? 'var(--ds-warn)' : 'var(--ds-accent)' });
+      t += d;
+    }
+    const onda = TuffMidia.onda(document.getElementById('cat-onda'), picos, {
+      regioes,
+      tempo: { duracao: () => 190, atual: () => agora, buscar: (s) => { agora = s; } },
+    });
+    setInterval(() => {
+      agora = (agora + 0.25) % 190;
+      document.getElementById('cat-onda-agora').textContent = TuffMidia.tempo(agora);
+      onda.pintar();
+    }, 250);
 
     const alvo = document.getElementById('cat-visor');
     const img = new Image();

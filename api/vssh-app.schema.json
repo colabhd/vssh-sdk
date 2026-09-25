@@ -202,6 +202,47 @@
         "description": "Uma exigência: um nome de pacote, ou vários separados por '|' quando qualquer um deles satisfaz — a ordem é a de PREFERÊNCIA, e é a primeira que as mensagens sugerem instalar. O alfabeto de cada nome é restritivo de propósito: este valor chega a um gerenciador de pacotes no servidor, e um nome com metacaractere de shell seria injeção. O '|' é a única exceção, e ele nunca atravessa como shell: quem confere separa as alternativas ANTES de montar o comando."
       }
     },
+    "motores": {
+      "type": "array",
+      "description": "Artefatos grandes que o app usa e que não viajam no pacote: o servidor web de um editor, um ambiente Python com PyTorch, os pesos de um modelo. Cada motor é um tarball publicado à parte (no vssh-repo, pelo `publicar-motor` do vssh-sdk), e o servidor o baixa UMA vez, na fase root do `vssh-app-install`, para `/var/lib/vssh-motores/<app>/<nome>/<versao>`, fora do diretório do app: reinstalar o app na mesma versão do motor não baixa nada, e o `rsync` do instalador não o apaga. O sha256 é conferido antes de extrair, a troca é em dois passos (um download interrompido nunca parece instalado), e as versões que o manifesto deixou de declarar saem depois que a nova entra. Ao subir, o `vssh-app-run` exporta o caminho de cada motor em `VSSH_MOTOR_<NOME>` (maiúsculas, `-` vira `_`); um motor declarado que não está no disco recusa a subida, e o run.log diz o que pedir ao administrador.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["nome", "versao", "url", "sha256", "tamanho"],
+        "properties": {
+          "nome": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,31}$",
+            "description": "O nome do motor dentro do app, que dá nome à variável: `runtime` vira `VSSH_MOTOR_RUNTIME`. Minúsculas, porque ele também é um diretório no servidor."
+          },
+          "versao": {
+            "type": "string",
+            "pattern": "^[0-9A-Za-z][0-9A-Za-z.+_-]{0,63}$",
+            "description": "A versão do artefato. É ela que decide se o servidor baixa: a mesma versão já instalada não baixa de novo, e uma versão nova baixa e toma o lugar da antiga."
+          },
+          "url": {
+            "type": "string",
+            "pattern": "^https?://[^\\s]+$",
+            "description": "De onde o servidor baixa o tarball, sem token: a rota `/v1/motor/<nome>/<versão>` do vssh-repo. O tarball tem um diretório na raiz, que a extração descarta."
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "O sha256 do tarball, conferido no servidor antes de extrair. Um tarball trocado no caminho não chega a escrever arquivo nenhum."
+          },
+          "tamanho": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "O tamanho do tarball em bytes. O instalador confere o espaço livre antes de baixar, e a loja o mostra antes de instalar."
+          },
+          "confere": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$",
+            "description": "Um caminho relativo que o tarball extraído precisa trazer (`bin/python`, `bin/vssh-code-server`). Sem ele, a extração é recusada: a URL passou a servir outra coisa."
+          }
+        }
+      }
+    },
     "resources": {
       "type": "object",
       "description": "Limites de recurso do processo do app. O ambiente já aplica um teto PADRÃO a todo vssh-app (memória e número de tarefas) — este bloco existe para o app que precisa de outro, para mais ou para menos. Aplicado por `systemd-run --user --scope` no vssh-app-run, sobre o GRUPO de processos do app, então alcança os filhos que ele gerar. O que ele contém é UM app desgovernado, e não a soma deles: dois apps no teto ainda somam mais que a máquina.",

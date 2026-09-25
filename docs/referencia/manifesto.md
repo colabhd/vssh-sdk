@@ -32,6 +32,7 @@ do campo na mensagem. Obrigatórios: `id`, `version`, `backend`.
 | [`minShellVersion`](#minshellversion) | `string` | não |
 | [`contributes`](#contributes) | `object` | não |
 | [`requiredPackages`](#requiredpackages) | `array` de `string` | não |
+| [`motores`](#motores) | `array` de `object` | não |
 | [`resources`](#resources) | `object` | não |
 | [`recursos`](#recursos) | `object` | não |
 | [`gpu`](#gpu) | `boolean` | não |
@@ -295,6 +296,63 @@ app roda neste servidor?' sem executá-lo. Cada item é uma EXIGÊNCIA, e uma ex
 alternativas separadas por '|' — 'chromium | google-chrome-stable' quer dizer que qualquer um dos
 dois serve. Quem VERIFICA é o portal (vssh-app-install recusa antes de instalar, e o painel admin
 mostra o que falta por servidor).
+
+## `motores`
+
+`array` de `object`, opcional.
+
+Artefatos grandes que o app usa e que não viajam no pacote: o servidor web de um editor, um ambiente
+Python com PyTorch, os pesos de um modelo. Cada motor é um tarball publicado à parte (no vssh-repo,
+pelo `publicar-motor` do vssh-sdk), e o servidor o baixa UMA vez, na fase root do
+`vssh-app-install`, para `/var/lib/vssh-motores/<app>/<nome>/<versao>`, fora do diretório do app:
+reinstalar o app na mesma versão do motor não baixa nada, e o `rsync` do instalador não o apaga. O
+sha256 é conferido antes de extrair, a troca é em dois passos (um download interrompido nunca parece
+instalado), e as versões que o manifesto deixou de declarar saem depois que a nova entra. Ao subir,
+o `vssh-app-run` exporta o caminho de cada motor em `VSSH_MOTOR_<NOME>` (maiúsculas, `-` vira `_`);
+um motor declarado que não está no disco recusa a subida, e o run.log diz o que pedir ao
+administrador.
+
+### `motores[].nome`
+
+`string`, obrigatório.
+
+O nome do motor dentro do app, que dá nome à variável: `runtime` vira `VSSH_MOTOR_RUNTIME`.
+Minúsculas, porque ele também é um diretório no servidor.
+
+### `motores[].versao`
+
+`string`, obrigatório.
+
+A versão do artefato. É ela que decide se o servidor baixa: a mesma versão já instalada não baixa de
+novo, e uma versão nova baixa e toma o lugar da antiga.
+
+### `motores[].url`
+
+`string`, obrigatório.
+
+De onde o servidor baixa o tarball, sem token: a rota `/v1/motor/<nome>/<versão>` do vssh-repo. O
+tarball tem um diretório na raiz, que a extração descarta.
+
+### `motores[].sha256`
+
+`string`, obrigatório.
+
+O sha256 do tarball, conferido no servidor antes de extrair. Um tarball trocado no caminho não chega
+a escrever arquivo nenhum.
+
+### `motores[].tamanho`
+
+`integer`, obrigatório, mínimo 1.
+
+O tamanho do tarball em bytes. O instalador confere o espaço livre antes de baixar, e a loja o
+mostra antes de instalar.
+
+### `motores[].confere`
+
+`string`, opcional.
+
+Um caminho relativo que o tarball extraído precisa trazer (`bin/python`, `bin/vssh-code-server`).
+Sem ele, a extração é recusada: a URL passou a servir outra coisa.
 
 ## `resources`
 

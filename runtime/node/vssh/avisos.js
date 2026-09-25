@@ -92,8 +92,10 @@ function idDe(appId, chave) {
  * id é derivado dela: chamar duas vezes com a mesma chave avisa uma vez só.
  *
  * Opções: `titulo`, `nivel` (`info|success|warning|error`), `chave`, `acoes` (até três
- * `{id, label}`), `rota` (o caminho do seu backend que recebe o POST de uma ação),
- * `persistente`, `appId`, `quando` (o instante do evento em ms, do emissor).
+ * `{id, label}`), `rota` (o caminho do seu backend que recebe o POST de uma ação), `abrir` (onde o
+ * clique na própria notificação leva: um caminho dentro do app, como `?documento=entrevista-3`,
+ * colado na URL da janela nova ou entregue à janela aberta no evento `abertura`), `persistente`,
+ * `appId`, `quando` (o instante do evento em ms, do emissor).
  */
 function notificar(corpo, opcoes = {}) {
   const env = opcoes.env || process.env;
@@ -123,6 +125,7 @@ function notificar(corpo, opcoes = {}) {
       .map((a) => ({ id: a.id, label: a.label }));
   }
   if (opcoes.rota) entrada.onAction = { path: String(opcoes.rota) };
+  if (opcoes.abrir) entrada.rota = String(opcoes.abrir).slice(0, 512);
 
   try {
     fs.mkdirSync(path.dirname(arquivo), { recursive: true });

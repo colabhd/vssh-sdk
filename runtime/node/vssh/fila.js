@@ -115,7 +115,8 @@ function subir(url, caminho) {
 /**
  * Declara, sobe as entradas e inicia. Resolve com o id do job. `trabalho` leva `imagem`,
  * `comando`, `args`, `env`, `entradas` (objeto nome → caminho, ou lista de caminhos), `saidas`,
- * `gpu`, `cpu`, `memoria`, `disco`, `prazo` e `nome`.
+ * `gpu`, `cpu`, `memoria`, `disco`, `prazo`, `nome` e `abrir` (onde o clique no aviso de fim leva,
+ * um caminho dentro do app).
  */
 async function submeter(trabalho, aoProgresso, env = process.env) {
   const pares = entradasDe(trabalho);

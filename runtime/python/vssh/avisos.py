@@ -105,7 +105,7 @@ def _id_de(app_id, chave):
 
 
 def notificar(corpo, titulo=None, nivel=None, chave=None, acoes=None, persistente=False,
-              rota=None, app_id=None, quando=None, env=None):
+              rota=None, abrir=None, app_id=None, quando=None, env=None):
     """Acrescenta uma notificação ao journal do usuário. Devolve o `id` gravado, ou `None`
     quando não havia onde escrever.
 
@@ -116,6 +116,9 @@ def notificar(corpo, titulo=None, nivel=None, chave=None, acoes=None, persistent
 
     `nivel` é `info`, `success`, `warning` ou `error`. `acoes` são até três `{id, label}`, e
     `rota` é o caminho do seu backend que recebe o POST quando a pessoa clica numa delas.
+    `abrir` é onde o clique na própria notificação leva: um caminho dentro do app
+    (`?documento=entrevista-3`, `revisao/12`), colado na URL da janela nova ou entregue à janela
+    aberta no evento `abertura`. Sem ele, o clique abre o app onde ele estiver.
     `persistente` pede que o aviso não suma sozinho. `quando` é o instante do evento em ms, e é
     do emissor: um evento que aconteceu com o desktop fechado mostra a hora em que aconteceu.
     """
@@ -152,6 +155,8 @@ def notificar(corpo, titulo=None, nivel=None, chave=None, acoes=None, persistent
         ][:3]
     if rota:
         entrada['onAction'] = {'path': str(rota)}
+    if abrir:
+        entrada['rota'] = str(abrir)[:512]
 
     try:
         with _tranca:

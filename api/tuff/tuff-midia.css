@@ -248,6 +248,43 @@
   .tuff-trilha:hover .tuff-trilha-previa,
   .tuff-trilha--arrastando .tuff-trilha-previa { opacity: 1; }
 
+  /* ── A forma de onda ────────────────────────────────────────────────────────
+     O canvas ocupa a caixa inteira, e a altura é do app (40px por padrão, a de
+     uma linha de transporte). A prévia de tempo é a mesma peça da trilha, sobre
+     o ponteiro. */
+
+  .tuff-onda {
+    position: relative;
+    flex: 1;
+    min-width: 4rem;
+    height: 40px;
+    cursor: pointer;
+    touch-action: none;           /* o arraste é da onda, não do scroll da página */
+    border-radius: var(--ds-radius-sm);
+    outline: none;
+  }
+  .tuff-onda canvas { display: block; width: 100%; height: 100%; }
+  .tuff-onda:focus-visible { box-shadow: 0 0 0 1px var(--ds-border-focus); }
+  .tuff-onda-previa {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    transform: translateX(-50%);
+    padding: 2px var(--ds-gap-md);
+    background: var(--ds-bg3);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-sm);
+    box-shadow: var(--ds-shadow-md);
+    font: var(--tuff-weight-n) var(--tuff-size-xs)/1.4 var(--ds-font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--ds-text);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--ds-dur-fast) var(--ds-ease);
+  }
+  .tuff-onda:hover .tuff-onda-previa,
+  .tuff-onda--arrastando .tuff-onda-previa { opacity: 1; }
+
   /* ── Timecode ───────────────────────────────────────────────────────────────
      `tabular-nums`. Numa fonte proporcional o "1" é mais estreito que o "8",
      então cada segundo que passa mexe a largura do número e o texto treme, no

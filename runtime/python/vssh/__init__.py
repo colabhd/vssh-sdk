@@ -6,7 +6,7 @@ Um app de backend importa este pacote em vez de carregar uma cópia dele: o port
 metade instalada da analogia com o .NET Framework: o app declara o que precisa, e a máquina em que
 ele roda já tem o que ele importa.
 
-Nove módulos, cada um importado por si:
+Dez módulos, cada um importado por si:
 
     from vssh import servidor    # o socket unix do app, o portão de token, o `/saude`, o log
     from vssh import web         # a SPA do app, com o SDK web e o Tuff injetados no `<head>`
@@ -17,6 +17,7 @@ Nove módulos, cada um importado por si:
     from vssh import gpu         # o que o sistema concedeu de GPU a este app, e por que não
     from vssh import fila        # delegar um container ao cluster Kubernetes, e acompanhá-lo
     from vssh import progresso   # a linha de progresso de um trabalho longo: escrever e ler
+    from vssh import trabalhos   # um trabalho longo na estação ou na fila, acompanhado igual
 
 Nenhum deles lê variável de ambiente além do contrato do vssh-app (`VSSH_APP_ID`,
 `VSSH_APP_SOCKET`, `VSSH_APP_TOKEN`, `VSSH_APP_DATA_DIR`, `HOME`, e, para quem declarou
@@ -27,4 +28,4 @@ Só biblioteca padrão. Um `pip install` por usuário é o tipo de dependência 
 num servidor que ninguém provisionou para isso, e este pacote roda em todos.
 """
 
-__all__ = ['app', 'avisos', 'dados', 'eventos', 'fila', 'gpu', 'progresso', 'servidor', 'web']
+__all__ = ['app', 'avisos', 'dados', 'eventos', 'fila', 'gpu', 'progresso', 'servidor', 'trabalhos', 'web']

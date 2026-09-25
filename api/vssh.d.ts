@@ -299,9 +299,11 @@ declare namespace vssh {
      * quanto interromper: `baixa` só marca o sino, `normal` mostra o aviso por alguns segundos,
      * `alta` o deixa na tela até a pessoa responder. Um app não abre modal, e `critica` vira
      * `alta`. A mesma `chave` substitui a notificação anterior no lugar de empilhar. O clique numa
-     * das `acoes` volta pelo evento `acaoDeNotificacao`. A resposta é o id da notificação.
+     * das `acoes` volta pelo evento `acaoDeNotificacao`. `abrir` é onde o clique na notificação
+     * leva, um caminho dentro do app (`?documento=x`), que chega pelo evento `abertura` quando a
+     * janela já está aberta. A resposta é o id da notificação.
      */
-    function notificar(mensagem: string, titulo?: string, nivel?: 'info' | 'success' | 'warning' | 'error', prioridade?: 'baixa' | 'normal' | 'alta', chave?: string, acoes?: { id: string; label: string }[]): Promise<unknown>;
+    function notificar(mensagem: string, titulo?: string, nivel?: 'info' | 'success' | 'warning' | 'error', prioridade?: 'baixa' | 'normal' | 'alta', chave?: string, acoes?: { id: string; label: string }[], abrir?: string): Promise<unknown>;
     /**
      * A frase que se lê e se esquece ("copiado", "salvo"): some sozinha depois de `duracao`
      * milissegundos (4000 por padrão) e não entra no histórico. A mesma `chave` reescreve o aviso

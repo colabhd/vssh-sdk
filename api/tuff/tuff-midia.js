@@ -5,6 +5,7 @@
 // Expõe `window.TuffMidia` com estas peças:
 //
 //     TuffMidia.player(raiz, video)   liga trilha, timecode, volume e o chrome que some
+//     TuffMidia.onda(el, picos, op)   a forma de onda, com regiões de cor, que busca no clique
 //     TuffMidia.grade(el, opcoes)     grade de miniaturas virtualizada
 //     TuffMidia.visor(el, opcoes)     zoom, arraste e rotação de uma imagem
 //     TuffMidia.tempo(segundos)       o timecode, como string
@@ -371,6 +372,233 @@
       destruir() {
         clearTimeout(cronometro);
         for (const f of desfazer) f();
+      },
+    };
+  }
+
+  // ── A forma de onda ────────────────────────────────────────────────────────
+
+  /**
+   * A forma de onda de um áudio: os picos que o app mediu, desenhados como barras num `canvas`, com
+   * o trecho tocado aceso, o resto apagado e a posição atual numa linha. Clique e arraste buscam, e
+   * a peça é um `slider` para o teclado, com os passos da trilha (5 s, e 1 s com Shift).
+   *
+   * `picos` são valores de 0 a 1, igualmente espaçados do começo ao fim do áudio; quem os mede é o
+   * app (no Escriba, o backend, pelo ffmpeg). Opções:
+   *
+   *   midia      o `<audio>` ou `<video>`: a onda acompanha o tempo dele, e busca nele.
+   *   tempo      `{ duracao, atual, buscar }`, a mesma régua de `player(…, { tempo })`. Com ela, a
+   *              onda e a trilha leem e escrevem o mesmo tempo, e nunca discordam.
+   *   duracao    os segundos do áudio, até a mídia dizer os dela: sem isto, a onda de um arquivo
+   *              longo fica sem posição até os metadados chegarem.
+   *   regioes    `[{ inicio, fim, cor }]`, trechos pintados com uma cor CSS (uma variável serve),
+   *              como os falantes de uma transcrição. O que fica fora de toda região é neutro.
+   *
+   * Devolve `{ pintar, definir, destruir }`. `definir({ picos, regioes, duracao })` troca o que
+   * mudou e redesenha.
+   *
+   * As barras têm largura fixa: uma janela mais larga mostra mais barras, em vez de barras mais
+   * gordas, e cada barra é o maior pico do trecho dela. A altura é a raiz do pico, que levanta a
+   * fala baixa; em escala linear, metade das falas de um áudio de campo vira um risco.
+   */
+  function onda(el, picos, opcoes) {
+    const o = opcoes || {};
+    const BARRA = 2;
+    const VAO = 1;
+    const ACESO = 1;
+    const APAGADO = 0.38;
+    let valores = Array.isArray(picos) ? picos : [];
+    let regioes = o.regioes || [];
+    let duracaoDada = o.duracao || 0;
+    const video = o.midia || null;
+    const fonte = o.tempo || null;
+
+    const duracao = () => {
+      const d = fonte && fonte.duracao ? fonte.duracao() : video && video.duration;
+      return Number.isFinite(d) && d > 0 ? d : duracaoDada;
+    };
+    const agora = () => (fonte && fonte.atual ? fonte.atual() : video ? video.currentTime : 0) || 0;
+    const buscar = (segundos) => {
+      if (fonte && fonte.buscar) fonte.buscar(segundos);
+      else if (video) video.currentTime = segundos;
+    };
+
+    el.classList.add('tuff-onda');
+    el.innerHTML = '';
+    const canvas = document.createElement('canvas');
+    const previa = document.createElement('div');
+    previa.className = 'tuff-onda-previa';
+    el.append(canvas, previa);
+    el.setAttribute('role', 'slider');
+    if (!el.hasAttribute('tabindex')) el.tabIndex = 0;
+    if (!el.hasAttribute('aria-label')) el.setAttribute('aria-label', 'Posição');
+    const ctx = canvas.getContext('2d');
+
+    let largura = 0;
+    let altura = 0;
+    let neutra = '';
+    let cabeca = '';
+    let cores = [];
+    let quadro = 0;
+    let arrastando = false;
+
+    // As cores das regiões chegam como CSS (`var(--x)`, um nome, um hex) e o canvas só entende a
+    // cor resolvida. Um elemento de prova resolve cada uma pelo `getComputedStyle`, uma vez por
+    // `definir`, e não a cada barra de cada quadro.
+    function resolverCores() {
+      const prova = document.createElement('span');
+      prova.style.display = 'none';
+      el.appendChild(prova);
+      const resolver = (cor) => {
+        prova.style.color = '';
+        prova.style.color = cor;
+        return getComputedStyle(prova).color;
+      };
+      const estilo = getComputedStyle(el);
+      neutra = resolver(estilo.getPropertyValue('--ds-text-dim').trim() || 'gray');
+      cabeca = resolver(estilo.getPropertyValue('--ds-text').trim() || 'white');
+      cores = regioes.map((r) => (r && r.cor ? resolver(r.cor) : neutra));
+      prova.remove();
+    }
+
+    function medir() {
+      const r = el.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      largura = Math.max(1, Math.round(r.width));
+      altura = Math.max(1, Math.round(r.height));
+      canvas.width = Math.round(largura * dpr);
+      canvas.height = Math.round(altura * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      pintar();
+    }
+
+    /** O índice da região que contém `t`, ou -1. As regiões chegam em ordem de início. */
+    function regiaoEm(t) {
+      let a = 0;
+      let b = regioes.length - 1;
+      let achada = -1;
+      while (a <= b) {
+        const m = (a + b) >> 1;
+        if (regioes[m].inicio <= t) { achada = m; a = m + 1; } else b = m - 1;
+      }
+      return achada >= 0 && t <= regioes[achada].fim ? achada : -1;
+    }
+
+    function pintar() {
+      ctx.clearRect(0, 0, largura, altura);
+      const dur = duracao();
+      const n = Math.max(1, Math.floor(largura / (BARRA + VAO)));
+      const pos = dur ? limitar(agora() / dur, 0, 1) : 0;
+      const meio = altura / 2;
+      for (let i = 0; i < n; i++) {
+        let v = 0;
+        if (valores.length) {
+          const a = Math.floor((i * valores.length) / n);
+          const b = Math.max(a + 1, Math.floor(((i + 1) * valores.length) / n));
+          for (let k = a; k < b && k < valores.length; k++) if (valores[k] > v) v = valores[k];
+        }
+        const h = Math.max(2, Math.sqrt(limitar(v, 0, 1)) * (altura - 2));
+        const centro = (i + 0.5) / n;
+        const r = dur ? regiaoEm(centro * dur) : -1;
+        ctx.globalAlpha = centro <= pos ? ACESO : APAGADO;
+        ctx.fillStyle = r >= 0 ? cores[r] : neutra;
+        ctx.fillRect(i * (BARRA + VAO), meio - h / 2, BARRA, h);
+      }
+      ctx.globalAlpha = 1;
+      if (dur) {
+        ctx.fillStyle = cabeca;
+        ctx.fillRect(Math.round(pos * (largura - 1)), 0, 1, altura);
+      }
+      el.setAttribute('aria-valuemin', '0');
+      el.setAttribute('aria-valuemax', String(Math.floor(dur)));
+      el.setAttribute('aria-valuenow', String(Math.floor(agora())));
+      el.setAttribute('aria-valuetext', tempo(agora()));
+    }
+
+    // Tocando, um quadro por pintura de tela: o `timeupdate` chega umas quatro vezes por segundo, e
+    // a linha andaria aos saltos.
+    function laco() {
+      pintar();
+      if (video && !video.paused) quadro = requestAnimationFrame(laco);
+    }
+
+    const desfazer = [];
+    const ouvir = (alvo, tipo, fn, op) => {
+      alvo.addEventListener(tipo, fn, op);
+      desfazer.push(() => alvo.removeEventListener(tipo, fn, op));
+    };
+
+    const irPara = (clientX) => {
+      const dur = duracao();
+      if (!dur) return;
+      buscar(fracaoDoPonteiro(el, clientX) * dur);
+      pintar();
+    };
+    ouvir(el, 'pointerdown', (e) => {
+      arrastando = true;
+      el.classList.add('tuff-onda--arrastando');
+      el.setPointerCapture(e.pointerId);
+      irPara(e.clientX);
+    });
+    ouvir(el, 'pointermove', (e) => {
+      const dur = duracao();
+      if (dur) {
+        const f = fracaoDoPonteiro(el, e.clientX);
+        previa.style.left = `${f * 100}%`;
+        previa.textContent = tempo(f * dur);
+      }
+      if (arrastando) irPara(e.clientX);
+    });
+    const soltar = (e) => {
+      if (!arrastando) return;
+      arrastando = false;
+      el.classList.remove('tuff-onda--arrastando');
+      try { el.releasePointerCapture(e.pointerId); } catch { /* já solto */ }
+    };
+    ouvir(el, 'pointerup', soltar);
+    ouvir(el, 'pointercancel', soltar);
+    ouvir(el, 'keydown', (e) => {
+      const dur = duracao();
+      const passo = e.shiftKey ? 1 : 5;
+      let alvo = null;
+      if (e.key === 'ArrowRight') alvo = agora() + passo;
+      else if (e.key === 'ArrowLeft') alvo = agora() - passo;
+      else if (e.key === 'Home') alvo = 0;
+      else if (e.key === 'End') alvo = dur;
+      if (alvo === null) return;
+      e.preventDefault();
+      buscar(limitar(alvo, 0, dur || 0));
+      pintar();
+    });
+    if (video) {
+      ouvir(video, 'play', () => { cancelAnimationFrame(quadro); quadro = requestAnimationFrame(laco); });
+      ouvir(video, 'pause', pintar);
+      ouvir(video, 'seeked', pintar);
+      ouvir(video, 'timeupdate', () => { if (video.paused) pintar(); });
+      ouvir(video, 'loadedmetadata', pintar);
+    }
+
+    const observador = new ResizeObserver(medir);
+    observador.observe(el);
+    resolverCores();
+    medir();
+
+    return {
+      pintar,
+      definir(novo) {
+        const n = novo || {};
+        if (n.picos) valores = n.picos;
+        if (n.regioes) regioes = n.regioes;
+        if (n.duracao) duracaoDada = n.duracao;
+        if (n.regioes) resolverCores();
+        pintar();
+      },
+      destruir() {
+        cancelAnimationFrame(quadro);
+        observador.disconnect();
+        for (const f of desfazer) f();
+        el.classList.remove('tuff-onda', 'tuff-onda--arrastando');
+        el.innerHTML = '';
       },
     };
   }
@@ -950,5 +1178,5 @@
     return decodificador().then((T) => T.elemento(url, opcoes));
   }
 
-  window.TuffMidia = { player, grade, visor, tempo, imagem, decodificador };
+  window.TuffMidia = { player, onda, grade, visor, tempo, imagem, decodificador };
 })();

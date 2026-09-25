@@ -165,7 +165,8 @@ def submeter(trabalho, ao_progresso=None, env=None):
 
     `trabalho` leva `imagem` (obrigatória), `comando`, `args`, `env`, `entradas` (dict nome →
     caminho, ou lista de caminhos), `saidas` (nomes em /vssh/saidas), `gpu` (`{'quantidade',
-    'tipo'}`), `cpu`, `memoria`, `disco`, `prazo` (segundos) e `nome`. O que o portal recusa vem
+    'tipo'}`), `cpu`, `memoria`, `disco`, `prazo` (segundos), `nome` e `abrir` (onde o clique no
+    aviso de fim leva, um caminho dentro do app). O que o portal recusa vem
     como `ErroDaFila` com a mensagem dele, antes de qualquer byte subir.
     """
     pares = _entradas_de(trabalho)
