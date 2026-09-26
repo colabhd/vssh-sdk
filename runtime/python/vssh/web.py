@@ -2,7 +2,7 @@
 O frontend de um app: uma SPA servida de um diretório, com o SDK web e o Tuff no `<head>`.
 
 Todo app com janela publica um diretório de arquivos estáticos e um `index.html`, e todo mundo
-tropeça nas mesmas quatro coisas ao fazer isso à mão. Este módulo as resolve de uma vez:
+tropeça nas mesmas cinco coisas ao fazer isso à mão. Este módulo as resolve de uma vez:
 
   1. O SDK web. O sistema serve `_sdk/vssh.js` dentro do espaço de URL de todo app, e um app o
      alcança por esse caminho relativo à própria raiz. Por padrão a tag entra no `<head>` de
@@ -24,6 +24,14 @@ tropeça nas mesmas quatro coisas ao fazer isso à mão. Este módulo as resolve
   4. O confinamento. Um caminho só é servido se cair dentro da raiz depois de resolvido, e o
      caminho real é revalidado depois do `stat`, porque um symlink dentro do bundle apontando
      para fora passaria pela checagem lexical.
+  5. A etiqueta do pacote. Um arquivo sem carimbo sai `no-cache`, e cada abertura do app o
+     revalida: o worker do pdf.js, um wasm, o que um script busca em tempo de execução e o
+     `index.html` não nomeia. Num app instalado, o `vssh-app-install` grava em `.installed-hash`
+     o hash do conteúdo do pacote, e todo arquivo que esse hash cobre sai com
+     `ETag: "vssh-<hash>"`. O index anuncia o mesmo hash em `X-Vssh-Versao`; o portal o guarda e
+     responde ele mesmo o `If-None-Match` que o repete, sem a ida até o servidor. A etiqueta
+     promete que, com o pacote igual, a URL que a recebeu é o mesmo arquivo; o que um app
+     decide em tempo de execução servir numa URL do bundle vai por uma rota dele, fora do `spa`.
 
     from vssh import servidor, web
 
@@ -114,6 +122,13 @@ _HASH_MAX_BYTES = 4 * 1024 * 1024
 
 _IMUTAVEL = 'public, max-age=31536000, immutable'
 
+# O hash do pacote instalado, que o `vssh-app-install` grava depois de copiar. O que ele não cobre
+# é o que o `find` de lá pula: um arquivo nesses diretórios muda sem mudar o hash, e uma etiqueta
+# feita dele afirmaria uma versão que o arquivo não tem.
+_HASH_DO_PACOTE = '.installed-hash'
+_FORA_DO_HASH = frozenset(('node_modules', '.venv', '.git'))
+_VERSAO = re.compile(r'^[0-9a-f]{16,128}$')
+
 
 def tipo_de_conteudo(caminho):
     """O `Content-Type` pela extensão; `application/octet-stream` para o que o mapa não tem."""
@@ -139,6 +154,30 @@ def _absoluto(caminho):
     if os.path.isabs(caminho):
         return caminho
     return os.path.join(_app.raiz() or os.getcwd(), caminho)
+
+
+def _etiqueta_confere(if_none_match, etag):
+    """A comparação fraca, que é a do `If-None-Match` (RFC 9110, 13.1.2): um `W/` posto no caminho
+    por quem comprime a resposta não muda a versão que a etiqueta nomeia."""
+    nossa = etag[2:] if etag.startswith('W/') else etag
+    for t in if_none_match.split(','):
+        t = t.strip()
+        if t.startswith('W/'):
+            t = t[2:]
+        if t == nossa:
+            return True
+    return False
+
+
+def _fresco(cabecalhos, etag, ultima):
+    """A cópia do cliente ainda vale? Com `If-None-Match`, quem decide é ele, e o
+    `If-Modified-Since` é ignorado (RFC 9110, 13.2.2): uma etiqueta de outro pacote com a data
+    certa ainda é outro pacote."""
+    inm = cabecalhos.get('If-None-Match')
+    if inm:
+        return bool(etag) and _etiqueta_confere(inm, etag)
+    ims = cabecalhos.get('If-Modified-Since')
+    return bool(ims) and _mesma_data(ims, ultima)
 
 
 def _mesma_data(recebida, nossa):
@@ -247,6 +286,51 @@ def spa(raiz, indice='index.html', scripts=None, folhas=None, montagens=None, ap
     carimbador = _Carimbador(avisar)
     cache = {'chave': None, 'corpo': None, 'com_base': {}}
     tranca = threading.Lock()
+
+    pacote = _app.raiz()
+    pacote = _real(pacote) if pacote else None
+    versao_lida = {'chave': None, 'valor': None}
+
+    def versao_do_pacote():
+        """O `.installed-hash` do pacote, ou `None` fora de uma instalação (a bancada, o emulador,
+        um script solto). Relido quando o arquivo muda: uma reinstalação troca os arquivos debaixo
+        do processo antes de o próximo start reiniciá-lo, e a etiqueta acompanha o que está em
+        disco."""
+        if not pacote:
+            return None
+        arquivo = os.path.join(pacote, _HASH_DO_PACOTE)
+        try:
+            st = os.stat(arquivo)
+        except OSError:
+            return None
+        chave = (st.st_mtime_ns, st.st_size)
+        with tranca:
+            if versao_lida['chave'] == chave:
+                return versao_lida['valor']
+        try:
+            with open(arquivo, 'rb') as fh:
+                texto = fh.read(256).decode('ascii', 'replace').strip()
+        except OSError:
+            return None
+        valor = texto if _VERSAO.match(texto) else None
+        with tranca:
+            versao_lida['chave'] = chave
+            versao_lida['valor'] = valor
+        return valor
+
+    def etiqueta(alvo):
+        """A `ETag` de um arquivo que o hash do pacote cobre, ou `None`. Uma montagem de fora do
+        pacote, ou um bundle gerado na HOME, ficam com a revalidação pela data."""
+        versao = versao_do_pacote()
+        if not versao:
+            return None
+        real = _real(alvo)
+        if not real.startswith(pacote + os.sep):
+            return None
+        partes = os.path.relpath(real, pacote).split(os.sep)
+        if partes[-1] == _HASH_DO_PACOTE or _FORA_DO_HASH.intersection(partes[:-1]):
+            return None
+        return '"vssh-%s"' % versao
 
     def arquivo_do_src(src):
         """O arquivo em disco de um `src` injetado, pela mesma precedência que serve o pedido."""
@@ -408,9 +492,13 @@ def spa(raiz, indice='index.html', scripts=None, folhas=None, montagens=None, ap
             avisar('index-ausente', {'raiz': raiz, 'erro': str(err)})
             mandar_texto(pedido, 500, 'Bundle não encontrado em %s.\n%s' % (raiz, dica + '\n' if dica else ''))
             return True
+        extras = {'Cache-Control': 'no-store'}
+        versao = versao_do_pacote()
+        if versao:
+            extras['X-Vssh-Versao'] = versao
         # O tipo sai do nome do index: um `index.xhtml` servido como `text/html` carrega no
         # parser errado, e o sintoma aparece a três níveis de distância da causa.
-        cabecalhos(pedido, 200, tipo_de_conteudo(indice), len(corpo), {'Cache-Control': 'no-store'})
+        cabecalhos(pedido, 200, tipo_de_conteudo(indice), len(corpo), extras)
         if pedido.command != 'HEAD':
             pedido.wfile.write(corpo)
         return True
@@ -448,26 +536,31 @@ def spa(raiz, indice='index.html', scripts=None, folhas=None, montagens=None, ap
         # fixaria os bytes errados por um ano.
         pedido_v = (parse_qs(partes.query).get('v') or [None])[0]
         imutavel = bool(pedido_v) and pedido_v == carimbador.de(alvo)
+        etag = etiqueta(alvo)
 
         ultima = formatdate(st.st_mtime, usegmt=True)
-        ims = pedido.headers.get('If-Modified-Since')
-        if not imutavel and ims and _mesma_data(ims, ultima):
+        if not imutavel and _fresco(pedido.headers, etag, ultima):
             pedido.send_response(304)
             pedido.send_header('Last-Modified', ultima)
+            if etag:
+                pedido.send_header('ETag', etag)
             pedido.send_header('Cache-Control', 'no-cache')
             for k, v in getattr(pedido, 'cabecalhos_fixos', {}).items():
                 pedido.send_header(k, v)
             pedido.end_headers()
             return True
 
-        cabecalhos(pedido, 200, tipo_de_conteudo(alvo), st.st_size, {
+        extras = {
             'Last-Modified': ultima,
             # Com carimbo válido, conteúdo novo mora noutra URL, e esta pode ser cacheada para
             # sempre. Sem carimbo é bundle de nome fixo (`main.js`), e cache longo serviria a
             # versão velha depois de um upgrade: `no-cache` revalida, e o 304 resolve em zero
             # bytes.
             'Cache-Control': _IMUTAVEL if imutavel else 'no-cache',
-        })
+        }
+        if etag:
+            extras['ETag'] = etag
+        cabecalhos(pedido, 200, tipo_de_conteudo(alvo), st.st_size, extras)
         if pedido.command != 'HEAD':
             with open(alvo, 'rb') as fh:
                 # Em pedaços: um wasm de 40 MB lido de uma vez é 40 MB de RAM por pedido, e o

@@ -4,7 +4,7 @@
 // par de `vssh/web.py`.
 //
 // Todo app com janela publica um diretório de arquivos estáticos e um `index.html`, e todo mundo
-// tropeça nas mesmas quatro coisas ao fazer isso à mão. Este módulo as resolve de uma vez:
+// tropeça nas mesmas cinco coisas ao fazer isso à mão. Este módulo as resolve de uma vez:
 //
 //   1. O SDK web. O sistema serve `_sdk/vssh.js` dentro do espaço de URL de todo app, e um app o
 //      alcança por esse caminho relativo à própria raiz. Por padrão a tag entra no `<head>` de
@@ -26,6 +26,14 @@
 //   4. O confinamento. Um caminho só é servido se cair dentro da raiz depois de resolvido, e o
 //      caminho real é revalidado depois do `stat`, porque um symlink dentro do bundle apontando
 //      para fora passaria pela checagem lexical.
+//   5. A etiqueta do pacote. Um arquivo sem carimbo sai `no-cache`, e cada abertura do app o
+//      revalida: o worker do pdf.js, um wasm, o que um script busca em tempo de execução e o
+//      `index.html` não nomeia. Num app instalado, o `vssh-app-install` grava em `.installed-hash`
+//      o hash do conteúdo do pacote, e todo arquivo que esse hash cobre sai com
+//      `ETag: "vssh-<hash>"`. O index anuncia o mesmo hash em `X-Vssh-Versao`; o portal o guarda e
+//      responde ele mesmo o `If-None-Match` que o repete, sem a ida até o servidor. A etiqueta
+//      promete que, com o pacote igual, a URL que a recebeu é o mesmo arquivo; o que um app
+//      decide em tempo de execução servir numa URL do bundle vai por uma rota dele, fora do `spa`.
 //
 //   const { servidor, web } = require('vssh');
 //   const spa = web.spa('frontend', { tuff: true, rotasProfundas: true, scripts: ['boot.js'] });
@@ -113,6 +121,37 @@ const TIPOS = {
 const HASH_MAX_BYTES = 4 * 1024 * 1024;
 
 const IMUTAVEL = 'public, max-age=31536000, immutable';
+
+// O hash do pacote instalado, que o `vssh-app-install` grava depois de copiar. O que ele não cobre
+// é o que o `find` de lá pula: um arquivo nesses diretórios muda sem mudar o hash, e uma etiqueta
+// feita dele afirmaria uma versão que o arquivo não tem.
+const HASH_DO_PACOTE = '.installed-hash';
+const FORA_DO_HASH = new Set(['node_modules', '.venv', '.git']);
+const VERSAO = /^[0-9a-f]{16,128}$/;
+
+/**
+ * A comparação fraca, que é a do `If-None-Match` (RFC 9110, 13.1.2): um `W/` posto no caminho por
+ * quem comprime a resposta não muda a versão que a etiqueta nomeia.
+ */
+function etiquetaConfere(ifNoneMatch, etag) {
+  const nossa = etag.startsWith('W/') ? etag.slice(2) : etag;
+  return ifNoneMatch.split(',').some((t) => {
+    t = t.trim();
+    return (t.startsWith('W/') ? t.slice(2) : t) === nossa;
+  });
+}
+
+/**
+ * A cópia do cliente ainda vale? Com `If-None-Match`, quem decide é ele, e o `If-Modified-Since`
+ * é ignorado (RFC 9110, 13.2.2): uma etiqueta de outro pacote com a data certa ainda é outro
+ * pacote.
+ */
+function fresco(headers, etag, ultima) {
+  const inm = headers['if-none-match'];
+  if (inm) return !!etag && etiquetaConfere(inm, etag);
+  const ims = headers['if-modified-since'];
+  return !!ims && ims === ultima;
+}
 
 /** O `Content-Type` pela extensão; `application/octet-stream` para o que o mapa não tem. */
 function tipoDeConteudo(p) {
@@ -237,6 +276,40 @@ function spa(raiz, opcoes = {}) {
 
   const carimboDe = criarCarimbador(avisar);
   let cache = null;   // { mtimeMs, carimbos, corpo, comBase: Map<niveis, Buffer> }
+
+  const pacote = app.raiz() ? real(app.raiz()) : null;
+  let versaoLida = null;   // { mtimeMs, size, valor }
+
+  /**
+   * O `.installed-hash` do pacote, ou `null` fora de uma instalação (a bancada, o emulador, um
+   * script solto). Relido quando o arquivo muda: uma reinstalação troca os arquivos debaixo do
+   * processo antes de o próximo start reiniciá-lo, e a etiqueta acompanha o que está em disco.
+   */
+  function versaoDoPacote() {
+    if (!pacote) return null;
+    const arquivo = path.join(pacote, HASH_DO_PACOTE);
+    let st;
+    try { st = fs.statSync(arquivo); } catch { return null; }
+    if (versaoLida && versaoLida.mtimeMs === st.mtimeMs && versaoLida.size === st.size) return versaoLida.valor;
+    let texto;
+    try { texto = fs.readFileSync(arquivo, 'latin1').slice(0, 256).trim(); } catch { return null; }
+    versaoLida = { mtimeMs: st.mtimeMs, size: st.size, valor: VERSAO.test(texto) ? texto : null };
+    return versaoLida.valor;
+  }
+
+  /**
+   * A `ETag` de um arquivo que o hash do pacote cobre, ou `null`. Uma montagem de fora do pacote,
+   * ou um bundle gerado na HOME, ficam com a revalidação pela data.
+   */
+  function etiqueta(alvo) {
+    const versao = versaoDoPacote();
+    if (!versao) return null;
+    const r = real(alvo);
+    if (!r.startsWith(pacote + path.sep)) return null;
+    const partes = path.relative(pacote, r).split(path.sep);
+    if (partes[partes.length - 1] === HASH_DO_PACOTE || partes.slice(0, -1).some((p) => FORA_DO_HASH.has(p))) return null;
+    return `"vssh-${versao}"`;
+  }
 
   /** O arquivo em disco de um `src` injetado, pela mesma precedência que serve o pedido. */
   function arquivoDoSrc(src) {
@@ -379,7 +452,10 @@ function spa(raiz, opcoes = {}) {
       mandarTexto(req, res, 500, `Bundle não encontrado em ${base}.\n${dica ? dica + '\n' : ''}`);
       return true;
     }
-    res.writeHead(200, { 'Content-Type': TIPO_DO_INDEX, 'Content-Length': corpo.length, 'Cache-Control': 'no-store' });
+    const cab = { 'Content-Type': TIPO_DO_INDEX, 'Content-Length': corpo.length, 'Cache-Control': 'no-store' };
+    const versao = versaoDoPacote();
+    if (versao) cab['X-Vssh-Versao'] = versao;
+    res.writeHead(200, cab);
     res.end(req.method === 'HEAD' ? undefined : corpo);
     return true;
   }
@@ -418,11 +494,11 @@ function spa(raiz, opcoes = {}) {
     // os bytes errados por um ano.
     const pedido = url.searchParams.get('v');
     const imutavel = !!pedido && pedido === carimboDe(alvo);
+    const etag = etiqueta(alvo);
 
     const ultima = st.mtime.toUTCString();
-    const ims = req.headers['if-modified-since'];
-    if (!imutavel && ims && ims === ultima) {
-      res.writeHead(304, { 'Last-Modified': ultima, 'Cache-Control': 'no-cache' });
+    if (!imutavel && fresco(req.headers, etag, ultima)) {
+      res.writeHead(304, { 'Last-Modified': ultima, ...(etag ? { ETag: etag } : {}), 'Cache-Control': 'no-cache' });
       res.end();
       return true;
     }
@@ -431,6 +507,7 @@ function spa(raiz, opcoes = {}) {
       'Content-Type': tipoDeConteudo(alvo),
       'Content-Length': st.size,
       'Last-Modified': ultima,
+      ...(etag ? { ETag: etag } : {}),
       // Com carimbo válido, conteúdo novo mora noutra URL, e esta pode ser cacheada para sempre.
       // Sem carimbo é bundle de nome fixo (`main.js`), e cache longo serviria a versão velha
       // depois de um upgrade: `no-cache` revalida, e o 304 resolve em zero bytes.
