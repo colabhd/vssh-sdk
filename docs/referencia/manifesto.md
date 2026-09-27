@@ -29,6 +29,7 @@ do campo na mensagem. Obrigatórios: `id`, `version`, `backend`.
 | [`engine`](#engine) | `object` | não |
 | [`provides`](#provides) | `array` de `string` | não |
 | [`requires`](#requires) | `array` de `string` | não |
+| [`capacidades`](#capacidades) | `object` | não |
 | [`minShellVersion`](#minshellversion) | `string` | não |
 | [`contributes`](#contributes) | `object` | não |
 | [`requiredPackages`](#requiredpackages) | `array` de `string` | não |
@@ -127,6 +128,26 @@ porque instalar um app que vai falhar por dentro no primeiro uso é pior que diz
 conferência lê o catálogo do repositório, que é o único que responde antes de instalar; um catálogo
 sem este campo não confere. Só o nome com a versão, sem faixa nem comparação: uma capacidade é um
 contrato, e `nome/v2` é outro contrato.
+
+## `capacidades`
+
+`object`, opcional.
+
+Onde cada capacidade de `provides` é atendida, para outro app a chamar: o nome da capacidade leva ao
+prefixo das rotas do backend que a respondem. O Zotero declara
+`"bibliography/v1": { "rota": "/bibliografia/v1" }`. Outro app chama pela ponte
+(`vssh.apps.pedir(capacidade, caminho, opcoes)`): o shell acha quem oferece, pergunta à pessoa na
+primeira vez, sobe o app se estiver parado e faz o pedido como a mesma pessoa, só dentro do prefixo.
+Quem chama precisa declarar a capacidade em `requires`. O backend que responde recebe
+`X-Vssh-Chamador` com o id de quem chamou. Uma capacidade que não está em `provides` é ignorada, e
+uma de `provides` sem entrada aqui não se chama pela ponte.
+
+### `capacidades.<chave>.rota`
+
+`string`, obrigatório.
+
+O prefixo das rotas, a partir da raiz do backend do app, sem barra no fim e sem `.` nem `..` como
+segmento. Um pedido pela ponte só alcança o que fica sob ele.
 
 ## `minShellVersion`
 

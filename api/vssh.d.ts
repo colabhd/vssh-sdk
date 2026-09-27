@@ -503,6 +503,30 @@ declare namespace vssh {
   }
 
   /**
+   * Um app usando outro. Quem oferece declara a capacidade em `provides` e o prefixo das rotas dela
+   * em `capacidades`; quem usa a declara em `requires`. O shell faz o pedido como a mesma pessoa,
+   * depois de ela permitir, e o backend que responde recebe `X-Vssh-Chamador` com o id de quem
+   * chamou.
+   */
+  namespace apps {
+    /**
+     * Faz um pedido HTTP ao app que oferece `capacidade` (`nome/vN`), em `caminho`, relativo ao
+     * prefixo que ele declarou, com a consulta junto (`buscar?q=silva`). Na primeira vez, a pessoa
+     * responde se este app pode usar a capacidade, e a resposta vale até ela a revogar em
+     * Configurações. Um app parado sobe antes do pedido. `opcoes` leva `metodo` (GET por padrão;
+     * POST, PUT, PATCH, DELETE), `corpo` (um objeto vai como JSON) e `tipo`, o Content-Type de um
+     * corpo em texto. Responde `{ status, tipo, corpo }`: `corpo` é o JSON lido quando a resposta é
+     * JSON, e o texto nos outros casos. Um caminho que sai do prefixo, uma capacidade que o app não
+     * declara em `requires` e a recusa da pessoa respondem erro, sem pedido nenhum.
+     */
+    function pedir(capacidade: string, caminho: string, opcoes?: { metodo?: string; corpo?: unknown; tipo?: string }): Promise<unknown>;
+
+    /** Este espaço não declara eventos: `ao` não aceita nome nenhum. */
+    interface Eventos {}
+    function ao<E extends keyof Eventos>(evento: E, cb: (dados: Eventos[E]) => void): () => void;
+  }
+
+  /**
    * As pessoas do ambiente, para compartilhar uma sala. Cada pessoa é
    * `{ usuario, nome, login, iniciais }`, e o `usuario` é o que os verbos de `vssh.salas` recebem.
    * O e-mail de ninguém sai daqui.

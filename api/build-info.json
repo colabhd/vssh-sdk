@@ -2,7 +2,7 @@
   "shellVersion": "5.0.0-rc0",
   "artifacts": {
     "api/abi.json": {
-      "sha256": "1933dedb160b69a2964391ad8e1c0494c1b0a451731646a07a4572c94010e2b1"
+      "sha256": "41a1549c7d3649e8ebbed4665890dd998a393fc9390dcd79ade1a62c40d1b410"
     },
     "api/electron.js": {
       "sha256": "802402efad47701fd6b50d90404fd04aae3b477820a720224ddd8ed3fa148269"
@@ -53,22 +53,25 @@
       "sha256": "43e440ec551e92f28376acdecdf1b285362a85f5b4afddfb028fef2213929862"
     },
     "api/vssh-app.schema.json": {
-      "sha256": "24ff0cce7ebdd89f767c88a44e9bc8347326c32118e0395e2e9b9dae6b81ca5e"
+      "sha256": "5dc5be9aa27997cbbbbf6f8e750ad83f0a7608c84cc8f0c7cd8a5f99b5376954"
     },
     "api/vssh.d.ts": {
-      "sha256": "3811848397f2163ab1b583141de0a92d0472ee89d716fddb2b53b5b6c3b08508"
+      "sha256": "98527c2b946063261312c71cfbb217c5b1ac15455f1eee01263702ebf853e755"
     },
     "api/vssh.js": {
-      "sha256": "19dff92cf1267d5a1f6156eadd0d45fb45ce834cf4d1dd3ca4dbc67595046344"
+      "sha256": "94656a2c56edc1da1130b8fd6038e78ebc0fa9d1e371b84d44af7f790c53539e"
     },
     "docs/referencia/README.md": {
-      "sha256": "83024a9d7711d7c59848bc4316962f224e7fbd69fd294c1a77c943fae6f775fb"
+      "sha256": "d30d752eaa3277bcafd654d6be11d22a6786dd05fa5b181e0edb3871dbdd276d"
     },
     "docs/referencia/ambiente.md": {
       "sha256": "593da303907e106431d8f7121f0219a0a3ddf19d26ca5acebf1888a9370856e2"
     },
     "docs/referencia/app.md": {
       "sha256": "063a04d3ca07ae8fdccab180884b94886d9f5cd325546cf766c28aa50a3864c3"
+    },
+    "docs/referencia/apps.md": {
+      "sha256": "d2255a22fa6e128614e16defcbcda42b6e62e8a6f1929f70b72d00b1b0e6b3aa"
     },
     "docs/referencia/arquivos.md": {
       "sha256": "444f8dc34d8ab60a2b866fb329d6ec10b6f5306cd5c662dbf00580cc592af1dc"
@@ -92,7 +95,7 @@
       "sha256": "72df24420240c6de566ffd23805f453e5e5ca1bd483dca404a660c96f3aa6a48"
     },
     "docs/referencia/manifesto.md": {
-      "sha256": "adcb685de1d92f0e2373ecc89b6a7887cea86f1eaddc022abb909ee0b8817693"
+      "sha256": "a6fbfd48be74819c4de6745b67127cd143d3e087121d5ad921b4b70300f312a0"
     },
     "docs/referencia/midia.md": {
       "sha256": "189b0de451e02e02c80829dc3c5dd844a0a4d0648a57b1c3514a8faae8a05015"

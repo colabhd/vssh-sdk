@@ -75,6 +75,30 @@
         "description": "'nome/vN', o mesmo formato que o `provides` declara do outro lado."
       }
     },
+    "capacidades": {
+      "type": "object",
+      "description": "Onde cada capacidade de `provides` é atendida, para outro app a chamar: o nome da capacidade leva ao prefixo das rotas do backend que a respondem. O Zotero declara `\"bibliography/v1\": { \"rota\": \"/bibliografia/v1\" }`. Outro app chama pela ponte (`vssh.apps.pedir(capacidade, caminho, opcoes)`): o shell acha quem oferece, pergunta à pessoa na primeira vez, sobe o app se estiver parado e faz o pedido como a mesma pessoa, só dentro do prefixo. Quem chama precisa declarar a capacidade em `requires`. O backend que responde recebe `X-Vssh-Chamador` com o id de quem chamou. Uma capacidade que não está em `provides` é ignorada, e uma de `provides` sem entrada aqui não se chama pela ponte.",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*/v[0-9]+$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "rota"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "rota": {
+            "type": "string",
+            "pattern": "^(/[A-Za-z0-9._~-]+)+$",
+            "not": {
+              "pattern": "(^|/)\\.{1,2}(/|$)"
+            },
+            "description": "O prefixo das rotas, a partir da raiz do backend do app, sem barra no fim e sem `.` nem `..` como segmento. Um pedido pela ponte só alcança o que fica sob ele."
+          }
+        }
+      }
+    },
     "minShellVersion": {
       "type": "string",
       "pattern": "^[0-9]+(\\.[0-9]+){0,2}$",
