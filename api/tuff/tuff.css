@@ -848,4 +848,71 @@
   }
   [data-tuff-dica]:hover::after,
   [data-tuff-dica]:focus-visible::after { opacity: 1; }
+
+  /* ── Pessoas ────────────────────────────────────────────────────────────────
+     O avatar são as iniciais sobre a cor da pessoa, em `--tuff-cor`. Quem
+     escolhe a cor é o app, e ela é a mesma em todo lugar em que a pessoa
+     aparece: no avatar, no cursor dela no texto e na marca da prévia. As
+     iniciais são escuras porque as cores de pessoa são claras sobre o fundo
+     escuro do ambiente. `--presente` acrescenta o ponto de quem está no
+     documento agora. Na pilha os avatares se sobrepõem, e o anel da cor do
+     painel separa um do outro. Um avatar que leva a algum lugar (ir até o
+     cursor da pessoa) é um `<button class="tuff-avatar">`. */
+  .tuff-avatar {
+    --tuff-cor: var(--ds-text-dim);
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    font: 600 10px/1 var(--ds-font);
+    color: #1b1b1b;
+    background: var(--tuff-cor);
+    box-shadow: 0 0 0 2px var(--ds-bg2);
+  }
+  button.tuff-avatar { cursor: pointer; }
+  button.tuff-avatar:focus-visible { outline: 2px solid var(--ds-border-focus); outline-offset: 2px; }
+  .tuff-avatar--pequeno { width: 20px; height: 20px; font-size: 9px; }
+  .tuff-avatar--presente::after {
+    content: '';
+    position: absolute;
+    right: -1px;
+    bottom: -1px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ds-green);
+    box-shadow: 0 0 0 2px var(--ds-bg2);
+  }
+  .tuff-avatares { display: flex; align-items: center; }
+  .tuff-avatares > .tuff-avatar + .tuff-avatar { margin-left: -6px; }
+
+  /* O cursor de outra pessoa no texto: a barra na cor dela e o nome em cima.
+     É o elemento que o `cursorBuilder` do y-prosemirror (ou o equivalente de
+     outro editor) devolve; ele não recebe clique, para não roubar a seleção de
+     quem escreve. */
+  .tuff-cursor {
+    position: relative;
+    margin: 0 -1px;
+    border-left: 2px solid var(--tuff-cor, var(--ds-accent));
+    word-break: normal;
+    pointer-events: none;
+  }
+  .tuff-cursor-nome {
+    position: absolute;
+    top: -1.45em;
+    left: -2px;
+    padding: 3px 5px;
+    font: 600 10.5px/1 var(--ds-font);
+    color: #161616;
+    background: var(--tuff-cor, var(--ds-accent));
+    border-radius: 3px 3px 3px 0;
+    white-space: nowrap;
+    user-select: none;
+    text-indent: 0;
+  }
 }

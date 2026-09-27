@@ -11,7 +11,7 @@
       "sha256": "0bf07c92217fe6ef27c9653a262e2476ae97bcb40a519f31c574652e974ef593"
     },
     "api/tuff/docs/componentes.html": {
-      "sha256": "970293b8bf5f7f8e5076cd206464570f7aca32e2281592b10a49e745be7d96e6"
+      "sha256": "3e543bd22c418cacd0718b4baf0ed479b313e289674fe5d0503a4ebc7781427f"
     },
     "api/tuff/fonts/OFL.txt": {
       "sha256": "bf4dc6d13a8cccd4807133c77a1ee9619a16b92cb23322258725ab6731c2f6e5"
@@ -26,7 +26,7 @@
       "sha256": "e17babd26529d20b7d59cb9c983566d30aade025def7325e754f4a85dae046df"
     },
     "api/tuff/tuff-icones.js": {
-      "sha256": "c30d4a95ec27cd4462b24522500e64f42bdcb67ce26c8ecc21a1c7a01c6a62be"
+      "sha256": "c99c5b9b70d0c1f42bcf90f13b3c25bba160fa6ba8a9533a324ece4b704747ae"
     },
     "api/tuff/tuff-imagem.js": {
       "sha256": "b2e38a3d56a7b86638464d81b04bcbffb674923da4d8dc1e896b9d7977fe7557"
@@ -41,7 +41,7 @@
       "sha256": "880a3dca295b381d1a3174f820271bb612dc132f776809e2480f86005c947dad"
     },
     "api/tuff/tuff.css": {
-      "sha256": "afbd6a8e28c1ae01ad281d224cc473b6512fd3e70dde55d41650c50ec614e3e2"
+      "sha256": "bfeb1e6e54d2d125d26386090bb0fc39dc3c962ed156199c45967d105276d6bf"
     },
     "api/tuff/tuff.js": {
       "sha256": "01cc5ffbb59fbd94615dcef470ca6972278653089a84a8af7b94faa3a40297d4"

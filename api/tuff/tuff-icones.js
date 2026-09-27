@@ -267,6 +267,52 @@
     '<symbol id="ico-save" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 3.6a1 1 0 0 1 1-1h7.1L13.5 5.5v7a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1z"/><path d="M5.2 2.6v3.6h5.4V2.6"/><path d="M5.2 13.5V9.6h5.6v3.9"/></symbol>',
   'drag':
     '<symbol id="ico-drag" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.2 4h.01M9.8 4h.01M6.2 8h.01M9.8 8h.01M6.2 12h.01M9.8 12h.01"/></symbol>',
+
+  // ── Edição de texto, comentários e pessoas ────────────────────────────────
+  //
+  // O que um app que edita um documento junto com outras pessoas pede: o desfazer e o refazer, os
+  // blocos de um texto acadêmico (lista, citação, tabela, equação, nota de rodapé, título,
+  // parágrafo, remissão), a estrutura e os dados do documento, o comentário e a resposta, as
+  // pessoas, as páginas da prévia e a edição sem conexão. O traço é o mesmo dos outros, 1,5 com
+  // pontas redondas.
+  'undo':
+    '<symbol id="ico-undo" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 3.5L2.5 6.5l3 3"/><path d="M2.5 6.5H10a3.5 3.5 0 0 1 0 7H6.5"/></symbol>',
+  'redo':
+    '<symbol id="ico-redo" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 3.5l3 3-3 3"/><path d="M13.5 6.5H6a3.5 3.5 0 0 0 0 7h3.5"/></symbol>',
+  'list-bullet':
+    '<symbol id="ico-list-bullet" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 4h7M6.5 8h7M6.5 12h7"/><circle cx="3" cy="4" r=".6" fill="currentColor"/><circle cx="3" cy="8" r=".6" fill="currentColor"/><circle cx="3" cy="12" r=".6" fill="currentColor"/></symbol>',
+  'list-num':
+    '<symbol id="ico-list-num" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h6.5M7 8h6.5M7 12h6.5"/><path d="M2.5 3l1-.5v3" stroke-width="1.2"/><path d="M2.3 10.3a.9.9 0 0 1 1.7.3c0 .7-1.7 1.4-1.7 2h1.8" stroke-width="1.2"/></symbol>',
+  'quote':
+    '<symbol id="ico-quote" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12V9a4 4 0 0 1 3-4"/><circle cx="4.5" cy="10.5" r="1.5"/><path d="M9.5 12V9a4 4 0 0 1 3-4"/><circle cx="11" cy="10.5" r="1.5"/></symbol>',
+  'table':
+    '<symbol id="ico-table" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 6.5h12M2 9.75h12M6.5 6.5v6.5"/></symbol>',
+  'sigma':
+    '<symbol id="ico-sigma" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5H4l4.25 4.5L4 12.5h8"/></symbol>',
+  'footnote':
+    '<symbol id="ico-footnote" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.5h6M2.5 9h9M2.5 13h11"/><path d="M11.5 3l1.2-.8v3.8" stroke-width="1.2"/></symbol>',
+  'book':
+    '<symbol id="ico-book" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12.5V3.5A1.5 1.5 0 0 1 4.5 2H13v9.5H4.5A1.5 1.5 0 0 0 3 13a1.5 1.5 0 0 0 1.5 1.5H13"/><path d="M6 5h4"/></symbol>',
+  'comment':
+    '<symbol id="ico-comment" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 3.5h11v7.5H7.5l-3 2.5V11h-2z"/></symbol>',
+  'users':
+    '<symbol id="ico-users" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5.5" r="2.25"/><path d="M1.75 13c0-2.2 1.9-3.6 4.25-3.6s4.25 1.4 4.25 3.6"/><path d="M10.75 3.4a2.2 2.2 0 0 1 0 4.2"/><path d="M12.2 9.6c1.3.4 2.05 1.6 2.05 3.4"/></symbol>',
+  'outline':
+    '<symbol id="ico-outline" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 3.5h11M5 8h8.5M7.5 12.5h6"/></symbol>',
+  'form':
+    '<symbol id="ico-form" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="2" width="11" height="12" rx="1"/><path d="M5 5h6M5 8h6M5 11h3.5"/></symbol>',
+  'heading':
+    '<symbol id="ico-heading" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 3v10M3.5 8h6M9.5 3v10"/><path d="M12 9.5l1.25-.8V13" stroke-width="1.2"/></symbol>',
+  'paragraph':
+    '<symbol id="ico-paragraph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11M2.5 7h11M2.5 10h11M2.5 13h7"/></symbol>',
+  'crossref':
+    '<symbol id="ico-crossref" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2.5" width="7" height="6" rx="1"/><path d="M5.5 8.5V11a1.5 1.5 0 0 0 1.5 1.5h6"/><path d="M11 10.5l2 2-2 2"/></symbol>',
+  'reply':
+    '<symbol id="ico-reply" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4L2.5 7.5 6 11"/><path d="M2.5 7.5H9a4 4 0 0 1 4 4v1"/></symbol>',
+  'cloud-off':
+    '<symbol id="ico-cloud-off" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 12.5h6.65a2.75 2.75 0 0 0 .45-5.46A3.75 3.75 0 0 0 4.5 6.55 3 3 0 0 0 4.6 12.5z"/><path d="M2.5 2.5l11 11"/></symbol>',
+  'pages':
+    '<symbol id="ico-pages" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="1.75" width="8" height="10.5" rx="1"/><path d="M3.5 4.5v8.75a1 1 0 0 0 1 1H10"/></symbol>',
   };
 
   const ID_DO_SPRITE = 'tuff-sprite';
@@ -275,7 +321,7 @@
    * Põe o sprite no documento, uma vez.
    *
    * `aria-hidden` e `display:none` no contêiner: ele é uma biblioteca de formas.
-   * Sem o `aria-hidden`, um leitor de tela percorre noventa símbolos vazios antes de chegar à
+   * Sem o `aria-hidden`, um leitor de tela percorre cada símbolo vazio do sprite antes de chegar à
    * página.
    */
   function instalar(doc) {
