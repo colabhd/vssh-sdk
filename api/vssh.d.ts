@@ -428,7 +428,7 @@ declare namespace vssh {
    * As salas de edição: várias pessoas no mesmo documento Yjs, com o portal de relé. Toda sala é de
    * um app, e daqui o app só alcança as dele. Quem conecta o documento é
    * `vssh.salas.entrar(id, { Y, awarenessProtocol })`, o provedor do SDK, que pede um `bilhete` a
-   * cada conexão; os verbos abaixo são a lista, a criação e o bilhete.
+   * cada conexão; os verbos abaixo são a lista, a criação, quem entra, os avisos e o bilhete.
    */
   namespace salas {
     /**
@@ -443,8 +443,9 @@ declare namespace vssh {
      */
     function criar(titulo?: string): Promise<unknown>;
     /**
-     * A sala e quem está nela, em `{ sala, pessoas }`, a dona primeiro. A sala de outro app, ou uma
-     * em que a pessoa não está, responde o erro de sala não encontrada.
+     * A sala e quem está nela, em `{ sala, pessoas, grupos }`: as pessoas com `usuario`, `nome`,
+     * `login`, `iniciais` e `papel`, a dona primeiro, e os grupos com `grupo` e `papel`. A sala de
+     * outro app, ou uma em que a pessoa não está, responde o erro de sala não encontrada.
      */
     function ler(id: string): Promise<unknown>;
     /** Troca o título da sala e responde a sala. Só a dona renomeia. */
@@ -455,6 +456,38 @@ declare namespace vssh {
      */
     function apagar(id: string): Promise<unknown>;
     /**
+     * Dá a uma pessoa (o `usuario` de `vssh.pessoas.buscar`) um papel na sala, ou muda o papel
+     * dela, e responde a pessoa. Quem não estava na sala recebe o convite no sino. Só a dona dá
+     * acesso.
+     */
+    function darAcesso(id: string, usuario: string, papel: 'editar' | 'comentar' | 'ver'): Promise<unknown>;
+    /**
+     * Tira uma pessoa da sala, e as conexões dela fecham com 4403, a não ser que ela continue num
+     * grupo da sala. A dona tira qualquer pessoa, e cada pessoa tira a si mesma (o `usuario` de
+     * `vssh.pessoas.eu`). Responde `{ tirado: true }`.
+     */
+    function tirarAcesso(id: string, usuario: string): Promise<unknown>;
+    /**
+     * Dá a um grupo do OIDC um papel na sala: quem está no grupo entra com ele, e quem tem outro
+     * caminho até a sala fica com o papel mais forte. Só a dona, e só com um grupo de que ela faz
+     * parte. Quem está no grupo recebe o convite. Responde `{ grupo, papel, pessoas }`, com quantas
+     * pessoas o grupo tem.
+     */
+    function darAcessoAoGrupo(id: string, grupo: string, papel: 'editar' | 'comentar' | 'ver'): Promise<unknown>;
+    /**
+     * Tira o grupo da sala; quem ficou sem caminho até ela sai com 4403. Só a dona. Responde
+     * `{ tirado: true }`.
+     */
+    function tirarAcessoDoGrupo(id: string, grupo: string): Promise<unknown>;
+    /**
+     * Avisa de 1 a 20 pessoas da sala de uma menção ou de uma resposta num comentário. `ancora` é o
+     * id do comentário (letras, dígitos, `_` e `-`, até 64), e o aviso abre o app em
+     * `?sala=<id>&comentario=<ancora>`. O texto é do portal, e a mesma âncora não avisa a mesma
+     * pessoa duas vezes. Só quem escreve comentários na sala avisa, e só quem está nela recebe.
+     * Responde `{ avisados }`.
+     */
+    function avisar(id: string, tipo: 'mencao' | 'resposta', para: string[], ancora: string): Promise<unknown>;
+    /**
      * O bilhete que abre o WebSocket da sala por 60 s:
      * `{ bilhete, validoAte, usuario, papel, caminho, canais, anexos }`. O endereço é
      * `caminho + "/" + canal + "?bilhete=" + bilhete`, na origem do app. Sem acesso à sala (ela foi
@@ -463,6 +496,29 @@ declare namespace vssh {
      * y-websocket o usa direto.
      */
     function bilhete(id: string): Promise<unknown>;
+
+    /** Este espaço não declara eventos: `ao` não aceita nome nenhum. */
+    interface Eventos {}
+    function ao<E extends keyof Eventos>(evento: E, cb: (dados: Eventos[E]) => void): () => void;
+  }
+
+  /**
+   * As pessoas do ambiente, para compartilhar uma sala. Cada pessoa é
+   * `{ usuario, nome, login, iniciais }`, e o `usuario` é o que os verbos de `vssh.salas` recebem.
+   * O e-mail de ninguém sai daqui.
+   */
+  namespace pessoas {
+    /**
+     * A pessoa que usa o app: `{ usuario, nome, login, iniciais, grupos }`, com os grupos do OIDC
+     * que o último login dela trouxe.
+     */
+    function eu(): Promise<unknown>;
+    /**
+     * Até 20 pessoas cujo nome ou login contém cada palavra de `texto`, sem olhar acento, em
+     * `pessoas`, e os grupos da própria pessoa que casam com `texto`, em `grupos`, cada um
+     * `{ grupo, pessoas }`.
+     */
+    function buscar(texto: string): Promise<unknown>;
 
     /** Este espaço não declara eventos: `ao` não aceita nome nenhum. */
     interface Eventos {}

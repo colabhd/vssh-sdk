@@ -242,6 +242,8 @@
   };
   EVENTOS.salas = {
   };
+  EVENTOS.pessoas = {
+  };
   EVENTOS.configuracoes = {
   };
   EVENTOS.midia = {
@@ -401,22 +403,42 @@
     ao: (evento, cb) => ponte.escutar('segredos', evento, cb),
   };
 
-  // ── salas: As salas de edição: várias pessoas no mesmo documento Yjs, com o portal de relé. Toda sala é de um app, e daqui o app só alcança as dele. Quem conecta o documento é `vssh.salas.entrar(id, { Y, awarenessProtocol })`, o provedor do SDK, que pede um `bilhete` a cada conexão; os verbos abaixo são a lista, a criação e o bilhete.
+  // ── salas: As salas de edição: várias pessoas no mesmo documento Yjs, com o portal de relé. Toda sala é de um app, e daqui o app só alcança as dele. Quem conecta o documento é `vssh.salas.entrar(id, { Y, awarenessProtocol })`, o provedor do SDK, que pede um `bilhete` a cada conexão; os verbos abaixo são a lista, a criação, quem entra, os avisos e o bilhete.
   vssh.salas = {
     // As salas deste app em que a pessoa está, as dela e as que dividiram com ela, em `salas`, das mais recentes às mais antigas. Cada uma traz `id`, `titulo`, `papel` (`dona`, `editar`, `comentar` ou `ver`), `criadaEm` e `atualizadaEm`.
     listar: () => ponte.chamar('salas.listar', { type: 'salas', op: 'list' }, 5000),
     // Cria uma sala deste app, com a pessoa como dona, e responde a sala. Sem `titulo`, ela se chama "Sem título".
     criar: (titulo) => ponte.chamar('salas.criar', { type: 'salas', op: 'create', titulo: titulo }, 5000),
-    // A sala e quem está nela, em `{ sala, pessoas }`, a dona primeiro. A sala de outro app, ou uma em que a pessoa não está, responde o erro de sala não encontrada.
+    // A sala e quem está nela, em `{ sala, pessoas, grupos }`: as pessoas com `usuario`, `nome`, `login`, `iniciais` e `papel`, a dona primeiro, e os grupos com `grupo` e `papel`. A sala de outro app, ou uma em que a pessoa não está, responde o erro de sala não encontrada.
     ler: (id) => ponte.chamar('salas.ler', { type: 'salas', op: 'get', sala: id }, 5000),
     // Troca o título da sala e responde a sala. Só a dona renomeia.
     renomear: (id, titulo) => ponte.chamar('salas.renomear', { type: 'salas', op: 'rename', sala: id, titulo: titulo }, 5000),
     // Apaga a sala, o documento e os anexos. Só a dona apaga, e quem estava conectado recebe o fechamento 4410.
     apagar: (id) => ponte.chamar('salas.apagar', { type: 'salas', op: 'delete', sala: id }, 5000),
+    // Dá a uma pessoa (o `usuario` de `vssh.pessoas.buscar`) um papel na sala, ou muda o papel dela, e responde a pessoa. Quem não estava na sala recebe o convite no sino. Só a dona dá acesso.
+    darAcesso: (id, usuario, papel) => ponte.chamar('salas.darAcesso', { type: 'salas', op: 'share', sala: id, usuario: usuario, papel: papel }, 5000),
+    // Tira uma pessoa da sala, e as conexões dela fecham com 4403, a não ser que ela continue num grupo da sala. A dona tira qualquer pessoa, e cada pessoa tira a si mesma (o `usuario` de `vssh.pessoas.eu`). Responde `{ tirado: true }`.
+    tirarAcesso: (id, usuario) => ponte.chamar('salas.tirarAcesso', { type: 'salas', op: 'unshare', sala: id, usuario: usuario }, 5000),
+    // Dá a um grupo do OIDC um papel na sala: quem está no grupo entra com ele, e quem tem outro caminho até a sala fica com o papel mais forte. Só a dona, e só com um grupo de que ela faz parte. Quem está no grupo recebe o convite. Responde `{ grupo, papel, pessoas }`, com quantas pessoas o grupo tem.
+    darAcessoAoGrupo: (id, grupo, papel) => ponte.chamar('salas.darAcessoAoGrupo', { type: 'salas', op: 'share-group', sala: id, grupo: grupo, papel: papel }, 5000),
+    // Tira o grupo da sala; quem ficou sem caminho até ela sai com 4403. Só a dona. Responde `{ tirado: true }`.
+    tirarAcessoDoGrupo: (id, grupo) => ponte.chamar('salas.tirarAcessoDoGrupo', { type: 'salas', op: 'unshare-group', sala: id, grupo: grupo }, 5000),
+    // Avisa de 1 a 20 pessoas da sala de uma menção ou de uma resposta num comentário. `ancora` é o id do comentário (letras, dígitos, `_` e `-`, até 64), e o aviso abre o app em `?sala=<id>&comentario=<ancora>`. O texto é do portal, e a mesma âncora não avisa a mesma pessoa duas vezes. Só quem escreve comentários na sala avisa, e só quem está nela recebe. Responde `{ avisados }`.
+    avisar: (id, tipo, para, ancora) => ponte.chamar('salas.avisar', { type: 'salas', op: 'notify', sala: id, tipo: tipo, para: para, ancora: ancora }, 5000),
     // O bilhete que abre o WebSocket da sala por 60 s: `{ bilhete, validoAte, usuario, papel, caminho, canais, anexos }`. O endereço é `caminho + "/" + canal + "?bilhete=" + bilhete`, na origem do app. Sem acesso à sala (ela foi apagada, a pessoa saiu dela, ou é de outro app), a resposta é `{ bilhete: null }`. `vssh.salas.entrar` pede um bilhete novo a cada conexão; um app com provedor próprio do y-websocket o usa direto.
     bilhete: (id) => ponte.chamar('salas.bilhete', { type: 'salas', op: 'ticket', sala: id }, 5000),
     // Este espaço não declara eventos: qualquer nome aqui é recusado.
     ao: (evento, cb) => ponte.escutar('salas', evento, cb),
+  };
+
+  // ── pessoas: As pessoas do ambiente, para compartilhar uma sala. Cada pessoa é `{ usuario, nome, login, iniciais }`, e o `usuario` é o que os verbos de `vssh.salas` recebem. O e-mail de ninguém sai daqui.
+  vssh.pessoas = {
+    // A pessoa que usa o app: `{ usuario, nome, login, iniciais, grupos }`, com os grupos do OIDC que o último login dela trouxe.
+    eu: () => ponte.chamar('pessoas.eu', { type: 'pessoas', op: 'me' }, 5000),
+    // Até 20 pessoas cujo nome ou login contém cada palavra de `texto`, sem olhar acento, em `pessoas`, e os grupos da própria pessoa que casam com `texto`, em `grupos`, cada um `{ grupo, pessoas }`.
+    buscar: (texto) => ponte.chamar('pessoas.buscar', { type: 'pessoas', op: 'search', texto: texto }, 5000),
+    // Este espaço não declara eventos: qualquer nome aqui é recusado.
+    ao: (evento, cb) => ponte.escutar('pessoas', evento, cb),
   };
 
   // ── configuracoes: A seção que o app traz a Configurações do ambiente (`contributes.settings`). Um app que a declara opcional (`contributes.settingsOptIn`) a liga e desliga daqui, de dentro dele; a escolha é por usuário e acompanha a pessoa.
