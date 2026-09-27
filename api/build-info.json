@@ -53,7 +53,7 @@
       "sha256": "43e440ec551e92f28376acdecdf1b285362a85f5b4afddfb028fef2213929862"
     },
     "api/vssh-app.schema.json": {
-      "sha256": "535cd190141215d70d90289cf362805207b4d86eef6b592a841afe74eb1f2f0e"
+      "sha256": "24ff0cce7ebdd89f767c88a44e9bc8347326c32118e0395e2e9b9dae6b81ca5e"
     },
     "api/vssh.d.ts": {
       "sha256": "26452885828d9bbd9e897955b379aa08447c65936dcc51089f230d611de885f7"
@@ -92,7 +92,7 @@
       "sha256": "72df24420240c6de566ffd23805f453e5e5ca1bd483dca404a660c96f3aa6a48"
     },
     "docs/referencia/manifesto.md": {
-      "sha256": "c8e31c3c0e6e0d4762284235c2e9003199057e3852e60413d28aec7b79339980"
+      "sha256": "adcb685de1d92f0e2373ecc89b6a7887cea86f1eaddc022abb909ee0b8817693"
     },
     "docs/referencia/midia.md": {
       "sha256": "189b0de451e02e02c80829dc3c5dd844a0a4d0648a57b1c3514a8faae8a05015"
@@ -116,7 +116,7 @@
       "sha256": "0bbe0ed0bef8763cbb3c700379c6818e978329ed7c27b0d9c65487cf7bd56ff3"
     },
     "runtime/node/vssh/fila.js": {
-      "sha256": "37e62882fa0533043fafb012188a5000b5ccc5f7c6cbb5dd62847823550f07a0"
+      "sha256": "765dbc94a17763fbf5087917e377a2910386d55f6e8c4a47812f117535a750d0"
     },
     "runtime/node/vssh/gpu.js": {
       "sha256": "6643de6528771774c3bef5dbc4a08f30701a1d4db6db7951af565c24b8cded29"
@@ -155,7 +155,7 @@
       "sha256": "c5c3673a2c6d43c65785b8d22003d95485b11eeea01a545b5aa80ffe87c36f2d"
     },
     "runtime/python/vssh/fila.py": {
-      "sha256": "35d86bcebbed6a4755893003b1dff472e07a7907906ea9a02e53b44facf55246"
+      "sha256": "2513d9f39c742a55eab39d7d72d3826a23626a922d4ee908964a092cc28e9c74"
     },
     "runtime/python/vssh/gpu.py": {
       "sha256": "cac9d2600fe1b505847c5ff0b080cf10436b301a9cafc910e011d654789cc076"
@@ -167,7 +167,7 @@
       "sha256": "31d8d7b75faaa4c8d2f9150182b4547127151e3caa2d6b73d2b3b5de69b3e563"
     },
     "runtime/python/vssh/trabalhos.py": {
-      "sha256": "5e69151dd9b06e3c7c4cc5a7cff86f6a55e39fb804aaf3d6847a1848b3ed752d"
+      "sha256": "4c9b4ec2082f19b18c637005f3e58bcae0e810f9b9a10fd56a8b98141c29e3bf"
     },
     "runtime/python/vssh/web.py": {
       "sha256": "28b7e654c7a565bfbf41191c7808f7ab02e8d18179c66df8f41d8b7ef3dc34fc"

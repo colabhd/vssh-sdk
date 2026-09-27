@@ -332,11 +332,16 @@ def na_fila(chave, pedido, titulo=None, ao_evento=None, linhas=False, env=None):
         _em_curso[chave] = t
     t._mudar('estado')
 
+    # As duas threads terminam o trabalho em qualquer erro. Uma exceção que escapasse mataria a
+    # thread calada, e o trabalho ficaria no último estado para sempre, sem motivo na tela.
     def submeter():
         try:
             ident = fila.submeter(pedido, env=env)
         except fila.ErroDaFila as e:
             t._terminar('falhou', motivo=e.mensagem, codigo=None)
+            return
+        except Exception as e:
+            t._terminar('falhou', motivo='a submissão à fila quebrou: %s' % (str(e) or type(e).__name__), codigo=None)
             return
         t._mudar('estado', job=ident, estado='enviado')
         if t._cancelado:
@@ -383,6 +388,9 @@ def _seguir(t, linhas, env):
         final = fila.acompanhar(ident, ao_evento=ao_evento, env=env)
     except fila.ErroDaFila as e:
         t._terminar('falhou', motivo=e.mensagem)
+        return
+    except Exception as e:
+        t._terminar('falhou', motivo='o acompanhamento do job quebrou: %s' % (str(e) or type(e).__name__))
         return
     t._terminar(final.get('estado') or 'falhou', motivo=final.get('motivo'), codigo=final.get('exit'))
 

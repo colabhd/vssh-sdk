@@ -39,15 +39,30 @@ Um trabalho que imprime linhas de `vssh.progresso` no stdout tem o progresso lid
 Só biblioteca padrão, como o resto do pacote.
 """
 
+import http.client
 import json
 import os
+import time
 import urllib.error
 import urllib.request
 
 __all__ = ['ErroDaFila', 'disponivel', 'submeter', 'estado', 'acompanhar', 'log', 'cancelar', 'remover', 'baixar', 'listar']
 
 BLOCO = 4 * 1024 * 1024
+# Os tempos são de silêncio no socket, e não de duração: um envio de gigabytes anda enquanto os
+# bytes andam, e para quando o outro lado fica mudo por esse tanto. O SSE do portal manda um
+# comentário a cada 15 s, e quatro batidas perdidas dizem que a conexão morreu sem avisar.
 _TEMPO_HTTP = 60
+_TEMPO_DE_SSE = 60
+# A pausa entre duas tentativas de voltar a seguir um job, quando o portal não responde.
+_PAUSA_DE_RECONEXAO_S = 5
+# O que a rede faz com uma conexão já aberta: o silêncio que passou do tempo, a queda, a resposta
+# cortada. Um erro do disco local fica de fora, porque não é o S3 que ele acusa.
+_QUEDA = (TimeoutError, ConnectionError, http.client.HTTPException)
+
+
+def _porque(e):
+    return str(e) or type(e).__name__
 
 
 class ErroDaFila(Exception):
@@ -87,7 +102,11 @@ def _pedir(metodo, rota, corpo=None, env=None, stream=False):
         cabecalhos['Content-Type'] = 'application/json'
     req = urllib.request.Request(url + '/api/fila' + rota, data=dados, method=metodo, headers=cabecalhos)
     try:
-        r = urllib.request.urlopen(req, timeout=None if stream else _TEMPO_HTTP)
+        r = urllib.request.urlopen(req, timeout=_TEMPO_DE_SSE if stream else _TEMPO_HTTP)
+        if stream:
+            return r
+        with r:
+            texto = r.read().decode('utf-8')
     except urllib.error.HTTPError as e:
         texto = e.read().decode('utf-8', 'replace')
         try:
@@ -97,11 +116,12 @@ def _pedir(metodo, rota, corpo=None, env=None, stream=False):
         raise ErroDaFila(e.code, j.get('error') or texto or ('HTTP %d' % e.code), {k: v for k, v in j.items() if k != 'error'})
     except urllib.error.URLError as e:
         raise ErroDaFila(0, 'o portal não respondeu: %s' % e.reason)
-    if stream:
-        return r
-    with r:
-        texto = r.read().decode('utf-8')
-    return json.loads(texto) if texto else None
+    except (OSError, http.client.HTTPException) as e:
+        raise ErroDaFila(0, 'o portal não respondeu: %s' % _porque(e))
+    try:
+        return json.loads(texto) if texto else None
+    except ValueError:
+        raise ErroDaFila(0, 'o portal respondeu algo que não é JSON: %s' % texto[:200])
 
 
 def disponivel(env=None):
@@ -149,13 +169,15 @@ def _subir(url, caminho, ao_progresso=None):
         req = urllib.request.Request(url, data=f, method='PUT',
                                      headers={'Content-Length': str(tamanho), 'Content-Type': 'application/octet-stream'})
         try:
-            with urllib.request.urlopen(req, timeout=None) as r:
+            with urllib.request.urlopen(req, timeout=_TEMPO_HTTP) as r:
                 if r.status not in (200, 201, 204):
                     raise ErroDaFila(r.status, 'o S3 recusou a entrada %s' % caminho)
         except urllib.error.HTTPError as e:
             raise ErroDaFila(e.code, 'o S3 recusou a entrada %s (%d)' % (caminho, e.code))
         except urllib.error.URLError as e:
             raise ErroDaFila(0, 'o S3 não respondeu ao subir %s: %s' % (caminho, e.reason))
+        except _QUEDA as e:
+            raise ErroDaFila(0, 'o S3 não respondeu ao subir %s: %s' % (caminho, _porque(e)))
     if ao_progresso:
         ao_progresso({'fase': 'entrada', 'arquivo': caminho, 'bytes': tamanho})
 
@@ -198,48 +220,59 @@ def estado(ident, env=None):
 
 
 def _eventos(rota, env=None):
-    """Itera `(evento, dados)` de um SSE do portal até ele fechar."""
+    """Itera `(evento, dados)` de um SSE do portal até ele fechar, ou até ficar mudo por
+    `_TEMPO_DE_SSE`: quem segue o job reabre, e o portal manda o estado atual ao conectar."""
     r = _pedir('GET', rota, env=env, stream=True)
     with r:
         evento, linhas = None, []
-        for crua in r:
-            linha = crua.decode('utf-8').rstrip('\r\n')
-            if linha == '':
-                if evento is not None:
-                    try:
-                        dados = json.loads(''.join(linhas)) if linhas else None
-                    except ValueError:
-                        dados = None
-                    yield evento, dados
-                evento, linhas = None, []
-                continue
-            if linha.startswith(':'):
-                continue
-            if linha.startswith('event:'):
-                evento = linha[6:].strip()
-            elif linha.startswith('data:'):
-                linhas.append(linha[5:].strip())
+        try:
+            for crua in r:
+                linha = crua.decode('utf-8').rstrip('\r\n')
+                if linha == '':
+                    if evento is not None:
+                        try:
+                            dados = json.loads(''.join(linhas)) if linhas else None
+                        except ValueError:
+                            dados = None
+                        yield evento, dados
+                    evento, linhas = None, []
+                    continue
+                if linha.startswith(':'):
+                    continue
+                if linha.startswith('event:'):
+                    evento = linha[6:].strip()
+                elif linha.startswith('data:'):
+                    linhas.append(linha[5:].strip())
+        except (OSError, http.client.HTTPException):
+            return
 
 
 def acompanhar(ident, ao_evento=None, env=None):
     """Segue o job até um estado final e o devolve. `ao_evento(evento, job)` a cada mudança.
 
     Um blip de rede entre o app e o portal não é o fim do job: o SSE reabre e continua do estado
-    atual, que o portal manda ao conectar.
+    atual, que o portal manda ao conectar. Enquanto o portal não responde (um deploy, a rede), a
+    tentativa se repete; uma recusa dele (o job que não existe, a credencial revogada) levanta.
     """
     while True:
         final = None
-        for evento, dados in _eventos('/jobs/%s/eventos' % ident, env=env):
-            if ao_evento and dados is not None:
-                try:
-                    ao_evento(evento, dados)
-                except Exception:
-                    pass
-            if evento in ('concluido', 'falhou', 'cancelado'):
-                final = dados
-        if final is not None:
-            return final
-        atual = estado(ident, env=env)
+        try:
+            for evento, dados in _eventos('/jobs/%s/eventos' % ident, env=env):
+                if ao_evento and dados is not None:
+                    try:
+                        ao_evento(evento, dados)
+                    except Exception:
+                        pass
+                if evento in ('concluido', 'falhou', 'cancelado'):
+                    final = dados
+            if final is not None:
+                return final
+            atual = estado(ident, env=env)
+        except ErroDaFila as e:
+            if 0 < e.status < 500:
+                raise
+            time.sleep(_PAUSA_DE_RECONEXAO_S)
+            continue
         if atual.get('estado') in ('concluido', 'falhou', 'cancelado'):
             return atual
 
@@ -277,7 +310,7 @@ def baixar(ident, destino, nomes=None, env=None):
             continue
         caminho = os.path.join(destino, s['nome'])
         try:
-            with urllib.request.urlopen(s['url'], timeout=None) as resp, open(caminho, 'wb') as f:
+            with urllib.request.urlopen(s['url'], timeout=_TEMPO_HTTP) as resp, open(caminho, 'wb') as f:
                 while True:
                     b = resp.read(BLOCO)
                     if not b:
@@ -287,6 +320,8 @@ def baixar(ident, destino, nomes=None, env=None):
             raise ErroDaFila(e.code, 'o S3 recusou a saída %s (%d)' % (s['nome'], e.code))
         except urllib.error.URLError as e:
             raise ErroDaFila(0, 'o S3 não respondeu ao baixar %s: %s' % (s['nome'], e.reason))
+        except _QUEDA as e:
+            raise ErroDaFila(0, 'o S3 não respondeu ao baixar %s: %s' % (s['nome'], _porque(e)))
         gravados.append(caminho)
     return gravados
 

@@ -290,7 +290,12 @@
         "fila": {
           "type": "boolean",
           "default": false,
-          "description": "A fila de processamento: o app delega trabalho pesado (um container com imagem, comando e arquivos) ao cluster Kubernetes que o servidor do usuário aponta, em vez de rodá-lo na GPU da estação. Declarar faz o portal escrever `VSSH_PORTAL_URL` e `VSSH_PORTAL_TOKEN` no ambiente do app a cada subida; com eles o backend chama `vssh.fila` (`submeter`, `acompanhar`, `baixar`, `cancelar`). O token é a identidade do app diante do portal, só alcança `/api/fila/*`, e morre com o app (`stop` o revoga). Sem esta declaração o app não recebe o par, e `vssh.fila.disponivel()` diz por quê. Um servidor sem cluster configurado responde o mesmo: o app pergunta antes de prometer."
+          "description": "A fila de processamento: o app delega trabalho pesado (um container com imagem, comando e arquivos) ao cluster Kubernetes que o servidor do usuário aponta, em vez de rodá-lo na GPU da estação. Declarar faz o portal escrever `VSSH_PORTAL_URL` e `VSSH_PORTAL_TOKEN` no ambiente do app a cada subida; com eles o backend chama `vssh.fila` (`submeter`, `acompanhar`, `baixar`, `cancelar`). O token é a identidade do app diante do portal, alcança `/api/fila/*` (e `/api/salas/*`, se o app também declarar `recursos.salas`), e morre com o app (`stop` o revoga). Sem esta declaração o app não recebe o par, e `vssh.fila.disponivel()` diz por quê. Um servidor sem cluster configurado responde o mesmo: o app pergunta antes de prometer."
+        },
+        "salas": {
+          "type": "boolean",
+          "default": false,
+          "description": "As salas de edição: várias pessoas no mesmo documento Yjs, com o portal de relé. A página do app abre uma sala pelo bilhete que a sessão da pessoa pede, e isso não depende desta declaração. Declarar faz o portal escrever `VSSH_PORTAL_URL` e `VSSH_PORTAL_TOKEN` no ambiente do app, com o escopo das salas: o backend pede o bilhete como a pessoa dona da credencial e entra nas salas DESTE app, para gravar no arquivo dela o que as outras pessoas escreveram. A credencial não abre a sala de outro app."
         }
       }
     },

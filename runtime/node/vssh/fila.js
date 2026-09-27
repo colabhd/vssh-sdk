@@ -24,6 +24,12 @@ const path = require('node:path');
 const http = require('node:http');
 const https = require('node:https');
 
+// Os tempos são de silêncio no socket, e não de duração: um envio de gigabytes anda enquanto os
+// bytes andam, e para quando o outro lado fica mudo por esse tanto. O SSE do portal manda um
+// comentário a cada 15 s, e quatro batidas perdidas dizem que a conexão morreu sem avisar. `pausa`
+// é o intervalo entre duas tentativas de voltar a seguir um job quando o portal não responde.
+const TEMPOS = { http: 60_000, sse: 60_000, pausa: 5_000 };
+
 class ErroDaFila extends Error {
   constructor(status, mensagem, extra = {}) { super(mensagem); this.status = status; this.mensagem = mensagem; this.extra = extra; }
 }
@@ -53,7 +59,7 @@ function pedir(metodo, rota, { corpo, env, stream = false } = {}) {
         authorization: `Bearer ${cred.token}`, accept: 'application/json', 'user-agent': AGENTE,
         ...(dados ? { 'content-type': 'application/json', 'content-length': String(dados.length) } : {}),
       },
-      timeout: stream ? 0 : 60_000,
+      timeout: stream ? TEMPOS.sse : TEMPOS.http,
     }, (res) => {
       if (stream && res.statusCode === 200) { resolve(res); return; }
       const pedacos = [];
@@ -101,12 +107,16 @@ function subir(url, caminho) {
   const tamanho = fs.statSync(caminho).size;
   const u = new URL(url);
   return new Promise((resolve, reject) => {
-    const req = modulo(u.href).request(u, { method: 'PUT', headers: { 'content-length': String(tamanho), 'content-type': 'application/octet-stream' } }, (res) => {
+    const req = modulo(u.href).request(u, {
+      method: 'PUT', timeout: TEMPOS.http,
+      headers: { 'content-length': String(tamanho), 'content-type': 'application/octet-stream' },
+    }, (res) => {
       res.resume();
       res.on('end', () => (res.statusCode >= 200 && res.statusCode < 300)
         ? resolve(tamanho)
         : reject(new ErroDaFila(res.statusCode, `o S3 recusou a entrada ${caminho} (${res.statusCode})`)));
     });
+    req.on('timeout', () => req.destroy(new Error(`nenhum byte em ${TEMPOS.http / 1000} s`)));
     req.on('error', (e) => reject(new ErroDaFila(0, `o S3 não respondeu ao subir ${caminho}: ${e.message}`)));
     fs.createReadStream(caminho).on('error', reject).pipe(req);
   });
@@ -142,36 +152,52 @@ async function submeter(trabalho, aoProgresso, env = process.env) {
 
 const estado = (id, env = process.env) => pedir('GET', `/jobs/${id}`, { env });
 
-/** Itera `{ evento, dados }` de um SSE do portal até ele fechar. */
+/**
+ * Itera `{ evento, dados }` de um SSE do portal até ele fechar, ou até ficar mudo por `TEMPOS.sse`:
+ * quem segue o job reabre, e o portal manda o estado atual ao conectar.
+ */
 async function* eventos(rota, env) {
   const res = await pedir('GET', rota, { env, stream: true });
   let resto = '';
-  for await (const pedaco of res) {
-    resto += pedaco.toString('utf8');
-    const blocos = resto.split('\n\n');
-    resto = blocos.pop();
-    for (const b of blocos) {
-      const evento = /^event: (.+)$/m.exec(b)?.[1];
-      const dados = /^data: (.+)$/m.exec(b)?.[1];
-      if (!evento) continue;
-      let j = null; try { j = dados ? JSON.parse(dados) : null; } catch { /* sem dados */ }
-      yield { evento, dados: j };
+  try {
+    for await (const pedaco of res) {
+      resto += pedaco.toString('utf8');
+      const blocos = resto.split('\n\n');
+      resto = blocos.pop();
+      for (const b of blocos) {
+        const evento = /^event: (.+)$/m.exec(b)?.[1];
+        const dados = /^data: (.+)$/m.exec(b)?.[1];
+        if (!evento) continue;
+        let j = null; try { j = dados ? JSON.parse(dados) : null; } catch { /* sem dados */ }
+        yield { evento, dados: j };
+      }
     }
-  }
+  } catch { /* o silêncio passou do tempo, ou a conexão caiu */ } finally { res.destroy(); }
 }
 
 const FINAIS = new Set(['concluido', 'falhou', 'cancelado']);
 
-/** Segue o job até um estado final e resolve com ele. `aoEvento(evento, job)` a cada mudança. */
+/**
+ * Segue o job até um estado final e resolve com ele. `aoEvento(evento, job)` a cada mudança.
+ * Enquanto o portal não responde (um deploy, a rede), a tentativa se repete; uma recusa dele (o job
+ * que não existe, a credencial revogada) rejeita.
+ */
 async function acompanhar(id, aoEvento, env = process.env) {
   for (;;) {
     let final = null;
-    for await (const { evento, dados } of eventos(`/jobs/${id}/eventos`, env)) {
-      if (aoEvento && dados) { try { aoEvento(evento, dados); } catch { /* do app */ } }
-      if (FINAIS.has(evento)) final = dados;
+    let atual;
+    try {
+      for await (const { evento, dados } of eventos(`/jobs/${id}/eventos`, env)) {
+        if (aoEvento && dados) { try { aoEvento(evento, dados); } catch { /* do app */ } }
+        if (FINAIS.has(evento)) final = dados;
+      }
+      if (final) return final;
+      atual = await estado(id, env);
+    } catch (e) {
+      if (e instanceof ErroDaFila && e.status > 0 && e.status < 500) throw e;
+      await new Promise((r) => setTimeout(r, TEMPOS.pausa));
+      continue;
     }
-    if (final) return final;
-    const atual = await estado(id, env);
     if (FINAIS.has(atual.estado)) return atual;
   }
 }
@@ -199,13 +225,16 @@ async function baixar(id, destino, nomes, env = process.env) {
     const caminho = path.join(destino, s.nome);
     await new Promise((resolve, reject) => {
       const u = new URL(s.url);
-      modulo(u.href).get(u, (res) => {
+      const req = modulo(u.href).get(u, { timeout: TEMPOS.http }, (res) => {
         if (res.statusCode !== 200) { res.resume(); reject(new ErroDaFila(res.statusCode, `o S3 recusou a saída ${s.nome} (${res.statusCode})`)); return; }
         const f = fs.createWriteStream(caminho);
         res.pipe(f);
         f.on('finish', resolve);
         f.on('error', reject);
-      }).on('error', (e) => reject(new ErroDaFila(0, `o S3 não respondeu ao baixar ${s.nome}: ${e.message}`)));
+        res.on('error', (e) => { f.destroy(); reject(new ErroDaFila(0, `o S3 não respondeu ao baixar ${s.nome}: ${e.message}`)); });
+      });
+      req.on('timeout', () => req.destroy(new Error(`nenhum byte em ${TEMPOS.http / 1000} s`)));
+      req.on('error', (e) => reject(new ErroDaFila(0, `o S3 não respondeu ao baixar ${s.nome}: ${e.message}`)));
     });
     gravados.push(caminho);
   }
@@ -227,4 +256,4 @@ async function remover(id, env = process.env) {
   return !!(r && r.removido);
 }
 
-module.exports = { ErroDaFila, disponivel, submeter, estado, acompanhar, log, cancelar, remover, baixar, listar };
+module.exports = { ErroDaFila, TEMPOS, disponivel, submeter, estado, acompanhar, log, cancelar, remover, baixar, listar };
