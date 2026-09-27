@@ -425,6 +425,51 @@ declare namespace vssh {
   }
 
   /**
+   * As salas de edição: várias pessoas no mesmo documento Yjs, com o portal de relé. Toda sala é de
+   * um app, e daqui o app só alcança as dele. Quem conecta o documento é
+   * `vssh.salas.entrar(id, { Y, awarenessProtocol })`, o provedor do SDK, que pede um `bilhete` a
+   * cada conexão; os verbos abaixo são a lista, a criação e o bilhete.
+   */
+  namespace salas {
+    /**
+     * As salas deste app em que a pessoa está, as dela e as que dividiram com ela, em `salas`, das
+     * mais recentes às mais antigas. Cada uma traz `id`, `titulo`, `papel` (`dona`, `editar`,
+     * `comentar` ou `ver`), `criadaEm` e `atualizadaEm`.
+     */
+    function listar(): Promise<unknown>;
+    /**
+     * Cria uma sala deste app, com a pessoa como dona, e responde a sala. Sem `titulo`, ela se
+     * chama "Sem título".
+     */
+    function criar(titulo?: string): Promise<unknown>;
+    /**
+     * A sala e quem está nela, em `{ sala, pessoas }`, a dona primeiro. A sala de outro app, ou uma
+     * em que a pessoa não está, responde o erro de sala não encontrada.
+     */
+    function ler(id: string): Promise<unknown>;
+    /** Troca o título da sala e responde a sala. Só a dona renomeia. */
+    function renomear(id: string, titulo: string): Promise<unknown>;
+    /**
+     * Apaga a sala, o documento e os anexos. Só a dona apaga, e quem estava conectado recebe o
+     * fechamento 4410.
+     */
+    function apagar(id: string): Promise<unknown>;
+    /**
+     * O bilhete que abre o WebSocket da sala por 60 s:
+     * `{ bilhete, validoAte, usuario, papel, caminho, canais, anexos }`. O endereço é
+     * `caminho + "/" + canal + "?bilhete=" + bilhete`, na origem do app. Sem acesso à sala (ela foi
+     * apagada, a pessoa saiu dela, ou é de outro app), a resposta é `{ bilhete: null }`.
+     * `vssh.salas.entrar` pede um bilhete novo a cada conexão; um app com provedor próprio do
+     * y-websocket o usa direto.
+     */
+    function bilhete(id: string): Promise<unknown>;
+
+    /** Este espaço não declara eventos: `ao` não aceita nome nenhum. */
+    interface Eventos {}
+    function ao<E extends keyof Eventos>(evento: E, cb: (dados: Eventos[E]) => void): () => void;
+  }
+
+  /**
    * A seção que o app traz a Configurações do ambiente (`contributes.settings`). Um app que a
    * declara opcional (`contributes.settingsOptIn`) a liga e desliga daqui, de dentro dele; a
    * escolha é por usuário e acompanha a pessoa.
@@ -596,6 +641,40 @@ declare namespace vssh {
     function ganho(): number;
     /** Se o mixer do ambiente deixou este app mudo. */
     function mudo(): boolean;
+  }
+
+  namespace salas {
+    /** A conexão de um Y.Doc a uma sala, que `entrar` devolve. */
+    interface Conexao<Doc = any, Presenca = any> {
+      readonly doc: Doc;
+      /** O Awareness da sala, quando o app passou `awarenessProtocol` ou `presenca`. */
+      readonly presenca: Presenca | null;
+      readonly canal: 'documento' | 'comentarios';
+      readonly estado: 'conectando' | 'sincronizado' | 'fora' | 'sem-acesso' | 'apagada' | 'saiu';
+      readonly papel: 'dona' | 'editar' | 'comentar' | 'ver' | null;
+      /** Se o papel escreve neste canal. O portal descarta a escrita de quem não escreve. */
+      readonly podeEscrever: boolean;
+      /** Resolve no primeiro passo 2 do portal, quando o documento local já tem o da sala. */
+      readonly sincronizado: Promise<Conexao<Doc, Presenca>>;
+      /** `cb` a cada mudança de estado ou de papel. Devolve a função que cancela. */
+      aoMudar(cb: (mudanca: { estado: Conexao['estado']; papel: Conexao['papel'] }) => void): () => void;
+      /** Fecha a conexão e grava a cópia local. */
+      sair(): Promise<void>;
+    }
+    /**
+     * Liga o Y.Doc do app à sala `id`, pelo protocolo do y-websocket. O SDK não carrega Yjs: o
+     * app passa o `Y` e o módulo `y-protocols/awareness` que ele mesmo usa. A conexão pede um
+     * bilhete novo a cada volta, reconecta sozinha, e encerra nos estados `sem-acesso` e
+     * `apagada`. Fora do ar, o documento segue editável, e a volta junta o que foi escrito.
+     */
+    function entrar<Doc = any, Presenca = any>(id: string, opcoes: {
+      Y: any;
+      awarenessProtocol?: any;
+      doc?: Doc;
+      presenca?: Presenca;
+      canal?: 'documento' | 'comentarios';
+      guardarLocal?: boolean;
+    }): Conexao<Doc, Presenca>;
   }
 
   /** A aparência do ambiente: a cor de destaque que o usuário escolheu. Reporta, e não escreve. */

@@ -1295,6 +1295,108 @@
       },
       "eventos": {}
     },
+    "salas": {
+      "descricao": "As salas de edição: várias pessoas no mesmo documento Yjs, com o portal de relé. Toda sala é de um app, e daqui o app só alcança as dele. Quem conecta o documento é `vssh.salas.entrar(id, { Y, awarenessProtocol })`, o provedor do SDK, que pede um `bilhete` a cada conexão; os verbos abaixo são a lista, a criação e o bilhete.",
+      "verbos": {
+        "listar": {
+          "fio": {
+            "type": "salas",
+            "op": "list"
+          },
+          "campos": [],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "As salas deste app em que a pessoa está, as dela e as que dividiram com ela, em `salas`, das mais recentes às mais antigas. Cada uma traz `id`, `titulo`, `papel` (`dona`, `editar`, `comentar` ou `ver`), `criadaEm` e `atualizadaEm`."
+        },
+        "criar": {
+          "fio": {
+            "type": "salas",
+            "op": "create"
+          },
+          "campos": [
+            {
+              "nome": "titulo",
+              "fio": "titulo",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "Cria uma sala deste app, com a pessoa como dona, e responde a sala. Sem `titulo`, ela se chama \"Sem título\"."
+        },
+        "ler": {
+          "fio": {
+            "type": "salas",
+            "op": "get"
+          },
+          "campos": [
+            {
+              "nome": "id",
+              "fio": "sala",
+              "tipo": "string"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "A sala e quem está nela, em `{ sala, pessoas }`, a dona primeiro. A sala de outro app, ou uma em que a pessoa não está, responde o erro de sala não encontrada."
+        },
+        "renomear": {
+          "fio": {
+            "type": "salas",
+            "op": "rename"
+          },
+          "campos": [
+            {
+              "nome": "id",
+              "fio": "sala",
+              "tipo": "string"
+            },
+            {
+              "nome": "titulo",
+              "fio": "titulo",
+              "tipo": "string"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "Troca o título da sala e responde a sala. Só a dona renomeia."
+        },
+        "apagar": {
+          "fio": {
+            "type": "salas",
+            "op": "delete"
+          },
+          "campos": [
+            {
+              "nome": "id",
+              "fio": "sala",
+              "tipo": "string"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "Apaga a sala, o documento e os anexos. Só a dona apaga, e quem estava conectado recebe o fechamento 4410."
+        },
+        "bilhete": {
+          "fio": {
+            "type": "salas",
+            "op": "ticket"
+          },
+          "campos": [
+            {
+              "nome": "id",
+              "fio": "sala",
+              "tipo": "string"
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "O bilhete que abre o WebSocket da sala por 60 s: `{ bilhete, validoAte, usuario, papel, caminho, canais, anexos }`. O endereço é `caminho + \"/\" + canal + \"?bilhete=\" + bilhete`, na origem do app. Sem acesso à sala (ela foi apagada, a pessoa saiu dela, ou é de outro app), a resposta é `{ bilhete: null }`. `vssh.salas.entrar` pede um bilhete novo a cada conexão; um app com provedor próprio do y-websocket o usa direto."
+        }
+      },
+      "eventos": {}
+    },
     "configuracoes": {
       "descricao": "A seção que o app traz a Configurações do ambiente (`contributes.settings`). Um app que a declara opcional (`contributes.settingsOptIn`) a liga e desliga daqui, de dentro dele; a escolha é por usuário e acompanha a pessoa.",
       "verbos": {

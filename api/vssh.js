@@ -240,6 +240,8 @@
   };
   EVENTOS.segredos = {
   };
+  EVENTOS.salas = {
+  };
   EVENTOS.configuracoes = {
   };
   EVENTOS.midia = {
@@ -397,6 +399,24 @@
     apagar: (nome) => ponte.chamar('segredos.apagar', { type: 'secrets', op: 'del', nome: nome }, 5000),
     // Este espaço não declara eventos: qualquer nome aqui é recusado.
     ao: (evento, cb) => ponte.escutar('segredos', evento, cb),
+  };
+
+  // ── salas: As salas de edição: várias pessoas no mesmo documento Yjs, com o portal de relé. Toda sala é de um app, e daqui o app só alcança as dele. Quem conecta o documento é `vssh.salas.entrar(id, { Y, awarenessProtocol })`, o provedor do SDK, que pede um `bilhete` a cada conexão; os verbos abaixo são a lista, a criação e o bilhete.
+  vssh.salas = {
+    // As salas deste app em que a pessoa está, as dela e as que dividiram com ela, em `salas`, das mais recentes às mais antigas. Cada uma traz `id`, `titulo`, `papel` (`dona`, `editar`, `comentar` ou `ver`), `criadaEm` e `atualizadaEm`.
+    listar: () => ponte.chamar('salas.listar', { type: 'salas', op: 'list' }, 5000),
+    // Cria uma sala deste app, com a pessoa como dona, e responde a sala. Sem `titulo`, ela se chama "Sem título".
+    criar: (titulo) => ponte.chamar('salas.criar', { type: 'salas', op: 'create', titulo: titulo }, 5000),
+    // A sala e quem está nela, em `{ sala, pessoas }`, a dona primeiro. A sala de outro app, ou uma em que a pessoa não está, responde o erro de sala não encontrada.
+    ler: (id) => ponte.chamar('salas.ler', { type: 'salas', op: 'get', sala: id }, 5000),
+    // Troca o título da sala e responde a sala. Só a dona renomeia.
+    renomear: (id, titulo) => ponte.chamar('salas.renomear', { type: 'salas', op: 'rename', sala: id, titulo: titulo }, 5000),
+    // Apaga a sala, o documento e os anexos. Só a dona apaga, e quem estava conectado recebe o fechamento 4410.
+    apagar: (id) => ponte.chamar('salas.apagar', { type: 'salas', op: 'delete', sala: id }, 5000),
+    // O bilhete que abre o WebSocket da sala por 60 s: `{ bilhete, validoAte, usuario, papel, caminho, canais, anexos }`. O endereço é `caminho + "/" + canal + "?bilhete=" + bilhete`, na origem do app. Sem acesso à sala (ela foi apagada, a pessoa saiu dela, ou é de outro app), a resposta é `{ bilhete: null }`. `vssh.salas.entrar` pede um bilhete novo a cada conexão; um app com provedor próprio do y-websocket o usa direto.
+    bilhete: (id) => ponte.chamar('salas.bilhete', { type: 'salas', op: 'ticket', sala: id }, 5000),
+    // Este espaço não declara eventos: qualquer nome aqui é recusado.
+    ao: (evento, cb) => ponte.escutar('salas', evento, cb),
   };
 
   // ── configuracoes: A seção que o app traz a Configurações do ambiente (`contributes.settings`). Um app que a declara opcional (`contributes.settingsOptIn`) a liga e desliga daqui, de dentro dele; a escolha é por usuário e acompanha a pessoa.
@@ -928,6 +948,316 @@
       e.preventDefault();
     });
   }
+
+  // ── As salas de edição: o provedor do Yjs ─────────────────────────────────────────────────
+  //
+  // `vssh.salas.entrar(id, { Y, awarenessProtocol })` liga o Y.Doc do app à sala, pelo protocolo
+  // do y-websocket, que o portal fala. O SDK não carrega Yjs: o app entrega o `Y` e o módulo
+  // `y-protocols/awareness` que ele mesmo usa, e duas cópias do Yjs na mesma página brigariam
+  // pelos tipos. O que o protocolo pede além disso é o varuint do lib0, escrito aqui.
+  //
+  // Cada conexão abre com um bilhete novo, porque o bilhete vale 60 s. Uma queda reconecta sozinha,
+  // com espera crescente até 30 s e na hora em que a rede volta; os fechamentos 4403 (a pessoa saiu
+  // da sala) e 4410 (a sala foi apagada) encerram, e o bilhete `null` também. Enquanto está fora,
+  // o documento continua editável, e a volta junta tudo: o passo 1 do portal pede o que falta,
+  // e o CRDT junta sem conflito.
+  //
+  // A cópia no IndexedDB guarda o que foi escrito longe do portal para além de um recarregar da
+  // página. A chave leva a pessoa (`<usuario>|<sala>/<canal>`), e a cópia só é procurada depois
+  // que um bilhete diz quem está na página: na web todo app divide a origem do portal, e num
+  // computador de laboratório a próxima pessoa na mesma sala abriria o rascunho da anterior. Com
+  // a pessoa na chave, cada uma acha só a sua, e a da outra espera intacta a volta da dona.
+  const SALA_SYNC = 0;
+  const SALA_PRESENCA = 1;
+  const PASSO_1 = 0;
+  const PASSO_2 = 1;
+  const ATUALIZACAO = 2;
+  const FECHAMENTOS_FINAIS = { 4403: 'sem-acesso', 4410: 'apagada' };
+
+  const varuint = (n) => {
+    const out = [];
+    while (n > 0x7f) { out.push((n & 0x7f) | 0x80); n = Math.floor(n / 128); }
+    out.push(n);
+    return Uint8Array.from(out);
+  };
+
+  /** Uma mensagem do protocolo: cada número vira varuint, e cada `Uint8Array` vai com o tamanho. */
+  function mensagemDaSala(...partes) {
+    const pedacos = [];
+    for (const p of partes) {
+      if (p instanceof Uint8Array) pedacos.push(varuint(p.length), p);
+      else pedacos.push(varuint(p));
+    }
+    const out = new Uint8Array(pedacos.reduce((n, p) => n + p.length, 0));
+    let i = 0;
+    for (const p of pedacos) { out.set(p, i); i += p.length; }
+    return out;
+  }
+
+  function leitorDaSala(bytes) {
+    let pos = 0;
+    const numero = () => {
+      let n = 0;
+      let mult = 1;
+      for (;;) {
+        if (pos >= bytes.length) throw new Error('mensagem da sala truncada');
+        const b = bytes[pos++];
+        n += (b & 0x7f) * mult;
+        if (b < 0x80) return n;
+        mult *= 128;
+      }
+    };
+    const bytesComTamanho = () => {
+      const tamanho = numero();
+      if (pos + tamanho > bytes.length) throw new Error('mensagem da sala truncada');
+      pos += tamanho;
+      return bytes.subarray(pos - tamanho, pos);
+    };
+    return { numero, bytesComTamanho };
+  }
+
+  // A cópia local, uma por sala e canal. Um IndexedDB que não abre (janela anônima, cota) deixa
+  // a sala sem cópia, e nada além disso.
+  let _bancoDasSalas = null;
+  function bancoDasSalas() {
+    if (!_bancoDasSalas) {
+      _bancoDasSalas = new Promise((resolve) => {
+        try {
+          const pedido = window.indexedDB.open('vssh-salas', 1);
+          pedido.onupgradeneeded = () => pedido.result.createObjectStore('copias');
+          pedido.onsuccess = () => resolve(pedido.result);
+          pedido.onerror = () => resolve(null);
+        } catch { resolve(null); }
+      });
+    }
+    return _bancoDasSalas;
+  }
+  async function naCopia(modo, operar) {
+    const banco = await bancoDasSalas();
+    if (!banco) return null;
+    return new Promise((resolve) => {
+      try {
+        const pedido = operar(banco.transaction('copias', modo).objectStore('copias'));
+        pedido.onsuccess = () => resolve(pedido.result ?? null);
+        pedido.onerror = () => resolve(null);
+      } catch { resolve(null); }
+    });
+  }
+
+  /**
+   * Liga o Y.Doc do app à sala `id` e devolve a conexão:
+   *
+   *   doc          o Y.Doc (o de `opcoes.doc`, ou um novo)
+   *   presenca     o Awareness da sala, quando o app passou `awarenessProtocol` ou `presenca`
+   *   estado       'conectando', 'sincronizado', 'fora', 'sem-acesso', 'apagada' ou 'saiu'
+   *   papel        'dona', 'editar', 'comentar' ou 'ver', depois do primeiro bilhete
+   *   podeEscrever se o papel escreve neste canal; o portal descarta a escrita de quem não escreve
+   *   sincronizado uma promessa que resolve no primeiro passo 2 do portal
+   *   aoMudar(cb)  `cb({ estado, papel })` a cada mudança; devolve a função que cancela
+   *   sair()       fecha a conexão e grava a cópia local
+   *
+   * `opcoes.canal` é `documento` (o padrão) ou `comentarios`, e `opcoes.guardarLocal: false`
+   * desliga a cópia no IndexedDB.
+   */
+  vssh.salas.entrar = (id, opcoes = {}) => {
+    const { Y } = opcoes;
+    if (!Y || typeof Y.applyUpdate !== 'function') throw new Error('vssh.salas.entrar precisa do Y do app: entrar(id, { Y })');
+    if (!noAmbiente) throw new Error('fora do ambiente VSSH: salas');
+    const canal = opcoes.canal || 'documento';
+    const doc = opcoes.doc || new Y.Doc();
+    const protocolo = opcoes.awarenessProtocol || null;
+    const criouPresenca = !opcoes.presenca && !!protocolo;
+    const presenca = opcoes.presenca || (protocolo ? new protocolo.Awareness(doc) : null);
+    if (presenca && !protocolo) throw new Error('vssh.salas.entrar: com `presenca`, passe também `awarenessProtocol`');
+    const guardarLocal = opcoes.guardarLocal !== false;
+    const DA_SALA = { sala: id };
+
+    let ws = null;
+    let dono = null;
+    const chave = () => `${dono}|${id}/${canal}`;
+    let timerVolta = null;
+    let timerCopia = null;
+    let tentativas = 0;
+    let resolverSincronizado;
+    const sincronizado = new Promise((r) => { resolverSincronizado = r; });
+    const ouvintes = new Set();
+
+    const conexao = {
+      doc, presenca, canal, estado: 'conectando', papel: null, podeEscrever: false, sincronizado,
+      aoMudar(cb) { ouvintes.add(cb); return () => ouvintes.delete(cb); },
+      sair,
+    };
+    const final = () => ['sem-acesso', 'apagada', 'saiu'].includes(conexao.estado);
+    // Sem acesso, a cópia local sai e não volta: o documento segue com o app, e só com ele.
+    const semCopia = () => !guardarLocal || !dono || conexao.estado === 'sem-acesso' || conexao.estado === 'apagada';
+
+    function mudar(estado, papel = conexao.papel) {
+      if (estado === conexao.estado && papel === conexao.papel) return;
+      conexao.estado = estado;
+      conexao.papel = papel;
+      conexao.podeEscrever = papel === 'dona' || papel === 'editar' || (papel === 'comentar' && canal === 'comentarios');
+      for (const cb of [...ouvintes]) {
+        try { cb({ estado, papel }); } catch (err) { console.warn('[vssh] salas.aoMudar:', err); }
+      }
+    }
+
+    const enviar = (bytes) => { if (ws && ws.readyState === WebSocket.OPEN) ws.send(bytes); };
+
+    function guardarDepois() {
+      if (semCopia() || timerCopia) return;
+      timerCopia = setTimeout(guardarAgora, 400);
+    }
+    function guardarAgora() {
+      clearTimeout(timerCopia);
+      timerCopia = null;
+      if (semCopia()) return Promise.resolve();
+      const copia = { estado: Y.encodeStateAsUpdate(doc) };
+      return naCopia('readwrite', (loja) => loja.put(copia, chave()));
+    }
+
+    // A última edição antes de a página fechar ainda não foi gravada: o prazo de 400 ms é para
+    // não gravar a cada tecla.
+    const aoEsconder = () => { guardarAgora(); };
+    window.addEventListener('pagehide', aoEsconder);
+
+    const aoMudarDoc = (atualizacao, origem) => {
+      if (origem !== DA_SALA) enviar(mensagemDaSala(SALA_SYNC, ATUALIZACAO, atualizacao));
+      guardarDepois();
+    };
+    doc.on('update', aoMudarDoc);
+
+    const aoMudarPresenca = ({ added, updated, removed }, origem) => {
+      if (origem === DA_SALA) return;
+      enviar(mensagemDaSala(SALA_PRESENCA, protocolo.encodeAwarenessUpdate(presenca, added.concat(updated, removed))));
+    };
+    if (presenca) presenca.on('update', aoMudarPresenca);
+
+    function aoReceber(dados) {
+      try {
+        const l = leitorDaSala(new Uint8Array(dados));
+        const tipo = l.numero();
+        if (tipo === SALA_SYNC) {
+          const passo = l.numero();
+          const corpo = l.bytesComTamanho();
+          if (passo === PASSO_1) {
+            enviar(mensagemDaSala(SALA_SYNC, PASSO_2, Y.encodeStateAsUpdate(doc, corpo)));
+          } else {
+            Y.applyUpdate(doc, corpo, DA_SALA);
+            if (passo === PASSO_2) { mudar('sincronizado'); resolverSincronizado(conexao); }
+          }
+        } else if (tipo === SALA_PRESENCA && presenca) {
+          protocolo.applyAwarenessUpdate(presenca, l.bytesComTamanho(), DA_SALA);
+        }
+      } catch (err) {
+        console.warn(`[vssh] mensagem da sala ${id}:`, err);
+      }
+    }
+
+    // A presença de quem está do outro lado fica velha quando a conexão cai: sai da lista, e a
+    // volta a traz de novo.
+    //
+    // A nossa precisa de um relógio maior na volta. Quando a conexão cai, o portal remove o estado
+    // desta página com o relógio `N + 1`, e as outras pessoas guardam o mesmo; um reenvio com o `N`
+    // de antes seria descartado, e a presença só voltaria na renovação do Awareness, até 15 s
+    // depois. Um passo na queda e outro na volta levam a `N + 2`.
+    function avancarRelogio() {
+      if (presenca && presenca.getLocalState() !== null) presenca.setLocalState(presenca.getLocalState());
+    }
+    function esquecerOutros() {
+      if (!presenca) return;
+      const outros = [...presenca.getStates().keys()].filter((c) => c !== doc.clientID);
+      if (outros.length) protocolo.removeAwarenessStates(presenca, outros, DA_SALA);
+    }
+
+    async function encerrar(estado) {
+      clearTimeout(timerVolta);
+      timerVolta = null;
+      window.removeEventListener('online', voltarJa);
+      esquecerOutros();
+      mudar(estado, estado === 'saiu' ? conexao.papel : null);
+      if (estado !== 'saiu' && guardarLocal && dono) await naCopia('readwrite', (loja) => loja.delete(chave()));
+    }
+
+    function agendarVolta() {
+      if (final() || timerVolta) return;
+      const espera = Math.min(30000, 500 * 2 ** tentativas) * (0.8 + Math.random() * 0.4);
+      tentativas++;
+      timerVolta = setTimeout(() => { timerVolta = null; conectar(); }, espera);
+    }
+    function voltarJa() {
+      if (final() || ws) return;
+      clearTimeout(timerVolta);
+      timerVolta = null;
+      conectar();
+    }
+    window.addEventListener('online', voltarJa);
+
+    async function conectar() {
+      if (final() || ws) return;
+      if (conexao.estado !== 'fora') mudar('conectando');
+      let b;
+      try {
+        b = await vssh.salas.bilhete(id);
+      } catch {
+        mudar('fora');
+        agendarVolta();
+        return;
+      }
+      if (final()) return;
+      if (!b || !b.bilhete) { await encerrar('sem-acesso'); return; }
+      if (dono === null && b.usuario) {
+        dono = String(b.usuario);
+        const copia = guardarLocal ? await naCopia('readonly', (loja) => loja.get(chave())) : null;
+        if (copia && copia.estado) Y.applyUpdate(doc, copia.estado, DA_SALA);
+      }
+      mudar(conexao.estado, b.papel);
+      if (final()) return;
+      // Na web o app divide a origem com o portal, e a sala é o `caminho` do bilhete. No cliente de
+      // desktop a origem é do app, onde todo upgrade vai ao backend dele, e o relay leva o espaço
+      // `/_sdk/sala/` ao portal, como leva o `/_sdk/` do HTTP.
+      const caminho = slugDoServidor ? b.caminho : b.caminho.replace(/^\/ws\/sala\//, '/_sdk/sala/');
+      const base = location.origin.replace(/^http/, 'ws');
+      const socket = new WebSocket(`${base}${caminho}/${canal}?bilhete=${encodeURIComponent(b.bilhete)}`);
+      socket.binaryType = 'arraybuffer';
+      ws = socket;
+      socket.onopen = () => {
+        tentativas = 0;
+        enviar(mensagemDaSala(SALA_SYNC, PASSO_1, Y.encodeStateVector(doc)));
+        // O `update` do Awareness leva o estado ao portal, pelo `aoMudarPresenca`.
+        avancarRelogio();
+      };
+      socket.onmessage = (e) => aoReceber(e.data);
+      socket.onclose = (e) => {
+        if (ws !== socket) return;
+        ws = null;
+        if (final()) return;
+        esquecerOutros();
+        avancarRelogio();
+        const motivo = FECHAMENTOS_FINAIS[e.code];
+        if (motivo) { encerrar(motivo); return; }
+        mudar('fora');
+        agendarVolta();
+      };
+    }
+
+    let largou = false;
+    async function sair() {
+      if (largou) return;
+      largou = true;
+      if (!final()) await encerrar('saiu');
+      const socket = ws;
+      ws = null;
+      if (socket) socket.close(1000);
+      doc.off('update', aoMudarDoc);
+      window.removeEventListener('pagehide', aoEsconder);
+      if (presenca) presenca.off('update', aoMudarPresenca);
+      if (criouPresenca) presenca.destroy();
+      await guardarAgora();
+    }
+
+    conectar();
+    return conexao;
+  };
 
   // ── O título, espelhado sem o app pedir ───────────────────────────────────────────────────
   //
