@@ -39,8 +39,10 @@ declare namespace vssh {
       /**
        * O contexto com que o app foi aberto ("abrir aqui", "abrir com", um item da jump list).
        * Chega depois do load, e de novo quando uma ação alcança uma janela que já está aberta.
+       * `item` é o `id` do item de `contributes.contextMenu` que a pessoa clicou, e é por ele que
+       * um app com mais de um item no mesmo arquivo sabe qual foi.
        */
-      abertura: { caminho?: string; url?: string; tipo?: 'arquivo' | 'pasta' | 'url'; rota?: string };
+      abertura: { caminho?: string; url?: string; tipo?: 'arquivo' | 'pasta' | 'url'; rota?: string; item?: string };
     }
     /** Assina um evento deste espaço e devolve a função que cancela a assinatura. */
     function ao<E extends keyof Eventos>(evento: E, cb: (dados: Eventos[E]) => void): () => void;

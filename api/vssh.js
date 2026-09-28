@@ -207,8 +207,8 @@
   // tabela. `ponte` e `EVENTOS` são do runtime, declarados logo acima.
 
   EVENTOS.app = {
-    // O contexto com que o app foi aberto ("abrir aqui", "abrir com", um item da jump list). Chega depois do load, e de novo quando uma ação alcança uma janela que já está aberta.
-    abertura: ['open-context', { caminho: 'path', url: 'url', tipo: 'tipo', rota: 'rota' }],
+    // O contexto com que o app foi aberto ("abrir aqui", "abrir com", um item da jump list). Chega depois do load, e de novo quando uma ação alcança uma janela que já está aberta. `item` é o `id` do item de `contributes.contextMenu` que a pessoa clicou, e é por ele que um app com mais de um item no mesmo arquivo sabe qual foi.
+    abertura: ['open-context', { caminho: 'path', url: 'url', tipo: 'tipo', rota: 'rota', item: 'item' }],
   };
   EVENTOS.janela = {
     // As abas que a sessão anterior deixou salvas, mandadas uma vez, no load do iframe de um app com `richChrome`. Chega mesmo sem nada salvo (`abas: null`), para o app nunca decidir sozinho se cria uma aba inicial.

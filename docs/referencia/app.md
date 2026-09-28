@@ -63,7 +63,9 @@ No fio: `type: "rota"`.
 `vssh.app.ao('abertura', cb)`
 
 O contexto com que o app foi aberto ("abrir aqui", "abrir com", um item da jump list). Chega depois
-do load, e de novo quando uma ação alcança uma janela que já está aberta.
+do load, e de novo quando uma ação alcança uma janela que já está aberta. `item` é o `id` do item de
+`contributes.contextMenu` que a pessoa clicou, e é por ele que um app com mais de um item no mesmo
+arquivo sabe qual foi.
 
 | campo | tipo | opcional | no fio |
 |---|---|---|---|
@@ -71,5 +73,6 @@ do load, e de novo quando uma ação alcança uma janela que já está aberta.
 | `url` | `string` | sim | `url` |
 | `tipo` | `'arquivo' \| 'pasta' \| 'url'` | sim | `tipo` |
 | `rota` | `string` | sim | `rota` |
+| `item` | `string` | sim | `item` |
 
 No fio: `type: "open-context"`.
