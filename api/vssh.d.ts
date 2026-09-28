@@ -387,10 +387,10 @@ declare namespace vssh {
     function senha(mensagem: string, titulo?: string): Promise<unknown>;
     /**
      * O menu de contexto do ambiente, montado com os itens que o app descreve: `label`, `icon`,
-     * `id`, `danger`, `checked`, `disabled`, `separator`, `header` e um nível de `submenu`. `x` e
-     * `y` são do viewport do app, e o shell soma a posição da janela. A resposta é o `id` do item
-     * escolhido (o `label`, quando o item não tem id), e `null` quando a pessoa fechou sem
-     * escolher.
+     * `id`, `danger`, `checked`, `disabled`, `separator`, `header` e um nível de `submenu`. `icon`
+     * é o nome de um ícone do Tuff (`sigma`, `table`). `x` e `y` são do viewport do app, e o shell
+     * soma a posição da janela. A resposta é o `id` do item escolhido (o `label`, quando o item não
+     * tem id), e `null` quando a pessoa fechou sem escolher.
      */
     function menuDeContexto(x: number, y: number, itens: object[]): Promise<unknown>;
 

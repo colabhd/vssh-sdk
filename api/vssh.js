@@ -387,7 +387,7 @@
     perguntar: (mensagem, valor, titulo) => ponte.chamar('dialogos.perguntar', { type: 'dialog', variant: 'prompt', message: mensagem, value: valor, title: titulo }, 600000),
     // Um campo de senha, com o texto escondido. A resposta é o valor digitado, ou `null` quando a pessoa cancelou. O valor chega ao app; para uma credencial que o app não deve ver, o caminho é `segredos.pedir`.
     senha: (mensagem, titulo) => ponte.chamar('dialogos.senha', { type: 'dialog', variant: 'password', message: mensagem, title: titulo }, 600000),
-    // O menu de contexto do ambiente, montado com os itens que o app descreve: `label`, `icon`, `id`, `danger`, `checked`, `disabled`, `separator`, `header` e um nível de `submenu`. `x` e `y` são do viewport do app, e o shell soma a posição da janela. A resposta é o `id` do item escolhido (o `label`, quando o item não tem id), e `null` quando a pessoa fechou sem escolher.
+    // O menu de contexto do ambiente, montado com os itens que o app descreve: `label`, `icon`, `id`, `danger`, `checked`, `disabled`, `separator`, `header` e um nível de `submenu`. `icon` é o nome de um ícone do Tuff (`sigma`, `table`). `x` e `y` são do viewport do app, e o shell soma a posição da janela. A resposta é o `id` do item escolhido (o `label`, quando o item não tem id), e `null` quando a pessoa fechou sem escolher.
     menuDeContexto: (x, y, itens) => ponte.chamar('dialogos.menuDeContexto', { type: 'context-menu', x: x, y: y, items: itens }, 600000),
     // Este espaço não declara eventos: qualquer nome aqui é recusado.
     ao: (evento, cb) => ponte.escutar('dialogos', evento, cb),
