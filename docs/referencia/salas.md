@@ -198,4 +198,14 @@ No fio: `type: "salas", op: "ticket"`.
 
 ## Eventos
 
-Este espaço não declara eventos; `vssh.salas.ao()` recusa qualquer nome.
+### `mudaram`
+
+`vssh.salas.ao('mudaram', cb)`
+
+A lista de salas deste app mudou para a pessoa: um convite chegou, ela saiu ou foi tirada de uma
+sala, uma sala trocou de nome ou foi apagada. O evento não traz a lista; quem a mostra chama
+`listar` de novo. Chega a todas as janelas do app.
+
+O `cb` recebe um objeto vazio.
+
+No fio: `type: "salas-changed"`.

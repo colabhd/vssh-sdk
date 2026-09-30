@@ -241,6 +241,8 @@
   EVENTOS.segredos = {
   };
   EVENTOS.salas = {
+    // A lista de salas deste app mudou para a pessoa: um convite chegou, ela saiu ou foi tirada de uma sala, uma sala trocou de nome ou foi apagada. O evento não traz a lista; quem a mostra chama `listar` de novo. Chega a todas as janelas do app.
+    mudaram: ['salas-changed', {}],
   };
   EVENTOS.apps = {
   };
@@ -429,7 +431,7 @@
     avisar: (id, tipo, para, ancora) => ponte.chamar('salas.avisar', { type: 'salas', op: 'notify', sala: id, tipo: tipo, para: para, ancora: ancora }, 5000),
     // O bilhete que abre o WebSocket da sala por 60 s: `{ bilhete, validoAte, usuario, papel, caminho, canais, anexos }`. O endereço é `caminho + "/" + canal + "?bilhete=" + bilhete`, na origem do app. Sem acesso à sala (ela foi apagada, a pessoa saiu dela, ou é de outro app), a resposta é `{ bilhete: null }`. `vssh.salas.entrar` pede um bilhete novo a cada conexão; um app com provedor próprio do y-websocket o usa direto.
     bilhete: (id) => ponte.chamar('salas.bilhete', { type: 'salas', op: 'ticket', sala: id }, 5000),
-    // Este espaço não declara eventos: qualquer nome aqui é recusado.
+    // Assina um evento deste espaço (mudaram) e devolve a função que cancela.
     ao: (evento, cb) => ponte.escutar('salas', evento, cb),
   };
 

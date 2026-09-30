@@ -499,8 +499,16 @@ declare namespace vssh {
      */
     function bilhete(id: string): Promise<unknown>;
 
-    /** Este espaço não declara eventos: `ao` não aceita nome nenhum. */
-    interface Eventos {}
+    /** Os eventos deste espaço, e o que cada um entrega ao `cb` de `ao`. */
+    interface Eventos {
+      /**
+       * A lista de salas deste app mudou para a pessoa: um convite chegou, ela saiu ou foi tirada
+       * de uma sala, uma sala trocou de nome ou foi apagada. O evento não traz a lista; quem a
+       * mostra chama `listar` de novo. Chega a todas as janelas do app.
+       */
+      mudaram: Record<string, never>;
+    }
+    /** Assina um evento deste espaço e devolve a função que cancela a assinatura. */
     function ao<E extends keyof Eventos>(evento: E, cb: (dados: Eventos[E]) => void): () => void;
   }
 

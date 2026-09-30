@@ -80,7 +80,8 @@ um dos valores listados, opcional, padrão `"app"`, valores `"app"`, `"engine"`.
 um dos valores listados, opcional, padrão `"app"`, valores `"app"`, `"service"`.
 
 Eixo de LIFECYCLE, ortogonal a `type`: 'service' é daemon supervisionado (start automático,
-auto-restart, status).
+auto-restart, status). Um `type: engine` que oferece capacidade (`provides`) e não traz
+`engine.loader` sobe quando alguém pede a capacidade, e não no load do ambiente.
 
 ## `alwaysRunning`
 

@@ -39,7 +39,7 @@
         "service"
       ],
       "default": "app",
-      "description": "Eixo de LIFECYCLE, ortogonal a `type`: 'service' é daemon supervisionado (start automático, auto-restart, status)."
+      "description": "Eixo de LIFECYCLE, ortogonal a `type`: 'service' é daemon supervisionado (start automático, auto-restart, status). Um `type: engine` que oferece capacidade (`provides`) e não traz `engine.loader` sobe quando alguém pede a capacidade, e não no load do ambiente."
     },
     "alwaysRunning": {
       "type": "boolean",
