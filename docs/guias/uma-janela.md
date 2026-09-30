@@ -144,7 +144,7 @@ ambiente; três gestos passam a ser seus:
 ```js
 barra.addEventListener('pointerdown', (e) => vssh.janela.arrastar(e.clientX, e.clientY, e.screenX, e.screenY));
 barra.addEventListener('pointermove', (e) => vssh.janela.arrastarPara(e.screenX, e.screenY));
-barra.addEventListener('pointerup',   () => vssh.janela.arrastarFim());
+barra.addEventListener('pointerup',   () => vssh.janela.terminarArraste());
 barra.addEventListener('dblclick',    () => vssh.janela.alternarMaximizado());
 barra.addEventListener('contextmenu', (e) => vssh.janela.menuDoCabecalho(e.clientX, e.clientY));
 ```
@@ -169,18 +169,24 @@ aparece é o que o app montou, com o menu do ambiente:
 el.addEventListener('contextmenu', async (e) => {
   e.preventDefault();
   const id = await vssh.dialogos.menuDeContexto(e.clientX, e.clientY, [
-    { id: 'abrir',    rotulo: 'Abrir',    icone: 'folder_open' },
-    { id: 'renomear', rotulo: 'Renomear', icone: 'edit' },
-    { separador: true },
-    { id: 'excluir',  rotulo: 'Excluir',  icone: 'delete', perigo: true },
+    { id: 'abrir',    label: 'Abrir',    icon: 'folder' },
+    { id: 'renomear', label: 'Renomear', icon: 'edit' },
+    { separator: true },
+    { id: 'excluir',  label: 'Excluir',  icon: 'trash', danger: true },
   ]);
   if (id) executar(id);
 });
 ```
 
-Devolve o `id` escolhido, ou `null` se a pessoa fechou sem escolher; trate o `null`, que é o caso
-comum. Só dado atravessa: rótulo, ícone e `id`, nunca função e nunca HTML. As coordenadas são as
-do seu viewport, e o shell soma a posição da janela. A exceção ao menu suprimido é o que for
-editável (`<input>`, `<textarea>`, `contenteditable`), onde o menu do navegador é a única forma de
-recortar e colar com o mouse; e um `stopPropagation()` no `contextmenu` de um elemento devolve a
-caixa nativa ali.
+Cada item é `{ id, label, icon }`, com `danger`, `checked` e `disabled` quando cabem. Entre os
+itens vão `{ separator: true }` e `{ header: 'Título' }`, e um item com `submenu: [...]` abre um
+nível a mais. `icon` é o nome de um [ícone do Tuff](../aparencia/icones.md#todos-os-ícones), como
+o `folder` e o `trash` do exemplo.
+
+Devolve o `id` escolhido (o `label`, num item sem `id`), ou `null` se a pessoa fechou sem
+escolher; trate o `null`, que é o caso comum. Um clique fora do menu, inclusive dentro do próprio
+app, fecha o menu e também devolve `null`. Só dado atravessa: rótulo, ícone e `id`, nunca função
+e nunca HTML. As coordenadas são as do seu viewport, e o shell soma a posição da janela. A exceção
+ao menu suprimido é o que for editável (`<input>`, `<textarea>`, `contenteditable`), onde o menu
+do navegador é a única forma de recortar e colar com o mouse; e um `stopPropagation()` no
+`contextmenu` de um elemento devolve a caixa nativa ali.
