@@ -13,7 +13,8 @@ documenta o Tuff, o ambiente visual que um app recebe pronto.
 
 A referência mora em [`referencia/`](referencia/README.md): um capítulo por espaço da API
 (`vssh.app`, `vssh.janela`, `vssh.arquivos`, `vssh.avisos`, `vssh.dialogos`, `vssh.segredos`,
-`vssh.midia`, `vssh.impressao`, `vssh.gpu`), com a assinatura de cada verbo, o que ele responde e
+`vssh.midia`, `vssh.impressao`, `vssh.gpu`, `vssh.configuracoes`, `vssh.salas`, `vssh.pessoas`,
+`vssh.apps`), com a assinatura de cada verbo, o que ele responde e
 os eventos que o shell manda de volta. O canal de publicação do sistema a escreve depois de cada
 deploy, junto de [`api/`](../api/) e [`runtime/`](../runtime/); uma correção nela se faz na
 descrição do verbo, na tabela do sistema, e chega aqui na rodada seguinte.
@@ -43,6 +44,8 @@ descrição do verbo, na tabela do sistema, e chega aqui na rodada seguinte.
 | [Avisos e atividades](guias/avisos-e-atividades.md) | Escolher entre notificação, aviso efêmero e atividade, e emitir cada um com janela aberta ou de um backend sem janela. |
 | [GPU](guias/gpu.md) | O que `recursos.gpu.modo` declara, o que o lançador faz com isso, e como o backend e a janela perguntam o que receberam por `vssh.gpu`. |
 | [Trabalho longo](guias/trabalho-longo.md) | Rodar um trabalho de minutos ou horas na estação ou na fila com o mesmo código, com progresso, fim no sino, cancelamento e retomada depois de um reinício. |
+| [Um app colaborativo](guias/um-app-colaborativo.md) | Duas pessoas no mesmo documento do app, cada uma na própria estação, pelas salas do portal: o Yjs do app ligado à sala, o estado da conexão, a presença, o convite, a menção, e o backend entrando como a dona. |
+| [Chamar outro app](guias/chamar-outro-app.md) | Usar o que outro app instalado oferece por uma capacidade com versão, e oferecer uma: `provides`, `requires` e `capacidades` no manifesto, `vssh.apps.pedir` na página, e o consentimento da pessoa no meio. |
 | [Um motor fora do pacote](guias/motor.md) | Entregar ao servidor o que o app usa e não cabe no pacote (um ambiente com PyTorch, os pesos de um modelo), baixado uma vez por servidor e achado por `VSSH_MOTOR_<NOME>`. |
 | [Publicar](guias/publicar.md) | Empacotar, publicar no repositório de artefatos e instalar num servidor, por CI ou à mão. |
 
@@ -63,8 +66,8 @@ A galeria com todos os componentes numa página só, para julgar olhando, contin
 ## Sobre os nomes dos verbos
 
 Os nomes públicos da API são em português, um espaço por assunto: `vssh.app`, `vssh.janela`,
-`vssh.arquivos`, `vssh.avisos`, `vssh.dialogos`, `vssh.segredos`, `vssh.midia`, `vssh.impressao`
-e `vssh.gpu`. O código dos guias usa esses nomes, e é o SDK servido pelo sistema em
+`vssh.arquivos`, `vssh.avisos`, `vssh.dialogos`, `vssh.segredos`, `vssh.midia`, `vssh.impressao`,
+`vssh.gpu`, `vssh.configuracoes`, `vssh.salas`, `vssh.pessoas` e `vssh.apps`. O código dos guias usa esses nomes, e é o SDK servido pelo sistema em
 `_sdk/vssh.js` que os expõe; a forma de assinar um evento é `vssh.<espaco>.ao('<evento>', cb)`.
 
 A referência gerada é a fonte dos nomes de verbo. Onde um nome de verbo neste portal divergir da
