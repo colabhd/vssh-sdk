@@ -76,6 +76,22 @@ O `pedido` é o de `fila.submeter`. O trabalho segue o job pelos eventos do port
 o que o container imprimiu pelo mesmo protocolo: quem lê a linha no log é o portal. Com `linhas`,
 o log do container também chega ao app, sem as linhas de progresso.
 
+O job roda num pod do cluster, com a imagem do pedido, e o SkyPilot é quem o põe de pé. Por isso
+o pedido e a imagem seguem estas regras:
+
+- o `comando` vai inteiro, porque o `ENTRYPOINT` e o `WORKDIR` da imagem não rodam. O `PATH` e o
+  resto do `ENV` dela continuam valendo;
+- a imagem tem bash e apt (Debian ou Ubuntu). Antes do comando, o SkyPilot instala por apt o que
+  falta para o runtime dele, e numa `alpine` o job termina em `falhou` com o motivo `imagem`;
+- o comando roda num diretório com `entradas/` e `saidas/`, que `VSSH_ENTRADAS` e `VSSH_SAIDAS`
+  apontam. As entradas do pedido já estão em `entradas/`, e só volta como saída o que o comando
+  escreve em `saidas/` com um nome que o pedido lista.
+
+O primeiro job numa imagem leva minutos para começar, entre puxar a imagem e preparar o runtime:
+de 1 a 4 min nas medições do portal, e mais numa imagem de dezenas de GB. O job fica em `na_fila`
+enquanto isso. Um pedido de GPU sem `tipo` aceita os tipos padrão da fila, e o cluster escolhe o
+sítio pela placa livre.
+
 Aqui a biblioteca não escreve atividade nem notificação. O portal já põe o job em curso na bandeja
 de quem está com o ambiente aberto e avisa o fim, e escrever de novo daria duas linhas para o mesmo
 trabalho. Para o aviso do portal levar a pessoa de volta ao trabalho, o pedido diz onde:
