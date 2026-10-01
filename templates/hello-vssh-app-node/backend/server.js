@@ -213,25 +213,25 @@ function registrarSonda(id, evento, campos) {
 /**
  * Submete o `nvidia-smi` ao cluster e acompanha em segundo plano. Devolve o registro inicial.
  *
- * O comando escreve em `/vssh/saidas/placa.txt`, que é o que o pod sobe ao terminar; `baixar` traz
- * o arquivo para o diretório de dados do app, e a galeria mostra o conteúdo. Uma GPU só entra no
- * pedido quando o cluster oferece algum tipo: sem GPU o job roda do mesmo jeito e o `nvidia-smi`
- * diz que não achou placa, o que também é uma medição.
+ * O comando escreve em `$VSSH_SAIDAS/placa.txt`, que é o que o job sobe ao terminar; `baixar` traz
+ * o arquivo para o diretório de dados do app, e a galeria mostra o conteúdo. A GPU vai no pedido
+ * sem tipo quando o cluster oferece alguma: o portal aceita qualquer placa padrão, e o job pega a
+ * que estiver livre, em qualquer sítio. Sem GPU o job roda do mesmo jeito.
  */
 async function sondarFila() {
   const oferta = await fila.disponivel();
   if (!oferta.disponivel) return { ok: false, motivo: oferta.motivo };
-  const tipo = oferta.gpus?.[0]?.tipo;
   const trabalho = {
     nome: 'sonda-gpu',
     imagem: 'nvidia/cuda:12.6.0-base-ubuntu24.04',
-    comando: ['sh', '-c', 'nvidia-smi > /vssh/saidas/placa.txt 2>&1'],
+    comando: ['sh', '-c', 'nvidia-smi > "$VSSH_SAIDAS/placa.txt" 2>&1'],
     saidas: ['placa.txt'],
     cpu: '1', memoria: '1Gi', prazo: 600,
   };
-  if (tipo) trabalho.gpu = { quantidade: 1, tipo };
+  const gpu = oferta.gpus?.length ? 'qualquer' : null;
+  if (gpu) trabalho.gpu = { quantidade: 1 };
   const id = await fila.submeter(trabalho);
-  const registro = registrarSonda(id, null, { estado: 'enviado', gpu: tipo ?? null });
+  const registro = registrarSonda(id, null, { estado: 'enviado', gpu });
 
   (async () => {
     try {
