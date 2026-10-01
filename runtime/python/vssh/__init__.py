@@ -15,7 +15,7 @@ Dez módulos, cada um importado por si:
     from vssh import avisos      # notificar, atividade em curso e bandeja, para um app sem janela
     from vssh import app         # quem sou, o diretório de dados, a versão do pacote instalado
     from vssh import gpu         # o que o sistema concedeu de GPU a este app, e por que não
-    from vssh import fila        # delegar um container ao cluster Kubernetes, e acompanhá-lo
+    from vssh import fila        # delegar um container ao cluster, pelo SkyPilot, e acompanhá-lo
     from vssh import progresso   # a linha de progresso de um trabalho longo: escrever e ler
     from vssh import trabalhos   # um trabalho longo na estação ou na fila, acompanhado igual
 

@@ -456,13 +456,14 @@ um servidor sem placa, ou um usuário fora do grupo `render`, deixa esse app par
 `boolean`, opcional, padrão `false`.
 
 A fila de processamento: o app delega trabalho pesado (um container com imagem, comando e arquivos)
-ao cluster Kubernetes que o servidor do usuário aponta, em vez de rodá-lo na GPU da estação.
-Declarar faz o portal escrever `VSSH_PORTAL_URL` e `VSSH_PORTAL_TOKEN` no ambiente do app a cada
-subida; com eles o backend chama `vssh.fila` (`submeter`, `acompanhar`, `baixar`, `cancelar`). O
-token é a identidade do app diante do portal, alcança `/api/fila/*` (e `/api/salas/*`, se o app
-também declarar `recursos.salas`), e morre com o app (`stop` o revoga). Sem esta declaração o app
-não recebe o par, e `vssh.fila.disponivel()` diz por quê. Um servidor sem cluster configurado
-responde o mesmo: o app pergunta antes de prometer.
+ao cluster, pelo SkyPilot, que escolhe o sítio pela placa pedida, em vez de rodá-lo na GPU da
+estação. A imagem precisa de bash e apt (Debian ou Ubuntu), e o comando vai inteiro, porque o
+ENTRYPOINT dela não roda. Declarar faz o portal escrever `VSSH_PORTAL_URL` e `VSSH_PORTAL_TOKEN` no
+ambiente do app a cada subida; com eles o backend chama `vssh.fila` (`submeter`, `acompanhar`,
+`baixar`, `cancelar`). O token é a identidade do app diante do portal, alcança `/api/fila/*` (e
+`/api/salas/*`, se o app também declarar `recursos.salas`), e morre com o app (`stop` o revoga). Sem
+esta declaração o app não recebe o par, e `vssh.fila.disponivel()` diz por quê. Um servidor com a
+fila desligada responde o mesmo: o app pergunta antes de prometer.
 
 ### `recursos.salas`
 

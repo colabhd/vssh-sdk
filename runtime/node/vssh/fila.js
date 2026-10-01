@@ -1,6 +1,6 @@
 'use strict';
 
-// A fila de processamento: delegar um container ao cluster Kubernetes. O par de `vssh/fila.py`.
+// A fila de processamento: delegar um container ao cluster, pelo SkyPilot. O par de `vssh/fila.py`.
 //
 // O app declara `recursos.fila: true` no manifesto e recebe do portal, a cada subida,
 // `VSSH_PORTAL_URL` e `VSSH_PORTAL_TOKEN`. É com esse par que tudo aqui fala com `/api/fila/*`.
@@ -13,7 +13,10 @@
 //   if (final.estado === 'concluido') await fila.baixar(id, '/home/ana/saida');
 //
 // Estados: `declarado`, `enviado`, `na_fila`, `rodando`, e os finais `concluido`, `falhou`
-// (`motivo`: `prazo`, `imagem`, `entrada:<nome>`, `codigo:<n>`, `sumiu`) e `cancelado`.
+// (`motivo`: `prazo`, `imagem`, `espera`, `entrada:<nome>`, `codigo:<n>`, `sumiu`) e `cancelado`.
+//
+// O SkyPilot ignora o ENTRYPOINT da imagem, e por isso o `comando` vai inteiro; a imagem precisa de
+// bash e apt (Debian ou Ubuntu). O comando roda num diretório com `entradas/` e `saidas/`.
 //
 // Um trabalho que imprime linhas de `vssh/progresso` no stdout tem o progresso lido pelo portal:
 // o `aoEvento` de `acompanhar` recebe `progresso` com o job, e `job.progresso` traz `feito`,

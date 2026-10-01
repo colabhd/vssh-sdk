@@ -1,15 +1,19 @@
 """
-A fila de processamento: delegar um container ao cluster Kubernetes, em vez de rodá-lo aqui.
+A fila de processamento: delegar um container ao cluster, em vez de rodá-lo aqui.
 
 O app declara `recursos.fila: true` no manifesto e recebe do portal, a cada subida,
 `VSSH_PORTAL_URL` e `VSSH_PORTAL_TOKEN`: a URL pública do portal e a identidade deste app diante
 dele. É com esse par que tudo aqui fala com `/api/fila/*`. Sem ele, `disponivel()` diz o motivo e
-`submeter()` levanta `ErroDaFila`; um servidor sem cluster configurado responde o mesmo, pela
-mesma pergunta. O app pergunta antes de prometer um botão.
+`submeter()` levanta `ErroDaFila`; um servidor com a fila desligada responde o mesmo, pela mesma
+pergunta. O app pergunta antes de prometer um botão.
 
 O trabalho é um container: a imagem do app, o comando, arquivos de entrada da estação e os nomes
-das saídas que ele vai escrever em `/vssh/saidas`. Os arquivos viajam pelo S3 do cluster, por URLs
-que o portal assina; este módulo sobe as entradas e baixa as saídas com `urllib`, em stream.
+das saídas que ele vai escrever em `saidas/`. O SkyPilot escolhe o sítio, roda a imagem com o
+runtime dele instalado e ignora o ENTRYPOINT: o comando vai inteiro, e a imagem precisa de bash e
+apt (Debian ou Ubuntu). O comando roda num diretório com `entradas/` e `saidas/`, e
+`VSSH_ENTRADAS` e `VSSH_SAIDAS` têm os caminhos absolutos. Os arquivos viajam pelo S3 do cluster,
+por URLs que o portal assina; este módulo sobe as entradas e baixa as saídas com `urllib`, em
+stream.
 
     from vssh import fila
 
@@ -20,7 +24,7 @@ que o portal assina; este módulo sobe as entradas e baixa as saídas com `urlli
             'comando': ['ffmpeg', '-i', 'entradas/v.mp4', 'saidas/v.webm'],
             'entradas': {'v.mp4': '/home/ana/videos/v.mp4'},
             'saidas': ['v.webm'],
-            'gpu': {'quantidade': 1, 'tipo': 'rtx-a5000'},
+            'gpu': {'quantidade': 1, 'memoriaMinGiB': 20},
             'cpu': '4', 'memoria': '8Gi', 'prazo': 3600,
         })
         final = fila.acompanhar(ident, ao_evento=lambda ev, job: print(ev, job['estado']))
@@ -28,9 +32,9 @@ que o portal assina; este módulo sobe as entradas e baixa as saídas com `urlli
             fila.baixar(ident, '/home/ana/videos/saida')
 
 Estados de um job: `declarado`, `enviado`, `na_fila`, `rodando`, e os finais `concluido`,
-`falhou` (com `motivo`: `prazo`, `imagem`, `entrada:<nome>`, `codigo:<n>`, `sumiu`) e
+`falhou` (com `motivo`: `prazo`, `imagem`, `espera`, `entrada:<nome>`, `codigo:<n>`, `sumiu`) e
 `cancelado`. Dentro do container, `VSSH_ENTRADAS` e `VSSH_SAIDAS` apontam os dois diretórios, e o
-diretório de trabalho é `/vssh`.
+diretório de trabalho é o pai deles.
 
 Um trabalho que imprime linhas de `vssh.progresso` no stdout tem o progresso lido pelo portal: o
 `ao_evento` de `acompanhar` recebe `progresso` com o job, e `job['progresso']` traz `feito`,
@@ -185,9 +189,10 @@ def _subir(url, caminho, ao_progresso=None):
 def submeter(trabalho, ao_progresso=None, env=None):
     """Declara, sobe as entradas e inicia. Devolve o id do job.
 
-    `trabalho` leva `imagem` (obrigatória), `comando`, `args`, `env`, `entradas` (dict nome →
-    caminho, ou lista de caminhos), `saidas` (nomes em /vssh/saidas), `gpu` (`{'quantidade',
-    'tipo'}`), `cpu`, `memoria`, `disco`, `prazo` (segundos), `nome` e `abrir` (onde o clique no
+    `trabalho` leva `imagem` e `comando` (obrigatórios), `args`, `env`, `entradas` (dict nome →
+    caminho, ou lista de caminhos), `saidas` (nomes em `saidas/`), `gpu` (`{'quantidade', 'tipo'}`,
+    com `tipo` um tipo ou uma lista, ou `{'quantidade', 'memoriaMinGiB'}`), `cpu`, `memoria`,
+    `disco`, `prazo` (segundos de execução), `nome` e `abrir` (onde o clique no
     aviso de fim leva, um caminho dentro do app). O que o portal recusa vem
     como `ErroDaFila` com a mensagem dele, antes de qualquer byte subir.
     """

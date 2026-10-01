@@ -23,7 +23,7 @@
 //   avisos     notificar, atividade em curso e bandeja, para um app sem janela
 //   app        quem sou, o diretório de dados, a versão do pacote instalado
 //   gpu        o que o sistema concedeu de GPU a este app, e por que não
-//   fila       delegar um container ao cluster Kubernetes, e acompanhá-lo
+//   fila       delegar um container ao cluster, pelo SkyPilot, e acompanhá-lo
 //   progresso  a linha de progresso de um trabalho longo: escrever e ler
 //   trabalhos  um trabalho longo na estação ou na fila, acompanhado igual
 
