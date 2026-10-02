@@ -971,7 +971,9 @@
   // "Inspecionar"): um menu de outro programa, sobre uma página e um iframe. O menu que um app
   // oferece é `vssh.dialogos.menuDeContexto`, e enquanto ele não o chama, silêncio é melhor. A
   // exceção é o que for editável, onde a caixa nativa é a única forma de recortar, copiar e colar
-  // com o mouse. Um app que quer a caixa nativa num elemento chama `stopPropagation()` nele.
+  // com o mouse e de chegar à correção ortográfica; no cliente de desktop, ela é o menu de reserva
+  // do cliente (`vssh-electron/menu-nativo.js`). Um app que quer a caixa nativa num elemento chama
+  // `stopPropagation()` nele.
   if (noAmbiente && typeof document !== 'undefined' && document.addEventListener) {
     const EDITAVEL = 'input, textarea, [contenteditable=""], [contenteditable="true"]';
     document.addEventListener('contextmenu', (e) => {
