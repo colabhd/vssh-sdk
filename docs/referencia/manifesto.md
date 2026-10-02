@@ -25,7 +25,6 @@ do campo na mensagem. Obrigatórios: `id`, `version`, `backend`.
 | [`version`](#version) | `string` | sim |
 | [`type`](#type) | um dos valores listados | não |
 | [`kind`](#kind) | um dos valores listados | não |
-| [`alwaysRunning`](#alwaysrunning) | `boolean` | não |
 | [`engine`](#engine) | `object` | não |
 | [`provides`](#provides) | `array` de `string` | não |
 | [`requires`](#requires) | `array` de `string` | não |
@@ -82,12 +81,6 @@ um dos valores listados, opcional, padrão `"app"`, valores `"app"`, `"service"`
 Eixo de LIFECYCLE, ortogonal a `type`: 'service' é daemon supervisionado (start automático,
 auto-restart, status). Um `type: engine` que oferece capacidade (`provides`) e não traz
 `engine.loader` sobe quando alguém pede a capacidade, e não no load do ambiente.
-
-## `alwaysRunning`
-
-`boolean`, opcional.
-
-LEGADO — equivale a kind:'service'. Mantido só por compat com manifestos já instalados.
 
 ## `engine`
 

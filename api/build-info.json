@@ -53,7 +53,7 @@
       "sha256": "43e440ec551e92f28376acdecdf1b285362a85f5b4afddfb028fef2213929862"
     },
     "api/vssh-app.schema.json": {
-      "sha256": "a48717c78494ebf3bf8754d1eef2f8ab24fbeec435c05012c66e38c592bb60d6"
+      "sha256": "fc407123a92e3bfb0569f9aadd0391af87a7b9b8aca669edc2c1dc08bd9413aa"
     },
     "api/vssh.d.ts": {
       "sha256": "4c9907575a57c4fbf673105f74077959ea423f1c5012b834b650a1dbbba25f34"
@@ -95,7 +95,7 @@
       "sha256": "72df24420240c6de566ffd23805f453e5e5ca1bd483dca404a660c96f3aa6a48"
     },
     "docs/referencia/manifesto.md": {
-      "sha256": "739d0d566207ff7ba4f2e8f9f5a4f49fcb3b76b4c53daab734d24b8fea621e75"
+      "sha256": "3da7d22731cc7c71c70a3e37b4cef5480e11fa5c2a1dfe4c3d61dced6aae17cb"
     },
     "docs/referencia/midia.md": {
       "sha256": "189b0de451e02e02c80829dc3c5dd844a0a4d0648a57b1c3514a8faae8a05015"
@@ -173,7 +173,7 @@
       "sha256": "cbcceab47a69695b8228372e0f069ad1481ada6c004a2404056bdab432d4d959"
     },
     "runtime/python/vssh/servidor.py": {
-      "sha256": "31d8d7b75faaa4c8d2f9150182b4547127151e3caa2d6b73d2b3b5de69b3e563"
+      "sha256": "01a10d8238b0c0972b6475316c17bc4a6a4967014625e12d657865dcccab21e2"
     },
     "runtime/python/vssh/trabalhos.py": {
       "sha256": "4c9b4ec2082f19b18c637005f3e58bcae0e810f9b9a10fd56a8b98141c29e3bf"

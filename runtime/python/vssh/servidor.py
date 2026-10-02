@@ -229,6 +229,29 @@ class Pedido(http.server.BaseHTTPRequestHandler):
     cabecalhos_fixos = {}
     recusa = 'Sem autorização.'
 
+    # Entre um pedido e o seguinte de uma conexão keep-alive, a thread dela só espera a próxima
+    # linha, e o cliente (o `agenteHttp` do portal) guarda conexões ociosas no pool dele. Passado
+    # este prazo sem pedido, a conexão fecha e a thread sai junto. O prazo vale só na espera pelo
+    # pedido: um SSE ou um terminal depois do `101` correm sem ele.
+    conexao_ociosa_s = float(os.environ.get('VSSH_CONEXAO_OCIOSA_S') or 300)
+
+    def handle(self):
+        self.close_connection = False
+        while not self.close_connection:
+            if not self._chegou_pedido():
+                return
+            self.handle_one_request()
+
+    def _chegou_pedido(self):
+        try:
+            self.connection.settimeout(self.conexao_ociosa_s)
+            try:
+                return bool(self.rfile.peek(1))
+            finally:
+                self.connection.settimeout(None)
+        except (OSError, ValueError):
+            return False
+
     # Uma linha por pedido é ruído num log que ninguém lê; erro sai pelo `log_error`.
     def log_message(self, fmt, *args):
         pass
