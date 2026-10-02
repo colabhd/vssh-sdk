@@ -48,8 +48,8 @@ O diretório é `0700`, do usuário. O que há nele, e quem escreve cada coisa:
 | `app.sock` | o backend | o socket unix em que ele escuta, `0600`. O arquivo sobrevive ao processo; quem limpa o órfão é o lançador, depois de tentar conectar |
 | `data/` | o backend | `VSSH_APP_DATA_DIR`: o que não pode se perder. O `app.log` de `vssh.servidor.criar_log` mora aqui |
 | `run.pid` | o lançador, logo antes do `exec` | o PID do processo; a liveness que o portal e o supervisor conferem, junto do `VSSH_APP_ID` no `environ` dele |
-| `run.log`, `run.log.1` | o portal abre, o processo escreve | stdout e stderr do backend; rotacionado a cada start, e o anterior fica em `.1`. É o que "Ver log" mostra no gerenciador de tarefas |
-| `status.json` | o supervisor, a cada ciclo de 10 s | `{ id, state, restarts, pid, port, lastError, updatedAt }`; `state` é `running`, `stopped`, `restarting` ou `failed` |
+| `run.log`, `run.log.1` | o portal abre, o processo escreve | stdout e stderr do backend; rotacionado a cada start, e o anterior fica em `.1`. Com o app de pé, o supervisor o corta acima de 10 MiB e guarda o último 1 MiB em `.1`. É o que "Ver log" mostra no gerenciador de tarefas |
+| `status.json` | o supervisor, quando o estado muda (a varredura é a cada 10 s) | `{ id, state, restarts, pid, port, lastError, updatedAt }`; `state` é `running`, `stopped`, `restarting` ou `failed` |
 | `limits.json` | o lançador, a cada subida | o que foi aplicado: `contido`, e o `motivo` quando não; `gpu` (`negada`, `concedida`, `sem-gpu`, `nao-sei`), `gpuMotivo`, `gpuInfo`, e os `limites` (`MemoryHigh`, `MemoryMax`, `CPUQuota`, `TasksMax`). É o que `vssh.gpu.concedida()` lê |
 | `subindo` | o lançador | um marcador datado enquanto o prólogo (o setup por usuário) roda; some antes do `exec`, e um marcador velho não conta |
 | `recusado` | o lançador | o motivo de uma subida recusada (uma GPU `necessaria` que o servidor não tem); o supervisor responde `failed` sem relançar enquanto ele existir, e a próxima tentativa o apaga |
