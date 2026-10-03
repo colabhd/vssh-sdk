@@ -390,12 +390,24 @@ declare namespace vssh {
      * `id`, `danger`, `checked`, `disabled`, `separator`, `header` e um nível de `submenu`. `icon`
      * é o nome de um ícone do Tuff (`sigma`, `table`). `x` e `y` são do viewport do app, e o shell
      * soma a posição da janela. A resposta é o `id` do item escolhido (o `label`, quando o item não
-     * tem id), e `null` quando a pessoa fechou sem escolher.
+     * tem id), e `null` quando a pessoa fechou sem escolher. `ortografia` põe na frente as
+     * sugestões do corretor para a palavra errada do clique, e quem o passa é
+     * `vssh.dialogos.menuDoEvento`, do runtime: ele só vale num `contextmenu` que o app deixou sem
+     * cancelar, e o runtime sabe quando o ambiente o atende. A escolha de uma sugestão troca a
+     * palavra no campo e responde `null`.
      */
-    function menuDeContexto(x: number, y: number, itens: object[]): Promise<unknown>;
+    function menuDeContexto(x: number, y: number, itens: object[], ortografia?: boolean): Promise<unknown>;
 
-    /** Este espaço não declara eventos: `ao` não aceita nome nenhum. */
-    interface Eventos {}
+    /** Os eventos deste espaço, e o que cada um entrega ao `cb` de `ao`. */
+    interface Eventos {
+      /**
+       * Se o menu de contexto deste ambiente traz a correção ortográfica de um campo editável.
+       * Chega no load da janela, e só no cliente de desktop. O SDK já o usa em
+       * `vssh.dialogos.menuDoEvento`, que deixa o `contextmenu` passar quando ele é `true`.
+       */
+      ortografia: { noMenu: boolean };
+    }
+    /** Assina um evento deste espaço e devolve a função que cancela a assinatura. */
     function ao<E extends keyof Eventos>(evento: E, cb: (dados: Eventos[E]) => void): () => void;
   }
 
@@ -724,6 +736,16 @@ declare namespace vssh {
     ): boolean;
     /** Os handles de File System Access do que já foi concedido, sem abrir seletor. */
     function handlesConcedidos(): Promise<Array<FileSystemFileHandle | FileSystemDirectoryHandle>>;
+  }
+
+  namespace dialogos {
+    /**
+     * O menu do ambiente para o `contextmenu` que o app recebeu, com a correção ortográfica do
+     * clique na frente quando ele cai num campo editável. Chamado de dentro do ouvinte, sem
+     * `preventDefault()` antes: o auxiliar decide se cancela o evento, e só o deixa passar no
+     * cliente de desktop, que entrega a palavra errada ao shell. Responde como `menuDeContexto`.
+     */
+    function menuDoEvento(evento: MouseEvent, itens: object[]): Promise<unknown>;
   }
 
   namespace midia {

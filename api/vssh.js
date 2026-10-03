@@ -80,6 +80,7 @@
       return;
     }
     if (m.type === 'grants') adotar(m.paths);
+    if (m.type === 'spelling-menu') ortografiaNoMenu = m.inMenu === true;
     if (m.type === 'volume') { ganho = limitar(m.gain); mudo = !!m.muted; aplicarVolume(); }
     const cbs = ouvintes.get(m.type);
     if (!cbs) return;
@@ -237,6 +238,8 @@
     acaoNaBandeja: ['tray-event', { evento: 'event', menuId: 'menuId' }],
   };
   EVENTOS.dialogos = {
+    // Se o menu de contexto deste ambiente traz a correção ortográfica de um campo editável. Chega no load da janela, e só no cliente de desktop. O SDK já o usa em `vssh.dialogos.menuDoEvento`, que deixa o `contextmenu` passar quando ele é `true`.
+    ortografia: ['spelling-menu', { noMenu: 'inMenu' }],
   };
   EVENTOS.segredos = {
   };
@@ -389,9 +392,9 @@
     perguntar: (mensagem, valor, titulo) => ponte.chamar('dialogos.perguntar', { type: 'dialog', variant: 'prompt', message: mensagem, value: valor, title: titulo }, 600000),
     // Um campo de senha, com o texto escondido. A resposta é o valor digitado, ou `null` quando a pessoa cancelou. O valor chega ao app; para uma credencial que o app não deve ver, o caminho é `segredos.pedir`.
     senha: (mensagem, titulo) => ponte.chamar('dialogos.senha', { type: 'dialog', variant: 'password', message: mensagem, title: titulo }, 600000),
-    // O menu de contexto do ambiente, montado com os itens que o app descreve: `label`, `icon`, `id`, `danger`, `checked`, `disabled`, `separator`, `header` e um nível de `submenu`. `icon` é o nome de um ícone do Tuff (`sigma`, `table`). `x` e `y` são do viewport do app, e o shell soma a posição da janela. A resposta é o `id` do item escolhido (o `label`, quando o item não tem id), e `null` quando a pessoa fechou sem escolher.
-    menuDeContexto: (x, y, itens) => ponte.chamar('dialogos.menuDeContexto', { type: 'context-menu', x: x, y: y, items: itens }, 600000),
-    // Este espaço não declara eventos: qualquer nome aqui é recusado.
+    // O menu de contexto do ambiente, montado com os itens que o app descreve: `label`, `icon`, `id`, `danger`, `checked`, `disabled`, `separator`, `header` e um nível de `submenu`. `icon` é o nome de um ícone do Tuff (`sigma`, `table`). `x` e `y` são do viewport do app, e o shell soma a posição da janela. A resposta é o `id` do item escolhido (o `label`, quando o item não tem id), e `null` quando a pessoa fechou sem escolher. `ortografia` põe na frente as sugestões do corretor para a palavra errada do clique, e quem o passa é `vssh.dialogos.menuDoEvento`, do runtime: ele só vale num `contextmenu` que o app deixou sem cancelar, e o runtime sabe quando o ambiente o atende. A escolha de uma sugestão troca a palavra no campo e responde `null`.
+    menuDeContexto: (x, y, itens, ortografia) => ponte.chamar('dialogos.menuDeContexto', { type: 'context-menu', x: x, y: y, items: itens, spelling: ortografia }, 600000),
+    // Assina um evento deste espaço (ortografia) e devolve a função que cancela.
     ao: (evento, cb) => ponte.escutar('dialogos', evento, cb),
   };
 
@@ -974,6 +977,36 @@
   // com o mouse e de chegar à correção ortográfica; no cliente de desktop, ela é o menu de reserva
   // do cliente (`vssh-electron/menu-nativo.js`). Um app que quer a caixa nativa num elemento chama
   // `stopPropagation()` nele.
+  //
+  // Um app que desenha o próprio menu num campo editável o pede por `vssh.dialogos.menuDoEvento`,
+  // e não perde a correção: no cliente de desktop o evento passa sem cancelar, o Chromium entrega a
+  // palavra errada ao cliente, e o shell põe as sugestões na frente do menu do app. O shell avisa
+  // no load da janela (`spelling-menu`) quando sabe fazer isso; sem o aviso, e na web, o auxiliar
+  // cancela o evento, e a correção fica no Shift com o botão direito, que devolve a caixa nativa.
+  let ortografiaNoMenu = false;
+  const CAMPOS_DE_TEXTO = new Set(['text', 'search', 'url', 'email', 'tel', '']);
+  const editavel = (el) => {
+    if (!el || el.nodeType !== 1) return false;
+    if (el.isContentEditable) return true;
+    const tag = el.tagName;
+    const texto = tag === 'TEXTAREA' || (tag === 'INPUT' && CAMPOS_DE_TEXTO.has(String(el.getAttribute('type') || '').toLowerCase()));
+    return texto && !el.readOnly && !el.disabled;
+  };
+
+  /**
+   * O menu do ambiente para o `contextmenu` que o app recebeu, com a correção ortográfica do clique
+   * na frente quando ele cai num campo editável. O auxiliar decide se o evento é cancelado, e por
+   * isso o app o chama de dentro do ouvinte, sem `preventDefault()` antes. Responde como
+   * `menuDeContexto`: o `id` escolhido, ou `null`, também quando a pessoa escolheu uma sugestão.
+   */
+  vssh.dialogos.menuDoEvento = (evento, itens) => {
+    const comOrtografia = noAmbiente && ortografiaNoMenu && editavel(evento && evento.target);
+    if (!comOrtografia && evento && typeof evento.preventDefault === 'function') evento.preventDefault();
+    const x = Number(evento && evento.clientX) || 0;
+    const y = Number(evento && evento.clientY) || 0;
+    return vssh.dialogos.menuDeContexto(x, y, itens, comOrtografia || undefined);
+  };
+
   if (noAmbiente && typeof document !== 'undefined' && document.addEventListener) {
     const EDITAVEL = 'input, textarea, [contenteditable=""], [contenteditable="true"]';
     document.addEventListener('contextmenu', (e) => {

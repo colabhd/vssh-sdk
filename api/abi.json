@@ -1232,14 +1232,32 @@
               "nome": "itens",
               "fio": "items",
               "tipo": "object[]"
+            },
+            {
+              "nome": "ortografia",
+              "fio": "spelling",
+              "tipo": "boolean",
+              "opcional": true
             }
           ],
           "responde": true,
           "ritmo": "humano",
-          "descricao": "O menu de contexto do ambiente, montado com os itens que o app descreve: `label`, `icon`, `id`, `danger`, `checked`, `disabled`, `separator`, `header` e um nível de `submenu`. `icon` é o nome de um ícone do Tuff (`sigma`, `table`). `x` e `y` são do viewport do app, e o shell soma a posição da janela. A resposta é o `id` do item escolhido (o `label`, quando o item não tem id), e `null` quando a pessoa fechou sem escolher."
+          "descricao": "O menu de contexto do ambiente, montado com os itens que o app descreve: `label`, `icon`, `id`, `danger`, `checked`, `disabled`, `separator`, `header` e um nível de `submenu`. `icon` é o nome de um ícone do Tuff (`sigma`, `table`). `x` e `y` são do viewport do app, e o shell soma a posição da janela. A resposta é o `id` do item escolhido (o `label`, quando o item não tem id), e `null` quando a pessoa fechou sem escolher. `ortografia` põe na frente as sugestões do corretor para a palavra errada do clique, e quem o passa é `vssh.dialogos.menuDoEvento`, do runtime: ele só vale num `contextmenu` que o app deixou sem cancelar, e o runtime sabe quando o ambiente o atende. A escolha de uma sugestão troca a palavra no campo e responde `null`."
         }
       },
-      "eventos": {}
+      "eventos": {
+        "ortografia": {
+          "fio": "spelling-menu",
+          "campos": [
+            {
+              "nome": "noMenu",
+              "fio": "inMenu",
+              "tipo": "boolean"
+            }
+          ],
+          "descricao": "Se o menu de contexto deste ambiente traz a correção ortográfica de um campo editável. Chega no load da janela, e só no cliente de desktop. O SDK já o usa em `vssh.dialogos.menuDoEvento`, que deixa o `contextmenu` passar quando ele é `true`."
+        }
+      }
     },
     "segredos": {
       "descricao": "O cofre: o app pede uma credencial pelo nome, o shell mostra o campo e grava, e o valor nunca passa pelo app. A pessoa confere, troca e apaga o que guardou no Chaveiro, a janela do ambiente que lista as credenciais de todo app.",

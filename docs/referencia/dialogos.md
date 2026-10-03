@@ -14,7 +14,7 @@ Os diálogos do sistema e o menu de contexto, desenhados pelo shell com os dados
 | [`vssh.dialogos.confirmar(mensagem, titulo)`](#confirmar) | sim, em até 10 min |
 | [`vssh.dialogos.perguntar(mensagem, valor, titulo)`](#perguntar) | sim, em até 10 min |
 | [`vssh.dialogos.senha(mensagem, titulo)`](#senha) | sim, em até 10 min |
-| [`vssh.dialogos.menuDeContexto(x, y, itens)`](#menudecontexto) | sim, em até 10 min |
+| [`vssh.dialogos.menuDeContexto(x, y, itens, ortografia)`](#menudecontexto) | sim, em até 10 min |
 
 ### `mostrar`
 
@@ -92,13 +92,16 @@ No fio: `type: "dialog", variant: "password"`.
 
 ### `menuDeContexto`
 
-`vssh.dialogos.menuDeContexto(x, y, itens)`
+`vssh.dialogos.menuDeContexto(x, y, itens, ortografia)`
 
 O menu de contexto do ambiente, montado com os itens que o app descreve: `label`, `icon`, `id`,
 `danger`, `checked`, `disabled`, `separator`, `header` e um nível de `submenu`. `icon` é o nome de
 um ícone do Tuff (`sigma`, `table`). `x` e `y` são do viewport do app, e o shell soma a posição da
 janela. A resposta é o `id` do item escolhido (o `label`, quando o item não tem id), e `null` quando
-a pessoa fechou sem escolher.
+a pessoa fechou sem escolher. `ortografia` põe na frente as sugestões do corretor para a palavra
+errada do clique, e quem o passa é `vssh.dialogos.menuDoEvento`, do runtime: ele só vale num
+`contextmenu` que o app deixou sem cancelar, e o runtime sabe quando o ambiente o atende. A escolha
+de uma sugestão troca a palavra no campo e responde `null`.
 
 Responde: uma promessa, com prazo de 10 min (ritmo `humano`, a resposta depende de uma pessoa).
 No fio: `type: "context-menu"`.
@@ -108,7 +111,20 @@ No fio: `type: "context-menu"`.
 | `x` | `number` | não | `x` |
 | `y` | `number` | não | `y` |
 | `itens` | `object[]` | não | `items` |
+| `ortografia` | `boolean` | sim | `spelling` |
 
 ## Eventos
 
-Este espaço não declara eventos; `vssh.dialogos.ao()` recusa qualquer nome.
+### `ortografia`
+
+`vssh.dialogos.ao('ortografia', cb)`
+
+Se o menu de contexto deste ambiente traz a correção ortográfica de um campo editável. Chega no load
+da janela, e só no cliente de desktop. O SDK já o usa em `vssh.dialogos.menuDoEvento`, que deixa o
+`contextmenu` passar quando ele é `true`.
+
+| campo | tipo | opcional | no fio |
+|---|---|---|---|
+| `noMenu` | `boolean` | não | `inMenu` |
+
+No fio: `type: "spelling-menu"`.
