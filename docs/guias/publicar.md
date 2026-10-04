@@ -131,6 +131,26 @@ só reinstala quando a versão do repositório difere da instalada. Se o servido
 Não há `.desktop` nem menu XDG: o app aparece por `GET /api/apps` (cache de até 60 s no portal, 30
 s no cliente), na `category` que o manifesto declarou, sem reiniciar a sessão de ninguém.
 
+## Instalar só para quem pede
+
+Quem não é admin instala pela Loja, na própria HOME, o app que declara `pessoa` em `instalacao`:
+
+```json
+{ "instalacao": ["sistema", "pessoa"] }
+```
+
+O app vai para `~/.local/share/vssh-apps/<id>/`, e só essa pessoa o vê. Quem instala é o agente do
+sistema, como ela, na sequência do `vssh-app-install` sem os passos de root: baixa o pacote,
+confere o `sha256` e os `requiredPackages`, roda o `installCommand` com `VSSH_APP_REBUILD=1` dentro
+do pacote e troca a pasta. Um `installCommand` que precisa de root falha ali, e a versão anterior
+fica no lugar; por isso o campo é declarado por quem escreve o app, e a Loja só oferece o botão
+quando ele está lá. Um app com `motores` nunca se instala assim, porque o motor mora numa pasta de
+root. Um app que declara só `["pessoa"]` o `vssh-app-install` recusa em `/opt`.
+
+O app instalado assim sobe pelo mesmo `vssh-app-run`, com o mesmo setup por usuário, e os dados
+dele ficam em `VSSH_APP_DATA_DIR`, como os de um app do servidor. Remover pela Loja apaga a pasta
+do app e deixa os dados.
+
 ## Uma armadilha do `--force`
 
 `--force` troca os arquivos ao redor; ele não força uma etapa cara e idempotente dentro do
