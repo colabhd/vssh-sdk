@@ -22,8 +22,9 @@
 //
 // Publicar nunca lança e nunca espera a rede. Os eventos se juntam na memória (os contadores
 // somados por série) e saem a cada 10 s, num timer que não segura o processo, e quando o laço de
-// eventos esvazia (`beforeExit`); um envio que falhou não volta. Sem a credencial nada é guardado
-// nem sai, e `disponivel()` diz por quê.
+// eventos esvazia (`beforeExit`); um envio que falhou não volta. Um valor que não é número finito,
+// ou um rótulo que não vira JSON, fica de fora na hora da chamada, e não no envio, onde levaria
+// junto o lote inteiro. Sem a credencial nada é guardado nem sai, e `disponivel()` diz por quê.
 
 const http = require('node:http');
 const https = require('node:https');
@@ -58,11 +59,12 @@ function garantirTimer() {
 }
 
 const chave = (nome, rotulos) => JSON.stringify([nome, Object.entries(rotulos || {}).sort()]);
+const numero = (v) => typeof v === 'number' && Number.isFinite(v) && v >= 0;
 
 /** Soma `valor` ao contador `nome` com estes `rotulos`. */
 function contar(nome, valor = 1, rotulos = {}) {
   try {
-    if (!(typeof valor === 'number' && valor >= 0) || !credencial()) return;
+    if (!numero(valor) || !credencial()) return;
     const k = chave(nome, rotulos);
     const atual = contadores.get(k);
     if (atual) atual.valor += valor;
@@ -74,7 +76,10 @@ function contar(nome, valor = 1, rotulos = {}) {
 /** Registra que `nome` levou `segundos`. */
 function duracao(nome, segundos, rotulos = {}) {
   try {
-    if (!(typeof segundos === 'number' && segundos >= 0) || !credencial()) return;
+    if (!numero(segundos) || !credencial()) return;
+    // Um rótulo que não vira JSON (um BigInt, um ciclo) lança aqui, e o evento fica de fora; no
+    // envio, ele levaria junto o lote inteiro.
+    chave(nome, rotulos);
     if (duracoes.length < DURACOES_MAX) duracoes.push({ nome, tipo: 'duracao', valor: segundos, rotulos: { ...rotulos } });
     garantirTimer();
   } catch { /* publicar não lança */ }
@@ -104,8 +109,13 @@ function relatarErro(erro, tipo = 'erro') {
 function postar(rota, corpo, env) {
   const cred = credencial(env);
   if (!cred) return Promise.resolve(false);
-  const dados = Buffer.from(JSON.stringify(corpo), 'utf8');
-  const u = new URL(cred.url + '/api/metricas' + rota);
+  let dados, u;
+  try {
+    dados = Buffer.from(JSON.stringify(corpo), 'utf8');
+    u = new URL(cred.url + '/api/metricas' + rota);
+  } catch {
+    return Promise.resolve(false);
+  }
   return new Promise((resolve) => {
     const req = (u.protocol === 'https:' ? https : http).request(u, {
       method: 'POST',

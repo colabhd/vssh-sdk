@@ -30,18 +30,20 @@ letras, dígitos e `_.:+-`. O portal recusa a série nova quando o app passa de 
 
 Publicar nunca levanta e nunca espera a rede. Os eventos se juntam na memória (os contadores
 somados por série) e saem por uma thread a cada 10 s, e na saída do processo; um envio que falhou
-não volta. Sem a credencial nada é guardado nem sai, e `disponivel()` diz por quê.
+não volta. Um valor que não é número finito, ou um rótulo que não vira JSON (uma data, um objeto),
+fica de fora na hora da chamada, e não no envio, onde levaria junto o lote inteiro. Sem a
+credencial nada é guardado nem sai, e `disponivel()` diz por quê.
 
 Só biblioteca padrão, como o resto do pacote.
 """
 
 import atexit
 import json
+import math
 import os
 import threading
 import time
 import traceback
-import urllib.error
 import urllib.request
 
 __all__ = ['disponivel', 'contar', 'duracao', 'cronometro', 'relatar_erro', 'enviar']
@@ -80,6 +82,10 @@ def _chave(nome, rotulos):
     return json.dumps([nome, sorted((rotulos or {}).items())], separators=(',', ':'))
 
 
+def _numero(v):
+    return isinstance(v, (int, float)) and math.isfinite(v) and v >= 0
+
+
 def _garantir_thread():
     global _thread
     if _thread is not None:
@@ -91,15 +97,17 @@ def _garantir_thread():
 def _laco():
     while True:
         time.sleep(_INTERVALO_S)
-        enviar()
+        try:
+            enviar()
+        except Exception:
+            # A thread é uma só: uma exceção aqui calaria as métricas do processo até ele reiniciar.
+            pass
 
 
 def contar(nome, valor=1, rotulos=None):
     """Soma `valor` ao contador `nome` com estes `rotulos`."""
     try:
-        if not (isinstance(valor, (int, float)) and valor >= 0):
-            return
-        if not _credencial():
+        if not _numero(valor) or not _credencial():
             return
         with _trava:
             k = _chave(nome, rotulos)
@@ -116,10 +124,9 @@ def contar(nome, valor=1, rotulos=None):
 def duracao(nome, segundos, rotulos=None):
     """Registra que `nome` levou `segundos`."""
     try:
-        if not (isinstance(segundos, (int, float)) and segundos >= 0):
+        if not _numero(segundos) or not _credencial():
             return
-        if not _credencial():
-            return
+        _chave(nome, rotulos)
         with _trava:
             if len(_duracoes) < _DURACOES_MAX:
                 _duracoes.append({'nome': nome, 'tipo': 'duracao', 'valor': segundos, 'rotulos': dict(rotulos or {})})
@@ -167,15 +174,15 @@ def _postar(rota, corpo, env=None):
     if not cred:
         return False
     url, token = cred
-    req = urllib.request.Request(
-        url + '/api/metricas' + rota, data=json.dumps(corpo, separators=(',', ':')).encode('utf-8'), method='POST',
-        headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'User-Agent': _AGENTE},
-    )
     try:
+        req = urllib.request.Request(
+            url + '/api/metricas' + rota, data=json.dumps(corpo, separators=(',', ':')).encode('utf-8'), method='POST',
+            headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'User-Agent': _AGENTE},
+        )
         with urllib.request.urlopen(req, timeout=_TEMPO_HTTP) as r:
             r.read()
         return True
-    except (urllib.error.URLError, OSError, ValueError):
+    except Exception:
         return False
 
 

@@ -134,7 +134,7 @@
       "sha256": "f0fda84b5a377c4282e738a40250cae064eed01556c2581f943638e1775d976a"
     },
     "runtime/node/vssh/metricas.js": {
-      "sha256": "718bdbb17c920c87113a73a7e17a8cc85db7a6b6eea2b6360a268e5d88b82960"
+      "sha256": "32fbd54a471aae69485e31f8f028cce91378eb40ee9122ab14e684c2becb72cf"
     },
     "runtime/node/vssh/package.json": {
       "sha256": "6df9d56718ca3662ca78cb1be1c522478db9a0dc5959144b045702b9424dbdb7"
@@ -173,7 +173,7 @@
       "sha256": "cac9d2600fe1b505847c5ff0b080cf10436b301a9cafc910e011d654789cc076"
     },
     "runtime/python/vssh/metricas.py": {
-      "sha256": "8c6cba431577458166c68380d7255b0b75055505457fe98c306eab3ba6aefaef"
+      "sha256": "50c27e0c0f3a207ea2411bba506b2702deba22be0c5a58e77f3d56da34b9631e"
     },
     "runtime/python/vssh/progresso.py": {
       "sha256": "cbcceab47a69695b8228372e0f069ad1481ada6c004a2404056bdab432d4d959"
