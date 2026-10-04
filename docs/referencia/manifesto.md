@@ -689,19 +689,19 @@ VSSH_APP_PORT sozinho como servidor desatualizado.
 
 ### `backend.aoFechar`
 
-um dos valores listados, opcional, padrão `"encerrar"`, valores `"encerrar"`, `"manter"`.
+`string`, opcional, padrão `"encerrar"`.
 
-O que acontece com o backend quando a ULTIMA janela deste app fecha. 'encerrar' (padrao): o ambiente
-chama o stop dois minutos depois, e uma janela do app aberta nesse intervalo o cancela e reaproveita
-o backend de pe. 'manter': o backend fica, porque quem o mantem vivo e o trabalho e nao a janela — e
-o caso de quem e dono de sessao de terceiro. O padrão é 'encerrar' porque é o que a pessoa espera de
-um desktop, e porque um padrão que vaza memória tem de ser o que se ESCOLHE e não o que se herda:
-sem contrato, a conta escala por (usuário × app já aberto uma vez) — um app aberto uma vez segue
-ocupando RAM em toda sessão daquela conta, sem janela na tela. kind:'service' ignora este campo: um
-daemon nao morre com uma janela, por definicao. O terceiro valor previsto, 'ocioso:\<N\>m', NAO
-existe ainda de proposito — ele depende de duas medidas que nao temos (o RSS do app ocioso, e como
-distinguir um filho que e trabalho de alguem de um filho qualquer), e um valor aceito que nao faz
-nada e pior que um valor ausente.
+O que acontece com o backend quando a ULTIMA janela deste app fecha, ou quando ninguem mais o usa.
+'encerrar' (padrao): o ambiente chama o stop dois minutos depois, e uma janela do app aberta nesse
+intervalo o cancela e reaproveita o backend de pe. 'manter': o backend fica, porque quem o mantem
+vivo e o trabalho e nao a janela, como o dono de sessao de terceiro. 'ocioso:\<N\>m' (de 1 a 9999
+minutos): o backend fica enquanto alguem o usa, e o supervisor do servidor o encerra depois de N
+minutos sem conexao nenhuma no socket dele, venha ela do portal ou do cliente de desktop; e o valor
+de um motor sob demanda, que nao tem janela. O proxy do portal segura uma conexao parada por ate 10
+minutos, e ela conta como uso. O padrao e 'encerrar' porque um padrao que vaza memoria tem de ser o
+que se escolhe: sem contrato, um app aberto uma vez seguiria ocupando RAM em toda sessao daquela
+conta, sem janela na tela. kind:'service' resolve 'encerrar' e 'manter' para 'manter', porque um
+daemon nao morre com uma janela, e respeita 'ocioso:\<N\>m'.
 
 ### `backend.installCommand`
 
