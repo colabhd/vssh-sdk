@@ -62,6 +62,10 @@ jobs:
   publish:
     name: Publish app no repositório de artefatos
     runs-on: ${{ inputs.runner }}
+    # Um publish leva menos de um minuto. O teto é para o que trava (um Worker que não responde, um
+    # upload que para no meio), que sem ele seguraria o runner por seis horas, e no scale set de
+    # uma organização o runner é de todos os repositórios dela.
+    timeout-minutes: 15
     steps:
       # O `vssh-app-publish` valida o manifesto com `python3`. O `ubuntu-latest` o traz de fábrica; a
       # imagem de um runner próprio costuma ter só git, curl e jq, e sem ele o publish morre antes de
