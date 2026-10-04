@@ -46,6 +46,7 @@
     ]
   },
   "minShellVersion": "5.0.0",
+  "instalacao": ["sistema", "pessoa"],
   "backend": {
     "runtime": "python3",
     "transport": "socket",
