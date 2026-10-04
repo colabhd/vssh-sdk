@@ -101,8 +101,16 @@ consegue. O sintoma na tela é `contido: false` no gerenciador de tarefas, com o
 O que para um app é o `aoFechar` do manifesto. `encerrar`, o padrão, faz o ambiente chamar o stop
 quando a última janela do app fecha, e o stop apaga o `env`; a partir daí nenhum dos três acima o
 ressuscita. `manter` deixa o backend de pé, para quem é dono de sessão de terceiro: um servidor de
-notebooks, um build em curso, um terminal com processos. `kind: service` ignora o campo, porque um
-daemon não morre com uma janela.
+notebooks, um build em curso, um terminal com processos. `kind: service` trata `encerrar` como
+`manter`, porque um daemon não morre com uma janela.
+
+`ocioso:<N>m`, de 1 a 9999 minutos, mede o uso em vez da janela. O supervisor conta, a cada volta,
+as conexões abertas no socket do app, e passados N minutos sem nenhuma ele encerra o app e apaga o
+`env`. Uma conexão aberta segura o app pelo tempo que ficar aberta, venha ela do portal ou do
+cliente de desktop, e o proxy do portal mantém uma conexão parada por até 10 minutos depois do
+último pedido. É o valor de um motor sob demanda, que não tem janela e que quem o usa sobe de novo
+por `ensureRunning` ou pela ponte: o motor de impressão declara `ocioso:15m`. Um `kind: service`
+respeita o valor.
 
 O padrão é `encerrar` porque um padrão que vaza memória tem de ser o que se escolhe: sem contrato,
 um app aberto uma vez seguiria ocupando RAM em toda sessão daquela conta, sem janela na tela.

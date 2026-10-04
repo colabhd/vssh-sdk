@@ -51,7 +51,7 @@ Configurações. Os dois eixos são independentes: um `type: engine` pode ser `k
 | `backend.transport` | tem um valor só, `socket`. O campo existe para que um manifesto que ainda declare `tcp` receba um erro que nomeia o problema, em vez de instalar e nunca responder |
 | `backend.installCommand` | roda duas vezes: como root na instalação, e como cada usuário na primeira subida (e de novo quando o hash do código muda). Escreva-o idempotente |
 | `backend.healthcheckPath` | o caminho que o ciclo de vida sonda até 15 vezes, 1 s entre elas, com o header `X-Vssh-App-Token`. `000`, `5xx`, `401` e `403` não contam como pronto; `404` conta, porque o servidor respondeu, e o que está errado é o caminho |
-| `backend.aoFechar` | o que acontece ao backend quando a última janela fecha. `encerrar` (padrão) para o processo; `manter` o deixa de pé, para quem é dono de sessão de terceiro (um servidor de notebooks, um build em curso). `kind: service` ignora o campo |
+| `backend.aoFechar` | o que acontece ao backend quando a última janela fecha, ou quando ninguém mais o usa. `encerrar` (padrão) para o processo; `manter` o deixa de pé, para quem é dono de sessão de terceiro (um servidor de notebooks, um build em curso); `ocioso:<N>m` o deixa de pé enquanto houver conexão no socket dele, e o supervisor o encerra depois de N minutos sem nenhuma, que é o valor de um motor sob demanda. `kind: service` trata `encerrar` como `manter` e respeita `ocioso:<N>m` |
 
 ### A janela
 
