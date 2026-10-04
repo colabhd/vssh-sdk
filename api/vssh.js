@@ -272,6 +272,8 @@
     titulo: (titulo) => ponte.disparar('app.titulo', { type: 'title', title: titulo }),
     // Onde o app está, para a sessão o reabrir no mesmo lugar: um caminho dentro do app, que o ambiente cola na URL quando restaura a janela. Uma rota que sai do app (um esquema, um caminho absoluto, um `..`) é recusada no console, sem resposta.
     lembrarRota: (rota) => ponte.disparar('app.lembrarRota', { type: 'rota', rota: rota }),
+    // Um erro do app, para o log do ambiente, onde quem mantém o sistema o lê ao lado do que aconteceu no portal. O SDK chama este verbo sozinho a cada exceção sem tratamento e a cada promessa rejeitada sem `catch` dentro do app; o app o chama com `tipo: 'relatado'` para um erro que ele mesmo tratou e quer registrar. O shell carimba o id do app, corta a mensagem em 1000 caracteres e a pilha em 8000, tira a query da fonte, e manda o mesmo erro uma vez a cada dez minutos.
+    relatarErro: (mensagem, pilha, fonte, linha, coluna, tipo) => ponte.disparar('app.relatarErro', { type: 'error-report', message: mensagem, stack: pilha, source: fonte, line: linha, column: coluna, kind: tipo }),
     // Assina um evento deste espaço (abertura) e devolve a função que cancela.
     ao: (evento, cb) => ponte.escutar('app', evento, cb),
   };
@@ -1327,6 +1329,27 @@
     conectar();
     return conexao;
   };
+
+  // ── Os erros do app, relatados sem o app pedir ────────────────────────────────────────────
+  //
+  // A exceção sem tratamento e a promessa rejeitada sem `catch` dentro do quadro vão ao shell por
+  // `vssh.app.relatarErro`, e de lá ao log do ambiente. O app não escreve nada para isso, e o
+  // shell decide o que manda e quando. Fora do ambiente o console do navegador continua sendo o
+  // lugar, e nada se instala.
+  if (noAmbiente && typeof window.addEventListener === 'function') {
+    const relatar = (mensagem, pilha, fonte, linha, coluna, tipo) => {
+      try { vssh.app.relatarErro(mensagem, pilha, fonte, linha, coluna, tipo); } catch { /* relatar não lança */ }
+    };
+    window.addEventListener('error', (ev) => {
+      // A falha de carga de um recurso chega como `Event` simples, no elemento.
+      if (typeof ErrorEvent === 'function' && !(ev instanceof ErrorEvent)) return;
+      relatar(String(ev.message || ''), ev.error && ev.error.stack, ev.filename, ev.lineno, ev.colno, 'erro');
+    });
+    window.addEventListener('unhandledrejection', (ev) => {
+      const r = ev.reason;
+      relatar(r instanceof Error ? `${r.name}: ${r.message}` : String(r), r && r.stack, undefined, undefined, undefined, 'rejeicao');
+    });
+  }
 
   // ── O título, espelhado sem o app pedir ───────────────────────────────────────────────────
   //

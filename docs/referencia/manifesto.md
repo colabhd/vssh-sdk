@@ -469,6 +469,21 @@ escopo das salas: o backend pede o bilhete como a pessoa dona da credencial e en
 app, para gravar no arquivo dela o que as outras pessoas escreveram. A credencial não abre a sala de
 outro app.
 
+### `recursos.metricas`
+
+`boolean`, opcional, padrão `false`.
+
+As métricas e os erros do backend, publicados no ambiente. Declarar faz o portal escrever
+`VSSH_PORTAL_URL` e `VSSH_PORTAL_TOKEN` no ambiente do app, com o escopo das métricas, e com eles o
+backend chama `vssh.metricas`: `contar` soma a um contador (uma transcrição, os segundos de áudio
+processados), `duracao` registra quanto algo levou, e `relatar_erro` (`relatarErro` em Node) manda
+uma exceção ao log do ambiente, ao lado dos erros do portal. O que o app publica sai no `/metrics`
+do portal como `vssh_app_events_total` e `vssh_app_event_duration_seconds`, com o id do app, o nome
+do evento e até cinco rótulos que o app escolhe. Um rótulo diz de que tipo é o evento (o motor, a
+língua, onde rodou), e nunca quem o causou: o portal recusa o que passa de 300 séries por app. Sem
+esta declaração o app não recebe o par, e `vssh.metricas.disponivel()` diz por quê; publicar sem o
+par não faz nada.
+
 ## `gpu`
 
 `boolean`, opcional, padrão `false`.

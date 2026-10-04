@@ -2,7 +2,7 @@
   "shellVersion": "5.0.0-rc0",
   "artifacts": {
     "api/abi.json": {
-      "sha256": "d12b12d6bc80754fe4bc34ae53ed45690aa73fa1ebd4d83144025c53bbb4d0aa"
+      "sha256": "ae899fb7ca61890d3e3cd617114f0b2e0276c06e76f17edea17f9b371656e8e2"
     },
     "api/electron.js": {
       "sha256": "802402efad47701fd6b50d90404fd04aae3b477820a720224ddd8ed3fa148269"
@@ -53,22 +53,22 @@
       "sha256": "43e440ec551e92f28376acdecdf1b285362a85f5b4afddfb028fef2213929862"
     },
     "api/vssh-app.schema.json": {
-      "sha256": "fc407123a92e3bfb0569f9aadd0391af87a7b9b8aca669edc2c1dc08bd9413aa"
+      "sha256": "2aebabcbd0dd40a75f9c46bb27fd5455382e136cfa1df9c98b1bcf224dbd87d1"
     },
     "api/vssh.d.ts": {
-      "sha256": "6e375057b63d76416f95ac3a33fdff6e7a67940cb2a797970d7d67094c613a6d"
+      "sha256": "148fd242f7876f655029ac172db4070ee87e2a47d5637f71ec8df92a3c381a98"
     },
     "api/vssh.js": {
-      "sha256": "87ced384a025dd9a6b42e0ee01adf5add8ddc8b7f5697800d1140454fc5c9255"
+      "sha256": "c9f800a027edf188a67a1338efa4ed623ea5e94379b8da7ab0fc7ee90956eae5"
     },
     "docs/referencia/README.md": {
-      "sha256": "e6e81d8b537af6bf3c0fd455a50a927d47e710c9f48626ef5261cb3b5b095158"
+      "sha256": "25fba6b3f2a01589d5c7b1a15e6739ffee149ebbd05acc832f738c094f6a0fc8"
     },
     "docs/referencia/ambiente.md": {
       "sha256": "80e837c926040cea8cb4d43136cfde641222aab76144af1549172f18428de387"
     },
     "docs/referencia/app.md": {
-      "sha256": "032eaa9ad77f2f5f8e828a38bb5eb505e20eaafd83cc4532ec332ee25f2bf26c"
+      "sha256": "ce2ab1644a3750fe80585cfaae423bb1c2d7568fd8f831c11c7a4fb57679e1d8"
     },
     "docs/referencia/apps.md": {
       "sha256": "d2255a22fa6e128614e16defcbcda42b6e62e8a6f1929f70b72d00b1b0e6b3aa"
@@ -95,7 +95,7 @@
       "sha256": "72df24420240c6de566ffd23805f453e5e5ca1bd483dca404a660c96f3aa6a48"
     },
     "docs/referencia/manifesto.md": {
-      "sha256": "3da7d22731cc7c71c70a3e37b4cef5480e11fa5c2a1dfe4c3d61dced6aae17cb"
+      "sha256": "8db9c56d089394ac2a7d1d84e4fd87ab8d781c04b554cec0b3092865bc400066"
     },
     "docs/referencia/midia.md": {
       "sha256": "189b0de451e02e02c80829dc3c5dd844a0a4d0648a57b1c3514a8faae8a05015"
@@ -131,7 +131,10 @@
       "sha256": "6643de6528771774c3bef5dbc4a08f30701a1d4db6db7951af565c24b8cded29"
     },
     "runtime/node/vssh/index.js": {
-      "sha256": "33a1e5ea530f2983852929e9fe19ddf25fdb66464f1fbd170b6690c406b7a427"
+      "sha256": "f0fda84b5a377c4282e738a40250cae064eed01556c2581f943638e1775d976a"
+    },
+    "runtime/node/vssh/metricas.js": {
+      "sha256": "718bdbb17c920c87113a73a7e17a8cc85db7a6b6eea2b6360a268e5d88b82960"
     },
     "runtime/node/vssh/package.json": {
       "sha256": "6df9d56718ca3662ca78cb1be1c522478db9a0dc5959144b045702b9424dbdb7"
@@ -149,7 +152,7 @@
       "sha256": "a817b415efd717c330ed0d2f451e313e7e4293c76c4d5410ad9e490a0bb75aeb"
     },
     "runtime/python/vssh/__init__.py": {
-      "sha256": "fe9c81d916e84c4566747b57e93c04f9c4f182bb16d7dc33086bf798ef7abd39"
+      "sha256": "28e1776400ba54f2a4776bc06504e12b393480719e67723de917ecd78e0a9dd2"
     },
     "runtime/python/vssh/app.py": {
       "sha256": "aff23ac21b1d02f7d9f53656d2fec3e0300b4400739d318ccdd843c31e3fd1aa"
@@ -168,6 +171,9 @@
     },
     "runtime/python/vssh/gpu.py": {
       "sha256": "cac9d2600fe1b505847c5ff0b080cf10436b301a9cafc910e011d654789cc076"
+    },
+    "runtime/python/vssh/metricas.py": {
+      "sha256": "8c6cba431577458166c68380d7255b0b75055505457fe98c306eab3ba6aefaef"
     },
     "runtime/python/vssh/progresso.py": {
       "sha256": "cbcceab47a69695b8228372e0f069ad1481ada6c004a2404056bdab432d4d959"

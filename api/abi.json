@@ -40,6 +40,50 @@
           ],
           "responde": false,
           "descricao": "Onde o app está, para a sessão o reabrir no mesmo lugar: um caminho dentro do app, que o ambiente cola na URL quando restaura a janela. Uma rota que sai do app (um esquema, um caminho absoluto, um `..`) é recusada no console, sem resposta."
+        },
+        "relatarErro": {
+          "fio": {
+            "type": "error-report"
+          },
+          "campos": [
+            {
+              "nome": "mensagem",
+              "fio": "message",
+              "tipo": "string"
+            },
+            {
+              "nome": "pilha",
+              "fio": "stack",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "fonte",
+              "fio": "source",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "linha",
+              "fio": "line",
+              "tipo": "number",
+              "opcional": true
+            },
+            {
+              "nome": "coluna",
+              "fio": "column",
+              "tipo": "number",
+              "opcional": true
+            },
+            {
+              "nome": "tipo",
+              "fio": "kind",
+              "tipo": "'erro' | 'rejeicao' | 'relatado'",
+              "opcional": true
+            }
+          ],
+          "responde": false,
+          "descricao": "Um erro do app, para o log do ambiente, onde quem mantém o sistema o lê ao lado do que aconteceu no portal. O SDK chama este verbo sozinho a cada exceção sem tratamento e a cada promessa rejeitada sem `catch` dentro do app; o app o chama com `tipo: 'relatado'` para um erro que ele mesmo tratou e quer registrar. O shell carimba o id do app, corta a mensagem em 1000 caracteres e a pilha em 8000, tira a query da fonte, e manda o mesmo erro uma vez a cada dez minutos."
         }
       },
       "eventos": {

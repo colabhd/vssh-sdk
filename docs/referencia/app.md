@@ -13,6 +13,7 @@ que a janela mostra e a rota que a sessão restaura.
 | [`vssh.app.capacidades()`](#capacidades) | sim, em até 5 s |
 | [`vssh.app.titulo(titulo)`](#titulo) | não |
 | [`vssh.app.lembrarRota(rota)`](#lembrarrota) | não |
+| [`vssh.app.relatarErro(mensagem, pilha, fonte, linha, coluna, tipo)`](#relatarerro) | não |
 
 ### `capacidades`
 
@@ -55,6 +56,28 @@ No fio: `type: "rota"`.
 | argumento | tipo | opcional | no fio |
 |---|---|---|---|
 | `rota` | `string` | não | `rota` |
+
+### `relatarErro`
+
+`vssh.app.relatarErro(mensagem, pilha, fonte, linha, coluna, tipo)`
+
+Um erro do app, para o log do ambiente, onde quem mantém o sistema o lê ao lado do que aconteceu no
+portal. O SDK chama este verbo sozinho a cada exceção sem tratamento e a cada promessa rejeitada sem
+`catch` dentro do app; o app o chama com `tipo: 'relatado'` para um erro que ele mesmo tratou e quer
+registrar. O shell carimba o id do app, corta a mensagem em 1000 caracteres e a pilha em 8000, tira
+a query da fonte, e manda o mesmo erro uma vez a cada dez minutos.
+
+Não responde: um disparo, sem retorno.
+No fio: `type: "error-report"`.
+
+| argumento | tipo | opcional | no fio |
+|---|---|---|---|
+| `mensagem` | `string` | não | `message` |
+| `pilha` | `string` | sim | `stack` |
+| `fonte` | `string` | sim | `source` |
+| `linha` | `number` | sim | `line` |
+| `coluna` | `number` | sim | `column` |
+| `tipo` | `'erro' \| 'rejeicao' \| 'relatado'` | sim | `kind` |
 
 ## Eventos
 

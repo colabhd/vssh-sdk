@@ -33,6 +33,15 @@ declare namespace vssh {
      * caminho absoluto, um `..`) é recusada no console, sem resposta.
      */
     function lembrarRota(rota: string): void;
+    /**
+     * Um erro do app, para o log do ambiente, onde quem mantém o sistema o lê ao lado do que
+     * aconteceu no portal. O SDK chama este verbo sozinho a cada exceção sem tratamento e a cada
+     * promessa rejeitada sem `catch` dentro do app; o app o chama com `tipo: 'relatado'` para um
+     * erro que ele mesmo tratou e quer registrar. O shell carimba o id do app, corta a mensagem em
+     * 1000 caracteres e a pilha em 8000, tira a query da fonte, e manda o mesmo erro uma vez a cada
+     * dez minutos.
+     */
+    function relatarErro(mensagem: string, pilha?: string, fonte?: string, linha?: number, coluna?: number, tipo?: 'erro' | 'rejeicao' | 'relatado'): void;
 
     /** Os eventos deste espaço, e o que cada um entrega ao `cb` de `ao`. */
     interface Eventos {
