@@ -263,6 +263,12 @@
         }
       }
     },
+    "instalacao": {
+      "type": "array",
+      "description": "Onde o app se instala. `sistema` é `/opt/vssh-apps/<id>`, pelas mãos de um administrador, para todas as pessoas do servidor. `pessoa` é `~/.local/share/vssh-apps/<id>` de quem instala pela Loja sem ser administrador, só para essa pessoa. Sem o campo, vale `[\"sistema\"]`. Declarar `pessoa` é dizer que o app roda da HOME: o `installCommand` dele não precisa de root, e nada nele procura o próprio código em `/opt/vssh-apps`. Um app com `motores` só se instala no sistema, declare o que declarar, porque o motor mora numa pasta de root.",
+      "items": { "type": "string", "enum": ["sistema", "pessoa"] },
+      "examples": [["sistema", "pessoa"]]
+    },
     "resources": {
       "type": "object",
       "description": "Limites de recurso do processo do app. O ambiente já aplica um teto PADRÃO a todo vssh-app (memória e número de tarefas) — este bloco existe para o app que precisa de outro, para mais ou para menos. Aplicado por `systemd-run --user --scope` no vssh-app-run, sobre o GRUPO de processos do app, então alcança os filhos que ele gerar. O que ele contém é UM app desgovernado, e não a soma deles: dois apps no teto ainda somam mais que a máquina.",

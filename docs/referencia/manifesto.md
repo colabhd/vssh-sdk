@@ -33,6 +33,7 @@ do campo na mensagem. Obrigatórios: `id`, `version`, `backend`.
 | [`contributes`](#contributes) | `object` | não |
 | [`requiredPackages`](#requiredpackages) | `array` de `string` | não |
 | [`motores`](#motores) | `array` de `object` | não |
+| [`instalacao`](#instalacao) | `array` de `string` | não |
 | [`resources`](#resources) | `object` | não |
 | [`recursos`](#recursos) | `object` | não |
 | [`gpu`](#gpu) | `boolean` | não |
@@ -368,6 +369,17 @@ mostra antes de instalar.
 
 Um caminho relativo que o tarball extraído precisa trazer (`bin/python`, `bin/vssh-code-server`).
 Sem ele, a extração é recusada: a URL passou a servir outra coisa.
+
+## `instalacao`
+
+`array` de `string`, opcional, cada item um de `"sistema"`, `"pessoa"`.
+
+Onde o app se instala. `sistema` é `/opt/vssh-apps/<id>`, pelas mãos de um administrador, para todas
+as pessoas do servidor. `pessoa` é `~/.local/share/vssh-apps/<id>` de quem instala pela Loja sem ser
+administrador, só para essa pessoa. Sem o campo, vale `["sistema"]`. Declarar `pessoa` é dizer que o
+app roda da HOME: o `installCommand` dele não precisa de root, e nada nele procura o próprio código
+em `/opt/vssh-apps`. Um app com `motores` só se instala no sistema, declare o que declarar, porque o
+motor mora numa pasta de root.
 
 ## `resources`
 
