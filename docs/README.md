@@ -46,6 +46,7 @@ descrição do verbo, na tabela do sistema, e chega aqui na rodada seguinte.
 | [Trabalho longo](guias/trabalho-longo.md) | Rodar um trabalho de minutos ou horas na estação ou na fila com o mesmo código, com progresso, fim no sino, cancelamento e retomada depois de um reinício. |
 | [Um app colaborativo](guias/um-app-colaborativo.md) | Duas pessoas no mesmo documento do app, cada uma na própria estação, pelas salas do portal: o Yjs do app ligado à sala, o estado da conexão, a presença, o convite, a menção, e o backend entrando como a dona. |
 | [Chamar outro app](guias/chamar-outro-app.md) | Usar o que outro app instalado oferece por uma capacidade com versão, e oferecer uma: `provides`, `requires` e `capacidades` no manifesto, `vssh.apps.pedir` na página, e o consentimento da pessoa no meio. |
+| [Métricas e erros](guias/metricas-e-erros.md) | Contar e medir o que o backend faz, mandar exceções ao log do ambiente por `vssh.metricas` com `recursos.metricas`, o erro da janela que o SDK web já relata sozinho, e o que um rótulo pode carregar. |
 | [Um motor fora do pacote](guias/motor.md) | Entregar ao servidor o que o app usa e não cabe no pacote (um ambiente com PyTorch, os pesos de um modelo), baixado uma vez por servidor e achado por `VSSH_MOTOR_<NOME>`. |
 | [Publicar](guias/publicar.md) | Empacotar, publicar no repositório de artefatos e instalar num servidor, por CI ou à mão. |
 
