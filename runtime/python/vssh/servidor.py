@@ -274,6 +274,10 @@ class Pedido(http.server.BaseHTTPRequestHandler):
         # `compare_digest` leva o mesmo tempo para qualquer palpite; um `!=` sairia no primeiro
         # byte diferente e contaria ao vizinho de loopback quantos bytes ele já acertou.
         if token and not hmac.compare_digest(self.headers.get('X-Vssh-App-Token', ''), token):
+            # O corpo do pedido recusado fica sem ler, e numa conexão keep-alive ele seria lido como
+            # o começo do pedido seguinte: o pedido que o portal refaz com o token novo receberia
+            # um 400 do `http.server`. A recusa fecha a conexão.
+            self.close_connection = True
             self.responder_json(403, {'error': self.recusa}, {'X-Vssh-Token': 'recusado'})
             return
         if metodo == 'GET' and self.path.partition('?')[0] == '/saude':
