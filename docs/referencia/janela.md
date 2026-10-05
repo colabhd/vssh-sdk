@@ -16,6 +16,7 @@ abre.
 | [`vssh.janela.restaurar()`](#restaurar) | não |
 | [`vssh.janela.focar()`](#focar) | não |
 | [`vssh.janela.fechar()`](#fechar) | não |
+| [`vssh.janela.perguntarAoFechar(ligado)`](#perguntaraofechar) | não |
 | [`vssh.janela.arrastar(x, y, telaX, telaY)`](#arrastar) | não |
 | [`vssh.janela.arrastarPara(telaX, telaY)`](#arrastarpara) | não |
 | [`vssh.janela.terminarArraste()`](#terminararraste) | não |
@@ -91,13 +92,30 @@ Sem argumentos.
 
 `vssh.janela.fechar()`
 
-Fecha a janela pelo mesmo caminho do botão de fechar. Quando ela é a última do app, o backend segue
-o que `backend.aoFechar` declara no manifesto.
+Fecha a janela pelo mesmo caminho do botão de fechar, sem passar por `perguntarAoFechar`. Quando ela
+é a última do app, o backend segue o que `backend.aoFechar` declara no manifesto.
 
 Não responde: um disparo, sem retorno.
 No fio: `type: "window", op: "close"`.
 
 Sem argumentos.
+
+### `perguntarAoFechar`
+
+`vssh.janela.perguntarAoFechar(ligado)`
+
+Com `ligado`, fechar a janela pelo botão, pelo menu ou pela barra de tarefas não fecha: o shell
+manda `fechamentoPedido` ao app, que pergunta o que precisar e chama `fechar()` quando for o caso. É
+para quem tem o que perder, como um documento que nunca foi salvo, e se desliga quando deixa de ter.
+Um app que não responde ao pedido não prende a janela: a pessoa que tenta fechar de novo, alguns
+segundos depois, recebe do shell a escolha de fechar mesmo assim.
+
+Não responde: um disparo, sem retorno.
+No fio: `type: "window", op: "ask-before-close"`.
+
+| argumento | tipo | opcional | no fio |
+|---|---|---|---|
+| `ligado` | `boolean` | não | `on` |
 
 ### `arrastar`
 
@@ -243,3 +261,14 @@ A pessoa clicou no `+` da barra de abas, ou em "Nova aba" no menu do cabeçalho.
 O `cb` recebe um objeto vazio.
 
 No fio: `type: "new-tab"`.
+
+### `fechamentoPedido`
+
+`vssh.janela.ao('fechamentoPedido', cb)`
+
+A pessoa pediu para fechar a janela de um app que ligou `perguntarAoFechar`. A janela continua
+aberta até o app chamar `fechar()`.
+
+O `cb` recebe um objeto vazio.
+
+No fio: `type: "close-requested"`.

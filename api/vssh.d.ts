@@ -81,10 +81,19 @@ declare namespace vssh {
     /** Traz a janela para a frente das outras e lhe dá o foco. */
     function focar(): void;
     /**
-     * Fecha a janela pelo mesmo caminho do botão de fechar. Quando ela é a última do app, o backend
-     * segue o que `backend.aoFechar` declara no manifesto.
+     * Fecha a janela pelo mesmo caminho do botão de fechar, sem passar por `perguntarAoFechar`.
+     * Quando ela é a última do app, o backend segue o que `backend.aoFechar` declara no manifesto.
      */
     function fechar(): void;
+    /**
+     * Com `ligado`, fechar a janela pelo botão, pelo menu ou pela barra de tarefas não fecha: o
+     * shell manda `fechamentoPedido` ao app, que pergunta o que precisar e chama `fechar()` quando
+     * for o caso. É para quem tem o que perder, como um documento que nunca foi salvo, e se desliga
+     * quando deixa de ter. Um app que não responde ao pedido não prende a janela: a pessoa que
+     * tenta fechar de novo, alguns segundos depois, recebe do shell a escolha de fechar mesmo
+     * assim.
+     */
+    function perguntarAoFechar(ligado: boolean): void;
     /**
      * Começa a arrastar a janela a partir de um ponto do documento do app, para quem declarou
      * `cabecalho: "app"` e desenha a própria barra de título. `x` e `y` dizem onde no quadro do app
@@ -138,6 +147,11 @@ declare namespace vssh {
       fecharAba: { abaId: string };
       /** A pessoa clicou no `+` da barra de abas, ou em "Nova aba" no menu do cabeçalho. */
       novaAba: Record<string, never>;
+      /**
+       * A pessoa pediu para fechar a janela de um app que ligou `perguntarAoFechar`. A janela
+       * continua aberta até o app chamar `fechar()`.
+       */
+      fechamentoPedido: Record<string, never>;
     }
     /** Assina um evento deste espaço e devolve a função que cancela a assinatura. */
     function ao<E extends keyof Eventos>(evento: E, cb: (dados: Eventos[E]) => void): () => void;
@@ -383,6 +397,13 @@ declare namespace vssh {
      * caixa vale como não.
      */
     function confirmar(mensagem: string, titulo?: string): Promise<unknown>;
+    /**
+     * Uma pergunta com de duas a quatro respostas, uma por botão, na ordem dada. A resposta é o
+     * `id` da escolhida, ou `null` quando a pessoa fechou a caixa sem escolher. É a pergunta de
+     * "Salvar", "Não salvar" e "Cancelar", em que fechar a caixa não pode valer como nenhuma das
+     * duas primeiras.
+     */
+    function escolher(mensagem: string, opcoes: { id: string; rotulo: string; principal?: boolean }[], titulo?: string): Promise<unknown>;
     /**
      * Um campo de texto de uma linha. A resposta é o que a pessoa escreveu, ou `null` quando ela
      * cancelou.

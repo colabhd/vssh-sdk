@@ -2,7 +2,7 @@
   "shellVersion": "5.0.0-rc0",
   "artifacts": {
     "api/abi.json": {
-      "sha256": "ae899fb7ca61890d3e3cd617114f0b2e0276c06e76f17edea17f9b371656e8e2"
+      "sha256": "bad32f00b20931879e8382111193b5dc82b9dbfbbd34c802eafa35f7c8c50d7e"
     },
     "api/electron.js": {
       "sha256": "802402efad47701fd6b50d90404fd04aae3b477820a720224ddd8ed3fa148269"
@@ -56,13 +56,13 @@
       "sha256": "792f45b3b54b27c9a930c654cc682ae3ce0c2ec108b71207ad81e6c0c1357853"
     },
     "api/vssh.d.ts": {
-      "sha256": "148fd242f7876f655029ac172db4070ee87e2a47d5637f71ec8df92a3c381a98"
+      "sha256": "5a342c2ee3755d40d68a77c97eb8e61277c726867e787b331567e5825cad6d50"
     },
     "api/vssh.js": {
-      "sha256": "c9f800a027edf188a67a1338efa4ed623ea5e94379b8da7ab0fc7ee90956eae5"
+      "sha256": "fbfcbe6b7f79df9826c4241910f328988b43e51933f04f069607e07665bb4ad8"
     },
     "docs/referencia/README.md": {
-      "sha256": "25fba6b3f2a01589d5c7b1a15e6739ffee149ebbd05acc832f738c094f6a0fc8"
+      "sha256": "14ccb82be915614fff83b2d4ab0686fb43834b03c6772b8f8345262d35c4bd1c"
     },
     "docs/referencia/ambiente.md": {
       "sha256": "80e837c926040cea8cb4d43136cfde641222aab76144af1549172f18428de387"
@@ -83,7 +83,7 @@
       "sha256": "4dd481587572f11975c4b72b7185f5928b64bcc775185b17c6906c65bb4ff6b8"
     },
     "docs/referencia/dialogos.md": {
-      "sha256": "4fa86ed539544358ee1d03c6c414df6538e4d7e971d5896ae205da262ef69eea"
+      "sha256": "4372250ea41a8ae1f540e9a3521759ac9b23a065e883cf39e96bfad26992f529"
     },
     "docs/referencia/gpu.md": {
       "sha256": "b3f15575f545de6d12e44bfeb599051fc2b27333cbeb7ea7896ec3d0993882c8"
@@ -92,7 +92,7 @@
       "sha256": "b2c221f136ef614da4e61329b9344c3cc9cc0f803fe938090c0292fa988be709"
     },
     "docs/referencia/janela.md": {
-      "sha256": "72df24420240c6de566ffd23805f453e5e5ca1bd483dca404a660c96f3aa6a48"
+      "sha256": "ac7b82419f57426b26a9c77b66bfcb5f838899333810cae32135b02d3fff22ed"
     },
     "docs/referencia/manifesto.md": {
       "sha256": "48b923a87a39fcb7b5b02bcf99fcc3f0455644cec365a867a864916ba2a6b407"

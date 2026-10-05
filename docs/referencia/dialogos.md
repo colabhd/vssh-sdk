@@ -12,6 +12,7 @@ Os diálogos do sistema e o menu de contexto, desenhados pelo shell com os dados
 | [`vssh.dialogos.mostrar(mensagem, titulo)`](#mostrar) | sim, em até 10 min |
 | [`vssh.dialogos.erro(mensagem, titulo)`](#erro) | sim, em até 10 min |
 | [`vssh.dialogos.confirmar(mensagem, titulo)`](#confirmar) | sim, em até 10 min |
+| [`vssh.dialogos.escolher(mensagem, opcoes, titulo)`](#escolher) | sim, em até 10 min |
 | [`vssh.dialogos.perguntar(mensagem, valor, titulo)`](#perguntar) | sim, em até 10 min |
 | [`vssh.dialogos.senha(mensagem, titulo)`](#senha) | sim, em até 10 min |
 | [`vssh.dialogos.menuDeContexto(x, y, itens, ortografia)`](#menudecontexto) | sim, em até 10 min |
@@ -57,6 +58,23 @@ No fio: `type: "dialog", variant: "confirm"`.
 | argumento | tipo | opcional | no fio |
 |---|---|---|---|
 | `mensagem` | `string` | não | `message` |
+| `titulo` | `string` | sim | `title` |
+
+### `escolher`
+
+`vssh.dialogos.escolher(mensagem, opcoes, titulo)`
+
+Uma pergunta com de duas a quatro respostas, uma por botão, na ordem dada. A resposta é o `id` da
+escolhida, ou `null` quando a pessoa fechou a caixa sem escolher. É a pergunta de "Salvar", "Não
+salvar" e "Cancelar", em que fechar a caixa não pode valer como nenhuma das duas primeiras.
+
+Responde: uma promessa, com prazo de 10 min (ritmo `humano`, a resposta depende de uma pessoa).
+No fio: `type: "dialog", variant: "choice"`.
+
+| argumento | tipo | opcional | no fio |
+|---|---|---|---|
+| `mensagem` | `string` | não | `message` |
+| `opcoes` | `{ id: string, rotulo: string, principal?: boolean }[]` | não | `options` |
 | `titulo` | `string` | sim | `title` |
 
 ### `perguntar`

@@ -206,7 +206,22 @@
           },
           "campos": [],
           "responde": false,
-          "descricao": "Fecha a janela pelo mesmo caminho do botão de fechar. Quando ela é a última do app, o backend segue o que `backend.aoFechar` declara no manifesto."
+          "descricao": "Fecha a janela pelo mesmo caminho do botão de fechar, sem passar por `perguntarAoFechar`. Quando ela é a última do app, o backend segue o que `backend.aoFechar` declara no manifesto."
+        },
+        "perguntarAoFechar": {
+          "fio": {
+            "type": "window",
+            "op": "ask-before-close"
+          },
+          "campos": [
+            {
+              "nome": "ligado",
+              "fio": "on",
+              "tipo": "boolean"
+            }
+          ],
+          "responde": false,
+          "descricao": "Com `ligado`, fechar a janela pelo botão, pelo menu ou pela barra de tarefas não fecha: o shell manda `fechamentoPedido` ao app, que pergunta o que precisar e chama `fechar()` quando for o caso. É para quem tem o que perder, como um documento que nunca foi salvo, e se desliga quando deixa de ter. Um app que não responde ao pedido não prende a janela: a pessoa que tenta fechar de novo, alguns segundos depois, recebe do shell a escolha de fechar mesmo assim."
         },
         "arrastar": {
           "fio": {
@@ -360,6 +375,11 @@
           "fio": "new-tab",
           "campos": [],
           "descricao": "A pessoa clicou no `+` da barra de abas, ou em \"Nova aba\" no menu do cabeçalho."
+        },
+        "fechamentoPedido": {
+          "fio": "close-requested",
+          "campos": [],
+          "descricao": "A pessoa pediu para fechar a janela de um app que ligou `perguntarAoFechar`. A janela continua aberta até o app chamar `fechar()`."
         }
       }
     },
@@ -1206,6 +1226,33 @@
           "responde": true,
           "ritmo": "humano",
           "descricao": "Uma pergunta com \"Sim\" e \"Não\". A resposta é `true` só quando a pessoa disse sim; fechar a caixa vale como não."
+        },
+        "escolher": {
+          "fio": {
+            "type": "dialog",
+            "variant": "choice"
+          },
+          "campos": [
+            {
+              "nome": "mensagem",
+              "fio": "message",
+              "tipo": "string"
+            },
+            {
+              "nome": "opcoes",
+              "fio": "options",
+              "tipo": "{ id: string, rotulo: string, principal?: boolean }[]"
+            },
+            {
+              "nome": "titulo",
+              "fio": "title",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "humano",
+          "descricao": "Uma pergunta com de duas a quatro respostas, uma por botão, na ordem dada. A resposta é o `id` da escolhida, ou `null` quando a pessoa fechou a caixa sem escolher. É a pergunta de \"Salvar\", \"Não salvar\" e \"Cancelar\", em que fechar a caixa não pode valer como nenhuma das duas primeiras."
         },
         "perguntar": {
           "fio": {

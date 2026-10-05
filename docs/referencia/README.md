@@ -6,15 +6,15 @@
 ## A ponte, espaço a espaço
 
 A superfície que o SDK web (`_sdk/vssh.js`) expõe a um app com janela: `vssh.<espaco>.<verbo>()`
-para pedir, `vssh.<espaco>.ao('<evento>', cb)` para ouvir. 13 espaços, 78 verbos e 15 eventos.
+para pedir, `vssh.<espaco>.ao('<evento>', cb)` para ouvir. 13 espaços, 80 verbos e 16 eventos.
 
 | espaço | verbos | eventos | o que cobre |
 |---|---|---|---|
 | [`vssh.app`](app.md) | 4 | 1 | Quem o app é e em que ambiente ele está: as capacidades do shell, os verbos disponíveis, o título que a janela mostra e a rota que a sessão restaura. |
-| [`vssh.janela`](janela.md) | 12 | 4 | A janela do app: controlada em runtime pelo app que a ocupa, e declarada no manifesto para quem a abre. |
+| [`vssh.janela`](janela.md) | 13 | 5 | A janela do app: controlada em runtime pelo app que a ocupa, e declarada no manifesto para quem a abre. |
 | [`vssh.arquivos`](arquivos.md) | 25 | 3 | Ler e escrever com o consentimento do usuário, escolher, vigiar, abrir, abrir com, arrastar, e a área de transferência de arquivos. |
 | [`vssh.avisos`](avisos.md) | 6 | 3 | Notificação, aviso efêmero, atividade em curso e bandeja, para um app com janela aberta. |
-| [`vssh.dialogos`](dialogos.md) | 6 | 1 | Os diálogos do sistema e o menu de contexto, desenhados pelo shell com os dados que o app manda. |
+| [`vssh.dialogos`](dialogos.md) | 7 | 1 | Os diálogos do sistema e o menu de contexto, desenhados pelo shell com os dados que o app manda. |
 | [`vssh.segredos`](segredos.md) | 3 | 0 | O cofre: o app pede uma credencial pelo nome, o shell mostra o campo e grava, e o valor nunca passa pelo app. A pessoa confere, troca e apaga o que guardou no Chaveiro, a janela do ambiente que lista as credenciais de todo app. |
 | [`vssh.salas`](salas.md) | 11 | 1 | As salas de edição: várias pessoas no mesmo documento Yjs, com o portal de relé. Toda sala é de um app, e daqui o app só alcança as dele. Quem conecta o documento é `vssh.salas.entrar(id, { Y, awarenessProtocol })`, o provedor do SDK, que pede um `bilhete` a cada conexão; os verbos abaixo são a lista, a criação, quem entra, os avisos e o bilhete. |
 | [`vssh.apps`](apps.md) | 1 | 0 | Um app usando outro. Quem oferece declara a capacidade em `provides` e o prefixo das rotas dela em `capacidades`; quem usa a declara em `requires`. O shell faz o pedido como a mesma pessoa, depois de ela permitir, e o backend que responde recebe `X-Vssh-Chamador` com o id de quem chamou. |

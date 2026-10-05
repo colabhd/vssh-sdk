@@ -220,6 +220,8 @@
     fecharAba: ['close-tab', { abaId: 'tabId' }],
     // A pessoa clicou no `+` da barra de abas, ou em "Nova aba" no menu do cabeçalho.
     novaAba: ['new-tab', {}],
+    // A pessoa pediu para fechar a janela de um app que ligou `perguntarAoFechar`. A janela continua aberta até o app chamar `fechar()`.
+    fechamentoPedido: ['close-requested', {}],
   };
   EVENTOS.arquivos = {
     // A lista completa do que este app pode tocar. Chega no load da janela e a cada mudança (uma escolha num seletor, uma revogação no menu da janela), e substitui a anterior: o shell é a fonte, e uma revogação lá apaga aqui.
@@ -290,8 +292,10 @@
     restaurar: () => ponte.disparar('janela.restaurar', { type: 'window', op: 'restore' }),
     // Traz a janela para a frente das outras e lhe dá o foco.
     focar: () => ponte.disparar('janela.focar', { type: 'window', op: 'focus' }),
-    // Fecha a janela pelo mesmo caminho do botão de fechar. Quando ela é a última do app, o backend segue o que `backend.aoFechar` declara no manifesto.
+    // Fecha a janela pelo mesmo caminho do botão de fechar, sem passar por `perguntarAoFechar`. Quando ela é a última do app, o backend segue o que `backend.aoFechar` declara no manifesto.
     fechar: () => ponte.disparar('janela.fechar', { type: 'window', op: 'close' }),
+    // Com `ligado`, fechar a janela pelo botão, pelo menu ou pela barra de tarefas não fecha: o shell manda `fechamentoPedido` ao app, que pergunta o que precisar e chama `fechar()` quando for o caso. É para quem tem o que perder, como um documento que nunca foi salvo, e se desliga quando deixa de ter. Um app que não responde ao pedido não prende a janela: a pessoa que tenta fechar de novo, alguns segundos depois, recebe do shell a escolha de fechar mesmo assim.
+    perguntarAoFechar: (ligado) => ponte.disparar('janela.perguntarAoFechar', { type: 'window', op: 'ask-before-close', on: ligado }),
     // Começa a arrastar a janela a partir de um ponto do documento do app, para quem declarou `cabecalho: "app"` e desenha a própria barra de título. `x` e `y` dizem onde no quadro do app a pessoa o agarrou (`clientX`, `clientY`); `telaX` e `telaY` fixam a referência de tela para o resto do gesto (`screenX`, `screenY`). O app captura o ponteiro e conta o gesto inteiro: este começo, cada ponto por `arrastarPara`, e o fim por `terminarArraste`. Uma janela maximizada ignora o pedido, como ignora o cabeçalho padrão.
     arrastar: (x, y, telaX, telaY) => ponte.disparar('janela.arrastar', { type: 'window', op: 'drag-start', x: x, y: y, telaX: telaX, telaY: telaY }),
     // Um ponto do arraste em curso, em coordenada de tela (`screenX`, `screenY`). A coordenada é de tela porque o quadro do app se move junto com a janela, e um ponto relativo a ele dependeria do que o gesto acabou de mudar. Sem arraste começado, o shell ignora.
@@ -304,7 +308,7 @@
     menuDoCabecalho: (x, y) => ponte.disparar('janela.menuDoCabecalho', { type: 'window', op: 'head-menu', x: x, y: y }),
     // A lista de abas de um app com `richChrome`, que o shell desenha na barra de título. O app a manda inteira a cada mudança; o shell responde aos cliques pelos eventos `ativarAba`, `fecharAba` e `novaAba`. Só texto atravessa: o shell monta cada aba com o `title` que recebeu. Uma aba com `sessionName` volta na sessão seguinte pelo evento `restaurarAbas`. Sem `richChrome` no manifesto, o shell ignora a lista.
     abas: (abas, abaAtiva) => ponte.disparar('janela.abas', { type: 'tabs', tabs: abas, activeTabId: abaAtiva }),
-    // Assina um evento deste espaço (restaurarAbas, ativarAba, fecharAba, novaAba) e devolve a função que cancela.
+    // Assina um evento deste espaço (restaurarAbas, ativarAba, fecharAba, novaAba, fechamentoPedido) e devolve a função que cancela.
     ao: (evento, cb) => ponte.escutar('janela', evento, cb),
   };
 
@@ -390,6 +394,8 @@
     erro: (mensagem, titulo) => ponte.chamar('dialogos.erro', { type: 'dialog', variant: 'error', message: mensagem, title: titulo }, 600000),
     // Uma pergunta com "Sim" e "Não". A resposta é `true` só quando a pessoa disse sim; fechar a caixa vale como não.
     confirmar: (mensagem, titulo) => ponte.chamar('dialogos.confirmar', { type: 'dialog', variant: 'confirm', message: mensagem, title: titulo }, 600000),
+    // Uma pergunta com de duas a quatro respostas, uma por botão, na ordem dada. A resposta é o `id` da escolhida, ou `null` quando a pessoa fechou a caixa sem escolher. É a pergunta de "Salvar", "Não salvar" e "Cancelar", em que fechar a caixa não pode valer como nenhuma das duas primeiras.
+    escolher: (mensagem, opcoes, titulo) => ponte.chamar('dialogos.escolher', { type: 'dialog', variant: 'choice', message: mensagem, options: opcoes, title: titulo }, 600000),
     // Um campo de texto de uma linha. A resposta é o que a pessoa escreveu, ou `null` quando ela cancelou.
     perguntar: (mensagem, valor, titulo) => ponte.chamar('dialogos.perguntar', { type: 'dialog', variant: 'prompt', message: mensagem, value: valor, title: titulo }, 600000),
     // Um campo de senha, com o texto escondido. A resposta é o valor digitado, ou `null` quando a pessoa cancelou. O valor chega ao app; para uma credencial que o app não deve ver, o caminho é `segredos.pedir`.
