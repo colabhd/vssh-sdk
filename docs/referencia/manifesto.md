@@ -338,8 +338,8 @@ reinstalar o app na mesma versão do motor não baixa nada, e o `rsync` do insta
 sha256 é conferido antes de extrair, a troca é em dois passos (um download interrompido nunca parece
 instalado), e as versões que o manifesto deixou de declarar saem depois que a nova entra. Ao subir,
 o `vssh-app-run` exporta o caminho de cada motor em `VSSH_MOTOR_<NOME>` (maiúsculas, `-` vira `_`);
-um motor declarado que não está no disco recusa a subida, e o run.log diz o que pedir ao
-administrador.
+um motor declarado sem `quando` que não está no disco recusa a subida, e o run.log diz o que pedir
+ao administrador.
 
 ### `motores[].nome`
 
@@ -382,6 +382,16 @@ mostra antes de instalar.
 
 Um caminho relativo que o tarball extraído precisa trazer (`bin/python`, `bin/vssh-code-server`).
 Sem ele, a extração é recusada: a URL passou a servir outra coisa.
+
+### `motores[].quando`
+
+`string`, opcional, valores `"gpu"`.
+
+A condição para o servidor baixar o motor. Com `gpu`, o `vssh-app-install` só o baixa num servidor
+com uma placa física (o `vssh-gpu-info` responde por qualquer fabricante; uma placa virtual não
+conta), e num servidor sem placa ele não desce e uma versão que já estava no disco sai. O app sobe
+sem o motor, sem `VSSH_MOTOR_<NOME>`, e decide o que fazer sem ele (o Escriba transcreve pela fila
+do cluster). Sem o campo, o motor desce em todo servidor.
 
 ## `instalacao`
 
