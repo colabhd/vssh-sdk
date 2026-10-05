@@ -669,7 +669,7 @@ para quem mostra o arquivo (a Lupa com foto e PDF, o Palco com vídeo), e não p
 organiza (um gerenciador de referências que também lê PDF). Um app sozinho numa extensão é o padrão
 dela com ou sem este campo; com dois pedindo a mesma, ninguém é eleito e a pessoa escolhe em
 Configurações \> Tipos de arquivo. A escolha gravada pela pessoa vence sempre, e o campo não vale
-para tipo com destino próprio no ambiente (código, texto, Office, comprimido, HTML).
+para tipo com destino próprio no ambiente (código, texto, comprimido, HTML).
 
 ### `opens.urls`
 
