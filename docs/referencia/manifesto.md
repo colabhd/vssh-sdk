@@ -25,6 +25,7 @@ do campo na mensagem. Obrigatórios: `id`, `version`, `backend`.
 | [`version`](#version) | `string` | sim |
 | [`type`](#type) | um dos valores listados | não |
 | [`kind`](#kind) | um dos valores listados | não |
+| [`escopo`](#escopo) | um dos valores listados | não |
 | [`engine`](#engine) | `object` | não |
 | [`provides`](#provides) | `array` de `string` | não |
 | [`requires`](#requires) | `array` de `string` | não |
@@ -82,6 +83,18 @@ um dos valores listados, opcional, padrão `"app"`, valores `"app"`, `"service"`
 Eixo de LIFECYCLE, ortogonal a `type`: 'service' é daemon supervisionado (start automático,
 auto-restart, status). Um `type: engine` que oferece capacidade (`provides`) e não traz
 `engine.loader` sobe quando alguém pede a capacidade, e não no load do ambiente.
+
+## `escopo`
+
+um dos valores listados, opcional, padrão `"pessoa"`, valores `"pessoa"`, `"servidor"`.
+
+Quantas instâncias o servidor roda. 'pessoa' é um backend por conta, como a pessoa, num socket em
+~/.vssh-apps/\<id\>/. 'servidor' é um backend só para todas as contas do servidor: o
+`vssh-app-install` cria a conta de sistema `vssh-<id>` e a unit `vssh-app-<id>.service`, o socket
+fica em /run/vssh-apps/\<id\>/app.sock e o estado em /var/lib/vssh-apps/\<id\>/. O systemd sobe e
+relança a unit, e o portal não oferece start nem stop por pessoa. Pede `kind: 'service'` e um id de
+até 27 caracteres, que é o que cabe no nome da conta. O socket de um app de servidor aceita qualquer
+conta do servidor, então a autenticação é do app.
 
 ## `engine`
 
