@@ -111,9 +111,10 @@
   --tuff-border-dark:  #1a1a1a;
   --tuff-border-focus: var(--tuff-accent);
 
-  /* Texto */
+  /* Texto. O apagado passa no AA (4,5:1) sobre as três superfícies: 5,85:1 em `--tuff-bg`,
+     5,38:1 em `--tuff-bg2` e 4,82:1 em `--tuff-bg3`. */
   --tuff-text:         #cccccc;
-  --tuff-text-dim:     #858585;
+  --tuff-text-dim:     #999999;
   --tuff-text-bright:  #d4d4d4;
   --tuff-text-inv:     #ffffff;
 
@@ -229,6 +230,13 @@
      ~3,3:1 e reprova AA; branco dá 5,2:1. O token faz a escolha uma vez, para o
      dia em que o destaque padrão clarear não ter cinco lugares onde se esconder. */
   --ds-on-accent:      var(--tuff-text-inv);
+
+  /* A cor de destaque como TEXTO ou ícone sobre as superfícies (o item ativo, o marcado, o link).
+     O `#0e639c` dá cerca de 2,4:1 sobre o grafite, abaixo dos 4,5:1 de texto e dos 3:1 de ícone;
+     misturado com branco ele passa de 4,9:1 nas três superfícies e na tinta de destaque. Ele parte
+     de `--ds-accent`, então segue a cor que a pessoa escolher. Sobre `--ds-sel` o texto é
+     `--ds-sel-text`: ali o destaque clareado não chega a 4,5:1. */
+  --ds-accent-texto:   color-mix(in srgb, var(--ds-accent) 55%, #ffffff);
 
   --ds-green:          var(--tuff-green);
   --ds-warn:           var(--tuff-amber);

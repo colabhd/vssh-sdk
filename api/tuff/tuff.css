@@ -189,11 +189,11 @@
   .tuff-btn[aria-pressed="true"] {
     background: var(--ds-accent-bg);
     border-color: transparent;
-    color: var(--ds-accent-h);
+    color: var(--ds-accent-texto);
   }
   .tuff-btn[aria-pressed="true"]:hover:not(:disabled) {
     background: var(--ds-accent-bg);
-    color: var(--ds-accent);
+    color: var(--ds-accent-texto);
   }
 
   /* A barra de ações gruda no fim do painel: botão flutuando no meio do espaço
@@ -380,17 +380,18 @@
   /* ── Estado ─────────────────────────────────────────────────────────────────
      A pílula responde "como está isto?" numa palavra. As cores são as
      semânticas, as mesmas em toda peça: um verde de app aqui e outro ali é
-     como um ambiente deixa de parecer um ambiente. */
+     como um ambiente deixa de parecer um ambiente. O texto vai na caixa da
+     frase, como quem chama escreveu ("Instalada"): a borda e a cor já
+     separam a pílula do texto em volta. */
 
   .tuff-pill {
     display: inline-flex;
     align-items: center;
     gap: var(--ds-gap-sm);
-    padding: 1px var(--ds-gap-md);
-    font-size: var(--tuff-size-2xs);
+    padding: 0 var(--ds-gap-md);
+    font-size: var(--tuff-size-xs);
     font-weight: var(--tuff-weight-m);
-    text-transform: uppercase;
-    letter-spacing: .04em;
+    line-height: 16px;
     border-radius: 999px;
     border: 1px solid currentColor;
     color: var(--ds-text-dim);
@@ -398,7 +399,7 @@
   .tuff-pill--ok { color: var(--ds-green); }
   .tuff-pill--aviso { color: var(--ds-warn); }
   .tuff-pill--erro { color: var(--ds-danger); }
-  .tuff-pill--ocupado { color: var(--ds-accent-h); animation: tuff-pulsar 1.4s var(--ds-ease) infinite; }
+  .tuff-pill--ocupado { color: var(--ds-accent-texto); animation: tuff-pulsar 1.4s var(--ds-ease) infinite; }
 
   @keyframes tuff-pulsar { 50% { opacity: .45; } }
 
@@ -517,6 +518,11 @@
     from { transform: translateX(-100%); }
     to { transform: translateX(340%); }
   }
+  /* Com menos movimento a faixa não atravessa: a barra fica cheia e apagada, e diz "em
+     andamento" sem perseguir o olho, como a `.ds-meter` do shell. */
+  @media (prefers-reduced-motion: reduce) {
+    .tuff-progresso--indeterminado .tuff-progresso-preenchido { width: 100%; opacity: .45; animation: none; }
+  }
 
   /* ── Controle segmentado ────────────────────────────────────────────────────
      Radios de verdade por baixo, pelo mesmo motivo do switch: setas do teclado,
@@ -554,7 +560,13 @@
      A seleção usa `--ds-sel`, o mesmo realce do gerenciador de arquivos do
      ambiente e uma das quatro variáveis que acompanham a cor da pessoa. Um
      destaque próprio aqui faria a lista de um app se comportar diferente da
-     lista ao lado, no mesmo desktop. */
+     lista ao lado, no mesmo desktop.
+
+     O item é `flex: none`. Ele tem `overflow: hidden` (é o que corta o nome
+     com reticências), e num flex em coluna isso zera o tamanho mínimo
+     automático do item: uma lista mais alta que o contêiner encolheria cada
+     linha até poucos pixels, com os textos uns sobre os outros, e nunca
+     chegaria a rolar. */
 
   .tuff-lista {
     display: flex;
@@ -563,6 +575,7 @@
     min-height: 0;
   }
   .tuff-item {
+    flex: none;
     display: flex;
     align-items: center;
     gap: var(--ds-gap-md);
@@ -577,6 +590,33 @@
   }
   .tuff-item:hover { background: var(--ds-bg-hover); }
   .tuff-item[aria-selected="true"] { background: var(--ds-sel); color: var(--ds-sel-text); }
+  .tuff-item:focus-visible { outline: 2px solid var(--ds-border-focus); outline-offset: -2px; }
+
+  /* O cabeçalho de um grupo dentro da lista. Ele gruda no topo enquanto os
+     itens do grupo passam por baixo, e numa lista de dezenas de itens é ele que
+     diz em que grupo a pessoa está. O fundo é opaco pelo mesmo motivo do
+     `.tuff-barra--fixa`; uma lista sobre outra superfície redefine o fundo. A
+     caixa é a da frase, sem maiúsculas espaçadas: o peso e a cor já separam o
+     rótulo dos itens. */
+  .tuff-lista-secao {
+    flex: none;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: baseline;
+    gap: var(--ds-gap-sm);
+    padding: var(--ds-gap-lg) var(--ds-gap-md) var(--ds-gap-sm);
+    font-size: var(--tuff-size-sm);
+    font-weight: var(--tuff-weight-b);
+    color: var(--ds-text-mid);
+    background: var(--ds-bg);
+  }
+  .tuff-lista-secao-n {
+    font-size: var(--tuff-size-xs);
+    font-weight: var(--tuff-weight-n);
+    color: var(--ds-text-dim);
+  }
 
   /* Tabela chave/valor: o par de leitura, com a hierarquia obrigatória. A
      coluna do valor é monoespaçada quando o conteúdo é dado (caminho, id,
@@ -655,15 +695,12 @@
     border-right: 1px solid var(--ds-border);
   }
 
-  /* A legenda de família. 10px em caixa alta com tracking: ela precisa separar
-     sem competir, e texto pequeno em caixa alta lê como rótulo em vez de como
-     conteúdo. */
+  /* A legenda de família. Pequena, semibold e apagada, na caixa da frase: ela
+     separa sem competir com os itens, e o peso basta para ler como rótulo. */
   .tuff-gaveta-cap {
     margin: var(--ds-gap-lg) 0 var(--ds-gap-sm) var(--ds-gap-md);
-    font-size: var(--tuff-size-2xs);
+    font-size: var(--tuff-size-xs);
     font-weight: var(--tuff-weight-b);
-    letter-spacing: .4px;
-    text-transform: uppercase;
     color: var(--ds-text-dim);
   }
   .tuff-gaveta-lateral > .tuff-gaveta-cap:first-child { margin-top: var(--ds-gap-sm); }
@@ -694,7 +731,7 @@
   }
   .tuff-gaveta-item:hover { background: var(--ds-bg-hover); color: var(--ds-text); }
   .tuff-gaveta-item:focus-visible { outline: 2px solid var(--ds-accent); outline-offset: -2px; }
-  .tuff-gaveta-item--ativo { background: var(--ds-accent-bg); color: var(--ds-accent-h); }
+  .tuff-gaveta-item--ativo { background: var(--ds-accent-bg); color: var(--ds-accent-texto); }
 
   /* Sem padding. O corpo é o que rola, e um contêiner de rolagem com padding
      empurra tudo que estiver dentro dele, inclusive uma barra presa com
