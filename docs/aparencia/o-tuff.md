@@ -118,7 +118,7 @@ sobrevive a um app em tela cheia e não aparece por cima do resto do ambiente. U
 
 ## A régua de aceitação
 
-Cinco coisas que um app feito com o Tuff respeita, e que a galeria existe para julgar olhando:
+Seis coisas que um app feito com o Tuff respeita, e que a galeria existe para julgar olhando:
 
 - controle nativo, nunca: `select` e `input` têm caixa própria (`.tuff-select`, `.tuff-campo`), e
   a lista aberta do `select` também sai estilizada, senão ela vem branca sob um controle escuro;
@@ -127,6 +127,8 @@ Cinco coisas que um app feito com o Tuff respeita, e que a galeria existe para j
 - a barra de ações gruda no fim do painel (`.tuff-acoes`); botão flutuando no meio do espaço é o
   sintoma mais comum de tela feita às pressas;
 - a scrollbar é a do tema, 6px, em `tuff-base.css`;
+- a tela cabe em 360 px sem rolagem horizontal, porque o mesmo app abre numa janela estreita do
+  ambiente e na tela de um celular;
 - o ambiente é escuro. O Tuff não tem modo claro, e prometer um que não existe seria pior que não
   prometer nada.
 

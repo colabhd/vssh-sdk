@@ -81,6 +81,15 @@ o motivo dela, em tempo presente, como propriedade do desenho. Texto novo nasce 
 comentário existente muda quando alguém toca no arquivo, e aí muda o bloco inteiro de comentário
 em que a pessoa mexeu.
 
+### Desenho de interface: a direção e o filtro
+
+O que um template, um exemplo ou a galeria desenha segue a direção do Tuff, o `DESIGN.md` que o
+canal do sistema publica em `api/tuff/` (a fonte é `vssh-client/tuff/DESIGN.md` do `vssh-sso`). O
+filtro são as skills do anti-slop em `.claude/skills/antislop*/` (MIT, de Miqdad Badjuber, versão
+3.2.20), que o bloco no fim deste arquivo aponta. Quando o anti-slop e este arquivo divergem, este
+arquivo vence: a prosa segue o `deslop` e as regras acima, e o `antislop-code` não reescreve os
+cabeçalhos de seção dos comentários.
+
 ## Invariantes
 
 Cada um destes tem um modo de falha silencioso, e é por isso que estão aqui.
@@ -142,3 +151,24 @@ Rode o que a sua mudança alcança, com `node --test --test-concurrency=1 --test
 | Conceitos, guias e a aparência (o Tuff) | `docs/`; `docs/aparencia/` é autorado, e o que ele cita (classe `tuff-*`, ícone `#ico-*`) é conferido no build do site contra `api/tuff/` |
 | O site da documentação | `scripts/gerar-site.js` (o Markdown que ele aceita, mais as cercas `html vivo` e `tuff-icones`), `scripts/realce.js` (o realce, uma tabela de regras por linguagem), `site/` (índice, folha, busca), `.github/workflows/site.yml`; `tests/site.test.js` gera o site de verdade e mede a saída |
 | O emulador | `emulador/`, na etapa seguinte |
+
+<!-- antislop:start -->
+## antislop
+
+Para trabalho de interface, de texto, de acessibilidade, de layout em várias larguras ou de
+comentário de código, leia o núcleo (`.claude/skills/antislop/SKILL.md`) e então a skill da tarefa:
+
+- interface: `.claude/skills/antislop-ui/SKILL.md`
+- texto: `.claude/skills/antislop-copywriting/SKILL.md`
+- pessoas (contraste, teclado, foco, estados): `.claude/skills/antislop-human/SKILL.md`
+- larguras e toque: `.claude/skills/antislop-layoutmobile/SKILL.md`
+- comentários de código: `.claude/skills/antislop-code/SKILL.md`
+
+A direção é `api/tuff/DESIGN.md`. Neste repositório o modo do anti-slop é `during` quando a tarefa
+constrói ou muda interface, e `after` quando ela pede a revisão do que existe. Esta linha é a
+escolha explícita da sessão, e o núcleo não precisa perguntar; ele anuncia o modo uma vez, como
+manda a seção "Two Usage Modes" dele.
+
+Para atualizar, troque as seis pastas pelas da versão nova de `miqdadbadjuber/anti-slop` e leia o
+que mudou antes do commit, porque uma skill é instrução para o agente.
+<!-- antislop:end -->
