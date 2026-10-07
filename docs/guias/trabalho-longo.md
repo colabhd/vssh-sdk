@@ -85,7 +85,11 @@ o pedido e a imagem seguem estas regras:
   falta para o runtime dele, e numa `alpine` o job termina em `falhou` com o motivo `imagem`;
 - o comando roda num diretório com `entradas/` e `saidas/`, que `VSSH_ENTRADAS` e `VSSH_SAIDAS`
   apontam. As entradas do pedido já estão em `entradas/`, e só volta como saída o que o comando
-  escreve em `saidas/` com um nome que o pedido lista.
+  escreve em `saidas/` com um nome que o pedido lista;
+- o comando aguenta recomeçar do zero. O cluster tira um job do nó quando uma carga de prioridade
+  maior precisa da placa ou o disco do nó aperta, e o SkyPilot o relança num pod novo: as entradas
+  descem de novo, o comando roda desde o começo e o progresso volta para trás. Enquanto isso o job
+  continua `rodando`, com o motivo "o nó caiu; retomando".
 
 O primeiro job numa imagem leva minutos para começar, entre puxar a imagem e preparar o runtime:
 de 1 a 4 min nas medições do portal, e mais numa imagem de dezenas de GB. O job fica em `na_fila`
