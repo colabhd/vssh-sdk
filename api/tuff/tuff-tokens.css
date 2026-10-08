@@ -211,6 +211,15 @@
   --tuff-dur-fast:     0.08s;
 }
 
+/* Com o movimento reduzido no sistema, as transições caem: toda transição do Tuff lê as durações
+   destes dois tokens. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --tuff-dur:        0s;
+    --tuff-dur-fast:   0s;
+  }
+}
+
 
 /* ── 2. Tokens semânticos (--ds-*) ───────────────────────────────────────────
    Componentes leem daqui, e só daqui.
