@@ -17,8 +17,8 @@ repinta o pixel que os olhos mais seguem.
 
 ## O palco e o chrome
 
-`.tuff-palco` centra um `video` ou uma `img` contra `--ds-bg`. Preto puro ao lado de `#1e1e1e`
-vira uma moldura que ninguém pediu; o mesmo fundo desaparece, e o que sobra é a imagem. O
+`.tuff-palco` centra um `video` ou uma `img` contra `--ds-bg`. Preto puro ao lado do cinza da
+página vira uma moldura que ninguém pediu; o mesmo fundo desaparece, e o que sobra é a imagem. O
 `.tuff-chrome` é a barra de controles logo abaixo; com `--sobreposto` ele fica sobre o palco, para
 quando a imagem manda e a barra não pode comer espaço, como em tela cheia. Continua opaco; o que
 muda é onde ele mora.

@@ -80,10 +80,10 @@ nunca `--tuff-*`. A lista inteira está em [Tokens](tokens.md).
 
 ## A cor de destaque
 
-A pessoa escolhe uma cor em Configurações, e o shell reescreve quatro tokens no `<html>` dele:
-`--ds-accent`, `--ds-accent-h`, `--ds-accent-bg` e `--ds-sel`. Nada disso atravessa para o
-documento do app: são dois documentos. O app que quer acompanhar a cor lê os quatro pela ponte e os
-escreve no próprio `<html>`:
+A pessoa escolhe uma cor em Configurações, e o shell reescreve cinco tokens no `<html>` dele:
+`--ds-accent`, `--ds-accent-h`, `--ds-accent-bg`, `--ds-sel` e `--ds-on-accent`. Nada disso
+atravessa para o documento do app: são dois documentos. O app que quer acompanhar a cor lê os cinco
+pela ponte e os escreve no próprio `<html>`:
 
 ```js
 function aplicar(tokens) {

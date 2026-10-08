@@ -244,7 +244,7 @@ body { margin: 0; overflow: hidden; }
 .fila-ext { font-size: var(--tuff-size-2xs); color: var(--ds-text-dim); text-transform: uppercase; }
 /* O que está tocando: o destaque da pessoa no número e no nome, como na trilha. */
 .fila-item--tocando .fila-n,
-.fila-item--tocando .fila-nome { color: var(--ds-accent-h); }
+.fila-item--tocando .fila-nome { color: var(--ds-accent-texto); }
 .fila-item--tocando[aria-selected="true"] .fila-nome { color: var(--ds-sel-text); }
 
 /* ── O transporte ─────────────────────────────────────────────────────────── */
@@ -287,7 +287,7 @@ body { margin: 0; overflow: hidden; }
   font-variant-numeric: tabular-nums;
 }
 .veloc:hover:not(:disabled) { background: var(--ds-bg-hover); color: var(--ds-text); }
-.veloc[data-alterada="1"] { color: var(--ds-accent-h); }
+.veloc[data-alterada="1"] { color: var(--ds-accent-texto); }
 
 .tuff-volume { gap: 2px; margin-right: var(--ds-gap-sm); }
 .dica-direita::after { left: auto; right: 0; transform: none; }

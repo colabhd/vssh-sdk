@@ -21,11 +21,11 @@ body { overflow: hidden; }
   letter-spacing: .2px;
   color: var(--ds-text-mid);
 }
-.site-marca:hover { text-decoration: none; color: var(--ds-accent-h); }
+.site-marca:hover { text-decoration: none; color: var(--ds-accent-texto); }
 
 /* O item da gaveta é um `<a>` aqui, e a biblioteca o desenhou como `<button>`. */
 .tuff-gaveta-item:hover { text-decoration: none; }
-.tuff-gaveta-item--ativo:hover { color: var(--ds-accent-h); }
+.tuff-gaveta-item--ativo:hover { color: var(--ds-accent-texto); }
 
 /* ── A barra ────────────────────────────────────────────────────────────────── */
 
@@ -120,7 +120,7 @@ body { overflow: hidden; }
 .site-artigo li { margin: 0 0 var(--ds-gap-sm); }
 .site-artigo li > p { margin-bottom: var(--ds-gap-md); }
 .site-artigo li > pre { margin-top: var(--ds-gap-md); }
-.site-artigo a { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--ds-accent-h) 40%, transparent); text-underline-offset: 2px; }
+.site-artigo a { text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--ds-accent-texto) 40%, transparent); text-underline-offset: 2px; }
 .site-artigo a:hover { text-decoration-color: currentColor; }
 .site-artigo strong { color: var(--ds-text-mid); }
 /* Código dentro de link herda a cor do link: na tabela de verbos da referência, cada assinatura
