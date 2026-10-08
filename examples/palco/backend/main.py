@@ -58,14 +58,14 @@ DADOS = app.dados()
 log = servidor.criar_log()
 
 # O SDK web (`_sdk/vssh.js`) o `web.spa` injeta sozinho; a lista abaixo é o Tuff que o Palco usa,
-# em ordem: as folhas antes das dele, e os scripts antes do `palco.js`. `tuff-midia` traz a
-# `TuffMidia` (trilha, timecode, volume) e fica fora do padrão de propósito, porque um app de
-# formulário não paga por ela. Nenhum destes arquivos viaja no pacote: o sistema os serve em
-# `_sdk/tuff/`, dentro do espaço de URL do app.
+# em ordem: as folhas antes das dele, e os scripts antes do `palco.js`. `tuff.js` traz a moldura
+# (`TuffApp`). `tuff-midia` traz a `TuffMidia` (trilha, timecode, volume) e fica fora do padrão de
+# propósito, porque um app de formulário não paga por ela. Nenhum destes arquivos viaja no pacote:
+# o sistema os serve em `_sdk/tuff/`, dentro do espaço de URL do app.
 spa = web.spa(
     os.path.join(_AQUI, "..", "frontend"),
     tuff=["tuff-tokens.css", web.TUFF_BASE, "tuff.css", "tuff-midia.css",
-          web.TUFF_ICONES, "tuff-midia.js"],
+          web.TUFF_ICONES, "tuff.js", "tuff-midia.js"],
     folhas=["palco.css"],
     scripts=["palco.js"],
     dica="O frontend do Palco não está no pacote.",

@@ -1,7 +1,7 @@
 {
   "id": "palco",
   "name": "Palco",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "icon": "icon.svg",
   "category": "AudioVideo",
   "developer": { "name": "colabhd", "url": "https://github.com/colabhd" },

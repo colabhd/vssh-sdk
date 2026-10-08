@@ -9,8 +9,10 @@
 </head>
 <body>
 
-<div class="janela" id="janela">
-  <div class="miolo">
+<!-- A moldura do Tuff: o palco no miolo, a fila no painel e o transporte no rodapé. A disposição
+     sai da largura da janela, e o `palco.js` liga o comportamento com `TuffApp.ligar`. -->
+<div class="tuff-app janela" id="janela">
+  <div class="tuff-app-miolo miolo">
 
     <!-- O palco: o vídeo, a tela de uma música, ou o início. -->
     <section class="palco tuff-palco" id="palco" aria-label="Reprodução">
@@ -56,25 +58,35 @@
         <span id="aviso-t"></span>
       </div>
     </section>
-
-    <!-- A fila: a pasta do que está tocando, em ordem. -->
-    <aside class="fila" id="fila" hidden aria-label="Fila">
-      <header class="fila-topo">
-        <span class="fila-pasta" id="fila-pasta"></span>
-        <button class="tuff-btn tuff-btn--icone" id="btn-pasta" aria-label="Mostrar no gerenciador de arquivos"
-                data-tuff-dica="Mostrar no gerenciador de arquivos">
-          <svg class="tuff-ico" aria-hidden="true"><use href="#ico-folder-open"></use></svg>
-        </button>
-      </header>
-      <input class="tuff-busca fila-busca" type="search" id="fila-busca" placeholder="Filtrar"
-             aria-label="Filtrar a fila por nome" hidden>
-      <ul class="fila-lista" id="fila-lista" role="listbox" aria-label="Arquivos da pasta"></ul>
-    </aside>
   </div>
+
+  <!-- A fila: a pasta do que está tocando, em ordem. Na ampla ela é uma coluna que a pessoa liga e
+       desliga; abaixo de 840 px ela entra por cima do palco, e na compacta é a tela seguinte, com
+       "Voltar". -->
+  <aside class="tuff-app-painel fila" id="fila" hidden aria-label="Fila">
+    <header class="tuff-app-painel-cab fila-topo">
+      <button class="tuff-btn tuff-btn--icone tuff-btn--quieto tuff-app-so-compacta" type="button"
+              data-tuff-app-voltar aria-label="Voltar para o que está tocando">
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-arrow-left"></use></svg>
+      </button>
+      <span class="tuff-app-painel-titulo fila-pasta" id="fila-pasta"></span>
+      <button class="tuff-btn tuff-btn--icone" id="btn-pasta" aria-label="Mostrar no gerenciador de arquivos"
+              data-tuff-dica="Mostrar no gerenciador de arquivos">
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-folder-open"></use></svg>
+      </button>
+      <button class="tuff-btn tuff-btn--icone tuff-btn--quieto tuff-app-so-media" type="button"
+              data-tuff-app-fechar aria-label="Fechar a fila">
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-close"></use></svg>
+      </button>
+    </header>
+    <input class="tuff-busca fila-busca" type="search" id="fila-busca" placeholder="Filtrar"
+           aria-label="Filtrar a fila por nome" hidden>
+    <ul class="fila-lista" id="fila-lista" role="listbox" aria-label="Arquivos da pasta"></ul>
+  </aside>
 
   <!-- O transporte: o tempo em cima, os comandos embaixo. Fica na tela o tempo todo, fora da tela
        cheia, porque a mídia continua tocando enquanto a pessoa olha a fila. -->
-  <footer class="tuff-transporte transporte" id="transporte">
+  <footer class="tuff-app-rodape tuff-transporte transporte" id="transporte">
     <div class="tuff-transporte-tempo">
       <span class="tuff-tempo" data-tuff-tempo-atual>0:00</span>
       <div class="tuff-trilha" data-tuff-trilha aria-label="Posição"></div>
@@ -139,7 +151,13 @@
             <div class="tuff-volume-trilho"><div class="tuff-volume-nivel"></div></div>
           </div>
         </div>
+        <!-- Dois botões para a fila, e um só aparece por vez: na ampla ele liga e desliga a coluna
+             (`aria-pressed`); abaixo de 840 px ele abre o painel por cima (`aria-expanded`). -->
         <button class="tuff-btn tuff-btn--icone" id="btn-fila" aria-pressed="false" aria-label="Fila"
+                data-tuff-dica="Fila">
+          <svg class="tuff-ico" aria-hidden="true"><use href="#ico-list"></use></svg>
+        </button>
+        <button class="tuff-btn tuff-btn--icone" id="btn-fila-painel" data-tuff-app-painel aria-label="Fila"
                 data-tuff-dica="Fila">
           <svg class="tuff-ico" aria-hidden="true"><use href="#ico-list"></use></svg>
         </button>
