@@ -1,27 +1,20 @@
-/* Lupa: o que é do app. O palco, o visor, a barra, a tira e os botões vêm do Tuff, e este arquivo
-   acrescenta o arranjo da janela, os botões de anterior e próximo nas bordas, a ficha de
-   informações, o início, o aviso e o comportamento em tela cheia.
+/* Lupa: o que é do app. A moldura (as regiões e a forma delas em cada largura), o palco, o
+   visor, a barra, a tira e os botões vêm do Tuff, e este arquivo acrescenta o miolo da imagem,
+   os botões de anterior e próximo nas bordas, a lateral do PDF, o início, o aviso e o
+   comportamento em tela cheia.
 
-   A janela tem quatro áreas: a barra em cima, o palco com a imagem, a ficha à direita quando a
-   pessoa pede, e a tira de miniaturas embaixo. Em tela cheia a barra e a tira passam a flutuar
-   sobre a imagem e somem com o ponteiro parado. */
+   As regiões: a barra em cima, a lateral com as páginas de um PDF, o palco com a imagem no
+   miolo, a ficha no painel e a tira de miniaturas no rodapé. Em tela cheia a barra e a tira
+   passam a flutuar sobre a imagem e somem com o ponteiro parado. */
 
 html, body { height: 100%; }
 body { margin: 0; overflow: hidden; }
 
-.janela {
-  position: relative;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: var(--ds-bg);
-}
-
 /* ── A barra ──────────────────────────────────────────────────────────────── */
 
-.barra { flex: none; min-width: 0; z-index: 3; }
-.barra[hidden] { display: none; }
+.barra { z-index: 3; }
 .titulo {
+  flex: 0 1 auto;
   min-width: 0;
   display: flex;
   align-items: baseline;
@@ -57,9 +50,24 @@ body { margin: 0; overflow: hidden; }
 /* A dica do último botão, alinhada pela direita: centrada, ela sairia pela borda da janela. */
 .dica-direita::after { left: auto; right: 0; transform: none; }
 
+/* Com as ferramentas de um PDF a barra não cabe na forma média, e por isso a Lupa manda os botões
+   de prioridade baixa para o "Mais" já abaixo de 840 px, e não só na compacta, como o Tuff faz.
+   O campo da página sai na compacta, onde o "Mais" não o alcança: ele é um campo, e não um
+   botão. A lateral e a ficha trocam de botão onde deixam de ser coluna (ver o `index.html`). */
+@container tuff-app (width >= 840px) {
+  .barra-mais, #btn-info-painel { display: none; }
+}
+@container tuff-app (width < 840px) {
+  .barra [data-prioridade="baixa"], #btn-info { display: none; }
+}
+@container tuff-app (width < 600px) {
+  .barra .pagina, #btn-lateral { display: none; }
+}
+
 /* ── O palco ──────────────────────────────────────────────────────────────── */
 
-.miolo { flex: 1; min-height: 0; display: flex; }
+/* O miolo não rola: quem rola e amplia é o visor, a grade ou o PDF dentro dele. */
+.miolo { position: relative; display: flex; overflow: hidden; }
 .palco { flex: 1; min-width: 0; min-height: 0; }
 /* O visor cobre o palco inteiro, e os botões das bordas, o aviso e o início ficam por cima. */
 .visor { position: absolute; inset: 0; }
@@ -109,7 +117,8 @@ body { margin: 0; overflow: hidden; }
 
 /* ── O PDF ────────────────────────────────────────────────────────────────── */
 
-/* Um controle que só vale para PDF: a janela diz o tipo aberto em `data-tipo`. */
+/* Um controle que só vale para PDF: a janela diz o tipo aberto em `data-tipo`. Os botões levam
+   também `hidden`, para o "Mais" não os oferecer numa imagem. */
 .janela:not([data-tipo="pdf"]) .so-pdf { display: none; }
 .pagina { display: flex; align-items: center; gap: var(--ds-gap-xs); margin-right: var(--ds-gap-sm); }
 .pagina-campo { width: 6ch; text-align: right; -moz-appearance: textfield; }
@@ -155,18 +164,8 @@ body { margin: 0; overflow: hidden; }
   color: var(--ds-text-dim);
 }
 
-.pdf-lateral {
-  flex: none;
-  width: 200px;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--ds-gap-md);
-  padding: var(--ds-gap-md);
-  background: var(--ds-bg2);
-  border-right: 1px solid var(--ds-border);
-}
-.pdf-lateral[hidden],
+/* A largura, o fundo, a borda e a gaveta da compacta são da lateral da moldura. */
+.pdf-lateral { gap: var(--ds-gap-md); padding: var(--ds-gap-md); }
 .pdf-abas[hidden],
 .pdf-miniaturas[hidden],
 .pdf-sumario[hidden] { display: none; }
@@ -235,27 +234,12 @@ body { margin: 0; overflow: hidden; }
 
 /* ── A ficha ──────────────────────────────────────────────────────────────── */
 
-.info {
-  flex: none;
-  width: 280px;
-  overflow: auto;
-  padding: var(--ds-gap-lg);
-  background: var(--ds-bg2);
-  border-left: 1px solid var(--ds-border);
-}
-.info[hidden] { display: none; }
-.info-titulo {
-  margin: 0 0 var(--ds-gap-lg);
-  font-size: var(--tuff-size-md);
-  font-weight: var(--tuff-weight-m);
-  color: var(--ds-text);
-}
+/* A largura, o fundo, a borda e a forma de cada largura são do painel da moldura. */
 .info-lista dd { overflow-wrap: anywhere; }
 
 /* ── A tira ───────────────────────────────────────────────────────────────── */
 
-.tira { flex: none; z-index: 3; }
-.tira[hidden] { display: none; }
+.tira { z-index: 3; }
 .tira .tuff-tira-item {
   position: relative;
   padding: 0;
