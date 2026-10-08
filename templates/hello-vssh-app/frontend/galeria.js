@@ -531,7 +531,7 @@ function montarGaleria() {
     });
 
     $('confirm').addEventListener('click', async () => {
-      const ok = await vssh.dialogos.confirmar('Isto veio do ambiente, não do navegador. Confirma?');
+      const ok = await vssh.dialogos.confirmar('A caixa é do ambiente, e a resposta volta para esta página.', 'Confirmar pelo ambiente?', 'Confirmar');
       escrever('bridge', 'confirmar devolveu: ' + ok);
     });
 
