@@ -370,8 +370,8 @@
 
   // ── avisos: Notificação, aviso efêmero, atividade em curso e bandeja, para um app com janela aberta.
   vssh.avisos = {
-    // Um fato que aconteceu, gravado no histórico do sino e anunciado num aviso: um caminho, um erro que a pessoa vai querer reencontrar. `nivel` é o tom (cor e ícone); `prioridade` é quanto interromper: `baixa` só marca o sino, `normal` mostra o aviso por alguns segundos, `alta` o deixa na tela até a pessoa responder. Um app não abre modal, e `critica` vira `alta`. A mesma `chave` substitui a notificação anterior no lugar de empilhar. O clique numa das `acoes` volta pelo evento `acaoDeNotificacao`. `abrir` é onde o clique na notificação leva, um caminho dentro do app (`?documento=x`), que chega pelo evento `abertura` quando a janela já está aberta. A resposta é o id da notificação.
-    notificar: (mensagem, titulo, nivel, prioridade, chave, acoes, abrir) => ponte.chamar('avisos.notificar', { type: 'notify', message: mensagem, title: titulo, level: nivel, prioridade: prioridade, chave: chave, actions: acoes, rota: abrir }, 5000),
+    // Um fato que aconteceu, gravado no histórico do sino e anunciado num aviso: um caminho, um erro que a pessoa vai querer reencontrar. `nivel` é o tom (cor e ícone); `prioridade` é quanto interromper: `baixa` só marca o sino, `normal` mostra o aviso por alguns segundos, `alta` o deixa na tela até a pessoa responder. Um app não abre modal, e `critica` vira `alta`. A mesma `chave` substitui a notificação anterior no lugar de empilhar. O clique numa das `acoes` volta pelo evento `acaoDeNotificacao`. `abrir` é onde o clique na notificação leva, um caminho dentro do app (`?documento=x`), que chega pelo evento `abertura` quando a janela já está aberta. `figura` é o que aparece à esquerda do título: o ícone do arquivo de que se fala (`arquivo`, com o caminho no servidor) ou uma imagem de dentro do pacote do app (`icone`, com o caminho relativo a ele). O ícone e o nome do app vêm do manifesto. A resposta é o id da notificação.
+    notificar: (mensagem, titulo, nivel, prioridade, chave, acoes, abrir, figura) => ponte.chamar('avisos.notificar', { type: 'notify', message: mensagem, title: titulo, level: nivel, prioridade: prioridade, chave: chave, actions: acoes, rota: abrir, figura: figura }, 5000),
     // A frase que se lê e se esquece ("copiado", "salvo"): some sozinha depois de `duracao` milissegundos (4000 por padrão) e não entra no histórico. A mesma `chave` reescreve o aviso que está na tela e recomeça o relógio dele.
     avisar: (mensagem, titulo, nivel, duracao, chave) => ponte.chamar('avisos.avisar', { type: 'toast', message: mensagem, title: titulo, level: nivel, timeout: duracao, chave: chave }, 5000),
     // Uma condição que é verdade agora, na bandeja e no painel de atividades: um progresso, algo tocando. `item` leva `titulo`, `texto`, `formato` (`simples`, `progresso` ou `midia`), `progresso` (`{ feito, total }` ou `{ indeterminado: true }`) e `acoes`; a mesma `chave` atualiza no lugar, então relatar progresso não empilha linhas. O clique numa ação volta pelo evento `acaoDeAtividade`. A resposta é a chave completa, `app:<id>:<chave>`, que é a que o ambiente usa. Sem `item`, o mesmo fio encerra a atividade, como `encerrarAtividade`.
@@ -392,8 +392,8 @@
     mostrar: (mensagem, titulo) => ponte.chamar('dialogos.mostrar', { type: 'dialog', message: mensagem, title: titulo }, 600000),
     // A mesma caixa de `mostrar`, com o tom de erro.
     erro: (mensagem, titulo) => ponte.chamar('dialogos.erro', { type: 'dialog', variant: 'error', message: mensagem, title: titulo }, 600000),
-    // Uma pergunta com "Sim" e "Não". A resposta é `true` só quando a pessoa disse sim; fechar a caixa vale como não.
-    confirmar: (mensagem, titulo) => ponte.chamar('dialogos.confirmar', { type: 'dialog', variant: 'confirm', message: mensagem, title: titulo }, 600000),
+    // Uma pergunta com dois botões, Cancelar e o que confirma, que diz o verbo em `sim` ("Excluir", "Publicar"; "OK" quando não vem). Com `perigo`, o botão que confirma tem a cor de destruir e o foco abre no Cancelar. A caixa mostra o ícone e o nome do app em cima. A resposta é `true` só quando a pessoa confirmou; fechar a caixa vale como cancelar.
+    confirmar: (mensagem, titulo, sim, perigo) => ponte.chamar('dialogos.confirmar', { type: 'dialog', variant: 'confirm', message: mensagem, title: titulo, yes: sim, danger: perigo }, 600000),
     // Uma pergunta com de duas a quatro respostas, uma por botão, na ordem dada. A resposta é o `id` da escolhida, ou `null` quando a pessoa fechou a caixa sem escolher. É a pergunta de "Salvar", "Não salvar" e "Cancelar", em que fechar a caixa não pode valer como nenhuma das duas primeiras.
     escolher: (mensagem, opcoes, titulo) => ponte.chamar('dialogos.escolher', { type: 'dialog', variant: 'choice', message: mensagem, options: opcoes, title: titulo }, 600000),
     // Um campo de texto de uma linha. A resposta é o que a pessoa escreveu, ou `null` quando ela cancelou.
@@ -838,9 +838,9 @@
   // O usuário escolhe uma cor de destaque em Configurações, e o shell a escreve no `<html>` dele.
   // Nada disso atravessa para o documento do app. Isto reporta e não escreve: quem grava as
   // variáveis no documento do app é a biblioteca de UI, e um app com identidade própria puxa só
-  // a cor. São quatro tokens, e não um derivado de outro: a fórmula dos derivados mora no shell,
+  // a cor. São cinco tokens, e não um derivado de outro: a fórmula dos derivados mora no shell,
   // e copiá-la seria uma segunda cópia livre para divergir.
-  const TOKENS_DE_DESTAQUE = ['--ds-accent', '--ds-accent-h', '--ds-accent-bg', '--ds-sel'];
+  const TOKENS_DE_DESTAQUE = ['--ds-accent', '--ds-accent-h', '--ds-accent-bg', '--ds-sel', '--ds-on-accent'];
 
   function raizDoAmbiente() {
     try {

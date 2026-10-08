@@ -671,6 +671,49 @@ dela com ou sem este campo; com dois pedindo a mesma, ninguém é eleito e a pes
 Configurações \> Tipos de arquivo. A escolha gravada pela pessoa vence sempre, e o campo não vale
 para tipo com destino próprio no ambiente (código, texto, comprimido, HTML).
 
+### `opens.proprios`
+
+`array` de `object`, opcional, itens no máximo 32.
+
+Os tipos de arquivo que o app cria, desenhados com a marca dele: a folha do ícone de arquivo leva o
+ícone do app no meio e o selo na cor dele, e a coluna Tipo do gerenciador de arquivos mostra o nome.
+Cada extensão daqui também entra em `extensions`. Uma extensão que o ambiente já desenha (imagem,
+vídeo, áudio, comprimido, código, texto, documento de escritório e PDF) continua com o ícone do
+ambiente. Com dois apps declarando a mesma extensão, vale a do app que abre o tipo no duplo-clique.
+
+#### `opens.proprios[].extensao`
+
+`string`, obrigatório.
+
+A extensão, em minúsculas, com ou sem ponto: `prelo`.
+
+#### `opens.proprios[].nome`
+
+`string`, obrigatório, comprimento mínimo 1, comprimento máximo 60.
+
+Como a coluna Tipo chama o arquivo: `Documento do Prelo`.
+
+#### `opens.proprios[].cor`
+
+`string`, obrigatório.
+
+A cor do selo, em `#rrggbb`. O texto do selo é branco, e o `vssh-app-publish` e a instalação recusam
+a cor em que o branco fica abaixo de 4,5:1.
+
+#### `opens.proprios[].icone`
+
+`string`, opcional.
+
+O ícone que vai no meio da folha, como caminho relativo à raiz do pacote. Sem ele, vai o `icon` do
+app.
+
+#### `opens.proprios[].selo`
+
+`string`, opcional.
+
+O texto curto do selo, até 5 letras maiúsculas ou números: `PRELO`. Sem ele, a folha fica sem selo,
+e o ícone do app identifica o arquivo sozinho.
+
 ### `opens.urls`
 
 `array` de `string`, opcional.
@@ -815,7 +858,9 @@ e não os liga entrega uma janela que não se move.
 O piso do redimensionamento pelas alças, para o app que precisa de mais que os 400×300 que o
 ambiente impõe a toda janela. Um lado só também vale: `{ "largura": 640 }` deixa a altura no piso do
 ambiente. Maximizar e encaixar continuam alcançando qualquer tamanho, e o piso vale para toda janela
-do app, inclusive a que ele abre pelo verbo `janela.abrir`.
+do app, inclusive a que ele abre pelo verbo `janela.abrir`. O piso é da tela larga: abaixo de 600 px
+de tela o ambiente põe a janela na área útil inteira e o piso cede, então o app precisa caber em 320
+px de largura, que é o que a moldura do Tuff (`.tuff-app`) dá sem CSS próprio.
 
 #### `window.minimos.largura`
 

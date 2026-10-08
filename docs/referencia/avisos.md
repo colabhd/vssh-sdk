@@ -9,7 +9,7 @@ Notificação, aviso efêmero, atividade em curso e bandeja, para um app com jan
 
 | verbo | responde |
 |---|---|
-| [`vssh.avisos.notificar(mensagem, titulo, nivel, prioridade, chave, acoes, abrir)`](#notificar) | sim, em até 5 s |
+| [`vssh.avisos.notificar(mensagem, titulo, nivel, prioridade, chave, acoes, abrir, figura)`](#notificar) | sim, em até 5 s |
 | [`vssh.avisos.avisar(mensagem, titulo, nivel, duracao, chave)`](#avisar) | sim, em até 5 s |
 | [`vssh.avisos.atividade(chave, item)`](#atividade) | sim, em até 5 s |
 | [`vssh.avisos.encerrarAtividade(chave, registrar)`](#encerraratividade) | sim, em até 5 s |
@@ -18,7 +18,7 @@ Notificação, aviso efêmero, atividade em curso e bandeja, para um app com jan
 
 ### `notificar`
 
-`vssh.avisos.notificar(mensagem, titulo, nivel, prioridade, chave, acoes, abrir)`
+`vssh.avisos.notificar(mensagem, titulo, nivel, prioridade, chave, acoes, abrir, figura)`
 
 Um fato que aconteceu, gravado no histórico do sino e anunciado num aviso: um caminho, um erro que a
 pessoa vai querer reencontrar. `nivel` é o tom (cor e ícone); `prioridade` é quanto interromper:
@@ -26,8 +26,10 @@ pessoa vai querer reencontrar. `nivel` é o tom (cor e ícone); `prioridade` é 
 pessoa responder. Um app não abre modal, e `critica` vira `alta`. A mesma `chave` substitui a
 notificação anterior no lugar de empilhar. O clique numa das `acoes` volta pelo evento
 `acaoDeNotificacao`. `abrir` é onde o clique na notificação leva, um caminho dentro do app
-(`?documento=x`), que chega pelo evento `abertura` quando a janela já está aberta. A resposta é o id
-da notificação.
+(`?documento=x`), que chega pelo evento `abertura` quando a janela já está aberta. `figura` é o que
+aparece à esquerda do título: o ícone do arquivo de que se fala (`arquivo`, com o caminho no
+servidor) ou uma imagem de dentro do pacote do app (`icone`, com o caminho relativo a ele). O ícone
+e o nome do app vêm do manifesto. A resposta é o id da notificação.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
 No fio: `type: "notify"`.
@@ -41,6 +43,7 @@ No fio: `type: "notify"`.
 | `chave` | `string` | sim | `chave` |
 | `acoes` | `{ id: string, label: string }[]` | sim | `actions` |
 | `abrir` | `string` | sim | `rota` |
+| `figura` | `{ tipo: 'arquivo' \| 'icone', caminho: string }` | sim | `figura` |
 
 ### `avisar`
 

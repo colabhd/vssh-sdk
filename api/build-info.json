@@ -2,7 +2,7 @@
   "shellVersion": "5.0.0-rc0",
   "artifacts": {
     "api/abi.json": {
-      "sha256": "bad32f00b20931879e8382111193b5dc82b9dbfbbd34c802eafa35f7c8c50d7e"
+      "sha256": "1996aa85f0415c0d2463b5a8009c78ca4bda7d0c318287ecca87e5f3a7c32974"
     },
     "api/electron.js": {
       "sha256": "802402efad47701fd6b50d90404fd04aae3b477820a720224ddd8ed3fa148269"
@@ -10,8 +10,11 @@
     "api/tauri.js": {
       "sha256": "0bf07c92217fe6ef27c9653a262e2476ae97bcb40a519f31c574652e974ef593"
     },
+    "api/tuff/DESIGN.md": {
+      "sha256": "e17d922871c8d4f0a3bb35053b51dd2a04226191ee9b27b622936a7c745f19c6"
+    },
     "api/tuff/docs/componentes.html": {
-      "sha256": "3e543bd22c418cacd0718b4baf0ed479b313e289674fe5d0503a4ebc7781427f"
+      "sha256": "f12f326db3f25e4445c7b830f65015e21889623fac9408f75b3635ae818186ff"
     },
     "api/tuff/fonts/OFL.txt": {
       "sha256": "bf4dc6d13a8cccd4807133c77a1ee9619a16b92cb23322258725ab6731c2f6e5"
@@ -23,28 +26,28 @@
       "sha256": "2ee17598a98d8a59e4df8152d015bec9ab8e4d5672cc0ab42bef806b568e3971"
     },
     "api/tuff/tuff-base.css": {
-      "sha256": "e17babd26529d20b7d59cb9c983566d30aade025def7325e754f4a85dae046df"
+      "sha256": "5a552a02d2cf84956c1ad2daf7f215a50d08a1e7e66ee0d4a48e7b74512706f8"
     },
     "api/tuff/tuff-icones.js": {
-      "sha256": "c99c5b9b70d0c1f42bcf90f13b3c25bba160fa6ba8a9533a324ece4b704747ae"
+      "sha256": "f5884f9042486bc7a778a60590463b7360d29f48d6bb83bb0ce3623ad3ba33cc"
     },
     "api/tuff/tuff-imagem.js": {
       "sha256": "b2e38a3d56a7b86638464d81b04bcbffb674923da4d8dc1e896b9d7977fe7557"
     },
     "api/tuff/tuff-midia.css": {
-      "sha256": "f9738aaec506c2538d95aad6cfe280352cefb7040c87043607012a9c170bdda6"
+      "sha256": "96b810d67a43517d0610b0e0a23500f0568af7cf2124ae5ccd4103545e08597c"
     },
     "api/tuff/tuff-midia.js": {
       "sha256": "3a19dbbbf6301680b7ef5f162daafc3c7abe2605590adbbed86221680fd1334f"
     },
     "api/tuff/tuff-tokens.css": {
-      "sha256": "b369f42cba81cb0ade895005b4b1133955dd124922e67f513887ffa9bb010886"
+      "sha256": "dcaaa50dfaa73e875811816a776f0482d72765a84d141e32affdd503be542e12"
     },
     "api/tuff/tuff.css": {
-      "sha256": "6836d76167c24233d710d64b968927177c48bbc61b4ac35979e5d717ae051140"
+      "sha256": "44ca59357d2ef44416c05e87683f98c967d94ef8ca5b3fb1c646542cea4ea79a"
     },
     "api/tuff/tuff.js": {
-      "sha256": "01cc5ffbb59fbd94615dcef470ca6972278653089a84a8af7b94faa3a40297d4"
+      "sha256": "b086b324463c6a22af9a674b704f814dee6fae63b6c174cb8642f900d773b9aa"
     },
     "api/tuff/vendor/geotiff-LICENCAS.txt": {
       "sha256": "48fe558bdf8ac64674a9104c2e679400368d529dd36de972419c9d0cfc9d4a40"
@@ -53,13 +56,13 @@
       "sha256": "43e440ec551e92f28376acdecdf1b285362a85f5b4afddfb028fef2213929862"
     },
     "api/vssh-app.schema.json": {
-      "sha256": "1bf8ab93159d7fd650a6e361a82125c2035a0ca0c7a77c3c02977e06875faa7f"
+      "sha256": "92b30bb2b0d97fa14afb94df96bbb879d26499375584c903875a15ac8ece5b19"
     },
     "api/vssh.d.ts": {
-      "sha256": "5a342c2ee3755d40d68a77c97eb8e61277c726867e787b331567e5825cad6d50"
+      "sha256": "24714fb835cf4391bb15c45cd69c5963092a3fbbd39fa133f2a7bd6e95d3d27b"
     },
     "api/vssh.js": {
-      "sha256": "fbfcbe6b7f79df9826c4241910f328988b43e51933f04f069607e07665bb4ad8"
+      "sha256": "75a768b94e0259ad693d55a6a70f5df30d9826e762e6364ca411acbb7d64a5bf"
     },
     "docs/referencia/README.md": {
       "sha256": "14ccb82be915614fff83b2d4ab0686fb43834b03c6772b8f8345262d35c4bd1c"
@@ -77,13 +80,13 @@
       "sha256": "444f8dc34d8ab60a2b866fb329d6ec10b6f5306cd5c662dbf00580cc592af1dc"
     },
     "docs/referencia/avisos.md": {
-      "sha256": "44ee08a9a258cd6ddd42f309f3c8944991bb92d921f6293d30cd1d72ebb462b6"
+      "sha256": "8675907c30b1e2f3252bf0eec7c4883b0a75aadebec3e93d3f2d60465327059e"
     },
     "docs/referencia/configuracoes.md": {
       "sha256": "4dd481587572f11975c4b72b7185f5928b64bcc775185b17c6906c65bb4ff6b8"
     },
     "docs/referencia/dialogos.md": {
-      "sha256": "4372250ea41a8ae1f540e9a3521759ac9b23a065e883cf39e96bfad26992f529"
+      "sha256": "802b5147284f3e27a32a8fbfd38fe258d71b2fb243156b657229544ec9b2f1f4"
     },
     "docs/referencia/gpu.md": {
       "sha256": "b3f15575f545de6d12e44bfeb599051fc2b27333cbeb7ea7896ec3d0993882c8"
@@ -95,7 +98,7 @@
       "sha256": "ac7b82419f57426b26a9c77b66bfcb5f838899333810cae32135b02d3fff22ed"
     },
     "docs/referencia/manifesto.md": {
-      "sha256": "5c108a7503a3988c559052f1145e6b57411c1481e66355d9d95a700317c93c06"
+      "sha256": "8aedaf05b5253545dbdb34e5f66652c6e406f438986db881107558f4eb83f200"
     },
     "docs/referencia/midia.md": {
       "sha256": "189b0de451e02e02c80829dc3c5dd844a0a4d0648a57b1c3514a8faae8a05015"
@@ -149,7 +152,7 @@
       "sha256": "9c14768d7c876a75bda968dcb694a5658f6c6720dce60eef2511406c825f3a5e"
     },
     "runtime/node/vssh/web.js": {
-      "sha256": "a817b415efd717c330ed0d2f451e313e7e4293c76c4d5410ad9e490a0bb75aeb"
+      "sha256": "32729842b55604e318c23056718b94d34391de720b0d329a171bf41c4f8c5cbe"
     },
     "runtime/python/vssh/__init__.py": {
       "sha256": "28e1776400ba54f2a4776bc06504e12b393480719e67723de917ecd78e0a9dd2"
@@ -185,7 +188,7 @@
       "sha256": "4c9b4ec2082f19b18c637005f3e58bcae0e810f9b9a10fd56a8b98141c29e3bf"
     },
     "runtime/python/vssh/web.py": {
-      "sha256": "28b7e654c7a565bfbf41191c7808f7ab02e8d18179c66df8f41d8b7ef3dc34fc"
+      "sha256": "ff0d91639c2f726e3d5e52c53eb0fbe4640181fa4c1b44c4fc418fa9fce6e63d"
     }
   }
 }

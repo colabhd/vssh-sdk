@@ -44,6 +44,12 @@
   // natureza.
   'folder':
     '<symbol id="ico-folder" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5V12.5a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7.5a1 1 0 0 0-1-1H7.5L6 5H3a1 1 0 0 0-1 1V8.5z"/></symbol>',
+  'folder-plus':
+    '<symbol id="ico-folder-plus" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 8V7.5a1 1 0 0 0-1-1H7.5L6 5H3a1 1 0 0 0-1 1v6.5a1 1 0 0 0 1 1h5.5"/><path d="M12 10v4M10 12h4"/></symbol>',
+  'drive':
+    '<symbol id="ico-drive" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="5" width="12.5" height="7" rx="1.5"/><path d="M1.75 8.5h7"/><circle cx="11.5" cy="8.5" r="0.75" fill="currentColor" stroke="none"/></symbol>',
+  'server':
+    '<symbol id="ico-server" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="4.5" rx="1"/><rect x="2" y="9" width="12" height="4.5" rx="1"/><path d="M4.5 4.75h.01M4.5 11.25h.01"/></symbol>',
   'folder-open':
     '<symbol id="ico-folder-open" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9L3.5 14h9L14 9H7.5L6 7.5H3a1 1 0 0 0-1 1V9z"/><path d="M2 9V7a1 1 0 0 1 1-1h3L7.5 7.5H13.5"/></symbol>',
 
@@ -145,6 +151,10 @@
   // "Sessão remota" no mixer de volume: a linha do stream do motor X11, que não é app nem aba.
   'monitor':
     '<symbol id="ico-monitor" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"/><path d="M6 14h4M8 11.5V14"/></symbol>',
+  // Janela sobre janela: a sessão de aplicativos nativos (o motor X11), que traz as janelas do
+  // servidor para dentro do ambiente. O monitor ao lado é a tela inteira; este é o que se abre nela.
+  'janelas':
+    '<symbol id="ico-janelas" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="5.5" width="9" height="8" rx="1.2"/><path d="M1.5 8h9M5.5 5.5V3a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-3"/></symbol>',
   'keyboard':
     '<symbol id="ico-keyboard" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="4.5" width="13" height="7" rx="1.5"/><path d="M4 7.5h.01M7 7.5h.01M10 7.5h.01M13 7.5h.01M5.5 9.5h5"/></symbol>',
   'layout':
@@ -166,6 +176,9 @@
     '<symbol id="ico-clock" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.25"/><path d="M8 4.5V8l2.5 1.5"/></symbol>',
   'bell-off':
     '<symbol id="ico-bell-off" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5.2 3.3A4 4 0 0 1 12 6c0 3 1 4 1 4H6.5"/><path d="M4 4.6C3.7 5 3.5 5.5 3.5 6c0 3-1 4-1 4h7"/><path d="M6.6 13a1.8 1.8 0 0 0 2.8 0"/><path d="M2.2 2.2l11.6 11.6"/></symbol>',
+  // O Não perturbe, na central: a lua de quem não quer ser chamado agora.
+  'moon':
+    '<symbol id="ico-moon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.2 9.8A5.6 5.6 0 0 1 6.2 2.8a5.6 5.6 0 1 0 7 7z"/></symbol>',
   'power':
     '<symbol id="ico-power" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v6"/><path d="M12 4.2a5.5 5.5 0 1 1-8 0"/></symbol>',
   'cpu':

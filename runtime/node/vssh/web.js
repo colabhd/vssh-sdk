@@ -60,15 +60,16 @@ const app = require('./app.js');
 const SDK = '_sdk/vssh.js';
 
 /**
- * O Tuff que `tuff: true` injeta: os valores, os componentes e o comportamento, na ordem em que
- * têm de carregar (os tokens declaram as variáveis que o resto lê).
+ * O Tuff que `tuff: true` injeta: os valores, a base, os componentes e o comportamento, na ordem
+ * em que têm de carregar (os tokens declaram as variáveis que o resto lê).
  */
-const TUFF = ['tuff-tokens.css', 'tuff.css', 'tuff.js'];
+const TUFF = ['tuff-tokens.css', 'tuff-base.css', 'tuff.css', 'tuff.js'];
 
 /**
- * O reset da página inteira (caixa, tipografia, foco). Fora de `TUFF` porque um bundle grande e
- * antigo traz o CSS dele inteiro, e um `box-sizing` global entrando por adoção parcial muda a
- * medida de todo elemento que não declara a própria caixa.
+ * A base: a caixa, a tipografia, o foco e o desenho das peças para o HTML sem classe. Está em
+ * `TUFF`; um bundle grande e antigo, que traz o CSS dele inteiro, a deixa de fora passando a lista
+ * sem ela, porque um `box-sizing` global muda a medida de todo elemento que não declara a própria
+ * caixa.
  */
 const TUFF_BASE = 'tuff-base.css';
 
@@ -207,6 +208,8 @@ function criarCarimbador(avisar) {
   };
 }
 
+// Um nome repetido entra uma vez, onde apareceu primeiro: a lista de um app escrita quando a base
+// ficava fora de `TUFF` (`[...TUFF, TUFF_BASE]`) continua valendo, sem um segundo `<link>`.
 function listaDoTuff(tuff) {
   if (tuff === true) return [...TUFF];
   if (!tuff) return [];
@@ -216,7 +219,7 @@ function listaDoTuff(tuff) {
       throw new TypeError(`tuff: '${nome}' não é um arquivo de _sdk/tuff/ (um nome, .css ou .js).`);
     }
   }
-  return [...tuff];
+  return [...new Set(tuff)];
 }
 
 /**
@@ -227,8 +230,8 @@ function listaDoTuff(tuff) {
  * `<link>` bloqueia a primeira pintura e descobri-lo cedo é o que evita um quadro sem estilo.
  * `sdk: false` deixa o `_sdk/vssh.js` de fora, para o app que escreve a tag à mão. `tuff: true`
  * injeta `TUFF`; uma lista nomeia os arquivos de `_sdk/tuff/` que entram, para quem quer também
- * `TUFF_BASE`, `TUFF_ICONES` ou `TUFF_MIDIA`. Os do Tuff saem antes dos do app, e o SDK antes de
- * qualquer script.
+ * `TUFF_ICONES` ou `TUFF_MIDIA`, ou não quer `TUFF_BASE`. Os do Tuff saem antes dos do app, e o
+ * SDK antes de qualquer script.
  *
  * `montagens` serve um prefixo de URL (com `/` nas duas pontas) de outro diretório, com o mesmo
  * confinamento, o mesmo 304 e o mesmo carimbo do bundle. `apelidos` mapeia um prefixo em outro

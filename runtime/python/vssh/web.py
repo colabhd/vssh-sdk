@@ -65,13 +65,14 @@ __all__ = ['spa', 'tipo_de_conteudo', 'SDK', 'TUFF', 'TUFF_BASE', 'TUFF_ICONES',
 #: O SDK web, servido pelo sistema. Entra no `<head>` por padrão.
 SDK = '_sdk/vssh.js'
 
-#: O Tuff que `tuff=True` injeta: os valores, os componentes e o comportamento, na ordem em que
-#: têm de carregar (os tokens declaram as variáveis que o resto lê).
-TUFF = ['tuff-tokens.css', 'tuff.css', 'tuff.js']
+#: O Tuff que `tuff=True` injeta: os valores, a base, os componentes e o comportamento, na ordem
+#: em que têm de carregar (os tokens declaram as variáveis que o resto lê).
+TUFF = ['tuff-tokens.css', 'tuff-base.css', 'tuff.css', 'tuff.js']
 
-#: O reset da página inteira (caixa, tipografia, foco). Fora de `TUFF` porque um bundle grande e
-#: antigo traz o CSS dele inteiro, e um `box-sizing` global entrando por adoção parcial muda a
-#: medida de todo elemento que não declara a própria caixa.
+#: A base: a caixa, a tipografia, o foco e o desenho das peças para o HTML sem classe. Está em
+#: `TUFF`; um bundle grande e antigo, que traz o CSS dele inteiro, a deixa de fora passando a lista
+#: sem ela, porque um `box-sizing` global muda a medida de todo elemento que não declara a própria
+#: caixa.
 TUFF_BASE = 'tuff-base.css'
 
 #: O sprite de ícones. Script, porque um `<use href="#ico-…">` só resolve dentro do próprio
@@ -225,6 +226,8 @@ class _Carimbador:
         return h
 
 
+# Um nome repetido entra uma vez, onde apareceu primeiro: a lista de um app escrita quando a base
+# ficava fora de `TUFF` (`[*TUFF, TUFF_BASE]`) continua valendo, sem um segundo `<link>`.
 def _lista_do_tuff(tuff):
     if tuff is True:
         return list(TUFF)
@@ -235,7 +238,7 @@ def _lista_do_tuff(tuff):
     for nome in tuff:
         if '/' in nome or not (nome.endswith('.css') or nome.endswith('.js')):
             raise ValueError("tuff: '%s' não é um arquivo de _sdk/tuff/ (um nome, .css ou .js)." % nome)
-    return list(tuff)
+    return list(dict.fromkeys(tuff))
 
 
 def spa(raiz, indice='index.html', scripts=None, folhas=None, montagens=None, apelidos=None,
@@ -247,8 +250,8 @@ def spa(raiz, indice='index.html', scripts=None, folhas=None, montagens=None, ap
     porque o `<link>` bloqueia a primeira pintura e descobri-lo cedo é o que evita um quadro
     sem estilo. `sdk=False` deixa o `_sdk/vssh.js` de fora, para o app que escreve a tag à mão.
     `tuff=True` injeta `TUFF`; uma lista nomeia os arquivos de `_sdk/tuff/` que entram, para
-    quem quer também `TUFF_BASE`, `TUFF_ICONES` ou `TUFF_MIDIA`. Os do Tuff saem antes dos do
-    app, e o SDK antes de qualquer script.
+    quem quer também `TUFF_ICONES` ou `TUFF_MIDIA`, ou não quer `TUFF_BASE`. Os do Tuff saem
+    antes dos do app, e o SDK antes de qualquer script.
 
     `montagens` serve um prefixo de URL (com `/` nas duas pontas) de outro diretório, com o mesmo
     confinamento, o mesmo 304 e o mesmo carimbo do bundle. `apelidos` mapeia um prefixo em outro
