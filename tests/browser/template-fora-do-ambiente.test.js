@@ -131,12 +131,12 @@ after(async () => {
   if (dirTemp) fs.rmSync(dirTemp, { recursive: true, force: true });
 });
 
-/** Espera o texto de um `<pre>` da galeria sair do travessão inicial, e o devolve. */
+/** Espera um `<pre>` da galeria receber o primeiro texto, e o devolve. */
 async function texto(id, limiteMs = 15000) {
   const fim = Date.now() + limiteMs;
   for (;;) {
     const t = await pagina.avaliar(`document.getElementById(${JSON.stringify(id)}).textContent`);
-    if (t && t !== '—' && !/^(lendo|chamando)/.test(t)) return t;
+    if (t && !/^(lendo|chamando)/.test(t)) return t;
     if (Date.now() > fim) assert.fail(`esperei ${limiteMs}ms e '#${id}' continuou em ${JSON.stringify(t)}`);
     await new Promise((r) => setTimeout(r, 60));
   }
@@ -159,7 +159,7 @@ test('a página inclui o SDK e o Tuff pelos caminhos do contrato, e só o que é
 test('o SDK carrega fora do ambiente, sem exceção, e se declara fora', { skip: pular }, async () => {
   assert.equal(await pagina.avaliar('typeof vssh'), 'object', 'o `_sdk/vssh.js` não definiu `vssh`');
   assert.equal(await pagina.avaliar('vssh.noAmbiente'), false);
-  assert.equal(await pagina.avaliar('typeof TuffGaveta'), 'object', 'o Tuff não carregou');
+  assert.equal(await pagina.avaliar('typeof TuffApp'), 'object', 'o Tuff não carregou');
   const ambiente = await texto('ambiente');
   assert.match(ambiente, /dentro do ambiente: false/);
   assert.match(ambiente, /fora do ambiente/);
@@ -204,4 +204,78 @@ test('o backend do template responde por trás da mesma origem', { skip: pular }
   await clicar('ping');
   assert.match(await texto('out'), /"pong": true/);
   assert.deepEqual(pagina.excecoes, []);
+});
+
+// ─── A moldura num celular em pé ─────────────────────────────────────────────
+//
+// Uma página nova, com 320 px (a largura que o WCAG usa para medir o reflow) e toque emulado, para o `(pointer: coarse)` responder dentro dela.
+// O que se mede é o que a pessoa vê e toca: a galeria cabe na largura, o toque no menu abre a
+// gaveta, o toque numa peça fecha a gaveta e leva o miolo até a peça, e o painel da moldura é a
+// tela seguinte, com "Voltar".
+
+async function ate(pg, expressao, oQue, limiteMs = 10000) {
+  const fim = Date.now() + limiteMs;
+  for (;;) {
+    if (await pg.avaliar(expressao)) return;
+    if (Date.now() > fim) assert.fail(`esperei ${limiteMs}ms e ${oQue} não aconteceu`);
+    await new Promise((r) => setTimeout(r, 50));
+  }
+}
+
+/** Um toque de dedo no meio do elemento, com o `touchstart` e o `touchend` que o Chrome traduz em clique. */
+async function tocar(pg, seletor) {
+  const ponto = await pg.avaliar(`(() => {
+    const r = document.querySelector(${JSON.stringify(seletor)}).getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  })()`);
+  await pg.enviar('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [ponto] });
+  await pg.enviar('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+}
+
+test('em 320 px com toque, a galeria cabe na largura, e a gaveta e o painel abrem e fecham pelo toque', { skip: pular }, async () => {
+  const celular = await navegador.novaPagina('about:blank');
+  await celular.enviar('Emulation.setDeviceMetricsOverride', { width: 320, height: 720, deviceScaleFactor: 1, mobile: true });
+  await celular.enviar('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+  await celular.enviar('Page.enable');
+  const carregou = celular.esperarEvento('Page.loadEventFired');
+  await celular.enviar('Page.navigate', { url: `http://127.0.0.1:${frente.address().port}/` });
+  await carregou;
+  const moldura = `document.querySelector('.tuff-app')`;
+  await ate(celular, `${moldura}?.dataset.forma === 'compacta' && !!document.querySelector('#gaveta-nav .tuff-gaveta-item')`,
+    'a moldura subir na forma compacta');
+
+  const larguras = await celular.avaliar(`(() => {
+    const m = document.getElementById('miolo');
+    return { pagina: document.documentElement.scrollWidth, janela: innerWidth, conteudo: m.scrollWidth, miolo: m.clientWidth };
+  })()`);
+  assert.ok(larguras.pagina <= larguras.janela && larguras.conteudo <= larguras.miolo,
+    `a galeria rola de lado em 320 px: ${JSON.stringify(larguras)}`);
+  assert.equal(await celular.avaliar(`document.getElementById('moldura-ponteiro').textContent`), 'Toque');
+
+  await tocar(celular, '[data-tuff-app-gaveta]');
+  // A gaveta entra deslizando, e o toque espera ela parar: no meio do caminho o item ainda está
+  // fora da tela.
+  await ate(celular, `${moldura}.classList.contains('tuff-app--gaveta-aberta')
+    && document.getElementById('gaveta-nav').getBoundingClientRect().left === 0`, 'a gaveta abrir');
+  await celular.avaliar(`(() => {
+    const item = [...document.querySelectorAll('#gaveta-nav .tuff-gaveta-item')].find((b) => b.textContent === 'Bandeja do sistema');
+    item.dataset.teste = 'escolha';
+    return true;
+  })()`);
+  await tocar(celular, '[data-teste="escolha"]');
+  await ate(celular, `!${moldura}.classList.contains('tuff-app--gaveta-aberta')`, 'a gaveta fechar depois da escolha');
+  await ate(celular, `(() => {
+    const secao = [...document.querySelectorAll('.galeria > section')].find((s) => s.querySelector('h2').textContent === 'Bandeja do sistema');
+    return Math.abs(secao.getBoundingClientRect().top - document.getElementById('miolo').getBoundingClientRect().top) < 4;
+  })()`, 'o miolo chegar à peça escolhida');
+  assert.equal(await celular.avaliar(`document.querySelector('[data-teste="escolha"]').getAttribute('aria-current')`), 'true');
+
+  await tocar(celular, '.barra-moldura');
+  await ate(celular, `(() => {
+    const r = document.getElementById('painel-moldura').getBoundingClientRect();
+    return ${moldura}.classList.contains('tuff-app--painel-aberto') && r.left === 0 && r.width === innerWidth;
+  })()`, 'o painel cobrir a tela');
+  await tocar(celular, '[data-tuff-app-voltar]');
+  await ate(celular, `!${moldura}.classList.contains('tuff-app--painel-aberto')`, 'o "Voltar" fechar o painel');
+  assert.deepEqual(celular.excecoes, [], 'a página lançou');
 });

@@ -17,19 +17,23 @@
 
     html, body { height: 100%; }
     body { margin: 0; padding: 0; overflow: hidden; }
-    #gaveta { height: 100%; }
 
-    /* Sem padding aqui: quem dá o respiro é o `.tuff-gaveta-conteudo` da biblioteca, e ele é irmão
-       da barra fixa — é assim que ela encosta nas bordas em vez de flutuar. */
-    .conteudo { display: flex; flex-direction: column; gap: var(--ds-gap-xl); }
-    header { display: flex; flex-direction: column; gap: var(--ds-gap-sm); }
-    header p { color: var(--ds-text-dim); max-width: 70ch; }
+    /* O respiro mora no conteúdo, e não no miolo da moldura: o miolo é quem rola, e um contêiner
+       de rolagem com padding deixaria a barra de rolagem longe da borda. */
+    .conteudo { display: flex; flex-direction: column; gap: var(--ds-gap-xl); padding: var(--ds-gap-lg); }
+    .conteudo > header p { color: var(--ds-text-dim); max-width: 70ch; }
+
+    /* O botão do painel só tem o que fazer onde o painel sai da coluna, na média e na compacta. Na
+       ampla o painel fica ao lado da galeria, e a etiqueta da barra sai na compacta, onde o título
+       precisa do espaço. */
+    @container tuff-app (width >= 840px) { .barra-moldura { display: none; } }
+    @container tuff-app (width < 600px) { .barra-tag { display: none; } }
 
     /* `align-items: start` para cada peça medir o próprio conteúdo. Sem isto a grade estica a
        linha inteira até a peça mais alta, e a página enche de vazios. */
     .galeria {
       display: grid; gap: var(--ds-gap-lg); align-items: start;
-      grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(min(330px, 100%), 1fr));
     }
     .larga { grid-column: 1 / -1; }
 
@@ -44,7 +48,7 @@
     code { background: var(--ds-bg3); padding: .05em .3em; border-radius: var(--ds-radius-sm); }
 
     /* As duas pontas do arraste. `#solte` precisa de área para se acertar, e `#arraste` precisa
-       parecer agarrável — um alvo de soltura invisível é indistinguível de um que não funciona. */
+       parecer agarrável: um alvo de soltura invisível parece um que não funciona. */
     #solte, #arraste {
       border: 1px dashed var(--ds-border); border-radius: var(--ds-radius-md);
       padding: var(--ds-gap-md) var(--ds-gap-lg); min-width: 14rem;
@@ -57,34 +61,48 @@
   </style>
 </head>
 <body>
-<!-- A gaveta: lateral com as peças + o corpo que rola, e a barra presa no topo do corpo.
-
-     ⚠ A barra ENCOSTA nas bordas porque `.tuff-gaveta-corpo` não tem padding — o respiro mora em
-     `.tuff-gaveta-conteudo`, que é irmão dela. Um contêiner de rolagem com padding empurra tudo
-     que está dentro, inclusive o que é `sticky`: a barra passa a flutuar longe das bordas e o
-     conteúdo aparece por trás dela.
+<!-- A moldura do Tuff: a barra, a lateral com as peças, o miolo com a galeria, o painel com a forma
+     da moldura e o rodapé. A disposição sai da largura da janela (ampla a partir de 840 px, média
+     de 600 a 839, compacta abaixo de 600), e quem a desenha é o `tuff.css`. O comportamento (abrir
+     a gaveta e o painel, o foco, o Esc, o "Mais") é o `TuffApp.ligar`, chamado em `galeria.js`.
 
      A lista da lateral é montada por `galeria.js` a partir das próprias seções: escrevê-la aqui
      criaria uma segunda lista, e o sintoma de esquecer seria uma peça que existe na página e não
      existe na navegação. -->
-<div class="tuff-gaveta" id="gaveta">
-  <div class="tuff-gaveta-veu"></div>
-  <nav class="tuff-gaveta-lateral" id="gaveta-nav" aria-label="Peças da galeria"></nav>
-  <div class="tuff-gaveta-corpo">
+<div class="tuff-app" id="app">
+  <header class="tuff-app-barra tuff-barra">
+    <button class="tuff-btn tuff-btn--icone tuff-app-so-compacta" type="button" data-tuff-app-gaveta>
+      <svg class="tuff-ico" aria-hidden="true"><use href="#ico-menu"></use></svg>
+    </button>
+    <!-- O `<h1>` mora na barra, que não sai da tela: o título continua visível enquanto se rola, e
+         uma página precisa de um `<h1>` só. -->
+    <h1 class="tuff-app-titulo">Hello World (Python)</h1>
+    <span class="tuff-barra-espaco"></span>
+    <span class="tuff-tag barra-tag">galeria do ambiente</span>
+    <!-- Os dois de prioridade baixa saem da barra na compacta e aparecem no "Mais", com o rótulo
+         e o ícone deles. -->
+    <button class="tuff-btn tuff-btn--icone" type="button" id="topo" data-prioridade="baixa"
+            aria-label="Voltar ao começo" data-tuff-dica="Voltar ao começo">
+      <svg class="tuff-ico" aria-hidden="true"><use href="#ico-chevron-up"></use></svg>
+    </button>
+    <button class="tuff-btn tuff-btn--icone" type="button" id="recarregar" data-prioridade="baixa"
+            aria-label="Recarregar a página" data-tuff-dica="Recarregar a página">
+      <svg class="tuff-ico" aria-hidden="true"><use href="#ico-refresh"></use></svg>
+    </button>
+    <button class="tuff-btn tuff-btn--icone barra-moldura" type="button" data-tuff-app-painel
+            aria-label="A moldura" data-tuff-dica="A moldura">
+      <svg class="tuff-ico" aria-hidden="true"><use href="#ico-bar-right"></use></svg>
+    </button>
+    <button class="tuff-btn tuff-btn--icone tuff-app-so-compacta" type="button" data-tuff-app-mais
+            aria-label="Mais ações">
+      <svg class="tuff-ico" aria-hidden="true"><use href="#ico-more"></use></svg>
+    </button>
+  </header>
 
-    <div class="tuff-barra tuff-barra--fixa">
-      <button class="tuff-btn tuff-btn--icone tuff-gaveta-abrir" data-tuff-gaveta-abrir
-              aria-label="Peças da galeria">
-        <svg class="tuff-ico"><use href="#ico-menu"></use></svg>
-      </button>
-      <!-- O `<h1>` mora AQUI, e não no cabeçalho da página: a barra não sai da tela, então o
-           título continua visível enquanto se rola — e uma página precisa de um `<h1>` só. -->
-      <h1 class="tuff-sec-titulo">Hello World — vssh-app (Python)</h1>
-      <span class="tuff-barra-espaco"></span>
-      <span class="tuff-tag">galeria do ambiente</span>
-    </div>
+  <nav class="tuff-app-lateral" id="gaveta-nav" aria-label="Peças da galeria"></nav>
 
-    <div class="tuff-gaveta-conteudo conteudo">
+  <main class="tuff-app-miolo" id="miolo">
+    <div class="conteudo">
   <header>
     <p>
       Template de partida <strong>e</strong> galeria: cada peça abaixo exercita uma capacidade real
@@ -103,23 +121,23 @@
         instalado hoje pergunta a essa lista antes de usar uma peça, e é aqui que se vê por que
         algo lá embaixo não respondeu.
       </p>
-      <pre class="saida" id="ambiente">—</pre>
+      <pre class="saida" id="ambiente"></pre>
     </section>
 
     <section id="c-runtime" class="tuff-painel larga">
       <h2>O que o ambiente decidiu por este app</h2>
       <p class="tuff-sec-desc">
         Três coisas o app <strong>declara</strong> no manifesto e quem <strong>aplica</strong> é o
-        ambiente — então o manifesto diz o que se pediu, e só de dentro do processo se vê o que se
-        recebeu. É a diferença que esta peça existe para mostrar.
+        ambiente. O manifesto diz o que se pediu, e só de dentro do processo se vê o que se
+        recebeu; esta peça mostra a diferença.
       </p>
       <ul class="tuff-sec-desc">
-        <li><strong>Limite de recurso</strong> — este template declara
+        <li>O limite de recurso: este template declara
           <code>memoryMax: "512M"</code>, mas o número abaixo vem do <em>cgroup</em>, não do
           manifesto. Num servidor sem gerenciador systemd do usuário
           (<code>loginctl enable-linger</code>) nada é aplicado, e aí ele aparece como
           <code>max</code>: o app roda <em>sem</em> limite, e isso é informação, não erro.</li>
-        <li><strong>GPU</strong>: o que o lançador <em>concedeu</em> a este processo, lido pelo
+        <li>A GPU: o que o lançador <em>concedeu</em> a este processo, lido pelo
           backend em <code>vssh.gpu.concedida()</code>. O lançador pergunta ao kernel
           (<code>/sys/class/drm</code> + <code>/dev/dri</code>) quem é a placa pelo id do
           barramento, qual driver assumiu, se ela é <em>virtual</em>, e, a pergunta que mais trava
@@ -134,7 +152,7 @@
           <code>""</code>; e sozinho esse vazio é ambíguo, o mesmo para "escondida de mim" e para
           "não existe". É por isso que ele aparece <em>junto</em> da decisão, e nunca no lugar
           dela. Fora do lançador não há registro, e a peça diz isso.</li>
-        <li><strong>Cofre</strong> — o app declara o <em>nome</em> (<code>HELLO_SEGREDO</code>); o
+        <li>O cofre: o app declara o <em>nome</em> (<code>HELLO_SEGREDO</code>); o
           valor você guarda pelo botão abaixo, e ele mora no <em>seu</em> servidor, não no
           portal. Depois de guardar, <strong>reinicie o app</strong>: o ambiente de um processo é
           fixado no start.</li>
@@ -146,23 +164,22 @@
         <button class="tuff-btn" id="segredo-listar">listar os nomes guardados</button>
         <button class="tuff-btn" id="segredo-apagar">apagar HELLO_SEGREDO</button>
       </div>
-      <pre class="saida" id="runtimeout">—</pre>
+      <pre class="saida" id="runtimeout"></pre>
       <p class="tuff-sec-desc">
         <strong>O benchmark é o que separa "tem placa" de "a placa serve".</strong> Ele codifica o
-        mesmo vídeo duas vezes — uma em CPU (<code>libx264</code>), outra pela GPU
-        (<code>VAAPI</code>, que atravessa Intel, AMD e NVIDIA pelo mesmo render node do DRM) — e o
+        mesmo vídeo duas vezes, uma em CPU (<code>libx264</code>) e outra pela GPU
+        (<code>VAAPI</code>, que atravessa Intel, AMD e NVIDIA pelo mesmo render node do DRM), e o
         número útil é a <em>razão</em> entre as duas. "180 fps" sozinho não diz nada; "2,4× mais
         rápido que a CPU deste servidor" diz. Uma placa virtual costuma sair <em>mais lenta</em>, e
         é bom descobrir isso antes de projetar em cima dela.
-        <br>Ele usa <code>ffmpeg</code>, que este template declara em <code>requiredPackages</code>
-        — então o instalador já recusou o servidor que não o tem, e as três metades da onda se
-        encontram aqui.
+        <br>Ele usa <code>ffmpeg</code>, que este template declara em <code>requiredPackages</code>,
+        então o instalador já recusou o servidor que não o tem.
       </p>
       <p class="tuff-sec-desc">
-        <strong>O segredo se guarda AQUI, no app</strong> — não em Configurações. É o app que sabe
+        <strong>O segredo se guarda AQUI, no app</strong>, e em Configurações não. É o app que sabe
         que falta credencial, e sabe na hora exata em que ela falta. O botão chama
         <code>vssh.segredos.pedir()</code>: o campo é do desktop, o valor vai direto para o seu
-        servidor, e o app <em>nunca o toca</em> — nem no envio, nem na volta. No Chaveiro, a
+        servidor, e o app <em>nunca o toca</em>, nem no envio nem na volta. No Chaveiro, a
         janela do ambiente, você confere, troca e apaga o que já está guardado.
       </p>
     </section>
@@ -193,17 +210,17 @@
         <button class="tuff-btn" id="fila-ler">ler api/fila</button>
         <button class="tuff-btn" id="fila-sonda">nvidia-smi no cluster (leva um minuto)</button>
       </div>
-      <pre class="saida" id="filaout">—</pre>
+      <pre class="saida" id="filaout"></pre>
     </section>
 
     <section class="tuff-painel">
       <h2>Backend próprio</h2>
       <p class="tuff-sec-desc">
-        O app é um processo seu no servidor Linux. <code>fetch('api/ping')</code> — relativo,
-        sempre: uma barra no começo apontaria para a raiz do portal, não para o app.
+        O app é um processo seu no servidor Linux. <code>fetch('api/ping')</code> vai relativo,
+        sempre: uma barra no começo apontaria para a raiz do portal, e não para o app.
       </p>
       <div class="tuff-acoes"><button class="tuff-btn" id="ping">chamar api/ping</button></div>
-      <pre class="saida" id="out">—</pre>
+      <pre class="saida" id="out"></pre>
     </section>
 
     <section class="tuff-painel">
@@ -213,22 +230,22 @@
         chegassem em lote em vez de um a um, o problema seria bufferização na borda.
       </p>
       <div class="tuff-acoes"><button class="tuff-btn" id="sub">assinar api/events</button></div>
-      <pre class="saida" id="events">—</pre>
+      <pre class="saida" id="events"></pre>
     </section>
 
     <section class="tuff-painel larga">
       <h2>Duas janelas, um backend</h2>
       <p class="tuff-sec-desc">
         Abra a <strong>segunda janela</strong> pelo menu de contexto da janela (clique direito no
-        cabeçalho → <em>Nova janela</em>) e clique em somar numa delas: o número muda nas duas.
-        Elas não são duas instâncias — são duas visões do mesmo processo, com a mesma porta, o
+        cabeçalho, <em>Nova janela</em>) e clique em somar numa delas: o número muda nas duas.
+        As duas são visões do mesmo processo, com a mesma porta, o
         mesmo token e o mesmo <code>VSSH_APP_DATA_DIR</code>. É a consequência que vale para quem
         escreve o app: estado de UI guardado no backend passa a ter mais de um cliente.
       </p>
       <p class="tuff-sec-desc">
         O app também pode <strong>pedir</strong> a janela, e aí ele escolhe o que vai dentro:
         <code>vssh.janela.abrir('?painel=1', …)</code> abre uma janela <strong>extra</strong>, um
-        painel, uma prévia, um segundo documento — e não uma cópia desta página. O botão abaixo
+        painel, uma prévia, um segundo documento, em vez de uma cópia desta página. O botão abaixo
         abre o painel compacto deste app, ligado ao mesmo contador. URL absoluta e
         <code>javascript:</code> são recusados pelo shell: a janela leva o título e o ícone do seu
         app, e servir outra coisa ali seria material de tela falsa.
@@ -236,7 +253,7 @@
       <p class="tuff-sec-desc">
         E há um caminho que <strong>não passa pelo backend</strong>: <code>BroadcastChannel</code>.
         Shell e apps compartilham uma origem só, então ele funciona entre duas janelas do mesmo
-        app, entre dois apps diferentes e entre o app e o shell — sem ponte nossa, porque embrulhar
+        app, entre dois apps diferentes e entre o app e o shell, sem ponte nossa: embrulhar
         o que o navegador já faz só acrescentaria um lugar onde a mensagem se perde. O aviso vem
         junto: <strong>outro app da mesma sessão escuta os seus canais.</strong> Não mande por aqui
         o que você não mandaria por um mural.
@@ -247,15 +264,15 @@
         <button class="tuff-btn" id="extra">abrir uma janela extra (painel)</button>
         <button class="tuff-btn" id="canal">mandar um oi pelo BroadcastChannel</button>
       </div>
-      <pre class="saida" id="estado">— (assine o SSE acima para receber as mudanças da outra janela)</pre>
-      <pre class="saida" id="canalout">—</pre>
+      <pre class="saida" id="estado">assine o SSE acima para receber as mudanças da outra janela</pre>
+      <pre class="saida" id="canalout"></pre>
     </section>
 
     <section class="tuff-painel larga">
       <h2>Avisar, notificar, ou mostrar o que está acontecendo</h2>
       <p class="tuff-sec-desc">
         Três superfícies com três tempos de vida, e escolher errado custa a atenção de quem usa o
-        ambiente — não a sua. Clique os dois primeiros lado a lado e olhe o sino: <strong>só um
+        ambiente, e não a sua. Clique os dois primeiros lado a lado e olhe o sino: <strong>só um
         deles deixa rastro.</strong>
       </p>
       <p class="tuff-sec-desc">
@@ -285,28 +302,28 @@
         <button class="tuff-btn" id="dialog-prompt">perguntar</button>
         <button class="tuff-btn" id="dialog-password">senha</button>
       </div>
-      <pre class="saida" id="bridge">—</pre>
+      <pre class="saida" id="bridge"></pre>
     </section>
 
     <section class="tuff-painel">
       <h2>Menu de contexto do ambiente</h2>
       <p class="tuff-sec-desc">
-        O menu é <strong>do desktop</strong>, desenhado por cima da janela — o app manda só
+        O menu é <strong>do desktop</strong>, desenhado por cima da janela. O app manda só
         <em>dados</em> (nunca HTML, nunca função) e recebe de volta o <code>id</code> do item
         escolhido, ou <code>null</code> se a pessoa fechou sem escolher. As coordenadas são as do
         <em>seu</em> viewport; quem soma a posição da janela é o shell. Submenu vai
-        <strong>um nível</strong> só — o segundo é ignorado, e é melhor saber disso aqui.
+        <strong>um nível</strong> só, e o segundo é ignorado.
       </p>
       <div class="tuff-acoes">
         <button class="tuff-btn" id="menu">clique com o botão direito nesta caixa</button>
       </div>
-      <pre class="saida" id="menuout">—</pre>
+      <pre class="saida" id="menuout"></pre>
     </section>
 
     <section class="tuff-painel">
       <h2>Controles da janela</h2>
       <p class="tuff-sec-desc">
-        A janela é do ambiente, e o app <strong>pede</strong> — não manipula. Não existe
+        A janela é do ambiente, e o app <strong>pede</strong> o que quer dela. Não existe
         <code>setSize</code> nem <code>setPosition</code>: o tamanho inicial vem do manifesto e
         depois é do usuário. Minimizar sem um jeito de voltar deixaria esta peça sem saída, então o
         botão de minimizar restaura sozinho depois de dois segundos.
@@ -318,17 +335,17 @@
       </div>
       <p class="tuff-sec-desc">
         <code>focus()</code> não tem botão aqui de propósito: pedir foco para a janela que já está
-        na frente não faz nada visível. Ele é exercitado onde tem sentido — no menu da
+        na frente não faz nada visível. Ele é exercitado onde tem sentido, no menu da
         <em>bandeja</em>, que é o caminho de quem quer a janela de volta sem procurá-la.
       </p>
-      <pre class="saida" id="janela">—</pre>
+      <pre class="saida" id="janela"></pre>
     </section>
 
     <section class="tuff-painel larga">
       <h2>O que o app está fazendo agora</h2>
       <p class="tuff-sec-desc">
         Uma tarefa longa de mentira, para ver o ciclo completo: a atividade aparece com barra na
-        bandeja e no painel do sino, anda, e <strong>some</strong> ao terminar — deixando UMA
+        bandeja e no painel do sino, anda, e <strong>some</strong> ao terminar, deixando UMA
         notificação no lugar. A mesma chave reescreve no lugar, então relatar progresso vinte
         vezes não empilha vinte linhas.
       </p>
@@ -338,7 +355,7 @@
         passa ~60&nbsp;s sem renovar o carimbo de tempo. Quem renova é
         <code>keepLiveAlive()</code>, ligado uma vez no boot. O botão de 80&nbsp;s existe para
         <em>ver</em> isso: se a barra atravessar, a renovação está ligada; se sumir no meio, falta
-        a chamada — e numa tarefa de seis segundos os dois casos são indistinguíveis.
+        a chamada. Numa tarefa de seis segundos os dois casos parecem iguais.
       </p>
       <div class="tuff-acoes">
         <button class="tuff-btn" id="live-ir">começar (10 passos)</button>
@@ -348,11 +365,11 @@
         <button class="tuff-btn" id="avisar-backend">notify do backend, com key estável</button>
         <button class="tuff-btn" id="avisar-backend-acao">notify do backend COM ação</button>
       </div>
-      <pre class="saida" id="live">—</pre>
+      <pre class="saida" id="live"></pre>
       <p class="tuff-sec-desc">
         A notificação do backend também aceita <strong>ação</strong>, e aí a resposta precisa de
         um lugar para chegar: o app pode estar sem janela quando alguém clicar. Por isso o journal
-        carrega <code>onAction: { path }</code> — o desktop faz um <code>POST</code> nessa rota do
+        carrega <code>onAction: { path }</code>, e o desktop faz um <code>POST</code> nessa rota do
         <em>seu</em> backend. Clique no botão, depois no botão da notificação no sino, e a linha
         abaixo muda sem esta página ter feito requisição nenhuma.
       </p>
@@ -370,7 +387,7 @@
         <button class="tuff-btn" id="tray-bump">badge +1</button>
         <button class="tuff-btn" id="tray-off">remover</button>
       </div>
-      <pre class="saida" id="tray">—</pre>
+      <pre class="saida" id="tray"></pre>
       <p class="tuff-sec-desc">
         <strong>Há dois caminhos até o mesmo ícone, e eles não são alternativas.</strong> Os botões
         acima usam <code>vssh.avisos.bandeja</code>, que só existe com uma janela aberta. O de
@@ -383,7 +400,7 @@
         <button class="tuff-btn" id="tray-backend">pela lib do backend (sem janela)</button>
         <button class="tuff-btn" id="tray-backend-off">remover a do backend</button>
       </div>
-      <pre class="saida" id="tray-back">—</pre>
+      <pre class="saida" id="tray-back"></pre>
     </section>
 
     <section class="tuff-painel larga">
@@ -391,7 +408,7 @@
       <p class="tuff-sec-desc">
         <code>vssh-app-toolkit/fs</code> dá ao app um filesystem <strong>próprio</strong> por HTTP:
         uma raiz confinada com <code>realpath</code> (um <code>..</code> não sai dela), gate do
-        <code>X-Vssh-App-Token</code>, e <code>errno</code> classificado — um caminho que não existe
+        <code>X-Vssh-App-Token</code>, e <code>errno</code> classificado: um caminho que não existe
         é 404, e não um 500 dizendo que o servidor quebrou.
       </p>
       <p class="tuff-sec-desc">
@@ -407,17 +424,17 @@
         <button class="tuff-btn" id="priv-ler">ler</button>
         <button class="tuff-btn" id="priv-apagar">apagar</button>
       </div>
-      <pre class="saida" id="privado">—</pre>
+      <pre class="saida" id="privado"></pre>
     </section>
 
     <section class="tuff-painel larga">
-      <h2>Arquivos do usuário — File System Access</h2>
+      <h2>Arquivos do usuário pela File System Access</h2>
       <p class="tuff-sec-desc">
         A API padrão do W3C, respondida pelo polyfill que entra junto com <code>_sdk/vssh.js</code>:
-        um app que já usa FSA roda aqui <strong>sem fork</strong>. Escolher no seletor <em>é</em> o consentimento — não há
-        segunda confirmação —, e o acesso <strong>sobrevive à sessão</strong>, que é o par
-        necessário de guardar o handle no IndexedDB. Revogar é no menu de contexto da janela →
-        <em>Permissões de arquivo</em>.
+        um app que já usa FSA roda aqui <strong>sem fork</strong>. Escolher no seletor <em>é</em> o
+        consentimento, sem segunda confirmação, e o acesso <strong>sobrevive à sessão</strong>, que
+        é o par necessário de guardar o handle no IndexedDB. Revogar fica no menu de contexto da
+        janela, em <em>Permissões de arquivo</em>.
       </p>
       <div class="tuff-acoes">
         <button class="tuff-btn" id="fsa-pick">escolher pasta</button>
@@ -428,7 +445,7 @@
         <button class="tuff-btn" id="fsa-apagar" disabled>apagar</button>
         <button class="tuff-btn" id="fsa-permissao" disabled>reautorizar</button>
       </div>
-      <pre class="saida" id="fsa">—</pre>
+      <pre class="saida" id="fsa"></pre>
     </section>
 
     <section class="tuff-painel larga">
@@ -450,7 +467,7 @@
         <button class="tuff-btn" id="fs-rename" disabled>renomear o .bak</button>
         <button class="tuff-btn" id="fs-watch" disabled>acompanhar</button>
       </div>
-      <pre class="saida" id="fs">—</pre>
+      <pre class="saida" id="fs"></pre>
       <p class="tuff-sec-desc">
         A outra metade: <strong>escrever</strong>. <code>criarPasta</code>, <code>escrever</code>,
         <code>escreverBytes</code>, <code>listar</code> e <code>apagar</code>, numa pasta que o
@@ -463,7 +480,7 @@
         <button class="tuff-btn" id="fs-ciclo" disabled>criarPasta, escrever, listar, apagar</button>
         <button class="tuff-btn" id="fs-url" disabled>urlFor num &lt;img&gt;</button>
       </div>
-      <pre class="saida" id="fs-escrita">—</pre>
+      <pre class="saida" id="fs-escrita"></pre>
       <div id="fs-imagem"></div>
       <p class="tuff-sec-desc">
         <strong>Quem decide a permissão é o shell.</strong> <code>permissoes(caminho)</code>
@@ -477,7 +494,7 @@
       <div class="tuff-acoes">
         <button class="tuff-btn" id="fs-grants">permissoes + concedidos</button>
       </div>
-      <pre class="saida" id="grants">—</pre>
+      <pre class="saida" id="grants"></pre>
     </section>
 
     <section class="tuff-painel">
@@ -495,7 +512,7 @@
         <button class="tuff-btn" id="pick-save">escolherDestino</button>
         <button class="tuff-btn" id="pick-dir">escolherPasta</button>
       </div>
-      <pre class="saida" id="picks">—</pre>
+      <pre class="saida" id="picks"></pre>
     </section>
 
     <section class="tuff-painel">
@@ -515,14 +532,14 @@
         <button class="tuff-btn" id="clip-img-ler">ler imagem</button>
         <button class="tuff-btn" id="clip-img-por">copiar imagem</button>
       </div>
-      <pre class="saida" id="clip">—</pre>
+      <pre class="saida" id="clip"></pre>
     </section>
 
     <section class="tuff-painel larga">
       <h2>Arrastar arquivo, nas duas direções</h2>
       <p class="tuff-sec-desc">
-        Um tipo MIME só (<code id="mime">…</code>), com caminhos absolutos separados por linha —
-        e é ele que faz o arraste ser <strong>um contrato, não três integrações</strong>: do
+        Um tipo MIME só (<code id="mime">…</code>), com caminhos absolutos separados por linha,
+        faz do arraste <strong>um contrato só</strong> para três caminhos: do
         ambiente para o app, do app para o ambiente, e de um app para outro, que cai de graça das
         duas primeiras. Arraste um arquivo do gerenciador de arquivos até a área abaixo; depois
         arraste a linha de volta para uma pasta.
@@ -530,14 +547,14 @@
       <p class="tuff-sec-desc">
         A armadilha que não deixa rastro: sem <code>preventDefault</code> no
         <code>dragover</code>, o navegador entende que o alvo recusa a soltura e o
-        <strong><code>drop</code> nunca acontece</strong> — sem erro, sem log, só o cursor de
+        <strong><code>drop</code> nunca acontece</strong>, sem erro e sem log, só com o cursor de
         proibido. Quem usa <code>vssh.arquivos.aoSoltarArquivos()</code> não precisa lembrar disso.
       </p>
       <div class="tuff-acoes">
         <div id="solte">solte arquivos aqui</div>
         <div id="arraste" draggable="true">◧ arraste isto para fora</div>
       </div>
-      <pre class="saida" id="arrastar">—</pre>
+      <pre class="saida" id="arrastar"></pre>
     </section>
 
     <section class="tuff-painel larga">
@@ -564,7 +581,7 @@
         <button class="tuff-btn" id="abrir-url">abrirLink</button>
         <a id="link-alvo" href="https://example.org" target="_blank" rel="noreferrer">um link comum</a>
       </div>
-      <pre class="saida" id="abrir">—</pre>
+      <pre class="saida" id="abrir"></pre>
     </section>
 
     <section class="tuff-painel larga">
@@ -589,7 +606,7 @@
         <button class="tuff-btn" id="rota-lembrar">lembrar “?painel=1”</button>
         <button class="tuff-btn" id="rota-limpar">esquecer</button>
       </div>
-      <pre class="saida" id="rota">—</pre>
+      <pre class="saida" id="rota"></pre>
     </section>
 
     <section class="tuff-painel larga">
@@ -606,7 +623,7 @@
         <div class="tuff-linha">
           <div class="tuff-linha-corpo">
             <div class="tuff-linha-titulo">Mostrar em Configurações</div>
-            <div class="tuff-linha-desc" id="secao-estado">—</div>
+            <div class="tuff-linha-desc" id="secao-estado"></div>
           </div>
           <div class="tuff-linha-ctrl">
             <label class="tuff-switch">
@@ -632,18 +649,18 @@
         <button class="tuff-btn" id="opfs-escrever">gravar</button>
         <button class="tuff-btn" id="opfs-ler">ler</button>
       </div>
-      <pre class="saida" id="opfs">—</pre>
+      <pre class="saida" id="opfs"></pre>
     </section>
 
     <section class="tuff-painel">
       <h2>Impressão</h2>
       <p class="tuff-sec-desc">
         O app <strong>não imprime</strong>: ele pede a tela, e quem escolhe o destino e confirma é o
-        usuário. O destino oferecido primeiro é a fila do <em>próprio servidor</em> — ali o arquivo
+        usuário. O destino oferecido primeiro é a fila do <em>próprio servidor</em>, onde o arquivo
         não viaja, e imprimir 200 páginas pelo navegador significa baixar 200 páginas antes.
       </p>
       <div class="tuff-acoes"><button class="tuff-btn" id="print">escolher arquivo e imprimir</button></div>
-      <pre class="saida" id="printout">—</pre>
+      <pre class="saida" id="printout"></pre>
     </section>
 
     <section class="tuff-painel larga">
@@ -659,22 +676,22 @@
         <button class="tuff-btn" id="som-media">tocar um &lt;audio&gt;</button>
         <button class="tuff-btn" id="som-wa">tocar por AudioContext</button>
       </div>
-      <pre class="saida" id="audio">—</pre>
+      <pre class="saida" id="audio"></pre>
     </section>
 
     <section class="tuff-painel larga">
       <h2>A cor do ambiente</h2>
       <p class="tuff-sec-desc">
-        A pessoa escolhe uma cor de destaque em Configurações → Ambiente, e ela <strong>não
+        A pessoa escolhe uma cor de destaque em Configurações, na seção Ambiente, e ela <strong>não
         atravessa</strong> sozinha: o app é outro documento, e o shell não injeta nada aqui. Quem não
-        pergunta fica com a cor de fábrica enquanto o ambiente inteiro está noutra — e a janela dele
+        pergunta fica com a cor de fábrica enquanto o ambiente inteiro está noutra, e a janela dele
         é a única fora do tom. Troque a cor lá com esta peça aberta: as amostras mudam aqui, sem
         recarregar. Fora do ambiente a resposta é <code>null</code>, e a leitura certa é
-        <em>não sobrescreva nada</em> — o padrão da folha de estilo já está certo.
+        <em>não sobrescreva nada</em>, porque o padrão da folha de estilo já está certo.
       </p>
       <div class="tuff-acoes"><button class="tuff-btn" id="cor-ler">perguntar ao ambiente</button></div>
       <div id="cor-amostras"></div>
-      <pre class="saida" id="cor">—</pre>
+      <pre class="saida" id="cor"></pre>
     </section>
 
   </div>
@@ -683,8 +700,39 @@
        `static-spa` depois de `_sdk/vssh.js`, para ganhar o carimbo de conteúdo na URL. Ver o
        cabeçalho do arquivo e a lista de scripts injetados no backend deste app. -->
     </div>
+  </main>
 
-  </div>
+  <!-- A forma da moldura agora. Na ampla é a terceira coluna; na média entra pela borda direita
+       quando o botão da barra a pede; na compacta é a tela seguinte, com "Voltar". -->
+  <aside class="tuff-app-painel" id="painel-moldura" aria-labelledby="moldura-titulo">
+    <div class="tuff-app-painel-cab">
+      <button class="tuff-btn tuff-btn--icone tuff-btn--quieto tuff-app-so-compacta" type="button"
+              data-tuff-app-voltar aria-label="Voltar para a galeria">
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-arrow-left"></use></svg>
+      </button>
+      <h2 class="tuff-app-painel-titulo" id="moldura-titulo">A moldura</h2>
+      <button class="tuff-btn tuff-btn--icone tuff-btn--quieto tuff-app-so-media" type="button"
+              data-tuff-app-fechar aria-label="Fechar o painel">
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-close"></use></svg>
+      </button>
+    </div>
+    <dl class="tuff-kv">
+      <dt>Forma</dt><dd id="moldura-forma"></dd>
+      <dt>Largura</dt><dd id="moldura-largura"></dd>
+      <dt>Ponteiro</dt><dd id="moldura-ponteiro"></dd>
+    </dl>
+    <p class="tuff-sec-desc" id="moldura-explica"></p>
+    <div class="tuff-sec-titulo">As cinco regiões</div>
+    <dl class="tuff-kv tuff-kv--mono">
+      <dt>Barra</dt><dd>.tuff-app-barra</dd>
+      <dt>Lateral</dt><dd>.tuff-app-lateral</dd>
+      <dt>Miolo</dt><dd>.tuff-app-miolo</dd>
+      <dt>Painel</dt><dd>.tuff-app-painel</dd>
+      <dt>Rodapé</dt><dd>.tuff-app-rodape</dd>
+    </dl>
+  </aside>
+
+  <footer class="tuff-app-rodape tuff-status" id="rodape"></footer>
 </div>
 </body>
 </html>
