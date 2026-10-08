@@ -136,9 +136,23 @@ Com o `web.spa` do runtime a tag entra sozinha, e é o caminho dos templates: `w
 injeta `_sdk/vssh.js` por padrão, e `sdk: false` deixa isso para quem escreve a tag à mão. Numa
 rota profunda servida por `rotasProfundas` o relativo precisa de um `<base href>` na raiz do app,
 e o `web.spa` já o injeta. O Tuff entra pela mesma opção: `tuff: true` injeta `web.TUFF`
-(`tuff-tokens.css`, `tuff.css`, `tuff.js`), e uma lista escolhe os arquivos, com `web.TUFF_BASE`
-(o reset da página), `web.TUFF_ICONES` (o sprite) e `web.TUFF_MIDIA` (trilha, volume, grade,
-visor) à disposição. `VSSH_APP_BASE_PATH` não entra na conta.
+(`tuff-tokens.css`, `tuff-base.css`, `tuff.css`, `tuff.js`), e uma lista escolhe os arquivos, com
+`web.TUFF_ICONES` (o sprite) e `web.TUFF_MIDIA` (trilha, volume, grade, visor) à disposição, ou
+sem `web.TUFF_BASE`. `VSSH_APP_BASE_PATH` não entra na conta.
+
+### A base do Tuff no `tuff: true`
+
+A partir do deploy do sistema que traz o runtime novo, todo app com `tuff: true` recebe também
+`tuff-base.css`, sem rebuild: quem injeta as tags é o `web.spa` do runtime instalado no servidor.
+A base faz duas coisas que mexem em CSS próprio. Ela põe `box-sizing: border-box` em tudo, e um
+elemento que media pelo conteúdo passa a medir pela borda. E ela dá ao HTML sem classe nenhuma
+(`<button>`, `<input>`, `<select>`, `<textarea>`, `<table>`, `<hr>`, `<progress>`, `<meter>`,
+`<fieldset>`, `<blockquote>`, `<details>`) o desenho da peça do Tuff equivalente. Um elemento com
+qualquer classe fica de fora, e o CSS do app, fora de camada, vence a base em todo empate.
+
+Um app que escreve `[...web.TUFF, web.TUFF_BASE]` continua como está: o nome repetido entra uma
+vez. Um app cujo CSS foi escrito contra os padrões do navegador passa a lista sem a base,
+`['tuff-tokens.css', 'tuff.css', 'tuff.js']`, e confere a tela com e sem ela antes de tirar.
 
 O polyfill de File System Access vem dentro de `_sdk/vssh.js`, depois do runtime: não há uma
 segunda tag para ele, e a ordem que o toolkit pedia (shim antes do polyfill) deixou de ser uma

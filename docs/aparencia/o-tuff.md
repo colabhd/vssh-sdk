@@ -15,7 +15,7 @@ defeito: ela para no tempo enquanto o ambiente segue.
 | arquivo | o que é | quem carrega |
 |---|---|---|
 | `tuff-tokens.css` | os valores (`--tuff-*` e `--ds-*`) e o `@font-face` da Instrument Sans | todo app que use o Tuff; um app com identidade própria que só quer a cor do ambiente carrega só este |
-| `tuff-base.css` | o reset da página inteira: caixa, tipografia, scrollbar, foco, seleção, `color-scheme: dark` | um app novo; um bundle grande com CSS próprio fica sem ele, porque um `box-sizing` global entrando por baixo muda a medida de tudo |
+| `tuff-base.css` | a página inteira: caixa, tipografia, scrollbar, foco, seleção, `color-scheme: dark`, e o desenho das peças para o HTML sem classe (`<button>`, `<input>`, `<select>`, `<table>`) | todo app com `tuff: true`; um bundle grande com CSS próprio passa a lista sem ele, porque um `box-sizing` global entrando por baixo muda a medida de tudo |
 | `tuff.css` | os componentes | todo app que use o Tuff |
 | `tuff.js` | o comportamento do núcleo: a gaveta de navegação (`TuffGaveta`) | quem tem gaveta |
 | `tuff-icones.js` | o sprite de ícones, instalado no documento ao carregar (`TuffIcones`) | quem usa ícone |
@@ -28,13 +28,17 @@ O `web.spa` do runtime injeta as tags no `index.html` do app, antes das do próp
 const vssh = require('vssh');
 const { web } = vssh;
 
-// `tuff: true` injeta tokens, componentes e comportamento: tuff-tokens.css, tuff.css e tuff.js.
+// `tuff: true` injeta tokens, base, componentes e comportamento: tuff-tokens.css, tuff-base.css,
+// tuff.css e tuff.js.
 const spa = web.spa('frontend', { tuff: true });
 
-// Uma lista nomeia o que entra, para quem quer também o reset, os ícones ou a mídia.
+// Uma lista nomeia o que entra, para quem quer também os ícones ou a mídia.
 const completo = web.spa('frontend', {
-  tuff: [...web.TUFF, web.TUFF_BASE, web.TUFF_ICONES, ...web.TUFF_MIDIA],
+  tuff: [...web.TUFF, web.TUFF_ICONES, ...web.TUFF_MIDIA],
 });
+
+// E para o bundle com CSS próprio, que fica sem a base.
+const semBase = web.spa('frontend', { tuff: ['tuff-tokens.css', 'tuff.css', 'tuff.js'] });
 ```
 
 Em Python, `web.spa('frontend', tuff=True)` e `web.TUFF`, `web.TUFF_BASE`, `web.TUFF_ICONES`,
