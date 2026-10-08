@@ -970,8 +970,9 @@
   // região coberta. Uma mudança de forma fecha os dois, porque o que estava aberto por cima de
   // outra região não tem para onde ir na forma nova.
 
-  const FORMAS = [[600, 'compacta'], [840, 'media'], [Infinity, 'ampla']];
-  const formaDe = (largura) => FORMAS.find(([teto]) => largura < teto)[1];
+  // Uma moldura ligada ainda escondida não tem largura, e nasce ampla; a medida da primeira vez que
+  // ela aparece dá a forma de verdade.
+  const formaDe = (largura) => (largura < 600 ? 'compacta' : largura < 840 ? 'media' : 'ampla');
   const FOCAVEL = 'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
   const GATILHO = '[data-tuff-app-gaveta], [data-tuff-app-painel], [data-tuff-app-voltar], [data-tuff-app-fechar], [data-tuff-app-mais]';
   const GAVETA = 'tuff-app--gaveta-aberta';
