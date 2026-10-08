@@ -346,6 +346,22 @@ test('opens.urls NÃO é casamento por sufixo', seNaoTem, () => {
   assert.ok(!re.test('*.com'), 'curinga sobre sufixo público não pode passar');
 });
 
+// `opens.proprios`: o selo de um tipo de arquivo que o app cria é texto branco sobre a cor que o
+// app declara, e o portal recusa instalar uma cor em que o branco fica abaixo de 4,5:1. O publish
+// faz a mesma conta, para a recusa chegar a quem escolheu a cor. A cor que passa não recebe essa
+// recusa; enquanto o `api/` do checkout não traz o campo, ela para no schema, com outro erro.
+
+test('opens.proprios recusa a cor em que o branco do selo não se lê, e diz quanto deu', seNaoTem, () => {
+  for (const [cor, deu] of [['#f2c94c', '1.59'], ['#ffffff', '1.00'], ['#8a8a8a', '3.45']]) {
+    const saida = validar({ ...BASE, opens: { proprios: [{ extensao: 'prelo', nome: 'Documento', cor }] } });
+    assert.match(saida, new RegExp(`^ERROR=proprios_sem_contraste:'prelo'; o branco do selo fica em ${deu.replace('.', '\\.')}:1 sobre ${cor}`, 'm'));
+  }
+  for (const cor of ['#5b4bc4', '#2a61b1', '#000000', '#757575']) {
+    const saida = validar({ ...BASE, opens: { proprios: [{ extensao: 'prelo', nome: 'Documento', cor }] } });
+    assert.doesNotMatch(saida, /proprios_sem_contraste/, `recusou ${cor}`);
+  }
+});
+
 test('a raiz recusa campo desconhecido — era por onde o typo passava', seNaoTem, () => {
   for (const [campo, valor] of [
     ['requiredPackage', ['ffmpeg']],   // o `s` que faltou: publicaria sem verificar pacote nenhum
