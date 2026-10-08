@@ -234,6 +234,27 @@ msv = m.get('minShellVersion')
 if msv is not None and (not isinstance(msv, str) or not re.match(r'^[0-9]+(\.[0-9]+){0,2}$', msv)):
     print(f'ERROR=minShellVersion_invalida:{msv!r}'); sys.exit(0)
 
+# `opens.proprios` são os tipos de arquivo que o app cria, e o ambiente desenha o selo de cada um
+# com o texto em branco sobre a cor declarada. O schema confere a forma do hex e não alcança o
+# contraste; o portal recusa instalar uma cor em que o branco fica abaixo de 4,5:1 (WCAG 2). A mesma
+# conta aqui leva a recusa para a publicação, onde quem a lê é quem escolheu a cor.
+def _luminancia(hexa):
+    def canal(i):
+        c = int(hexa[i:i + 2], 16) / 255
+        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+    return 0.2126 * canal(1) + 0.7152 * canal(3) + 0.0722 * canal(5)
+
+abre = m.get('opens')
+proprios = abre.get('proprios') if isinstance(abre, dict) else None
+for t in proprios if isinstance(proprios, list) else []:
+    cor = t.get('cor') if isinstance(t, dict) else None
+    if isinstance(cor, str) and re.match(r'^#[0-9a-fA-F]{6}$', cor):
+        contraste = 1.05 / (_luminancia(cor) + 0.05)
+        if contraste < 4.5:
+            print(f"ERROR=proprios_sem_contraste:{t.get('extensao')!r}; o branco do selo fica em "
+                  f"{contraste:.2f}:1 sobre {cor}, e o mínimo é 4,5:1")
+            sys.exit(0)
+
 # Validação completa contra api/vssh-app.schema.json, o contrato do manifesto que o sistema gera
 # neste repositório. Este é o portão de entrada no repositório de artefatos, e por isso o rigor
 # fica aqui; o vssh-app-install roda offline no servidor e valida só o mínimo

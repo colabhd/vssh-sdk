@@ -48,13 +48,14 @@ log = servidor.criar_log()
 _girando = threading.Lock()
 
 # O SDK web (`_sdk/vssh.js`) o `web.spa` injeta sozinho; a lista abaixo é o Tuff que a Lupa usa, na
-# ordem de carga: as folhas antes da dela, e os scripts antes do `lupa.js`. `tuff-midia` traz o
-# palco, a grade, a tira e o visor com zoom. Nenhum destes arquivos viaja no pacote: o sistema os
-# serve em `_sdk/tuff/`, dentro do espaço de URL do app.
+# ordem de carga: as folhas antes da dela, e os scripts antes do `lupa.js`. `tuff.js` traz a
+# moldura (`TuffApp`), e `tuff-midia` traz o palco, a grade, a tira e o visor com zoom. Nenhum
+# destes arquivos viaja no pacote: o sistema os serve em `_sdk/tuff/`, dentro do espaço de URL do
+# app.
 spa = web.spa(
     os.path.join(_AQUI, "..", "frontend"),
     tuff=["tuff-tokens.css", web.TUFF_BASE, "tuff.css", "tuff-midia.css",
-          web.TUFF_ICONES, "tuff-midia.js"],
+          web.TUFF_ICONES, "tuff.js", "tuff-midia.js"],
     folhas=["lupa.css"],
     scripts=["lupa.js"],
     dica="O frontend da Lupa não está no pacote.",

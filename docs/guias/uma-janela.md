@@ -33,6 +33,10 @@ O tamanho de abertura é do manifesto:
 Depois disso o tamanho e a posição são da pessoa, e o ambiente os guarda entre sessões. Não há
 `setSize` nem `setPosition` de propósito.
 
+O tamanho do manifesto e o piso de `window.minimos` valem para a tela larga. Num celular em pé o
+ambiente põe a janela na tela inteira e o piso cede, então o app precisa caber em 320 px de
+largura. Quem monta a tela com [a moldura](../aparencia/moldura.md) ganha essa forma sem CSS próprio.
+
 ## Controles
 
 ```js

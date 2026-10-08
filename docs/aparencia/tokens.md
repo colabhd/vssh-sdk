@@ -12,18 +12,23 @@ a base mudar sem uma caça a cor em vinte arquivos.
 ## Superfícies
 
 Três fundos, e a diferença entre eles é profundidade: a página, uma peça sobre ela, algo sobre a
-peça. Sem sombra difusa e sem vidro: `--ds-blur` vale `none` em todo o sistema, e isso é decisão de
-produto.
+peça. Os degraus são cinza puro, sem matiz, porque a cor do ambiente é a de destaque, que a pessoa
+escolhe. Sem sombra difusa e sem vidro: `--ds-blur` vale `none` em todo o sistema, e isso é decisão
+de produto.
 
 | token | valor | uso |
 |---|---|---|
-| `--ds-bg` | `#1e1e1e` | a página, o fundo do palco |
-| `--ds-bg2` | `#252526` | uma peça sobre a página: painel, barra, lateral |
-| `--ds-bg3` | `#2d2d30` | algo sobre a peça: botão, tag, tooltip |
-| `--ds-bg-input` | `#3c3c3c` | o fundo de campo, select, busca e trilhos |
+| `--ds-bg` | `#1b1b1b` | a página, o fundo do palco |
+| `--ds-bg2` | `#222222` | uma peça sobre a página: painel, barra, lateral |
+| `--ds-bg3` | `#2b2b2b` | algo sobre a peça: botão, tag, tooltip |
+| `--ds-bg-input` | `#353535` | o fundo de campo, select, busca e trilhos |
 | `--ds-bg-hover` | `rgba(255,255,255,0.06)` | o realce sob o ponteiro |
-| `--ds-border` | `#3e3e42` | toda divisa e toda moldura |
+| `--ds-border` | `#454545` | toda divisa e toda moldura |
+| `--ds-border-input` | `#707070` | o contorno de campo, select e busca |
 | `--ds-border-focus` | `#0e639c` | a borda de um campo com foco; é o azul padrão do destaque, e não acompanha a cor escolhida |
+
+O campo se acha pelo contorno: o degrau de fundo entre ele e a peça fica em 1,30:1, e o contorno
+passa de 3:1 sobre a peça, o mínimo de um componente de interface.
 
 ```html vivo
 <div class="tuff-painel">
@@ -41,28 +46,36 @@ produto.
 
 | token | valor | uso |
 |---|---|---|
-| `--ds-text` | `#cccccc` | o corpo |
-| `--ds-text-mid` | `#d4d4d4` | títulos e o que sobe um degrau |
-| `--ds-text-dim` | `#858585` | descrição, rótulo, o que fica um degrau abaixo |
-| `--ds-text-inv` | `#ffffff` | texto sobre um fundo de destaque |
+| `--ds-text` | `#d8d8d8` | o corpo |
+| `--ds-text-mid` | `#ededed` | títulos e o que sobe um degrau |
+| `--ds-text-dim` | `#a0a0a0` | descrição, rótulo, o que fica um degrau abaixo |
+| `--ds-text-inv` | `#ffffff` | texto branco fixo |
 | `--ds-on-accent` | `#ffffff` | texto sobre `--ds-accent` |
 
-O `--ds-on-accent` existe por um motivo medido: `#0e639c` é azul médio, preto sobre ele dá 3,3:1
-e reprova o AA; branco dá 5,2:1. O token faz a escolha uma vez, e um app que troque o destaque por
-uma cor clara troca este junto.
+O texto apagado passa de 4,5:1 sobre as três superfícies e sobre o campo (4,69:1, o pior caso).
 
-## O destaque, e os quatro que mudam em runtime
+O `--ds-on-accent` muda com a cor. Branco sobre o azul padrão dá 6,40:1; quando a pessoa escolhe
+uma cor, o shell o reescreve: branco quando o branco passa de 4,5:1 sobre ela, e `#1b1b1b` quando
+não passa. As sete cores de Configurações levam branco.
+
+## O destaque, e os cinco que mudam em runtime
 
 | token | valor padrão | uso |
 |---|---|---|
 | `--ds-accent` | `#0e639c` | o botão primário, o switch ligado, o playhead |
-| `--ds-accent-h` | `#1177bb` | o mesmo, sob o ponteiro; o texto do item ativo |
+| `--ds-accent-h` | `#0c5485` | o mesmo, sob o ponteiro |
 | `--ds-accent-bg` | `rgba(14,99,156,0.15)` | o fundo do item ativo da gaveta e do alternador ligado |
 | `--ds-sel` | `#094771` | a seleção de lista, a mesma do gerenciador de arquivos |
 | `--ds-sel-text` | `#ffffff` | o texto do item selecionado |
+| `--ds-on-accent` | `#ffffff` | o texto sobre `--ds-accent` |
+| `--ds-accent-texto` | 55% do destaque com branco | o destaque como texto ou ícone: o item ativo, o link |
 
-Estes quatro (`--ds-accent`, `--ds-accent-h`, `--ds-accent-bg`, `--ds-sel`) são os únicos que mudam
-em runtime: a pessoa escolhe a cor em Configurações e o shell os reescreve inline no `<html>` dele.
+Estes cinco (`--ds-accent`, `--ds-accent-h`, `--ds-accent-bg`, `--ds-sel`, `--ds-on-accent`) são os
+únicos que mudam em runtime: a pessoa escolhe a cor em Configurações e o shell os reescreve inline
+no `<html>` dele. Sob o ponteiro, o destaque escurece quando o texto sobre ele é branco e clareia
+quando o texto é escuro, para o hover não tirar contraste do botão. O `--ds-accent-texto` não muda
+sozinho: ele é calculado de `--ds-accent` na folha, e acompanha a cor quando ela chega. Ele existe
+porque o destaque cru como texto fica em cerca de 2,4:1 sobre a página.
 O resto da paleta é estático, e é isso que mantém pequena a ponte com os apps. Os nomes são um
 contrato: um app os lê por `vssh.aparencia.tokens()` e os escreve no próprio documento, como mostra
 [O Tuff](o-tuff.md#a-cor-de-destaque).
@@ -74,10 +87,13 @@ ambiente deixa de parecer um ambiente.
 
 | token | valor | uso |
 |---|---|---|
-| `--ds-green` | `#00e676` | ok, no ar |
-| `--ds-warn` | `#c89b00` | aviso, degradado |
-| `--ds-danger` | `#f44747` | erro, ação destrutiva |
-| `--ds-danger-bg` | `rgba(244,71,71,0.12)` | o fundo do botão de perigo sob o ponteiro |
+| `--ds-green` | `#4caf7d` | ok, no ar |
+| `--ds-warn` | `#d6a531` | aviso, degradado |
+| `--ds-danger` | `#f05a50` | erro, ação destrutiva |
+| `--ds-danger-bg` | `rgba(240,90,80,0.12)` | o fundo do botão de perigo sob o ponteiro |
+
+As três passam de 4,5:1 sobre a página. Com o âmbar ou o vermelho como destaque, o aviso e o erro se
+separam dele pelo ícone e pelo texto, e nunca só pela cor.
 
 ```html vivo
 <span class="tuff-pill tuff-pill--ok">no ar</span>

@@ -9,10 +9,18 @@
 </head>
 <body>
 
-<div class="janela" id="janela">
+<!-- A moldura do Tuff: a barra, a lateral com as páginas de um PDF, o miolo com a imagem ou a
+     grade, o painel com as informações e a tira de miniaturas no rodapé. A disposição sai da
+     largura da janela, e o `lupa.js` liga o comportamento com `TuffApp.ligar`. -->
+<div class="tuff-app janela" id="janela">
 
-  <!-- O nome do arquivo, onde ele está na pasta, e o que se faz com ele. -->
-  <header class="tuff-barra barra" id="barra" hidden>
+  <!-- O nome do arquivo, onde ele está na pasta, e o que se faz com ele. Abaixo de 840 px os
+       botões de prioridade baixa saem da barra e aparecem no "Mais". -->
+  <header class="tuff-app-barra tuff-barra barra" id="barra" hidden>
+    <button class="tuff-btn tuff-btn--icone tuff-app-so-compacta so-pdf" type="button" data-tuff-app-gaveta
+            aria-label="Páginas e sumário">
+      <svg class="tuff-ico" aria-hidden="true"><use href="#ico-bar-left"></use></svg>
+    </button>
     <div class="titulo">
       <span class="nome" id="nome"></span>
       <span class="posicao" id="posicao"></span>
@@ -24,33 +32,40 @@
         <span class="pagina-total" id="pdf-total"></span>
       </div>
       <div class="zoom">
-        <button class="tuff-btn tuff-btn--icone" id="btn-menos" aria-label="Reduzir" data-tuff-dica="Reduzir (−)">
+        <button class="tuff-btn tuff-btn--icone" id="btn-menos" data-prioridade="baixa" aria-label="Reduzir"
+                data-tuff-dica="Reduzir (−)">
           <svg class="tuff-ico" aria-hidden="true"><use href="#ico-zoom-out"></use></svg>
         </button>
-        <button class="tuff-btn escala" id="btn-escala" aria-label="Caber na janela ou 1:1"
+        <button class="tuff-btn escala" id="btn-escala" data-prioridade="baixa" aria-label="Caber na janela ou 1:1"
                 data-tuff-dica="Caber na janela (0) ou 1:1 (1)">100%</button>
-        <button class="tuff-btn tuff-btn--icone" id="btn-mais" aria-label="Ampliar" data-tuff-dica="Ampliar (+)">
+        <button class="tuff-btn tuff-btn--icone" id="btn-mais" data-prioridade="baixa" aria-label="Ampliar"
+                data-tuff-dica="Ampliar (+)">
           <svg class="tuff-ico" aria-hidden="true"><use href="#ico-zoom-in"></use></svg>
         </button>
       </div>
-      <button class="tuff-btn tuff-btn--icone so-pdf" id="btn-largura" aria-label="Ajustar à largura"
-              data-tuff-dica="Ajustar à largura">
+      <button class="tuff-btn tuff-btn--icone so-pdf" id="btn-largura" data-prioridade="baixa"
+              aria-label="Ajustar à largura" data-tuff-dica="Ajustar à largura">
         <svg class="tuff-ico" aria-hidden="true"><use href="#ico-columns"></use></svg>
       </button>
-      <button class="tuff-btn tuff-btn--icone so-pdf" id="btn-pagina-inteira" aria-label="Página inteira"
-              data-tuff-dica="Página inteira">
+      <button class="tuff-btn tuff-btn--icone so-pdf" id="btn-pagina-inteira" data-prioridade="baixa"
+              aria-label="Página inteira" data-tuff-dica="Página inteira">
         <svg class="tuff-ico" aria-hidden="true"><use href="#ico-fit"></use></svg>
       </button>
-      <button class="tuff-btn tuff-btn--icone" id="btn-girar" aria-label="Girar" data-tuff-dica="Girar (R)">
+      <button class="tuff-btn tuff-btn--icone" id="btn-girar" data-prioridade="baixa" aria-label="Girar"
+              data-tuff-dica="Girar (R)">
         <svg class="tuff-ico" aria-hidden="true"><use href="#ico-rotate-right"></use></svg>
       </button>
-      <button class="tuff-btn tuff-btn--icone" id="btn-imprimir" aria-label="Imprimir" data-tuff-dica="Imprimir">
+      <button class="tuff-btn tuff-btn--icone" id="btn-imprimir" data-prioridade="baixa" aria-label="Imprimir"
+              data-tuff-dica="Imprimir">
         <svg class="tuff-ico" aria-hidden="true"><use href="#ico-print"></use></svg>
       </button>
-      <button class="tuff-btn tuff-btn--icone so-pdf" id="btn-buscar" aria-label="Buscar no documento"
-              data-tuff-dica="Buscar (Ctrl+F)">
+      <button class="tuff-btn tuff-btn--icone so-pdf" id="btn-buscar" data-prioridade="baixa"
+              aria-label="Buscar no documento" data-tuff-dica="Buscar (Ctrl+F)">
         <svg class="tuff-ico" aria-hidden="true"><use href="#ico-search"></use></svg>
       </button>
+      <!-- A lateral e a ficha têm dois botões cada, e um só aparece por vez. Onde há coluna para
+           elas, o botão liga e desliga a coluna (`aria-pressed`). Onde não há, o da lateral é o
+           da gaveta, no começo da barra, e o da ficha abre o painel por cima (`aria-expanded`). -->
       <button class="tuff-btn tuff-btn--icone so-pdf" id="btn-lateral" aria-pressed="false"
               aria-label="Páginas e sumário" data-tuff-dica="Páginas e sumário">
         <svg class="tuff-ico" aria-hidden="true"><use href="#ico-bar-left"></use></svg>
@@ -59,24 +74,42 @@
               data-tuff-dica="Informações (I)">
         <svg class="tuff-ico" aria-hidden="true"><use href="#ico-info"></use></svg>
       </button>
-      <button class="tuff-btn tuff-btn--icone" id="btn-tira" aria-pressed="true" aria-label="Miniaturas"
-              data-tuff-dica="Miniaturas (T)">
+      <button class="tuff-btn tuff-btn--icone" id="btn-info-painel" data-tuff-app-painel aria-label="Informações"
+              data-tuff-dica="Informações (I)">
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-info"></use></svg>
+      </button>
+      <button class="tuff-btn tuff-btn--icone" id="btn-tira" data-prioridade="baixa" aria-pressed="true"
+              aria-label="Miniaturas" data-tuff-dica="Miniaturas (T)">
         <svg class="tuff-ico" aria-hidden="true"><use href="#ico-bar-bottom"></use></svg>
       </button>
-      <button class="tuff-btn tuff-btn--icone" id="btn-tela" aria-label="Tela cheia" data-tuff-dica="Tela cheia (F)">
+      <button class="tuff-btn tuff-btn--icone" id="btn-tela" data-prioridade="baixa" aria-label="Tela cheia"
+              data-tuff-dica="Tela cheia (F)">
         <svg class="tuff-ico" aria-hidden="true"><use href="#ico-fullscreen"></use></svg>
       </button>
     </div>
     <button class="tuff-btn tuff-btn--icone" id="btn-grade" aria-label="A pasta" data-tuff-dica="A pasta (Esc)" hidden>
       <svg class="tuff-ico" aria-hidden="true"><use href="#ico-grid"></use></svg>
     </button>
-    <button class="tuff-btn tuff-btn--icone dica-direita" id="btn-abrir" aria-label="Abrir arquivo"
-            data-tuff-dica="Abrir arquivo">
+    <button class="tuff-btn tuff-btn--icone dica-direita" id="btn-abrir" data-prioridade="baixa"
+            aria-label="Abrir arquivo" data-tuff-dica="Abrir arquivo">
       <svg class="tuff-ico" aria-hidden="true"><use href="#ico-folder-open"></use></svg>
+    </button>
+    <button class="tuff-btn tuff-btn--icone barra-mais" type="button" data-tuff-app-mais aria-label="Mais ações">
+      <svg class="tuff-ico" aria-hidden="true"><use href="#ico-more"></use></svg>
     </button>
   </header>
 
-  <div class="miolo">
+  <!-- As páginas de um PDF em miniaturas, e o sumário. Na forma compacta ela é a gaveta. -->
+  <nav class="tuff-app-lateral pdf-lateral" id="pdf-lateral" hidden aria-label="Páginas e sumário">
+    <div class="tuff-seg pdf-abas" id="pdf-abas" hidden>
+      <label class="tuff-seg-btn"><input type="radio" name="pdf-aba" value="paginas" checked>Páginas</label>
+      <label class="tuff-seg-btn"><input type="radio" name="pdf-aba" value="sumario">Sumário</label>
+    </div>
+    <div class="pdf-miniaturas" id="pdf-miniaturas"></div>
+    <div class="pdf-sumario" id="pdf-sumario" hidden></div>
+  </nav>
+
+  <div class="tuff-app-miolo miolo">
     <!-- A pasta inteira em miniaturas. A moldura dá a margem, porque a grade mede as colunas pela
          própria largura e não conta padding. -->
     <div class="grade-moldura" id="grade-moldura" hidden>
@@ -86,17 +119,9 @@
     <section class="palco tuff-palco" id="palco" aria-label="Imagem">
       <div class="visor" id="visor"></div>
 
-      <!-- O PDF: as páginas em sequência, e a lateral com as miniaturas e o sumário. O pdf.js exige
-           o contêiner de rolagem em posição absoluta. -->
+      <!-- O PDF, com as páginas em sequência. O pdf.js exige o contêiner de rolagem em posição
+           absoluta. -->
       <div class="pdf" id="pdf" hidden>
-        <aside class="pdf-lateral" id="pdf-lateral" hidden aria-label="Páginas e sumário">
-          <div class="tuff-seg pdf-abas" id="pdf-abas" hidden>
-            <label class="tuff-seg-btn"><input type="radio" name="pdf-aba" value="paginas" checked>Páginas</label>
-            <label class="tuff-seg-btn"><input type="radio" name="pdf-aba" value="sumario">Sumário</label>
-          </div>
-          <div class="pdf-miniaturas" id="pdf-miniaturas"></div>
-          <nav class="pdf-sumario" id="pdf-sumario" hidden></nav>
-        </aside>
         <div class="pdf-area">
           <div class="pdf-rolagem" id="pdf-rolagem" tabindex="0">
             <div class="pdfViewer" id="pdf-paginas"></div>
@@ -147,16 +172,27 @@
         <span id="aviso-t"></span>
       </div>
     </section>
-
-    <!-- A ficha do arquivo aberto. -->
-    <aside class="info" id="info" hidden aria-labelledby="info-titulo">
-      <h2 class="info-titulo" id="info-titulo">Informações</h2>
-      <dl class="tuff-kv info-lista" id="info-lista"></dl>
-    </aside>
   </div>
 
+  <!-- A ficha do arquivo aberto. Na ampla ela é uma coluna que a pessoa liga e desliga; abaixo de
+       840 px ela entra por cima da imagem, e na compacta é a tela seguinte, com "Voltar". -->
+  <aside class="tuff-app-painel info" id="info" hidden aria-labelledby="info-titulo">
+    <div class="tuff-app-painel-cab">
+      <button class="tuff-btn tuff-btn--icone tuff-btn--quieto tuff-app-so-compacta" type="button"
+              data-tuff-app-voltar aria-label="Voltar para o arquivo">
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-arrow-left"></use></svg>
+      </button>
+      <h2 class="tuff-app-painel-titulo" id="info-titulo">Informações</h2>
+      <button class="tuff-btn tuff-btn--icone tuff-btn--quieto tuff-app-so-media" type="button"
+              data-tuff-app-fechar aria-label="Fechar as informações">
+        <svg class="tuff-ico" aria-hidden="true"><use href="#ico-close"></use></svg>
+      </button>
+    </div>
+    <dl class="tuff-kv info-lista" id="info-lista"></dl>
+  </aside>
+
   <!-- A pasta, em miniaturas, com a atual marcada. -->
-  <nav class="tuff-tira tira" id="tira" hidden aria-label="Arquivos da pasta"></nav>
+  <nav class="tuff-app-rodape tuff-tira tira" id="tira" hidden aria-label="Arquivos da pasta"></nav>
 </div>
 
 </body>

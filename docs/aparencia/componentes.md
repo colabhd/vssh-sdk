@@ -166,7 +166,9 @@ de opções, e é a mesma da janela de Configurações do ambiente.
 
 Radios de verdade por baixo, pelo mesmo motivo do switch: setas do teclado, agrupamento e foco vêm
 prontos. `:has()` é o que pinta o rótulo a partir do estado do `input` sem uma linha de
-JavaScript. Os `input` de um mesmo controle levam o mesmo `name`.
+JavaScript. Os `input` de um mesmo controle levam o mesmo `name`. O segmento escolhido é neutro,
+um degrau mais claro com contorno e o texto em peso forte: um segmentado escolhe entre modos de
+ver, e o destaque cheio fica para o botão primário da tela.
 
 ```html vivo
 <div class="tuff-seg">
@@ -178,9 +180,9 @@ JavaScript. Os `input` de um mesmo controle levam o mesmo `name`.
 
 ## Estado
 
-A pílula responde "como está isto?" numa palavra, com as cores semânticas do ambiente. A
-`--ocupado` pulsa, para "está acontecendo agora". A tag é uma etiqueta neutra, e a tecla
-(`.tuff-tecla`) desenha um atalho.
+A pílula responde "como está isto?" numa palavra, com as cores semânticas do ambiente e a borda
+na mesma cor a 45%. A `--ocupado` é neutra e parada: a palavra ("subindo", "reiniciando") já diz
+que algo anda. A tag é uma etiqueta neutra, e a tecla (`.tuff-tecla`) desenha um atalho.
 
 ```html vivo
 <span class="tuff-pill tuff-pill--ok">no ar</span>

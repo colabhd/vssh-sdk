@@ -1,23 +1,16 @@
-/* Palco: o que é do app. O transporte, a trilha, o volume e o palco vêm de `tuff-midia.css`, e
-   este arquivo só acrescenta o arranjo da janela, a tela de uma música, o início, a fila e o
-   comportamento em tela cheia.
+/* Palco: o que é do app. A moldura (as regiões e a forma delas em cada largura) vem de `tuff.css`,
+   o transporte, a trilha, o volume e o palco vêm de `tuff-midia.css`, e este arquivo só acrescenta
+   a tela de uma música, o início, a fila e o comportamento em tela cheia.
 
-   A janela tem três áreas: o palco ocupa o que sobra, a fila abre à direita quando a pessoa pede,
-   e o transporte fica embaixo. O único elemento cheio de cor é o botão de tocar; o resto usa os
-   tons neutros do ambiente, e o destaque da pessoa aparece na trilha e no que está tocando. */
+   As regiões: o palco no miolo, a fila no painel, que abre à direita quando a pessoa pede, e o
+   transporte no rodapé. O único elemento cheio de cor é o botão de tocar; o resto usa os tons
+   neutros do ambiente, e o destaque da pessoa aparece na trilha e no que está tocando. */
 
 html, body { height: 100%; }
 body { margin: 0; overflow: hidden; }
 
-.janela {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: var(--ds-bg);
-  container-type: inline-size;
-}
-
-.miolo { flex: 1; min-height: 0; display: flex; position: relative; }
+/* O miolo não rola: o vídeo, a música e o início ocupam o palco inteiro. */
+.miolo { position: relative; display: flex; overflow: hidden; }
 
 /* ── O palco ──────────────────────────────────────────────────────────────── */
 
@@ -177,16 +170,9 @@ body { margin: 0; overflow: hidden; }
 
 /* ── A fila ───────────────────────────────────────────────────────────────── */
 
-.fila {
-  flex: none;
-  width: 280px;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  background: var(--ds-bg2);
-  border-left: 1px solid var(--ds-border);
-}
-.fila[hidden] { display: none; }
+/* A largura, o fundo, a borda e a forma de cada largura são do painel da moldura; o respiro é da
+   fila, que encosta a lista nas bordas. */
+.fila { padding: 0; gap: 0; }
 .fila-topo {
   flex: none;
   display: flex;
@@ -223,7 +209,7 @@ body { margin: 0; overflow: hidden; }
   grid-template-columns: 24px 1fr auto;
   align-items: center;
   gap: var(--ds-gap-sm);
-  height: 30px;
+  height: max(30px, var(--ds-alvo));
   padding: 0 var(--ds-gap-md) 0 var(--ds-gap-sm);
   border-radius: var(--ds-radius-md);
   font-size: var(--tuff-size-sm);
@@ -244,12 +230,14 @@ body { margin: 0; overflow: hidden; }
 .fila-ext { font-size: var(--tuff-size-2xs); color: var(--ds-text-dim); text-transform: uppercase; }
 /* O que está tocando: o destaque da pessoa no número e no nome, como na trilha. */
 .fila-item--tocando .fila-n,
-.fila-item--tocando .fila-nome { color: var(--ds-accent-h); }
+.fila-item--tocando .fila-nome { color: var(--ds-accent-texto); }
 .fila-item--tocando[aria-selected="true"] .fila-nome { color: var(--ds-sel-text); }
 
 /* ── O transporte ─────────────────────────────────────────────────────────── */
 
-.transporte { flex: none; }
+/* O `display` do `.tuff-btn` é regra de autor, e ganha do `[hidden]` do navegador: sem isto o
+   botão de faixas aparece numa música, e empurra os vizinhos para cima dos comandos do meio. */
+.transporte .tuff-btn[hidden] { display: none; }
 .tuff-transporte-controles { padding-bottom: var(--ds-gap-md); }
 
 .agora { gap: var(--ds-gap-md); }
@@ -260,7 +248,8 @@ body { margin: 0; overflow: hidden; }
 .agora-sub:empty { display: none; }
 
 .tuff-transporte-meio { gap: 2px; }
-.tuff-transporte .tuff-btn--icone { width: 30px; height: 30px; }
+/* Com toque, os botões crescem até o alvo do Tuff. */
+.tuff-transporte .tuff-btn--icone { width: max(30px, var(--ds-alvo)); height: max(30px, var(--ds-alvo)); }
 
 /* Tocar é o controle que se procura sem olhar: maior que os vizinhos, redondo, e o único cheio de
    cor na janela. */
@@ -287,7 +276,7 @@ body { margin: 0; overflow: hidden; }
   font-variant-numeric: tabular-nums;
 }
 .veloc:hover:not(:disabled) { background: var(--ds-bg-hover); color: var(--ds-text); }
-.veloc[data-alterada="1"] { color: var(--ds-accent-h); }
+.veloc[data-alterada="1"] { color: var(--ds-accent-texto); }
 
 .tuff-volume { gap: 2px; margin-right: var(--ds-gap-sm); }
 .dica-direita::after { left: auto; right: 0; transform: none; }
@@ -311,20 +300,23 @@ body { margin: 0; overflow: hidden; }
 .janela.ocioso:fullscreen { cursor: none; }
 
 /* ── Janela estreita ──────────────────────────────────────────────────────────
-   O que é secundário cai primeiro; tocar, anterior, próximo, a trilha e o tempo nunca caem. Abaixo
-   de 720 px a fila deixa de dividir a largura e passa a cobrir a borda direita do palco. */
+   A fila deixa de ser coluna abaixo de 840 px, e quem a põe por cima do palco é a moldura; daqui
+   vem só a troca do botão. No transporte, o que é secundário cai primeiro, na forma compacta;
+   tocar, anterior, próximo, a trilha e o tempo nunca caem. Ali os comandos do meio ganham uma
+   fileira própria, centrada, e o que está tocando e os botões do fim dividem a de baixo: numa
+   fileira só, os alvos de toque não cabem em 320 px. */
 
-@container (max-width: 720px) {
-  .fila {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 3;
-    box-shadow: var(--ds-shadow-lg);
-  }
-}
-@container (max-width: 600px) {
+@container tuff-app (width >= 840px) { #btn-fila-painel { display: none; } }
+@container tuff-app (width < 840px) { #btn-fila { display: none; } }
+@container tuff-app (width < 600px) {
   .sec { display: none; }
   .agora .capa { display: none; }
+  .tuff-transporte-controles {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "meio meio" "inicio fim";
+    row-gap: 0;
+  }
+  .tuff-transporte-meio { grid-area: meio; justify-content: center; }
+  .agora { grid-area: inicio; }
+  .tuff-transporte-fim { grid-area: fim; }
 }

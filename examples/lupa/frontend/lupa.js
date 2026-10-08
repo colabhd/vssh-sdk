@@ -36,6 +36,12 @@ function montarLupa() {
   const $ = (id) => document.getElementById(id);
   const janela = $('janela');
   const tira = $('tira');
+  // A moldura dá a forma de cada largura. A lateral e a ficha são colunas que a pessoa liga e
+  // desliga onde cabem, e onde não cabem são a gaveta e o painel por cima; quem decide qual dos
+  // dois vale é a forma, e por isso as duas se ressincronizam quando ela vira.
+  const moldura = TuffApp.ligar(janela, {
+    aoMudarForma: () => { sincronizarLateral(); sincronizarInfo(); },
+  });
 
   const extensao = (nome) => {
     const i = String(nome || '').lastIndexOf('.');
@@ -108,6 +114,7 @@ function montarLupa() {
     $('grade-moldura').hidden = true;
     $('palco').hidden = false;
     tira.hidden = true;
+    sincronizarLateral();
   }
 
   function pintarNavegacao() {
@@ -249,7 +256,7 @@ function montarLupa() {
         if (no.__indice === i) montarNaGrade(i, no);
       }
     }
-    if (atual && atual.caminho === item.caminho && !$('info').hidden) pintarInfo(atual);
+    if (atual && atual.caminho === item.caminho && infoVisivel()) pintarInfo(atual);
   }
 
   // ── O PDF ───────────────────────────────────────────────────────────────
@@ -360,7 +367,7 @@ function montarLupa() {
     $('pdf-pagina').max = String(doc.numPages);
     montarLateral(doc, minha);
     pintarPaginaPdf(1);
-    if (!$('info').hidden) pintarInfo(item);
+    if (infoVisivel()) pintarInfo(item);
     $('pdf-rolagem').focus({ preventScroll: true });
   }
 
@@ -567,17 +574,23 @@ function montarLupa() {
   }
   $('pdf-abas').addEventListener('change', (e) => mostrarAba(e.target.value));
 
+  // A lateral existe num PDF aberto. Onde ela é coluna, a pessoa a liga e desliga, e a escolha
+  // fica guardada; na compacta ela é a gaveta, que a moldura abre por cima, e fica sempre pronta.
+  function sincronizarLateral() {
+    const quer = lerPref('lateral', false) === true;
+    const pdf = modo === 'imagem' && janela.dataset.tipo === 'pdf';
+    $('pdf-lateral').hidden = !pdf || (moldura.forma() !== 'compacta' && !quer);
+    $('btn-lateral').setAttribute('aria-pressed', String(quer));
+  }
+  // Aberta, a lateral vai até a página em que a pessoa está.
+  const irAPaginaNaLateral = () => { if (noPdf()) pintarPaginaPdf(visorPdf.viewer.currentPageNumber); };
   function alternarLateral() {
-    const sim = $('pdf-lateral').hidden;
-    $('pdf-lateral').hidden = !sim;
-    $('btn-lateral').setAttribute('aria-pressed', String(sim));
-    gravarPref('lateral', sim);
-    // Aberta, a lateral vai até a página em que a pessoa está.
-    if (sim && noPdf()) pintarPaginaPdf(visorPdf.viewer.currentPageNumber);
+    gravarPref('lateral', lerPref('lateral', false) !== true);
+    sincronizarLateral();
+    if (!$('pdf-lateral').hidden) irAPaginaNaLateral();
   }
   $('btn-lateral').addEventListener('click', alternarLateral);
-  $('pdf-lateral').hidden = lerPref('lateral', false) !== true;
-  $('btn-lateral').setAttribute('aria-pressed', String(!$('pdf-lateral').hidden));
+  janela.querySelector('[data-tuff-app-gaveta]').addEventListener('click', irAPaginaNaLateral);
 
   // ── Mostrar um item ─────────────────────────────────────────────────────
 
@@ -602,16 +615,19 @@ function montarLupa() {
     $('barra').hidden = false;
     $('nome').textContent = item.nome;
     $('nome').title = item.caminho;
-    document.title = `${item.nome} — Lupa`;
+    document.title = `${item.nome} · Lupa`;
     // A sessão do ambiente reabre a janela nesta rota, e a Lupa volta no mesmo arquivo.
     vssh.app.lembrarRota(`?caminho=${encodeURIComponent(item.caminho)}`);
     pintarNavegacao();
     marcarNaTira();
-    if (!$('info').hidden) pintarInfo(item);
+    if (infoVisivel()) pintarInfo(item);
 
     const pdf = ehPdf(item);
-    // O tipo aberto decide quais controles da barra aparecem (`.so-pdf`).
+    // O tipo aberto decide quais controles da barra aparecem (`.so-pdf`). O `hidden` vai junto
+    // do CSS para o "Mais" da moldura não oferecer, numa imagem, um botão que só vale para PDF.
     janela.dataset.tipo = pdf ? 'pdf' : 'imagem';
+    for (const b of $('barra').querySelectorAll('button.so-pdf')) b.hidden = !pdf;
+    sincronizarLateral();
     if (pdf) {
       $('visor').hidden = true;
       $('pdf').hidden = false;
@@ -698,7 +714,7 @@ function montarLupa() {
     $('nome').title = atual.caminho;
     pintarNavegacao();
     montarTira();
-    if (!$('info').hidden) pintarInfo(atual);
+    if (infoVisivel()) pintarInfo(atual);
     preCarregar();
   }
 
@@ -790,11 +806,12 @@ function montarLupa() {
     $('barra').hidden = false;
     $('ferramentas').hidden = true;
     $('btn-grade').hidden = true;
+    sincronizarLateral();
     const dir = pasta || pastaDe(atual.caminho);
     $('nome').textContent = nomeDe(dir) || '/';
     $('nome').title = dir;
     $('posicao').textContent = fila.length === 1 ? '1 item' : `${fila.length} itens`;
-    document.title = `${nomeDe(dir) || '/'} — Lupa`;
+    document.title = `${nomeDe(dir) || '/'} · Lupa`;
     vssh.app.lembrarRota(`?pasta=${encodeURIComponent(dir)}`);
     if (!grade || versaoDaGrade !== versaoDaFila) {
       if (grade) grade.destruir();
@@ -1078,14 +1095,28 @@ function montarLupa() {
     }));
   }
 
-  function mostrarInfo(sim) {
-    $('info').hidden = !sim;
-    $('btn-info').setAttribute('aria-pressed', String(sim));
-    gravarPref('info', sim);
-    if (sim && atual) pintarInfo(atual);
+  // A ficha é uma coluna na forma ampla, e a pessoa a liga e desliga com a escolha guardada.
+  // Abaixo de 840 px ela é o painel da moldura, que abre por cima pelo outro botão e fecha no
+  // "Voltar", no "Fechar" e no Esc; ali ela fica sem `hidden`, e quem a mostra é a moldura.
+  const emAmpla = () => moldura.forma() === 'ampla';
+  const infoVisivel = () => (emAmpla() ? !$('info').hidden : janela.classList.contains('tuff-app--painel-aberto'));
+  function sincronizarInfo() {
+    const quer = lerPref('info', false) === true;
+    $('info').hidden = emAmpla() && !quer;
+    $('btn-info').setAttribute('aria-pressed', String(quer));
   }
-  const alternarInfo = () => mostrarInfo($('info').hidden);
+  function alternarInfo() {
+    if (!emAmpla()) { $('btn-info-painel').click(); return; }
+    gravarPref('info', $('info').hidden);
+    sincronizarInfo();
+    if (!$('info').hidden && atual) pintarInfo(atual);
+  }
   $('btn-info').addEventListener('click', alternarInfo);
+  // O clique chega aqui antes da moldura, que abre o painel ao borbulhar até a raiz: a ficha é
+  // pintada antes de aparecer.
+  $('btn-info-painel').addEventListener('click', () => {
+    if (!infoVisivel() && atual) pintarInfo(atual);
+  });
 
   // ── Tela cheia ──────────────────────────────────────────────────────────
 
@@ -1188,7 +1219,7 @@ function montarLupa() {
     else abrir(ctx.caminho);
   });
 
-  mostrarInfo(lerPref('info', false) === true);
+  sincronizarInfo();
   const rota = new URLSearchParams(location.search);
   if (rota.get('pasta')) abrirPasta(rota.get('pasta'));
   else if (rota.get('caminho')) abrir(rota.get('caminho'));

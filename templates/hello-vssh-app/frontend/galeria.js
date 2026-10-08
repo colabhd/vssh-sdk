@@ -47,39 +47,103 @@ function montarGaleria() {
   const escrever = (id, texto) => { $(id).textContent = texto; };
   const falhar = (id, err) => { $(id).textContent = 'erro: ' + (err?.message || err); };
 
-  // ── A gaveta ────────────────────────────────────────────────────────────────
+  // ── A moldura ────────────────────────────────────────────────────────────────
   //
-  // São 22 peças, e sem uma lateral a única forma de achar uma é rolar às cegas. A lateral é
-  // persistente numa janela larga e vira gaveta numa estreita — quem decide é a largura do
-  // CONTÊINER, não a da tela, porque um app pode estar numa janela pequena de um monitor grande.
+  // São mais de vinte peças, e sem uma lateral a única forma de achar uma é rolar às cegas. A moldura do Tuff
+  // põe a lateral ao lado da galeria numa janela larga, e numa estreita a lateral vira gaveta e o
+  // painel vira a tela seguinte. Quem decide é a largura da MOLDURA, e não a da tela: um app pode
+  // estar numa janela pequena de um monitor grande. A disposição é toda do `tuff.css`, e o
+  // `TuffApp.ligar` dá o comportamento (abrir, fechar, o foco, o Esc e o "Mais"). O app só lê a
+  // forma quando quer dizê-la, em `data-forma` na raiz ou no `aoMudarForma`.
+  //
+  // O que a moldura deixa para o app é o que só ele sabe: o que cada item da lateral faz (aqui,
+  // rolar até a peça) e qual deles é o lugar atual, que a lateral marca com `aria-current`.
   //
   // ⚠ A lista sai das PRÓPRIAS seções, e os ids também. Escrevê-la à mão criaria uma segunda lista
   // para manter, e o sintoma de esquecer seria uma peça que existe na página e não existe na
-  // navegação — ou, pior, um item que aponta para uma seção apagada. É o mesmo argumento que fez a
+  // navegação, ou, pior, um item que aponta para uma seção apagada. É o mesmo argumento que fez a
   // galeria de ícones da biblioteca sair de `TuffIcones.nomes()`.
-  (function montarGaveta() {
-    const nav = document.getElementById('gaveta-nav');
-    // Ausência não é erro: sem a biblioteca de UI a página continua inteira, só sem a lateral.
-    if (!nav || typeof TuffGaveta === 'undefined') return;
+  (function montarMoldura() {
+    const raiz = $('app');
+    const nav = $('gaveta-nav');
+    const miolo = $('miolo');
+    // Ausência não é erro: sem a biblioteca de UI a página continua inteira, só sem a moldura.
+    if (!raiz || !nav || typeof TuffApp === 'undefined') return;
 
     const slug = (t) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
-    for (const secao of document.querySelectorAll('.galeria > section')) {
-      const h2 = secao.querySelector('h2');
-      if (!h2) continue;
-      const texto = h2.textContent.trim();
+    const secoes = [...document.querySelectorAll('.galeria > section')].filter((s) => s.querySelector('h2'));
+    const itens = secoes.map((secao) => {
+      const texto = secao.querySelector('h2').textContent.trim();
       if (!secao.id) secao.id = 's-' + slug(texto);
       const item = document.createElement('button');
+      item.type = 'button';
       item.className = 'tuff-gaveta-item';
-      item.dataset.alvo = secao.id;
       item.title = texto;               // o nome inteiro, já que o rótulo trunca
       const rotulo = document.createElement('span');
       rotulo.textContent = texto;       // textContent, e não innerHTML: título vem do DOM, não daqui
       item.appendChild(rotulo);
+      // Na compacta a gaveta fecha sozinha depois do clique: escolher um lugar é a resposta que
+      // ela esperava.
+      item.addEventListener('click', () => {
+        secao.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        marcar(secao);
+      });
       nav.appendChild(item);
+      return item;
+    });
+
+    function marcar(secao) {
+      const i = secoes.indexOf(secao);
+      itens.forEach((item, j) => {
+        if (j === i) item.setAttribute('aria-current', 'true'); else item.removeAttribute('aria-current');
+      });
+      $('rodape').textContent = `${secao.querySelector('h2').textContent.trim()} · ${i + 1} de ${secoes.length}`;
     }
-    TuffGaveta.ligar(document.getElementById('gaveta'));
+
+    // A lateral acompanha a rolagem, e não só o clique. Sem isto ela mente depois do primeiro
+    // gesto de rolar: marca a última peça clicada enquanto a tela mostra outra. Uma peça conta
+    // como "onde estou" quando chega ao terço de cima do miolo, que é onde os olhos estão; com a
+    // faixa inteira a marca troca cedo demais e fica trocando sozinha.
+    if (typeof IntersectionObserver === 'function') {
+      const visiveis = new Set();
+      const observador = new IntersectionObserver((entradas) => {
+        for (const e of entradas) if (e.isIntersecting) visiveis.add(e.target); else visiveis.delete(e.target);
+        // A de cima entre as visíveis, e não a primeira que o observador relatou: rolando para
+        // trás, a ordem dos eventos é a inversa da ordem na tela.
+        const topo = secoes.find((s) => visiveis.has(s));
+        if (topo) marcar(topo);
+      }, { root: miolo, rootMargin: '0px 0px -66% 0px' });
+      for (const secao of secoes) observador.observe(secao);
+    }
+    if (secoes.length) marcar(secoes[0]);
+
+    // O painel diz a forma da moldura agora, a largura que a decidiu e o ponteiro. O toque é uma
+    // consulta de mídia que responde dentro do quadro do app, sem a ponte.
+    const toque = matchMedia('(pointer: coarse)');
+    const EXPLICA = {
+      ampla: 'De 840 px em diante, a lateral, a galeria e este painel ficam lado a lado.',
+      media: 'De 600 a 839 px, este painel sai da coluna e entra pela borda direita quando o botão da barra o pede.',
+      compacta: 'Abaixo de 600 px, as peças viram gaveta, este painel é a tela seguinte, com "Voltar", '
+        + 'e os botões de prioridade baixa da barra vão para o "Mais".',
+    };
+    const NOME = { ampla: 'Ampla', media: 'Média', compacta: 'Compacta' };
+    function descrever() {
+      const forma = raiz.dataset.forma || 'ampla';
+      $('moldura-forma').textContent = NOME[forma];
+      $('moldura-largura').textContent = `${Math.round(raiz.clientWidth)} px`;
+      $('moldura-ponteiro').textContent = toque.matches ? 'Toque' : 'Mouse ou caneta';
+      $('moldura-explica').textContent = EXPLICA[forma]
+        + (toque.matches ? ' Com toque, os alvos sobem para 44 px.' : '');
+    }
+    TuffApp.ligar(raiz, { aoMudarForma: descrever });
+    if (typeof ResizeObserver === 'function') new ResizeObserver(descrever).observe(raiz);
+    toque.addEventListener?.('change', descrever);
+    descrever();
+
+    $('topo').addEventListener('click', () => miolo.scrollTo({ top: 0, behavior: 'smooth' }));
+    $('recarregar').addEventListener('click', () => location.reload());
   })();
 
   // ── Ambiente ─────────────────────────────────────────────────────────────────
@@ -134,9 +198,9 @@ function montarGaleria() {
       const r = await fetch('api/runtime');
       const d = await r.json();
       const linhas = [
-        `limite  ${d.limites?.contido === true ? `APLICADO — memory.max=${d.limites.memoryMax}`
-          : d.limites?.contido === false ? `NÃO aplicado (memory.max=${d.limites.memoryMax || '—'})`
-          : `não sei — ${d.limites?.motivo || 'sem resposta'}`}`,
+        `limite  ${d.limites?.contido === true ? `APLICADO, memory.max=${d.limites.memoryMax}`
+          : d.limites?.contido === false ? `NÃO aplicado (memory.max=${d.limites.memoryMax || 'ausente'})`
+          : `não sei: ${d.limites?.motivo || 'sem resposta'}`}`,
         d.limites?.memoryCurrent ? `        usando agora: ${d.limites.memoryCurrent} bytes` : null,
         // O que o lançador decidiu, e não um inventário feito pelo app: `concedida` com a lista
         // do que este processo abre, ou o motivo da negativa (não declarada no manifesto, sem
@@ -144,7 +208,7 @@ function montarGaleria() {
         `GPU     ${d.gpu?.concedida ? 'concedida' : `negada: ${d.gpu?.motivo || 'sem resposta'}`}`,
         d.gpu?.dispositivos?.length
           ? d.gpu.dispositivos.map((g) =>
-              `        ${g.card}: ${g.fabricante} ${g.vendor || ''} driver=${g.driver || '—'}` +
+              `        ${g.card}: ${g.fabricante} ${g.vendor || ''} driver=${g.driver || 'nenhum'}` +
               `${g.virtual ? ' (virtual)' : ''} via=${g.video || 'sem codificador de vídeo'}`).join('\n')
           : null,
         // Reportado ao LADO da decisão de propósito. Sozinha, a string vazia é ambígua: ela é o
@@ -187,10 +251,10 @@ function montarGaleria() {
             '',
             `cpu   ${lado(d.cpu)}`,
             `gpu   ${lado(d.gpu)}`,
-            `nó    ${d.renderNode || '—'}`,
+            `nó    ${d.renderNode || 'nenhum'}`,
             // O caminho pelo qual a placa codifica — NVENC numa NVIDIA, VA-API em Intel e AMD. É
             // o que separa "tem placa" de "o vídeo acelera", e o que o benchmark escolheu.
-            `via   ${d.video || '— (esta placa não codifica vídeo)'}`,
+            `via   ${d.video || 'nenhuma: esta placa não codifica vídeo'}`,
             // O que a placa DIZ que sabe fazer, quando o encode falhou — pela ferramenta do caminho
             // dela (`vainfo`, ou o próprio ffmpeg no NVENC). É a resposta à pergunta seguinte —
             // "então ela serve para quê?" — em vez de um beco.
@@ -199,7 +263,7 @@ function montarGaleria() {
                 d.capacidades.entrypoints.map((l) => `      ${l}`).join('\n')
               : d.capacidades ? `\n${d.capacidades.ferramenta} não respondeu: ${d.capacidades.motivo}` : null,
           ].filter((l) => l !== null).join('\n')
-        : `não deu para medir — ${d.motivo}`);
+        : `não deu para medir: ${d.motivo}`);
     } catch (e) { falhar('runtimeout', e); }
     b.disabled = false; b.textContent = antes;
   });
@@ -414,7 +478,7 @@ function montarGaleria() {
         + (d.ok === false
           ? `\n\nO erro vem CLASSIFICADO (${d.error?.code}): um caminho que não existe é 404, e `
             + 'não um 500 dizendo que o servidor quebrou. É a diferença entre "o app pediu o que '
-            + 'não há" e "o app está com defeito" — e só a segunda merece alguém acordado.'
+            + 'não há" e "o app está com defeito", e só a segunda merece alguém acordado.'
           : ''));
     } catch (e) { falhar('privado', e); }
   };
@@ -438,7 +502,7 @@ function montarGaleria() {
     const r = await fetch('api/avisar-com-acao', { method: 'POST' }).then((x) => x.json());
     escrever('live', `notificado com a ação "${r.acao}".\n`
       + 'Abra o sino e clique no botão da notificação: quem recebe é o BACKEND, na rota que o '
-      + 'journal carregou em `onAction`. Esta janela fica sabendo pelo SSE — assine-o acima.');
+      + 'journal carregou em `onAction`. Esta janela fica sabendo pelo SSE, se você o assinou acima.');
   });
 
   // A janela EXTRA: o app pedindo, e escolhendo o que vai dentro. Fica aqui, e não no bloco da
@@ -468,14 +532,14 @@ function montarGaleria() {
   canal.onmessage = (e) => {
     recebidas++;
     escrever('canalout', `recebi (${recebidas}): ${JSON.stringify(e.data)}\n`
-      + 'veio de outra janela ou de outro app — nunca do backend, que não fala este canal.');
+      + 'veio de outra janela ou de outro app, e nunca do backend, que não fala este canal.');
   };
   $('canal').addEventListener('click', () => {
     // A própria janela NÃO recebe o que ela mesma manda: é regra do BroadcastChannel, e quem
     // esperar o eco vai achar que o canal está quebrado. Abra o painel para ver chegando.
     canal.postMessage({ de: 'janela principal', em: new Date().toISOString() });
-    escrever('canalout', 'mandei. Quem recebe é a OUTRA janela (abra o painel) ou outro app — '
-      + 'quem envia não recebe o próprio eco, e isso é regra do navegador, não defeito.');
+    escrever('canalout', 'mandei. Quem recebe é a OUTRA janela (abra o painel) ou outro app. Quem envia não '
+      + 'recebe o próprio eco, por regra do navegador.');
   });
   window.addEventListener('pagehide', () => canal.close());
 
@@ -531,7 +595,7 @@ function montarGaleria() {
     });
 
     $('confirm').addEventListener('click', async () => {
-      const ok = await vssh.dialogos.confirmar('Isto veio do ambiente, não do navegador. Confirma?');
+      const ok = await vssh.dialogos.confirmar('A caixa é do ambiente, e a resposta volta para esta página.', 'Confirmar pelo ambiente?', 'Confirmar');
       escrever('bridge', 'confirmar devolveu: ' + ok);
     });
 
@@ -650,7 +714,7 @@ function montarGaleria() {
     // janela fechada — que é o caso que um `kind:"service"` vive.
     $('live-backend').addEventListener('click', async () => {
       const r = await fetch('api/tarefa-longa', { method: 'POST' }).then(x => x.json());
-      escrever('live', `o backend começou ${r.total} passos — feche esta janela e olhe a bandeja`);
+      escrever('live', `o backend começou ${r.total} passos. Feche esta janela e olhe a bandeja.`);
     });
 
     // A MESMA rota, devagar de propósito: 80 s é mais que o TTL de 60 s com que o portal descarta
@@ -665,7 +729,7 @@ function montarGaleria() {
 
     $('avisar-backend').addEventListener('click', async () => {
       const r = await fetch('api/avisar', { method: 'POST' }).then(x => x.json());
-      escrever('live', `notificado com key “${r.key}” — clicar de novo hoje NÃO gera outra`);
+      escrever('live', `notificado com key “${r.key}”. Clicar de novo hoje NÃO gera outra.`);
     });
 
     // ── Bandeja ────────────────────────────────────────────────────────────────
@@ -727,7 +791,7 @@ function montarGaleria() {
       const r = await fetch('api/bandeja', { method: 'POST' }).then((x) => x.json());
       escrever('tray-back', r.ok
         ? 'o BACKEND pôs o ícone. Clique nele: a resposta chega pelo SSE, porque quem recebe o '
-          + 'clique é o processo — esta janela nem precisa estar aberta.'
+          + 'clique é o processo, e esta janela nem precisa estar aberta.'
         : `a lib não conseguiu escrever: ${r.motivo}`);
     });
 
@@ -1006,7 +1070,7 @@ function montarGaleria() {
           itens.push(`${h.kind === 'directory' ? '📁' : '📄'} ${nome}`);
           if (itens.length >= 30) { itens.push('… (cortado em 30)'); break; }
         }
-        escrever('fsa', `${pasta.name} — ${itens.length} entrada(s):\n` + (itens.join('\n') || '(vazia)'));
+        escrever('fsa', `${pasta.name}: ${itens.length} entrada(s)\n` + (itens.join('\n') || '(vazia)'));
       } catch (e) { falhar('fsa', e); }
     });
 
@@ -1024,7 +1088,7 @@ function montarGaleria() {
       try {
         const fh = await pasta.getFileHandle(arquivo);
         const f = await fh.getFile();
-        escrever('fsa', `${arquivo} — ${f.size} bytes, ${new Date(f.lastModified).toLocaleString()}\n\n${await f.text()}`);
+        escrever('fsa', `${arquivo}: ${f.size} bytes, ${new Date(f.lastModified).toLocaleString()}\n\n${await f.text()}`);
       } catch (e) { falhar('fsa', e); }
     });
 
@@ -1037,7 +1101,7 @@ function montarGaleria() {
         const destino = arquivo === NOME ? NOME2 : NOME;
         await fh.move(destino);
         arquivo = destino;
-        escrever('fsa', `renomeado para ${arquivo} — e o handle continua válido (${fh.name})`);
+        escrever('fsa', `renomeado para ${arquivo}, e o handle continua válido (${fh.name})`);
       } catch (e) { falhar('fsa', e); }
     });
 
@@ -1264,7 +1328,7 @@ function montarGaleria() {
     // portal. Rodando o backend solto na sua máquina, a raiz é a da origem, sem
     // nome: ali não há outro app com quem colidir, e inventar uma pasta esconderia o
     // armazenamento de quem está desenvolvendo contra ele.
-    const nomeDaRaiz = (raiz) => raiz.name || '(raiz da origem — fora do proxy não há namespace)';
+    const nomeDaRaiz = (raiz) => raiz.name || '(raiz da origem: fora do proxy não há namespace)';
 
     $('opfs-escrever').addEventListener('click', async () => {
       try {
@@ -1396,10 +1460,10 @@ function montarPainel() {
                     display:flex;flex-direction:column;gap:.6rem">
       <h2 style="margin:0;font-size:1.05rem">Painel</h2>
       <p style="margin:0;opacity:.75;font-size:.92em">
-        Esta janela é <strong>outra</strong>, não uma cópia — e o contador abaixo é o mesmo
+        Esta janela é <strong>outra</strong>, e o contador abaixo é o mesmo
         processo da janela grande. Some aqui e olhe lá.
       </p>
-      <div style="font:600 2.4rem/1 system-ui;letter-spacing:-.02em" id="p-contador">—</div>
+      <div style="font:600 2.4rem/1 system-ui;letter-spacing:-.02em" id="p-contador"></div>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap">
         <button id="p-somar" style="font:inherit;padding:.4rem .8rem;border-radius:6px;
                 border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer">somar 1</button>

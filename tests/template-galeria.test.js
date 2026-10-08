@@ -80,7 +80,7 @@ test('todo botão da marcação é ligado a alguma coisa', () => {
 });
 
 test('toda peça tem onde escrever a resposta', () => {
-  // Um `<pre>` sem ninguém que escreva nele fica no travessão para sempre, e quem instalou conclui
+  // Um `<pre>` sem ninguém que escreva nele fica vazio para sempre, e quem instalou conclui
   // que a capacidade não existe naquele servidor.
   for (const id of idsDoHtml('pre')) {
     assert.ok(idsDoJs.has(id), `o '#${id}' nunca recebe texto: a peça parece quebrada no ambiente`);

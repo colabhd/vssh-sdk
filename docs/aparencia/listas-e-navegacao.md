@@ -59,7 +59,8 @@ tiver padding, e é por isso que o corpo da gaveta, abaixo, não tem.
 
 ## A gaveta de navegação
 
-Lateral com as seções, mais o corpo. Ela é a lateral da janela de Configurações do ambiente, com a
+Lateral com as seções, mais o corpo. Um app de lista e detalhe, com um painel ao lado do conteúdo,
+usa [a moldura](moldura.md), que leva a mesma lateral e a transforma em gaveta na tela estreita. Ela é a lateral da janela de Configurações do ambiente, com a
 mesma medida (208px) e o mesmo realce do item ativo, e é o que faz a lateral de um app parecer a
 lateral do ambiente. A lateral é persistente: é ela que responde "onde eu estou". Um menu que fecha
 depois de escolher devolve a pessoa para uma tela sem pista de onde ela está.

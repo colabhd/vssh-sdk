@@ -264,7 +264,7 @@ function montarPalco() {
       $('musica-album').textContent = et.album || '';
       pintarCapa($('musica-capa'), { audio: true, capa });
     }
-    document.title = `${titulo} — Palco`;
+    document.title = `${titulo} · Palco`;
     // O ambiente mostra na central de mídia o que o app declara; sem a declaração, ele leria o
     // nome da URL, que no cano é `fluxo`.
     vssh.midia.agora(titulo, sub, capa || undefined);
@@ -626,7 +626,7 @@ function montarPalco() {
       lista.appendChild(li);
     });
     const tocando = lista.querySelector('.fila-item--tocando');
-    if (tocando && !$('fila').hidden) tocando.scrollIntoView({ block: 'nearest' });
+    if (tocando && filaVisivel()) tocando.scrollIntoView({ block: 'nearest' });
   }
 
   function selecionar(i, focar) {
@@ -639,9 +639,16 @@ function montarPalco() {
     }
   }
 
+  // No toque não há duplo clique confortável: um toque toca, e na compacta a fila sai da frente,
+  // para a pessoa ver o que escolheu.
+  const toque = matchMedia('(pointer: coarse)');
   $('fila-lista').addEventListener('click', (e) => {
     const li = e.target.closest('.fila-item');
-    if (li) selecionar(Number(li.dataset.i));
+    if (!li) return;
+    selecionar(Number(li.dataset.i));
+    if (!toque.matches) return;
+    abrirDaFila(Number(li.dataset.i));
+    if (moldura.forma() === 'compacta') moldura.fecharPainel();
   });
   $('fila-lista').addEventListener('dblclick', (e) => {
     const li = e.target.closest('.fila-item');
@@ -659,16 +666,26 @@ function montarPalco() {
   });
   $('fila-busca').addEventListener('input', (e) => { filtro = e.target.value; desenharFila(); });
 
+  // A fila é uma coluna na forma ampla, e a pessoa a liga e desliga com a escolha guardada; um
+  // álbum a abre sozinho para quem nunca escolheu. Abaixo de 840 px ela é o painel da moldura, que
+  // abre por cima do palco pelo outro botão e fecha no "Voltar", no "Fechar" e no Esc; ali ela fica
+  // sem `hidden`, e quem a mostra é a moldura. Nada a abre sozinho por cima do palco.
+  const moldura = TuffApp.ligar(janela, { aoMudarForma: () => mostrarFila(filaNaAmpla, false) });
+  const emAmpla = () => moldura.forma() === 'ampla';
+  const filaVisivel = () => (emAmpla() ? !$('fila').hidden : janela.classList.contains('tuff-app--painel-aberto'));
+  let filaNaAmpla = false;
+  const irAoQueToca = () => $('fila-lista').querySelector('.fila-item--tocando')?.scrollIntoView({ block: 'nearest' });
   function mostrarFila(sim, lembrar) {
-    $('fila').hidden = !sim;
-    $('btn-fila').setAttribute('aria-pressed', String(sim));
+    filaNaAmpla = sim;
     if (lembrar) gravarPref('fila', sim);
-    if (sim) {
-      const tocando = $('fila-lista').querySelector('.fila-item--tocando');
-      if (tocando) tocando.scrollIntoView({ block: 'nearest' });
-    }
+    $('fila').hidden = emAmpla() && !sim;
+    $('btn-fila').setAttribute('aria-pressed', String(sim));
+    if (sim && emAmpla()) irAoQueToca();
   }
   $('btn-fila').addEventListener('click', () => mostrarFila($('fila').hidden, true));
+  // O painel abre depois deste clique, quando ele borbulha até a moldura; a lista anda até o que
+  // toca no quadro seguinte, com o painel já na tela.
+  $('btn-fila-painel').addEventListener('click', () => { if (!filaVisivel()) requestAnimationFrame(irAoQueToca); });
   mostrarFila(lerPref('fila', false) === true, false);
 
   const mostrarNaPasta = (caminho) => vssh.arquivos.abrirPasta(caminho.replace(/[^/]+$/, ''));
