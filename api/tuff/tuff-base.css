@@ -19,11 +19,29 @@
 
    ─── Por que é um arquivo separado ──────────────────────────────────────────
 
-   Nem todo consumidor quer. Um bundle grande e antigo (o Logseq é o caso real)
-   traz o CSS dele inteiro, e um `box-sizing: border-box` global entrando por
-   adoção parcial é estrago silencioso: nada quebra alto, as caixas só passam a
-   medir outra coisa. Separado, dá para pegar os tokens e os componentes sem o
-   reset.
+   O `tuff: true` do `vssh.web` o injeta junto dos tokens e dos componentes,
+   porque o app novo é quem mais escreve HTML sem classe. Nem todo consumidor
+   quer: um bundle grande e antigo (o Logseq é o caso real) traz o CSS dele
+   inteiro, e um `box-sizing: border-box` global é estrago silencioso, em que
+   nada quebra alto e as caixas só passam a medir outra coisa. Separado, quem
+   não quer passa a lista sem ele (`tuff=['tuff-tokens.css', 'tuff.css',
+   'tuff.js']`).
+
+   ─── O HTML sem classe ──────────────────────────────────────────────────────
+
+   Um `<button>`, um `<input>`, um `<select>` ou uma `<table>` sem classe saem
+   com o desenho da peça equivalente (`.tuff-btn`, `.tuff-campo`, `.tuff-select`,
+   `.tuff-tabela`), e não com o do navegador: um botão cinza-claro sobre o
+   grafite e uma lista de opções branca. A régua do Tuff diz "controle nativo:
+   nunca", e uma régua que depende de lembrar a classe falha onde alguém
+   esqueceu.
+
+   Os seletores são `:where(...:not([class]))`: especificidade zero, e só o
+   elemento sem classe nenhuma. Um botão com a classe do próprio app fica de
+   fora inteiro, e por isso uma borda que o app não declarou nunca aparece
+   nele. Caixa de marcar, opção e faixa continuam nativas, com a cor de
+   destaque: no Android, o controle nativo é o certo para o toque, e o escuro
+   vem do `color-scheme`.
 
    ─── @layer, a decisão mais importante deste arquivo ────────────────────────
 
@@ -86,7 +104,7 @@
   p { margin: 0; }
 
   a {
-    color: var(--ds-accent-h);
+    color: var(--ds-accent-texto);
     text-decoration: none;
   }
   a:hover { text-decoration: underline; }
@@ -150,6 +168,141 @@
       scrollbar-width: thin;
       scrollbar-color: var(--ds-border) transparent;
     }
+  }
+
+  /* ── O HTML sem classe ──────────────────────────────────────────────────────
+     O desenho de cada peça do `tuff.css`, para quem escreveu a tag sem a classe.
+     As medidas de caixa (`width: 100%` do campo) ficam de fora: elas são do
+     layout do app, e o elemento sem classe mantém a largura que tinha. */
+
+  :where(button:not([class]),
+         input:not([class]):is([type="button"], [type="submit"], [type="reset"])) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--ds-gap-sm);
+    padding: 5px var(--ds-gap-lg);
+    min-height: var(--ds-alvo);
+    font: var(--tuff-weight-n) var(--tuff-size-sm) var(--ds-font);
+    color: var(--ds-text);
+    background: var(--ds-bg3);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background var(--ds-dur-fast) var(--ds-ease),
+                border-color var(--ds-dur-fast) var(--ds-ease);
+  }
+  :where(button:not([class]), input:not([class]):is([type="button"], [type="submit"], [type="reset"])):hover:not(:disabled) {
+    background: var(--ds-bg-hover);
+  }
+  :where(button:not([class]), input:not([class]):is([type="button"], [type="submit"], [type="reset"])):disabled {
+    opacity: .45;
+    cursor: default;
+  }
+
+  :where(input:not([class]):not([type="checkbox"], [type="radio"], [type="range"], [type="file"],
+                                 [type="color"], [type="button"], [type="submit"], [type="reset"],
+                                 [type="image"], [type="hidden"]),
+         textarea:not([class])) {
+    padding: 5px var(--ds-gap-md);
+    min-height: var(--ds-alvo);
+    font: var(--tuff-weight-n) var(--tuff-size-sm) var(--ds-font);
+    color: var(--ds-text);
+    background: var(--ds-bg-input);
+    border: 1px solid var(--ds-border-input);
+    border-radius: var(--ds-radius-md);
+  }
+  :where(input:not([class]), textarea:not([class]))::placeholder { color: var(--ds-text-dim); }
+  :where(input:not([class]), textarea:not([class])):focus { border-color: var(--ds-border-focus); }
+  :where(input:not([class]), textarea:not([class])):disabled { opacity: .5; }
+  :where(textarea:not([class])) { min-height: 5rem; resize: vertical; line-height: 1.5; }
+
+  /* A seta é a mesma do `.tuff-select`, com a mesma cor escrita no SVG. */
+  :where(select:not([class])) {
+    padding: 5px 28px 5px var(--ds-gap-md);
+    min-height: var(--ds-alvo);
+    font: var(--tuff-weight-n) var(--tuff-size-sm) var(--ds-font);
+    color: var(--ds-text);
+    background-color: var(--ds-bg-input);
+    border: 1px solid var(--ds-border-input);
+    border-radius: var(--ds-radius-md);
+    appearance: none;
+    background-repeat: no-repeat;
+    background-position: right var(--ds-gap-md) center;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a0a0a0' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    cursor: pointer;
+  }
+  :where(select:not([class])):focus { border-color: var(--ds-border-focus); }
+  /* A lista aberta, que em Windows herda o fundo do sistema e sai branca. */
+  :where(select:not([class]) option) { background: var(--ds-bg3); color: var(--ds-text); }
+
+  :where(input[type="checkbox"], input[type="radio"], input[type="range"], progress) {
+    accent-color: var(--ds-accent);
+  }
+
+  :where(table:not([class])) { border-collapse: collapse; font-size: var(--tuff-size-sm); color: var(--ds-text); }
+  :where(table:not([class]) th) {
+    height: 26px;
+    padding: 0 var(--ds-gap-md);
+    text-align: left;
+    font-size: var(--tuff-size-xs);
+    font-weight: var(--tuff-weight-b);
+    color: var(--ds-text-dim);
+    white-space: nowrap;
+    background: var(--ds-bg2);
+    border-bottom: 1px solid var(--ds-border);
+  }
+  :where(table:not([class]) td) { padding: 4px var(--ds-gap-md); border-bottom: 1px solid var(--ds-border); }
+
+  :where(hr:not([class])) {
+    height: 1px;
+    margin: var(--ds-gap-sm) 0;
+    background: var(--ds-border);
+    border: 0;
+  }
+
+  :where(details:not([class]) > summary) { cursor: pointer; color: var(--ds-text-mid); }
+
+  /* A barra do `.tuff-progresso`: o trilho no fundo de campo e o preenchimento no destaque. */
+  :where(progress:not([class])) {
+    appearance: none;
+    height: 4px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--ds-bg-input);
+    overflow: hidden;
+  }
+  :where(progress:not([class]))::-webkit-progress-bar { background: var(--ds-bg-input); }
+  :where(progress:not([class]))::-webkit-progress-value { background: var(--ds-accent); }
+  :where(progress:not([class]))::-moz-progress-bar { background: var(--ds-accent); }
+
+  /* O medidor diz se o valor está bem, perto do limite ou passou, pelas cores de estado. */
+  :where(meter:not([class])) { height: 6px; border-radius: 999px; background: var(--ds-bg-input); }
+  :where(meter:not([class]))::-webkit-meter-bar { height: 6px; border: 0; border-radius: 999px; background: var(--ds-bg-input); }
+  :where(meter:not([class]))::-webkit-meter-optimum-value { background: var(--ds-green); border-radius: 999px; }
+  :where(meter:not([class]))::-webkit-meter-suboptimum-value { background: var(--ds-warn); border-radius: 999px; }
+  :where(meter:not([class]))::-webkit-meter-even-less-good-value { background: var(--ds-danger); border-radius: 999px; }
+
+  :where(fieldset:not([class])) {
+    margin: 0;
+    padding: var(--ds-gap-md) var(--ds-gap-lg) var(--ds-gap-lg);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-lg);
+  }
+  /* A legenda é o `.tuff-rotulo`. */
+  :where(fieldset:not([class]) > legend) {
+    padding: 0 var(--ds-gap-xs);
+    font-size: var(--tuff-size-xs);
+    font-weight: var(--tuff-weight-m);
+    color: var(--ds-text-dim);
+  }
+
+  :where(blockquote:not([class])) {
+    margin: 0;
+    padding-left: var(--ds-gap-lg);
+    border-left: 2px solid var(--ds-border);
+    color: var(--ds-text-dim);
   }
 
   /* ── Movimento ──────────────────────────────────────────────────────────────

@@ -476,6 +476,48 @@
           "type": "boolean",
           "description": "Pede o duplo-clique nas extensões de `extensions` quando outro app instalado também as declara. É para quem mostra o arquivo (a Lupa com foto e PDF, o Palco com vídeo), e não para quem o importa ou organiza (um gerenciador de referências que também lê PDF). Um app sozinho numa extensão é o padrão dela com ou sem este campo; com dois pedindo a mesma, ninguém é eleito e a pessoa escolhe em Configurações > Tipos de arquivo. A escolha gravada pela pessoa vence sempre, e o campo não vale para tipo com destino próprio no ambiente (código, texto, comprimido, HTML)."
         },
+        "proprios": {
+          "type": "array",
+          "maxItems": 32,
+          "description": "Os tipos de arquivo que o app cria, desenhados com a marca dele: a folha do ícone de arquivo leva o ícone do app no meio e o selo na cor dele, e a coluna Tipo do gerenciador de arquivos mostra o nome. Cada extensão daqui também entra em `extensions`. Uma extensão que o ambiente já desenha (imagem, vídeo, áudio, comprimido, código, texto, documento de escritório e PDF) continua com o ícone do ambiente. Com dois apps declarando a mesma extensão, vale a do app que abre o tipo no duplo-clique.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "extensao",
+              "nome",
+              "cor"
+            ],
+            "properties": {
+              "extensao": {
+                "type": "string",
+                "pattern": "^\\.?[a-z0-9][a-z0-9+_-]{0,15}$",
+                "description": "A extensão, em minúsculas, com ou sem ponto: `prelo`."
+              },
+              "nome": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60,
+                "description": "Como a coluna Tipo chama o arquivo: `Documento do Prelo`."
+              },
+              "cor": {
+                "type": "string",
+                "pattern": "^#[0-9a-fA-F]{6}$",
+                "description": "A cor do selo, em `#rrggbb`. O texto do selo é branco, e o `vssh-app-publish` e a instalação recusam a cor em que o branco fica abaixo de 4,5:1."
+              },
+              "icone": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9/._-]*\\.(svg|png|jpe?g)$",
+                "description": "O ícone que vai no meio da folha, como caminho relativo à raiz do pacote. Sem ele, vai o `icon` do app."
+              },
+              "selo": {
+                "type": "string",
+                "pattern": "^[A-Z0-9]{1,5}$",
+                "description": "O texto curto do selo, até 5 letras maiúsculas ou números: `PRELO`. Sem ele, a folha fica sem selo, e o ícone do app identifica o arquivo sozinho."
+              }
+            }
+          }
+        },
         "urls": {
           "type": "array",
           "items": {
@@ -568,7 +610,7 @@
         "minimos": {
           "type": "object",
           "additionalProperties": false,
-          "description": "O piso do redimensionamento pelas alças, para o app que precisa de mais que os 400×300 que o ambiente impõe a toda janela. Um lado só também vale: `{ \"largura\": 640 }` deixa a altura no piso do ambiente. Maximizar e encaixar continuam alcançando qualquer tamanho, e o piso vale para toda janela do app, inclusive a que ele abre pelo verbo `janela.abrir`.",
+          "description": "O piso do redimensionamento pelas alças, para o app que precisa de mais que os 400×300 que o ambiente impõe a toda janela. Um lado só também vale: `{ \"largura\": 640 }` deixa a altura no piso do ambiente. Maximizar e encaixar continuam alcançando qualquer tamanho, e o piso vale para toda janela do app, inclusive a que ele abre pelo verbo `janela.abrir`. O piso é da tela larga: abaixo de 600 px de tela o ambiente põe a janela na área útil inteira e o piso cede, então o app precisa caber em 320 px de largura, que é o que a moldura do Tuff (`.tuff-app`) dá sem CSS próprio.",
           "properties": {
             "largura": {
               "type": "integer",

@@ -326,9 +326,12 @@ declare namespace vssh {
      * `alta`. A mesma `chave` substitui a notificação anterior no lugar de empilhar. O clique numa
      * das `acoes` volta pelo evento `acaoDeNotificacao`. `abrir` é onde o clique na notificação
      * leva, um caminho dentro do app (`?documento=x`), que chega pelo evento `abertura` quando a
-     * janela já está aberta. A resposta é o id da notificação.
+     * janela já está aberta. `figura` é o que aparece à esquerda do título: o ícone do arquivo de
+     * que se fala (`arquivo`, com o caminho no servidor) ou uma imagem de dentro do pacote do app
+     * (`icone`, com o caminho relativo a ele). O ícone e o nome do app vêm do manifesto. A resposta
+     * é o id da notificação.
      */
-    function notificar(mensagem: string, titulo?: string, nivel?: 'info' | 'success' | 'warning' | 'error', prioridade?: 'baixa' | 'normal' | 'alta', chave?: string, acoes?: { id: string; label: string }[], abrir?: string): Promise<unknown>;
+    function notificar(mensagem: string, titulo?: string, nivel?: 'info' | 'success' | 'warning' | 'error', prioridade?: 'baixa' | 'normal' | 'alta', chave?: string, acoes?: { id: string; label: string }[], abrir?: string, figura?: { tipo: 'arquivo' | 'icone'; caminho: string }): Promise<unknown>;
     /**
      * A frase que se lê e se esquece ("copiado", "salvo"): some sozinha depois de `duracao`
      * milissegundos (4000 por padrão) e não entra no histórico. A mesma `chave` reescreve o aviso
@@ -393,10 +396,12 @@ declare namespace vssh {
     /** A mesma caixa de `mostrar`, com o tom de erro. */
     function erro(mensagem: string, titulo?: string): Promise<unknown>;
     /**
-     * Uma pergunta com "Sim" e "Não". A resposta é `true` só quando a pessoa disse sim; fechar a
-     * caixa vale como não.
+     * Uma pergunta com dois botões, Cancelar e o que confirma, que diz o verbo em `sim` ("Excluir",
+     * "Publicar"; "OK" quando não vem). Com `perigo`, o botão que confirma tem a cor de destruir e
+     * o foco abre no Cancelar. A caixa mostra o ícone e o nome do app em cima. A resposta é `true`
+     * só quando a pessoa confirmou; fechar a caixa vale como cancelar.
      */
-    function confirmar(mensagem: string, titulo?: string): Promise<unknown>;
+    function confirmar(mensagem: string, titulo?: string, sim?: string, perigo?: boolean): Promise<unknown>;
     /**
      * Uma pergunta com de duas a quatro respostas, uma por botão, na ordem dada. A resposta é o
      * `id` da escolhida, ou `null` quando a pessoa fechou a caixa sem escolher. É a pergunta de

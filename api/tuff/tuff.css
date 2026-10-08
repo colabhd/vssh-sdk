@@ -43,6 +43,10 @@
      • hierarquia: rótulo e valor nunca têm o mesmo peso
      • divisas e âncoras: `.tuff-acoes` gruda no fim do painel
      • `option`: estilizada também, senão sai branca sob controle escuro
+     • largura: a tela cabe em 360 px sem rolagem horizontal
+
+   A direção (paleta, destaque, tipografia, movimento) e o motivo de cada
+   escolha estão em `DESIGN.md`, ao lado deste arquivo.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @layer vssh {
@@ -105,7 +109,7 @@
     justify-content: center;
     gap: var(--ds-gap-sm);
     padding: 5px var(--ds-gap-lg);
-    min-height: 26px;
+    min-height: var(--ds-alvo);
     font: var(--tuff-weight-n) var(--tuff-size-sm) var(--ds-font);
     color: var(--ds-text);
     background: var(--ds-bg3);
@@ -150,7 +154,7 @@
      Um botão sem texto precisa de `aria-label`: o nome não está na tela, e sem
      ele um leitor de tela anuncia "botão" e nada mais. */
   .tuff-btn--icone {
-    width: 26px;
+    width: var(--ds-alvo);
     padding: 0;
     flex: none;
     font-size: var(--tuff-size-md);
@@ -174,26 +178,37 @@
     color: var(--ds-text);
   }
 
+  /* O botão quieto: texto com ícone, sem moldura, para uma barra de ferramentas que tem ações com
+     nome ("Extrair", "Adicionar"). Uma fileira de botões com caixa ao lado dos de ícone, que não
+     têm, lê como dois tipos de controle. */
+  .tuff-btn--quieto {
+    background: transparent;
+    border-color: transparent;
+    color: var(--ds-text-dim);
+  }
+  .tuff-btn--quieto:hover:not(:disabled) { background: var(--ds-bg-hover); color: var(--ds-text); }
+
   /* O alternador. Um botão que liga e desliga alguma coisa mostra o próprio
      estado por `aria-pressed`, que é o seletor: o leitor de tela e o olho não
      têm como divergir. Um controle que não mostra o próprio estado mente sobre
      ele, e o sintoma chega como a fila fazendo algo que ninguém pediu.
 
-     O realce é o mesmo de `.tuff-gaveta-item--ativo`, que é como o ambiente já
-     diz "este aqui está valendo". Inventar um segundo jeito daria dois
-     "ligado" diferentes na mesma janela.
+     O ligado é o degrau de cima (`--ds-bg3`) com o texto forte, e não a cor de
+     destaque: ela fica para o que a pessoa escolheu e para o lugar onde ela
+     está, e um botão de barra ligado não é nenhum dos dois (o `DESIGN.md`,
+     "Onde o destaque aparece").
 
      Depois das regras de barra/chrome/transporte de propósito: elas têm a mesma
      especificidade (0,2,0), então quem vem por último ganha. Escrito antes, o
      estado ligado seria apagado exatamente nos lugares onde ele mais aparece. */
   .tuff-btn[aria-pressed="true"] {
-    background: var(--ds-accent-bg);
+    background: var(--ds-bg3);
     border-color: transparent;
-    color: var(--ds-accent-texto);
+    color: var(--ds-text-mid);
   }
   .tuff-btn[aria-pressed="true"]:hover:not(:disabled) {
-    background: var(--ds-accent-bg);
-    color: var(--ds-accent-texto);
+    background: var(--ds-bg3);
+    color: var(--ds-text-mid);
   }
 
   /* A barra de ações gruda no fim do painel: botão flutuando no meio do espaço
@@ -241,11 +256,11 @@
   .tuff-campo {
     width: 100%;
     padding: 5px var(--ds-gap-md);
-    min-height: 26px;
+    min-height: var(--ds-alvo);
     font: var(--tuff-weight-n) var(--tuff-size-sm) var(--ds-font);
     color: var(--ds-text);
     background: var(--ds-bg-input);
-    border: 1px solid var(--ds-border);
+    border: 1px solid var(--ds-border-input);
     border-radius: var(--ds-radius-md);
   }
   .tuff-campo::placeholder { color: var(--ds-text-dim); }
@@ -261,7 +276,7 @@
      há pseudo-elemento em `<select>` para desenhar outra. SVG embutido, sem
      arquivo.
 
-     Limite: a cor da seta (`%23858585`, que é `--tuff-text-dim`) está escrita
+     Limite: a cor da seta (`%23a0a0a0`, que é `--tuff-text-dim`) está escrita
      dentro do SVG, e é o único lugar da biblioteca, junto com a lupa de
      `.tuff-busca`, onde uma cor não sai de um token. Um data URI não lê custom
      property, e a técnica que resolveria (`mask-image` sobre `background-color`)
@@ -270,16 +285,16 @@
   .tuff-select {
     width: 100%;
     padding: 5px 28px 5px var(--ds-gap-md);
-    min-height: 26px;
+    min-height: var(--ds-alvo);
     font: var(--tuff-weight-n) var(--tuff-size-sm) var(--ds-font);
     color: var(--ds-text);
     background-color: var(--ds-bg-input);
-    border: 1px solid var(--ds-border);
+    border: 1px solid var(--ds-border-input);
     border-radius: var(--ds-radius-md);
     appearance: none;
     background-repeat: no-repeat;
     background-position: right var(--ds-gap-md) center;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23858585' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23a0a0a0' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
     cursor: pointer;
   }
   .tuff-select:focus { border-color: var(--ds-border-focus); }
@@ -297,17 +312,25 @@
      `:checked` e o rótulo clicável de graça. Desenhar um switch com `<div>`
      custa os quatro, e o que se ganha em troca é nada. */
 
+  /* 36 × 20 sob o ponteiro fino e 44 × 26 sob o dedo, pelas mesmas variáveis. */
   .tuff-switch {
+    --tuff-switch-l: 36px;
+    --tuff-switch-a: 20px;
     position: relative;
     display: inline-flex;
     align-items: center;
-    width: 30px;
-    height: 16px;
+    width: var(--tuff-switch-l);
+    height: var(--tuff-switch-a);
     flex: none;
   }
+  @media (pointer: coarse) {
+    .tuff-switch { --tuff-switch-l: 44px; --tuff-switch-a: 26px; }
+  }
+  /* O `input` é o alvo, e sob o dedo ele passa da chave desenhada até a altura de um alvo de
+     toque: o desenho fica em 26 px, e o dedo acerta em 44. */
   .tuff-switch input {
     position: absolute;
-    inset: 0;
+    inset: min(0px, calc((var(--tuff-switch-a) - var(--ds-alvo)) / 2)) 0;
     margin: 0;
     opacity: 0;
     cursor: pointer;
@@ -324,19 +347,22 @@
   .tuff-switch-trilho::after {
     content: '';
     display: block;
-    width: 10px;
-    height: 10px;
+    width: calc(var(--tuff-switch-a) - 6px);
+    height: calc(var(--tuff-switch-a) - 6px);
     margin: 2px;
     border-radius: 50%;
     background: var(--ds-text-dim);
     transition: transform var(--ds-dur) var(--ds-ease), background var(--ds-dur) var(--ds-ease);
   }
+  /* A borda do ligado é o destaque de texto, mais claro que o cheio: o destaque cheio sobre o
+     cartão fica abaixo de 3:1 em algumas das sete cores (2,49:1 no Azul), e a borda é o que
+     separa a chave do fundo. */
   .tuff-switch input:checked + .tuff-switch-trilho {
     background: var(--ds-accent);
-    border-color: var(--ds-accent);
+    border-color: var(--ds-accent-texto);
   }
   .tuff-switch input:checked + .tuff-switch-trilho::after {
-    transform: translateX(14px);
+    transform: translateX(calc(var(--tuff-switch-l) - var(--tuff-switch-a)));
     background: var(--ds-on-accent);
   }
   .tuff-switch input:focus-visible + .tuff-switch-trilho {
@@ -353,27 +379,33 @@
   .tuff-grupo {
     display: flex;
     flex-direction: column;
+    background: var(--ds-bg2);
     border: 1px solid var(--ds-border);
     border-radius: var(--ds-radius-lg);
     overflow: hidden;
   }
+  /* A divisa é entre irmãos, quaisquer que sejam: um `<details>` ou um bloco livre no meio do
+     grupo não pode deixar a linha seguinte sem fio. */
+  .tuff-grupo > * + * { border-top: 1px solid var(--ds-border); }
   .tuff-linha {
     display: flex;
     align-items: center;
     gap: var(--ds-gap-lg);
-    padding: var(--ds-gap-md) var(--ds-gap-lg);
+    min-height: 52px;
+    padding: var(--ds-gap-lg);
     background: var(--ds-bg2);
   }
-  .tuff-linha + .tuff-linha { border-top: 1px solid var(--ds-border); }
   .tuff-linha-corpo { flex: 1; min-width: 0; }
   .tuff-linha-titulo {
     font-size: var(--tuff-size-sm);
-    color: var(--ds-text);
+    font-weight: var(--tuff-weight-m);
+    color: var(--ds-text-mid);
   }
   .tuff-linha-desc {
     font-size: var(--tuff-size-xs);
+    line-height: 1.45;
     color: var(--ds-text-dim);
-    margin-top: 2px;
+    margin-top: 3px;
   }
   .tuff-linha-ctrl { flex: none; display: flex; align-items: center; gap: var(--ds-gap-md); }
 
@@ -382,26 +414,29 @@
      semânticas, as mesmas em toda peça: um verde de app aqui e outro ali é
      como um ambiente deixa de parecer um ambiente. O texto vai na caixa da
      frase, como quem chama escreveu ("Instalada"): a borda e a cor já
-     separam a pílula do texto em volta. */
+     separam a pílula do texto em volta. A borda é a cor a 45%, para o
+     contorno ficar atrás da palavra. "Ocupado" é neutro e parado: a palavra
+     ("Reiniciando") já diz que algo anda, e o destaque fica para o que a
+     pessoa escolheu. */
 
   .tuff-pill {
     display: inline-flex;
+    flex: none;
     align-items: center;
     gap: var(--ds-gap-sm);
+    height: 20px;
     padding: 0 var(--ds-gap-md);
     font-size: var(--tuff-size-xs);
     font-weight: var(--tuff-weight-m);
-    line-height: 16px;
+    white-space: nowrap;
     border-radius: 999px;
-    border: 1px solid currentColor;
+    border: 1px solid var(--ds-border);
     color: var(--ds-text-dim);
   }
-  .tuff-pill--ok { color: var(--ds-green); }
-  .tuff-pill--aviso { color: var(--ds-warn); }
-  .tuff-pill--erro { color: var(--ds-danger); }
-  .tuff-pill--ocupado { color: var(--ds-accent-texto); animation: tuff-pulsar 1.4s var(--ds-ease) infinite; }
-
-  @keyframes tuff-pulsar { 50% { opacity: .45; } }
+  .tuff-pill--ok { color: var(--ds-green); border-color: color-mix(in srgb, var(--ds-green) 45%, transparent); }
+  .tuff-pill--aviso { color: var(--ds-warn); border-color: color-mix(in srgb, var(--ds-warn) 45%, transparent); }
+  .tuff-pill--erro { color: var(--ds-danger); border-color: color-mix(in srgb, var(--ds-danger) 45%, transparent); }
+  .tuff-pill--ocupado { color: var(--ds-text-mid); border-color: var(--ds-border-input); }
 
   .tuff-tag {
     display: inline-block;
@@ -455,6 +490,8 @@
      Uma tela vazia é um convite para agir. O estado vazio tem título e uma
      frase, e a frase diz o que fazer; que está vazio, a tela já mostra. */
 
+  /* A fonte é a da interface também quando o vazio mora num painel de código ou
+     de log, que escreve em monoespaçada. */
   .tuff-vazio {
     display: flex;
     flex-direction: column;
@@ -462,6 +499,7 @@
     gap: var(--ds-gap-sm);
     padding: var(--ds-gap-2xl) var(--ds-gap-lg);
     text-align: center;
+    font-family: var(--ds-font);
     color: var(--ds-text-dim);
   }
   .tuff-vazio-titulo {
@@ -478,6 +516,20 @@
      leria "abra um vídeo" sem ver botão nenhum por perto. */
   .tuff-vazio > .tuff-acoes { margin-top: 0; }
 
+  /* A falha é o mesmo vazio, para o que não abriu: o ícone de aviso no tom dele, o título que
+     diz o que falhou ("O comprimido não abriu"), uma frase com o motivo e a ação, quase sempre
+     "Tentar de novo". O código de uma resposta é mecanismo, e quando serve a alguém (quem relata
+     o defeito) vai num `.tuff-detalhe` fechado, abaixo da ação. */
+  .tuff-vazio--falha > .tuff-ico:first-child { color: var(--ds-warn); }
+  .tuff-vazio > .tuff-vazio-detalhe { border: 0; background: none; }
+  .tuff-vazio > .tuff-vazio-detalhe > summary {
+    justify-content: center;
+    padding: var(--ds-gap-xs) 0;
+    font-size: var(--tuff-size-xs);
+    color: var(--ds-text-dim);
+  }
+  .tuff-vazio-detalhe > .tuff-detalhe-corpo { padding: 0; font-size: var(--tuff-size-xs); }
+
   /* ── Espera ─────────────────────────────────────────────────────────────────
      Spinner para "não sei quanto falta"; barra para "sei". Trocar os dois custa
      confiança: uma barra que anda até 90% e para ensina a não acreditar em
@@ -485,14 +537,26 @@
 
   .tuff-spinner {
     display: inline-block;
+    flex: none;
     width: 14px;
     height: 14px;
     border: 2px solid var(--ds-border);
-    border-top-color: var(--ds-accent);
+    border-left-color: var(--ds-text-dim);
     border-radius: 50%;
-    animation: tuff-girar .7s linear infinite;
+    animation: tuff-girar .8s linear infinite;
   }
   @keyframes tuff-girar { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .tuff-spinner { animation: none; } }
+
+  /* "Estou buscando" numa linha: o giro e a frase do que vem. Ela diz que um
+     pedaço da tela está a caminho, e o resto continua usável. */
+  .tuff-carregando {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-gap-md);
+    color: var(--ds-text-dim);
+    font-size: var(--tuff-size-sm);
+  }
 
   .tuff-progresso {
     position: relative;
@@ -519,7 +583,7 @@
     to { transform: translateX(340%); }
   }
   /* Com menos movimento a faixa não atravessa: a barra fica cheia e apagada, e diz "em
-     andamento" sem perseguir o olho, como a `.ds-meter` do shell. */
+     andamento" sem perseguir o olho. */
   @media (prefers-reduced-motion: reduce) {
     .tuff-progresso--indeterminado .tuff-progresso-preenchido { width: 100%; opacity: .45; animation: none; }
   }
@@ -529,27 +593,37 @@
      agrupamento e foco vêm prontos. `:has()` é o que permite pintar o rótulo a
      partir do estado do input sem uma linha de JavaScript. */
 
+  /* O segmento escolhido é neutro, um degrau mais claro com contorno e o texto
+     em peso forte: um segmentado é uma escolha entre modos de ver, e o
+     destaque cheio em cada um deles competiria com o botão primário da tela. */
   .tuff-seg {
     display: inline-flex;
+    gap: 2px;
     padding: 2px;
     background: var(--ds-bg-input);
-    border: 1px solid var(--ds-border);
-    border-radius: var(--ds-radius-md);
+    border: 1px solid var(--ds-border-input);
+    border-radius: var(--ds-radius-lg);
   }
   .tuff-seg-btn {
     position: relative;
-    padding: 3px var(--ds-gap-lg);
+    display: inline-flex;
+    align-items: center;
+    height: max(24px, var(--ds-alvo));
+    padding: 0 10px;
     font-size: var(--tuff-size-sm);
-    color: var(--ds-text-dim);
-    border-radius: var(--ds-radius-sm);
+    color: var(--ds-text);
+    white-space: nowrap;
+    border-radius: var(--ds-radius-md);
     cursor: pointer;
     transition: background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease);
   }
-  .tuff-seg-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-  .tuff-seg-btn:hover { color: var(--ds-text); }
+  .tuff-seg-btn input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+  .tuff-seg-btn:hover { color: var(--ds-text-mid); }
   .tuff-seg-btn:has(input:checked) {
-    background: var(--ds-accent);
-    color: var(--ds-on-accent);
+    background: color-mix(in srgb, var(--ds-text-mid) 16%, var(--ds-bg-input));
+    color: var(--ds-text-mid);
+    font-weight: var(--tuff-weight-b);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ds-text-mid) 50%, var(--ds-bg-input));
   }
   .tuff-seg-btn:has(input:focus-visible) {
     outline: 2px solid var(--ds-border-focus);
@@ -632,6 +706,134 @@
   .tuff-kv dd { margin: 0; color: var(--ds-text); }
   .tuff-kv--mono dd { font-family: var(--ds-font-mono); font-size: var(--tuff-size-xs); }
 
+  /* ── Tabela ─────────────────────────────────────────────────────────────────
+     Uma lista com mais de um atributo por item, e colunas que se ordenam. O
+     cabeçalho de uma coluna ordenável é um botão (`.tuff-tabela-ordem`, com a
+     chave em `data-chave`), e a coluna diz a ordem em `aria-sort`, que é também
+     de onde a seta sai: o leitor de tela e o olho leem o mesmo atributo.
+     `TuffTabela.marcar` o escreve, e `TuffTabela.ligar` avisa do clique.
+
+     Duas formas, com as mesmas classes. Numa `<table>` a peça usa o layout da
+     tabela, e cada célula do cabeçalho gruda no topo, o que deixa uma linha de
+     seção grudar logo abaixo dele. Numa lista de `div`, como a lista virtual de
+     Arquivos, o cabeçalho e cada linha são grades com o mesmo molde de colunas
+     (`--tuff-tabela-colunas`), e os papéis vão no markup (`table`, `row`,
+     `columnheader`, `cell`). Essa forma mede a própria largura: abaixo de
+     480 px, as colunas sem `.tuff-tabela-essencial` descem para a segunda
+     linha do item, e a tabela não rola de lado. A coluna
+     `.tuff-tabela-principal` (o nome) fica com o espaço que sobra na primeira
+     linha, e `--tuff-tabela-recuo` (a distância da margem até ela) alinha as
+     linhas seguintes com ela. A margem lateral das linhas é
+     `--tuff-tabela-margem`, e quem usa a peça a ajusta por ela, e não pelo
+     `padding`, que a forma compacta precisa compor. */
+
+  .tuff-tabela { font-size: var(--tuff-size-sm); color: var(--ds-text); }
+  table.tuff-tabela { width: 100%; border-collapse: collapse; }
+  div.tuff-tabela { container: tuff-tabela / inline-size; }
+
+  .tuff-tabela-th {
+    text-align: left;
+    font-size: var(--tuff-size-xs);
+    font-weight: var(--tuff-weight-b);
+    color: var(--ds-text-dim);
+    white-space: nowrap;
+    user-select: none;
+  }
+  table.tuff-tabela .tuff-tabela-th,
+  div.tuff-tabela > .tuff-tabela-cab {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--ds-bg2);
+    border-bottom: 1px solid var(--ds-border);
+  }
+  table.tuff-tabela .tuff-tabela-th { height: 26px; padding: 0 var(--ds-gap-md); }
+  .tuff-tabela-th[aria-sort="ascending"],
+  .tuff-tabela-th[aria-sort="descending"] { color: var(--ds-text); }
+
+  .tuff-tabela-ordem {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+  .tuff-tabela-ordem:hover { color: var(--ds-text); }
+  .tuff-tabela-ordem:focus-visible { outline: 2px solid var(--ds-border-focus); outline-offset: 2px; border-radius: var(--ds-radius-sm); }
+  /* A seta é um canto desenhado: para baixo na ordem decrescente, para cima na crescente. */
+  .tuff-tabela-th[aria-sort="ascending"] .tuff-tabela-ordem::after,
+  .tuff-tabela-th[aria-sort="descending"] .tuff-tabela-ordem::after {
+    content: '';
+    flex: none;
+    width: 5px;
+    height: 5px;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+  }
+  .tuff-tabela-th[aria-sort="ascending"] .tuff-tabela-ordem::after { transform: translateY(1px) rotate(-135deg); }
+  /* Numa coluna alinhada à direita, a seta fica antes do rótulo, do lado de dentro. */
+  .tuff-tabela-th.tuff-tabela-num .tuff-tabela-ordem { flex-direction: row-reverse; }
+
+  .tuff-tabela-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .tuff-tabela-linha { cursor: default; }
+  .tuff-tabela-linha:hover { background: var(--ds-bg-hover); }
+  .tuff-tabela-linha[aria-selected="true"] { background: var(--ds-sel); color: var(--ds-sel-text); }
+  table.tuff-tabela .tuff-tabela-linha > td { padding: 4px var(--ds-gap-md); border-bottom: 1px solid var(--ds-border); }
+
+  div.tuff-tabela .tuff-tabela-cab,
+  div.tuff-tabela .tuff-tabela-linha {
+    display: grid;
+    grid-template-columns: var(--tuff-tabela-colunas, minmax(0, 1fr));
+    column-gap: var(--ds-gap-md);
+    align-items: center;
+    padding-inline: var(--tuff-tabela-margem, var(--ds-gap-md));
+  }
+  div.tuff-tabela .tuff-tabela-cab { min-height: 24px; }
+  div.tuff-tabela .tuff-tabela-linha { min-height: 24px; }
+  .tuff-tabela-cel {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Dentro do contêiner, os seletores levam o `div.tuff-tabela` da forma em grade: com a
+     especificidade dela, e só assim, a forma compacta vence a grade na mesma camada. */
+  @container tuff-tabela (max-width: 480px) {
+    /* A linha inteira recua até a coluna principal, e a primeira coluna volta à margem: assim
+       toda linha que quebra começa embaixo do nome. */
+    div.tuff-tabela .tuff-tabela-cab,
+    div.tuff-tabela .tuff-tabela-linha {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      padding-block: 3px;
+      padding-left: calc(var(--tuff-tabela-margem, var(--ds-gap-md)) + var(--tuff-tabela-recuo, 0px));
+    }
+    div.tuff-tabela .tuff-tabela-cab > :first-child,
+    div.tuff-tabela .tuff-tabela-linha > :first-child { margin-left: calc(-1 * var(--tuff-tabela-recuo, 0px)); }
+    div.tuff-tabela .tuff-tabela-cab > *,
+    div.tuff-tabela .tuff-tabela-linha > * { order: 3; flex: none; text-align: left; }
+    div.tuff-tabela .tuff-tabela-linha > :empty { display: none; }
+    div.tuff-tabela .tuff-tabela-cab > .tuff-tabela-essencial,
+    div.tuff-tabela .tuff-tabela-linha > .tuff-tabela-essencial { order: 0; align-self: center; }
+    div.tuff-tabela .tuff-tabela-cab > .tuff-tabela-principal,
+    div.tuff-tabela .tuff-tabela-linha > .tuff-tabela-principal { flex: 1 1 0; min-width: 0; }
+    /* A quebra entre a linha das colunas essenciais e a das outras. */
+    div.tuff-tabela .tuff-tabela-cab::after,
+    div.tuff-tabela .tuff-tabela-linha::after { content: ''; order: 1; flex-basis: 100%; }
+    div.tuff-tabela .tuff-tabela-linha > :not(.tuff-tabela-essencial) { font-size: var(--tuff-size-xs); color: var(--ds-text-dim); }
+    div.tuff-tabela .tuff-tabela-th.tuff-tabela-num .tuff-tabela-ordem { flex-direction: row; }
+  }
+
+
   /* ── Barra de ferramentas ───────────────────────────────────────────────────
      A divisa é `border-bottom`: blocos que mudam juntos, separados por linha. */
 
@@ -644,6 +846,8 @@
     border-bottom: 1px solid var(--ds-border);
   }
   .tuff-barra-espaco { flex: 1; }
+  /* Um fio em pé entre grupos de botões da barra. */
+  .tuff-barra-divisa { flex: none; width: 1px; height: 18px; margin: 0 var(--ds-gap-sm); background: var(--ds-border); }
 
   /* A barra que fica no topo enquanto o conteúdo rola por baixo. Ela só encosta
      nas bordas se o contêiner de rolagem não tiver padding; é por isso que
@@ -656,6 +860,123 @@
     top: 0;
     z-index: 3;
   }
+
+  /* ── Trilha ─────────────────────────────────────────────────────────────────
+     O caminho até onde a pessoa está, com cada lugar acima dele clicável. A
+     última parte é o nome do lugar atual, e quem a desenha (`TuffTrilha`)
+     recolhe as partes do meio num "…" antes de cortá-la: numa janela estreita a
+     pasta atual é a parte que a pessoa precisa ler. Ela só perde letras quando
+     nem sozinha cabe. */
+
+  .tuff-trilha {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--ds-text-dim);
+    font-size: var(--tuff-size-sm);
+  }
+  .tuff-trilha-parte {
+    flex: none;
+    padding: 3px 6px;
+    border: 0;
+    border-radius: var(--ds-radius-sm);
+    background: none;
+    color: inherit;
+    font: inherit;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .tuff-trilha-parte:hover { background: var(--ds-bg-hover); color: var(--ds-text-mid); }
+  .tuff-trilha-parte:focus-visible { outline: 2px solid var(--ds-border-focus); outline-offset: -2px; }
+  .tuff-trilha-atual,
+  .tuff-trilha-atual:hover {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: none;
+    color: var(--ds-text-mid);
+    font-weight: var(--tuff-weight-b);
+    cursor: default;
+  }
+  .tuff-trilha-sep { flex: none; width: 12px; height: 12px; opacity: .6; }
+
+  /* ── Barra de menus ─────────────────────────────────────────────────────────
+     Os rótulos de menu de um app de documento (Arquivo, Editar, Exibir). O
+     menu que cada rótulo abre é o do ambiente, pela mesma regra do menu de
+     contexto no cabeçalho desta folha; `TuffMenus.ligar` liga o clique e o
+     teclado de uma barra de menus. O rótulo aberto fica como um botão
+     apertado. A letra de atalho ganha o sublinhado enquanto o Alt está
+     apertado, e só então: sublinhada o tempo todo, ela seria ruído em cada
+     rótulo. */
+
+  .tuff-menus {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 2px;
+    min-height: 28px;
+    padding: 0 6px;
+    background: var(--ds-bg2);
+    color: var(--ds-text);
+    font-size: var(--tuff-size-sm);
+    user-select: none;
+  }
+  .tuff-menus > button {
+    padding: 3px 8px;
+    border: 0;
+    border-radius: var(--ds-radius-sm);
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+  .tuff-menus > button:hover { background: var(--ds-bg-hover); }
+  .tuff-menus > button[aria-expanded="true"] { background: var(--ds-bg3); color: var(--ds-text-mid); }
+  .tuff-menus > button:focus-visible { outline: 2px solid var(--ds-border-focus); outline-offset: -2px; }
+  .tuff-menus--alt .tuff-menus-tecla { text-decoration: underline; }
+
+  /* ── Barra de status ────────────────────────────────────────────────────────
+     O rodapé que diz o estado da janela: quantos itens, onde está o cursor, o
+     que está acontecendo. Fica sobre `--ds-bg2`, com texto apagado, porque o
+     que ela diz é contexto; a cor de destaque pintada na largura inteira a
+     tornava o elemento mais forte da janela para dizer "31 itens". O destaque
+     aparece só quando há estado, e pelas cores da pílula. Um segmento que abre
+     alguma coisa (a linguagem do editor) é `<button>`, e se comporta como um. */
+
+  .tuff-status {
+    display: flex;
+    align-items: center;
+    gap: var(--ds-gap-md);
+    min-height: 22px;
+    padding: 0 var(--ds-gap-md);
+    background: var(--ds-bg2);
+    border-top: 1px solid var(--ds-border);
+    color: var(--ds-text-dim);
+    font: var(--tuff-weight-n) var(--tuff-size-xs) var(--ds-font);
+    white-space: nowrap;
+    overflow: hidden;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .tuff-status-espaco { flex: 1; }
+  /* O fio entre dois campos da barra de status: separa sem ser texto, e sem pedir contraste de
+     texto, que um "|" pediria. */
+  .tuff-status-divisa { flex: none; width: 1px; height: 12px; background: var(--ds-border); }
+  .tuff-status button {
+    padding: 0 var(--ds-gap-xs);
+    margin: 0 calc(-1 * var(--ds-gap-xs));
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    border-radius: var(--ds-radius-sm);
+    cursor: pointer;
+  }
+  .tuff-status button:hover { color: var(--ds-text); background: var(--ds-bg-hover); }
 
   /* ── A gaveta de navegação ──────────────────────────────────────────────────
      Lateral com as seções, mais o corpo. Compilada da janela de Configurações
@@ -703,24 +1024,27 @@
     font-weight: var(--tuff-weight-b);
     color: var(--ds-text-dim);
   }
-  .tuff-gaveta-lateral > .tuff-gaveta-cap:first-child { margin-top: var(--ds-gap-sm); }
+  .tuff-gaveta-lateral > .tuff-gaveta-cap:first-child,
+  .tuff-app-lateral > .tuff-gaveta-cap:first-child { margin-top: var(--ds-gap-sm); }
 
   .tuff-gaveta-item {
     display: flex;
     align-items: center;
     gap: 9px;
     width: 100%;
+    min-height: var(--ds-alvo);
     padding: 7px 9px;
     border: none;
     border-radius: var(--ds-radius-md);
     background: transparent;
-    color: var(--ds-text-dim);
+    color: var(--ds-text);
     font: var(--tuff-weight-n) var(--tuff-size-sm) var(--ds-font);
     text-align: left;
     cursor: pointer;
     transition: background var(--ds-dur-fast) var(--ds-ease),
                 color var(--ds-dur-fast) var(--ds-ease);
   }
+  .tuff-gaveta-item > svg { color: var(--ds-text-dim); }
   /* O rótulo trunca em vez de quebrar: uma lateral de largura fixa com item de
      duas linhas desalinha a coluna inteira, e o nome inteiro continua no
      `title`. */
@@ -729,9 +1053,15 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .tuff-gaveta-item:hover { background: var(--ds-bg-hover); color: var(--ds-text); }
+  .tuff-gaveta-item:hover { background: var(--ds-bg-hover); color: var(--ds-text-mid); }
   .tuff-gaveta-item:focus-visible { outline: 2px solid var(--ds-accent); outline-offset: -2px; }
-  .tuff-gaveta-item--ativo { background: var(--ds-accent-bg); color: var(--ds-accent-texto); }
+  /* O lugar atual: o fundo da seleção, o texto forte e o ícone no destaque de texto. */
+  .tuff-gaveta-item--ativo,
+  .tuff-gaveta-item[aria-current="true"],
+  .tuff-gaveta-item[aria-current="page"] { background: var(--ds-sel); color: var(--ds-text-mid); }
+  .tuff-gaveta-item--ativo > svg,
+  .tuff-gaveta-item[aria-current="true"] > svg,
+  .tuff-gaveta-item[aria-current="page"] > svg { color: var(--ds-accent-texto); }
 
   /* Sem padding. O corpo é o que rola, e um contêiner de rolagem com padding
      empurra tudo que estiver dentro dele, inclusive uma barra presa com
@@ -795,6 +1125,345 @@
     .tuff-gaveta-conteudo { padding: var(--ds-gap-lg); }
   }
 
+  /* ── A moldura de app ───────────────────────────────────────────────────────
+     As cinco regiões de um app de lista e detalhe: a barra em cima, a lateral
+     com os lugares, o miolo com o conteúdo, o painel com o detalhe do que está
+     selecionado e o rodapé com o estado. O app diz qual elemento é cada região,
+     e a disposição sai da largura da moldura, nas três classes de janela do
+     Android que o `DESIGN.md` adota.
+
+     De 840 px em diante (ampla), as três colunas ficam lado a lado. De 600 a
+     839 px (média), o painel sai da coluna e entra por cima do miolo, pela borda
+     direita, quando a pessoa o pede. Abaixo de 600 px (compacta), a lateral vira
+     gaveta, o painel vira a tela seguinte, com "Voltar", e os botões da barra
+     com `data-prioridade="baixa"` saem para o "Mais", que abre o menu do
+     ambiente. `TuffApp.ligar` (`tuff.js`) dá o comportamento: abrir, fechar, o
+     foco e o Esc.
+
+     A própria moldura é o contêiner (`tuff-app`), e um contêiner não consulta
+     a si mesmo: a grade dela não muda de forma. O que muda é quem sai do fluxo.
+     A coluna da lateral e a do painel são `auto`, e uma região posicionada em
+     `absolute` não ocupa a coluna dela, que fica com largura zero. Por isso a
+     moldura dispensa um invólucro, e a largura das duas colunas é a que o app
+     der à região. Um app que precisa da forma no próprio CSS escreve
+     `@container tuff-app (width < 600px)`, e no JavaScript lê `data-forma`.
+
+     `overflow: clip`, e não `hidden`: o painel fechado fica à direita da
+     moldura, e um contêiner `hidden` ainda rola por programa até ele (um
+     `focus()`, um `scrollIntoView`), deslocando o app inteiro para a esquerda. */
+
+  .tuff-app {
+    container: tuff-app / inline-size;
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "barra   barra  barra"
+      "lateral miolo  painel"
+      "rodape  rodape rodape";
+    height: 100%;
+    min-height: 0;
+    overflow: clip;
+    background: var(--ds-bg);
+    color: var(--ds-text);
+  }
+  .tuff-app > [hidden] { display: none; }
+
+  .tuff-app-barra { grid-area: barra; min-width: 0; }
+  /* O nome do lugar onde a pessoa está, na barra. Na forma compacta ele fica
+     ao lado do botão da gaveta, e é o que diz o que a gaveta trocaria. Ele pode
+     ser o `<h1>` da página, e o tamanho continua o da barra: o que a base dá a
+     um `<h1>` é o de um título de artigo. O título do painel segue a mesma
+     regra. */
+  .tuff-app-titulo {
+    min-width: 0;
+    margin: 0;
+    padding: 0 var(--ds-gap-sm);
+    overflow: hidden;
+    color: var(--ds-text-mid);
+    font-size: inherit;
+    font-weight: var(--tuff-weight-b);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* Um botão da barra aberto (a gaveta, o painel, o "Mais") tem o desenho do
+     botão ligado. */
+  .tuff-app-barra .tuff-btn[aria-expanded="true"] {
+    background: var(--ds-bg3);
+    border-color: transparent;
+    color: var(--ds-text-mid);
+  }
+
+  /* A lateral tem o desenho da lateral da gaveta, e os itens dela são
+     `.tuff-gaveta-item`, com o lugar atual em `aria-current`. */
+  .tuff-app-lateral {
+    grid-area: lateral;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 220px;
+    min-height: 0;
+    padding: var(--ds-gap-md) var(--ds-gap-sm);
+    overflow-y: auto;
+    background: var(--ds-bg2);
+    border-right: 1px solid var(--ds-border);
+  }
+
+  .tuff-app-miolo {
+    grid-area: miolo;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .tuff-app-painel {
+    grid-area: painel;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-gap-lg);
+    width: 280px;
+    min-width: 0;
+    min-height: 0;
+    padding: var(--ds-gap-lg);
+    overflow: auto;
+    background: var(--ds-bg2);
+    border-left: 1px solid var(--ds-border);
+  }
+  /* O painel recebe o foco quando abre por cima de outra região, para o leitor
+     de tela anunciar o nome dele. Ele é uma região, e não um controle: o anel
+     fica para o que se aperta. */
+  .tuff-app-painel:focus { outline: none; }
+  .tuff-app-painel-cab { display: flex; align-items: center; gap: var(--ds-gap-xs); min-height: var(--ds-alvo); }
+  .tuff-app-painel-titulo {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    font-size: inherit;
+    color: var(--ds-text-mid);
+    font-weight: var(--tuff-weight-b);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tuff-app-rodape { grid-area: rodape; min-width: 0; }
+
+  .tuff-app-veu { display: none; }
+
+  /* Os botões que só existem numa forma: o "Voltar" e o "Mais" na compacta, o
+     botão do painel e o "Fechar" dele na média. Um controle que não faz nada
+     na forma corrente ensina a não confiar em controle nenhum. As regras moram
+     na camada, e o CSS do app que dá `display` ao mesmo elemento vence: o
+     auxiliar serve às peças do Tuff, e um elemento com desenho próprio repete a
+     regra na folha do app. */
+  @container tuff-app (width >= 600px) {
+    .tuff-app .tuff-app-so-compacta { display: none; }
+  }
+  @container tuff-app (width < 600px) or (width >= 840px) {
+    .tuff-app .tuff-app-so-media { display: none; }
+  }
+
+  /* `visibility: hidden` fechado, e não só o `translateX`, pela razão da
+     gaveta: deslocado para fora, o painel continuaria na ordem de tabulação. */
+  @container tuff-app (width < 840px) {
+    .tuff-app-painel {
+      position: absolute;
+      inset: 0 0 0 auto;
+      z-index: 3;
+      width: 300px;
+      box-shadow: var(--ds-shadow-lg);
+      visibility: hidden;
+      transform: translateX(100%);
+      transition: transform var(--ds-dur) var(--ds-ease),
+                  visibility 0s linear var(--ds-dur);
+    }
+    .tuff-app--painel-aberto > .tuff-app-painel {
+      visibility: visible;
+      transform: none;
+      transition: transform var(--ds-dur) var(--ds-ease), visibility 0s;
+    }
+  }
+
+  /* Na compacta a lateral e o painel ocupam a moldura inteira, barra e rodapé
+     inclusive. Com o posicionamento da grade em `auto`, o bloco que os contém
+     é a moldura, e não a célula da região. */
+  @container tuff-app (width < 600px) {
+    .tuff-app-lateral {
+      position: absolute;
+      grid-area: auto;
+      inset: 0 auto 0 0;
+      z-index: 5;
+      width: min(300px, 82%);
+      box-shadow: var(--ds-shadow-lg);
+      visibility: hidden;
+      transform: translateX(-100%);
+      transition: transform var(--ds-dur) var(--ds-ease),
+                  visibility 0s linear var(--ds-dur);
+    }
+    .tuff-app--gaveta-aberta > .tuff-app-lateral {
+      visibility: visible;
+      transform: none;
+      transition: transform var(--ds-dur) var(--ds-ease), visibility 0s;
+    }
+    .tuff-app-veu {
+      display: block;
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      background: color-mix(in srgb, var(--ds-bg) 72%, transparent);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity var(--ds-dur) var(--ds-ease);
+    }
+    .tuff-app--gaveta-aberta > .tuff-app-veu { opacity: 1; pointer-events: auto; }
+    .tuff-app-painel {
+      grid-area: auto;
+      inset: 0;
+      width: auto;
+      border-left: 0;
+      box-shadow: none;
+    }
+    .tuff-app-barra [data-prioridade="baixa"] { display: none; }
+  }
+
+  /* A especificidade das regras de aberto (0,2,0), e por último, para vencê-las
+     sem `!important`. */
+  @media (prefers-reduced-motion: reduce) {
+    .tuff-app > .tuff-app-lateral,
+    .tuff-app > .tuff-app-painel,
+    .tuff-app > .tuff-app-veu { transition: none; }
+  }
+
+  /* ── Abas ───────────────────────────────────────────────────────────────────
+     A aba é a encaixada: a ativa tem a cor da barra de baixo (`--ds-bg2`) e se liga a ela, e as
+     outras ficam soltas sobre o cabeçalho, separadas por um fio. O cabeçalho onde a tira mora tem
+     de ser `--ds-bg`, e a barra logo abaixo `--ds-bg2`, sem fio entre os dois; é isso que faz a
+     ativa parecer a borda de cima da barra. O comportamento (teclado, papéis, a marca da ativa) é
+     do `TuffAbas`, em tuff.js.
+
+     O título corta por reticências só aqui, e nunca no JS: um corte em caracteres corta "Downloads"
+     numa aba larga e deixa sobrar espaço, e o `title` da aba guarda o nome inteiro. */
+
+  /* Quando as abas não cabem, a tira rola de lado, sem barra de rolagem à vista, e o "+" fica
+     preso na borda direita. A aba escolhida rola para dentro da vista (`TuffAbas.escolher`). */
+  .tuff-abas {
+    display: flex;
+    align-items: flex-end;
+    padding: 5px 6px 0;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .tuff-abas::-webkit-scrollbar { display: none; }
+  .tuff-aba {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 1 auto;
+    height: 29px;
+    min-width: 96px;
+    max-width: 200px;
+    padding: 0 6px 0 12px;
+    border: 0;
+    border-radius: 7px 7px 0 0;
+    background: none;
+    font: var(--tuff-weight-n) var(--tuff-size-sm) var(--ds-font);
+    color: var(--ds-text-dim);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .tuff-aba:hover { color: var(--ds-text); background: var(--ds-bg-hover); }
+  .tuff-aba[aria-selected="true"] { background: var(--ds-bg2); color: var(--ds-text-mid); }
+  .tuff-aba:focus-visible { outline: 2px solid var(--ds-accent-texto); outline-offset: -2px; }
+  /* A aba que a pessoa arrasta para outro lugar da tira (`TuffAbas.ligar`, com `reordenar`). */
+  .tuff-aba--arrastando { cursor: grabbing; background: var(--ds-bg3); color: var(--ds-text); }
+  /* O fio antes de cada aba solta que vem depois de outra. A ativa não leva fio: ela se separa
+     pelo fundo. */
+  .tuff-aba + .tuff-aba:not([aria-selected="true"])::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 1px;
+    height: 14px;
+    margin-top: -7px;
+    background: var(--ds-border);
+  }
+
+  .tuff-aba-icone { display: inline-flex; flex: none; width: 16px; height: 16px; }
+  .tuff-aba-icone > svg, .tuff-aba-icone > img { width: 16px; height: 16px; }
+  .tuff-aba-titulo { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+  .tuff-aba-sujo { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--ds-text-dim); }
+  .tuff-aba-fechar {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--ds-radius-md);
+    background: none;
+    color: var(--ds-text-dim);
+    cursor: pointer;
+    opacity: 0;
+  }
+  .tuff-aba:hover .tuff-aba-fechar,
+  .tuff-aba:focus-visible .tuff-aba-fechar,
+  .tuff-aba[aria-selected="true"] .tuff-aba-fechar { opacity: 1; }
+  .tuff-aba-fechar:hover { background: var(--ds-bg-hover); color: var(--ds-text-mid); }
+  .tuff-aba-fechar .tuff-ico { width: 12px; height: 12px; }
+
+  /* Enquanto a aba carrega, o giro toma o lugar do ícone. */
+  .tuff-aba-giro {
+    display: none;
+    flex: none;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--ds-border);
+    border-left-color: var(--ds-text-dim);
+    border-radius: 50%;
+    animation: tuff-girar 0.8s linear infinite;
+  }
+  .tuff-aba--carregando .tuff-aba-giro { display: inline-block; }
+  .tuff-aba--carregando .tuff-aba-icone { display: none; }
+  @media (prefers-reduced-motion: reduce) { .tuff-aba-giro { animation: none; } }
+
+  /* O "+" fica logo depois da última aba, no meio da altura dela, e preso à direita quando a tira
+     rola. O fundo é o do cabeçalho, para a aba que passa por baixo não aparecer através dele. */
+  .tuff-aba-nova {
+    position: sticky;
+    right: 0;
+    display: inline-flex;
+    flex: none;
+    align-self: center;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin: 0 0 -3px 2px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--ds-radius-md);
+    background: var(--ds-bg);
+    color: var(--ds-text-dim);
+    cursor: pointer;
+  }
+  .tuff-aba-nova:hover { background: color-mix(in srgb, var(--ds-bg) 94%, #ffffff); color: var(--ds-text-mid); }
+  .tuff-aba-nova:focus-visible { outline: 2px solid var(--ds-accent-texto); outline-offset: -2px; }
+
+  /* ── Ícone de arquivo ───────────────────────────────────────────────────────
+     O desenho é do `TuffArquivo.svg` (tuff.js), que devolve um `<svg class="tuff-arquivo">`; quem o
+     põe na tela dá o tamanho pelo contêiner. Em 20 px ou menos a extensão do selo não se lê, e um
+     contêiner `.tuff-arquivo-p` a esconde, deixando o glifo dizer o tipo sozinho. */
+
+  .tuff-arquivo { display: block; flex: none; }
+  .tuff-arquivo-p .tuff-arquivo-selo { display: none; }
+
   /* ── Busca ──────────────────────────────────────────────────────────────────
      Um `<input type="search">` com a lupa embutida. A cruz nativa do WebKit
      sai: ela é branca, quadrada e não tem nada a ver com o resto. */
@@ -802,18 +1471,47 @@
   .tuff-busca {
     width: 100%;
     padding: 5px var(--ds-gap-md) 5px 26px;
-    min-height: 26px;
+    min-height: var(--ds-alvo);
     font: var(--tuff-weight-n) var(--tuff-size-sm) var(--ds-font);
     color: var(--ds-text);
     background-color: var(--ds-bg-input);
     background-repeat: no-repeat;
     background-position: var(--ds-gap-md) center;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Ccircle cx='5' cy='5' r='3.5' fill='none' stroke='%23858585' stroke-width='1.3'/%3E%3Cpath d='M8 8l3 3' stroke='%23858585' stroke-width='1.3' stroke-linecap='round'/%3E%3C/svg%3E");
-    border: 1px solid var(--ds-border);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Ccircle cx='5' cy='5' r='3.5' fill='none' stroke='%23a0a0a0' stroke-width='1.3'/%3E%3Cpath d='M8 8l3 3' stroke='%23a0a0a0' stroke-width='1.3' stroke-linecap='round'/%3E%3C/svg%3E");
+    border: 1px solid var(--ds-border-input);
     border-radius: var(--ds-radius-md);
   }
   .tuff-busca:focus { border-color: var(--ds-border-focus); }
   .tuff-busca::-webkit-search-cancel-button { appearance: none; }
+
+  /* A busca com o botão de limpar, que só aparece quando há texto: a caixa
+     junta o campo e o botão, e o campo precisa de `placeholder` para o CSS
+     saber se está vazio. O clique no botão esvazia o campo e manda um `input`
+     (`tuff.js`), e quem já filtra no `input` não precisa escutar o botão. */
+  .tuff-busca-caixa {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .tuff-busca-caixa > .tuff-busca { padding-right: 26px; }
+  .tuff-busca-limpar {
+    position: absolute;
+    right: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--ds-radius-sm);
+    background: none;
+    color: var(--ds-text-dim);
+    cursor: pointer;
+  }
+  .tuff-busca-limpar:hover { background: var(--ds-bg-hover); color: var(--ds-text-mid); }
+  .tuff-busca-limpar svg { width: 12px; height: 12px; }
+  .tuff-busca:placeholder-shown + .tuff-busca-limpar { display: none; }
 
   /* ── Detalhe (disclosure) ───────────────────────────────────────────────────
      `<details>` nativo: abre sem JavaScript, é encontrável pelo Ctrl+F do

@@ -35,6 +35,26 @@
   .capa { display: flex; flex-direction: column; gap: var(--ds-gap-sm); }
   .capa p { color: var(--ds-text-dim); font-size: var(--tuff-size-sm); max-width: 76ch; }
   .amostra { display: flex; flex-wrap: wrap; gap: var(--ds-gap-md); align-items: center; }
+  /* O HTML sem classe ao lado da peça: os dois têm de sair iguais. */
+  .par { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--ds-gap-md); align-items: center; }
+  .par-cab { font-size: var(--tuff-size-xs); font-weight: var(--tuff-weight-b); color: var(--ds-text-dim); }
+  /* A caixa da moldura de exemplo, que a pessoa estica pelo canto para ver as três formas. O miolo
+     é conteúdo de app, e por isso o desenho dele mora aqui. */
+  .moldura-caixa { width: 100%; max-width: 100%; height: 440px; resize: horizontal; overflow: hidden;
+                   border: 1px solid var(--ds-border); border-radius: var(--ds-radius-lg); }
+  .moldura-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--ds-gap-lg);
+                   padding: var(--ds-gap-lg); }
+  .moldura-grade > button { display: flex; flex-direction: column; align-items: stretch; gap: 6px; padding: 6px; border: 0;
+                            border-radius: var(--ds-radius-lg); background: none; color: var(--ds-text); font: inherit;
+                            font-size: var(--tuff-size-xs); text-align: left; cursor: pointer; }
+  .moldura-grade > button:hover { background: var(--ds-bg-hover); }
+  .moldura-grade > button[aria-selected="true"] { background: var(--ds-accent-bg); }
+  .moldura-grade > button > span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .moldura-miniatura, .moldura-previa { display: flex; align-items: center; justify-content: center; aspect-ratio: 4 / 3;
+                                        border-radius: var(--ds-radius-md); background: var(--ds-bg3); color: var(--ds-text-dim); }
+  .moldura-miniatura .tuff-ico { width: 28px; height: 28px; }
+  .moldura-previa { border-radius: var(--ds-radius-lg); }
+  .moldura-previa .tuff-ico { width: 40px; height: 40px; }
 </style>
 </head>
 <body>
@@ -122,7 +142,10 @@
       </div>
       <div>
         <label class="tuff-rotulo" for="cat-busca">Busca</label>
-        <input class="tuff-busca" type="search" id="cat-busca" placeholder="filtrar…">
+        <div class="tuff-busca-caixa">
+          <input class="tuff-busca" type="search" id="cat-busca" placeholder="filtrar…" value="tese">
+          <button class="tuff-busca-limpar" type="button" aria-label="Limpar"><svg class="tuff-ico" aria-hidden="true"><use href="#ico-close"></use></svg></button>
+        </div>
       </div>
       <div>
         <label class="tuff-rotulo" for="cat-notas">Notas</label>
@@ -205,10 +228,7 @@
         <div class="tuff-sec-titulo">Espera</div>
         <div class="tuff-sec-desc">Spinner para "não sei quanto falta"; barra para "sei". Trocar os dois custa confiança.</div>
       </div>
-      <div class="amostra">
-        <span class="tuff-spinner"></span>
-        <span class="tuff-sec-desc">conectando ao servidor…</span>
-      </div>
+      <div class="tuff-carregando"><span class="tuff-spinner"></span>Conectando ao servidor…</div>
       <div class="tuff-progresso"><div class="tuff-progresso-preenchido" style="width:64%"></div></div>
       <div class="tuff-progresso tuff-progresso--alerta"><div class="tuff-progresso-preenchido" style="width:92%"></div></div>
       <div class="tuff-progresso tuff-progresso--indeterminado"><div class="tuff-progresso-preenchido"></div></div>
@@ -238,6 +258,22 @@
 
     <section class="tuff-painel">
       <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Nome de arquivo</div>
+        <div class="tuff-sec-desc">TuffNome.desenhar quebra nos separadores e, quando o nome não cabe em duas linhas, corta no meio e guarda a extensão.</div>
+      </div>
+      <!-- A caixa tem a largura do item da grade de Arquivos (88 px) e a mesma fonte. -->
+      <div id="nomes-de-arquivo" style="display:grid; grid-template-columns:repeat(auto-fill, 88px); gap:var(--ds-gap-md); font-size:var(--tuff-size-xs); text-align:center">
+        <div data-nome="teste-mkdir-abs"></div>
+        <div data-nome="bliss-at-night.jpg"></div>
+        <div data-nome="georeferenciamento-mapa-final"></div>
+        <div data-nome="Python_Debugger_ms-python.debugpy.vsix"></div>
+        <div data-nome="versao-1_SP_SP1.transcricao"></div>
+        <div data-nome="versao-1_SP_SP1.wav"></div>
+      </div>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
         <div class="tuff-sec-titulo">Dicas e vazio</div>
         <div class="tuff-sec-desc">Uma tela vazia é um convite para agir. A frase diz o que fazer.</div>
       </div>
@@ -248,6 +284,16 @@
         <div class="tuff-vazio-titulo">Nenhuma pasta escolhida</div>
         <div class="tuff-vazio-msg">Escolha uma pasta do servidor para começar. O app lê e grava nela como você.</div>
         <button class="tuff-btn tuff-btn--primario">escolher pasta</button>
+      </div>
+      <div class="tuff-vazio tuff-vazio--falha">
+        <svg class="tuff-ico tuff-ico--lg" aria-hidden="true"><use href="#ico-warning"></use></svg>
+        <div class="tuff-vazio-titulo">O índice não abriu</div>
+        <div class="tuff-vazio-msg">O servidor de busca não respondeu.</div>
+        <div class="tuff-acoes"><button class="tuff-btn" type="button">Tentar de novo</button></div>
+        <details class="tuff-detalhe tuff-vazio-detalhe">
+          <summary>Detalhe técnico</summary>
+          <div class="tuff-detalhe-corpo">Código 503</div>
+        </details>
       </div>
     </section>
 
@@ -273,6 +319,65 @@
           meio de uma janela escura.
         </div>
       </details>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Abas</div>
+        <div class="tuff-sec-desc">A encaixada: a ativa tem a cor da barra de baixo e se liga a ela, e as outras ficam soltas, separadas por um fio. As setas, Home e End andam entre as abas, e Delete fecha. Com <code>reordenar</code>, uma aba arrastada troca de lugar na tira, e Ctrl+Shift com a seta a move pelo teclado.</div>
+      </div>
+      <div style="background:var(--ds-bg); border:1px solid var(--ds-border); border-radius:var(--ds-radius-lg); overflow:hidden">
+        <div class="tuff-abas" id="abas-exemplo" aria-label="Abas de exemplo">
+          <button class="tuff-aba-nova" type="button" aria-label="Nova aba"><svg class="tuff-ico" aria-hidden="true"><use href="#ico-plus"></use></svg></button>
+        </div>
+        <div style="background:var(--ds-bg2); min-height:40px; border-bottom:1px solid var(--ds-border)"></div>
+      </div>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Trilha</div>
+        <div class="tuff-sec-desc">O caminho até o lugar atual, de <code>TuffTrilha.desenhar</code>. Quando não cabe, as partes do meio recolhem num "…" e a pasta atual continua inteira. O "…" e os rótulos da barra de menus abrem o menu do ambiente, que fora dele não existe.</div>
+      </div>
+      <div class="tuff-barra" style="border:1px solid var(--ds-border); border-radius:var(--ds-radius-md)">
+        <nav class="tuff-trilha" id="trilha-larga" aria-label="Caminho"></nav>
+      </div>
+      <div class="tuff-barra" style="width:220px; border:1px solid var(--ds-border); border-radius:var(--ds-radius-md)">
+        <nav class="tuff-trilha" id="trilha-estreita" aria-label="Caminho"></nav>
+      </div>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Barra de menus</div>
+        <div class="tuff-sec-desc">Os rótulos de um app de documento, ligados por <code>TuffMenus.ligar</code>: as setas andam entre eles, e com o Alt apertado a letra de atalho aparece sublinhada.</div>
+      </div>
+      <div style="border:1px solid var(--ds-border); border-radius:var(--ds-radius-md); overflow:hidden">
+        <nav class="tuff-menus" id="menus-exemplo" aria-label="Menus de exemplo">
+          <button data-menu="arquivo" data-tecla="a">Arquivo</button>
+          <button data-menu="editar" data-tecla="e">Editar</button>
+          <button data-menu="exibir" data-tecla="x">Exibir</button>
+        </nav>
+      </div>
+    </section>
+
+    <section class="tuff-painel" style="grid-column: 1 / -1">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Tabela</div>
+        <div class="tuff-sec-desc">Colunas que se ordenam pelo clique ou pelo Enter no cabeçalho, com a ordem em <code>aria-sort</code>. A forma em grade mede a própria largura: abaixo de 480 px, as colunas que não são essenciais descem para a segunda linha do item.</div>
+      </div>
+      <div class="amostra" style="align-items:flex-start; gap:var(--ds-gap-lg)">
+        <div class="tabela-exemplo" style="flex:1 1 480px; min-width:0"></div>
+        <div class="tabela-exemplo" style="flex:none; width:300px"></div>
+      </div>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Ícones de arquivo</div>
+        <div class="tuff-sec-desc">A folha com selo, de <code>TuffArquivo.svg</code>: o glifo do tipo na cor dele e a extensão no selo. A pasta segue a cor de destaque, e as da pessoa levam a gravura. Num contêiner <code>.tuff-arquivo-p</code> o selo some.</div>
+      </div>
+      <div id="icones-de-arquivo" class="amostra" style="gap:var(--ds-gap-md)"></div>
     </section>
 
     <section class="tuff-painel">
@@ -315,6 +420,102 @@
     </div>
     <div id="cat-icones" class="amostra" style="gap:var(--ds-gap-sm)"></div>
   </section>
+
+  <header class="capa">
+    <h2>HTML sem classe</h2>
+    <p>
+      Com <code>tuff-base.css</code>, que o <code>tuff: true</code> injeta, a tag sem classe sai com
+      o desenho da peça ao lado. A base fica em <code>@layer vssh</code> com especificidade zero, e
+      só pega o elemento sem classe nenhuma: um botão com a classe do próprio app fica como o app o
+      desenhou. A caixa de marcar, a opção e a faixa continuam nativas, com a cor de destaque.
+    </p>
+  </header>
+
+  <div class="grade">
+    <section class="tuff-painel" style="grid-column: 1 / -1">
+      <div class="par">
+        <span class="par-cab">sem classe</span><span class="par-cab">a peça</span>
+        <div><button type="button">Salvar</button></div>
+        <div><button type="button" class="tuff-btn">Salvar</button></div>
+        <div><input value="relatorio-final.pdf" aria-label="Nome sem classe"></div>
+        <div><input class="tuff-campo" value="relatorio-final.pdf" aria-label="Nome com a peça"></div>
+        <div><select aria-label="Motor sem classe"><option>nenhum</option><option>Xpra</option></select></div>
+        <div><select class="tuff-select" aria-label="Motor com a peça"><option>nenhum</option><option>Xpra</option></select></div>
+        <div><textarea rows="2" aria-label="Notas sem classe">O textarea cresce só na vertical.</textarea></div>
+        <div><textarea class="tuff-campo" rows="2" aria-label="Notas com a peça">O textarea cresce só na vertical.</textarea></div>
+        <div><table><tr><th>Nome</th><th>Tamanho</th></tr><tr><td>dados-campo.csv</td><td>88 KB</td></tr></table></div>
+        <div><table class="tuff-tabela"><tr><th class="tuff-tabela-th">Nome</th><th class="tuff-tabela-th">Tamanho</th></tr><tr class="tuff-tabela-linha"><td>dados-campo.csv</td><td>88 KB</td></tr></table></div>
+        <div><progress value="7" max="12" aria-label="Cópia sem classe"></progress></div>
+        <div class="tuff-progresso" style="width:160px"><div class="tuff-progresso-preenchido" style="width:58%"></div></div>
+        <div><hr></div>
+        <div><div class="tuff-divisor"></div></div>
+      </div>
+      <div class="amostra">
+        <label><input type="checkbox" checked> Fazer o mesmo nos outros conflitos</label>
+        <label><input type="radio" name="cat-r" checked> Manter os dois</label>
+        <input type="range" value="64" aria-label="Volume">
+        <meter value="0.8" low="0.6" high="0.9" optimum="0.2" aria-label="Disco">80%</meter>
+      </div>
+      <details><summary>Detalhes</summary><pre>bad CRC 3f1a92c1 (should be 8b04e7d2)</pre></details>
+      <fieldset><legend>Pasta de rede</legend><blockquote>O grupo de campo usa a legenda como o rótulo da peça.</blockquote></fieldset>
+    </section>
+  </div>
+
+  <header class="capa">
+    <h2>Moldura de app</h2>
+    <p>
+      As cinco regiões de um app de lista e detalhe: a barra, a lateral, o miolo, o painel e o
+      rodapé. A disposição sai da largura da moldura, nas classes de janela do Android. De 840&nbsp;px
+      em diante as três colunas ficam lado a lado; de 600 a 839 o painel entra por cima do miolo,
+      pela borda direita; abaixo de 600 a lateral vira gaveta, o painel vira a tela seguinte, e os
+      botões de prioridade baixa da barra vão para o "Mais". Estique a caixa pelo canto de baixo.
+    </p>
+  </header>
+
+  <div class="grade">
+    <section class="tuff-painel" style="grid-column: 1 / -1">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Moldura</div>
+        <div class="tuff-sec-desc">
+          <code>.tuff-app</code> com <code>TuffApp.ligar</code>. O app chama
+          <code>abrirPainel(item)</code> ao selecionar, e o foco volta ao item quando o painel fecha.
+        </div>
+      </div>
+      <div class="moldura-caixa">
+        <div class="tuff-app" id="moldura-exemplo">
+          <div class="tuff-app-barra tuff-barra">
+            <button type="button" class="tuff-btn tuff-btn--icone tuff-app-so-compacta" data-tuff-app-gaveta><svg class="tuff-ico" aria-hidden="true"><use href="#ico-menu"></use></svg></button>
+            <span class="tuff-app-titulo" id="moldura-pasta"></span>
+            <span class="tuff-barra-espaco"></span>
+            <button type="button" class="tuff-btn tuff-btn--icone" aria-label="Abrir arquivo"><svg class="tuff-ico" aria-hidden="true"><use href="#ico-folder-open"></use></svg></button>
+            <button type="button" class="tuff-btn tuff-btn--icone" data-prioridade="baixa" aria-label="Girar"><svg class="tuff-ico" aria-hidden="true"><use href="#ico-rotate-right"></use></svg></button>
+            <button type="button" class="tuff-btn tuff-btn--icone" data-prioridade="baixa" aria-label="Compartilhar"><svg class="tuff-ico" aria-hidden="true"><use href="#ico-share"></use></svg></button>
+            <button type="button" class="tuff-btn tuff-btn--icone" data-prioridade="baixa" aria-label="Mover para a lixeira"><svg class="tuff-ico" aria-hidden="true"><use href="#ico-trash"></use></svg></button>
+            <button type="button" class="tuff-btn tuff-btn--icone tuff-app-so-media" data-tuff-app-painel aria-label="Informações"><svg class="tuff-ico" aria-hidden="true"><use href="#ico-columns"></use></svg></button>
+            <button type="button" class="tuff-btn tuff-btn--icone tuff-app-so-compacta" data-tuff-app-mais aria-label="Mais ações"><svg class="tuff-ico" aria-hidden="true"><use href="#ico-more"></use></svg></button>
+          </div>
+          <nav class="tuff-app-lateral" id="moldura-lateral" aria-label="Pastas"></nav>
+          <main class="tuff-app-miolo"><div class="moldura-grade" role="listbox" aria-label="Imagens" id="moldura-grade"></div></main>
+          <aside class="tuff-app-painel" id="moldura-painel" aria-label="Informações da imagem">
+            <div class="tuff-app-painel-cab">
+              <button type="button" class="tuff-btn tuff-btn--icone tuff-btn--quieto tuff-app-so-compacta" data-tuff-app-voltar aria-label="Voltar para as imagens"><svg class="tuff-ico" aria-hidden="true"><use href="#ico-arrow-left"></use></svg></button>
+              <span class="tuff-app-painel-titulo" id="moldura-sel"></span>
+              <button type="button" class="tuff-btn tuff-btn--icone tuff-btn--quieto tuff-app-so-media" data-tuff-app-fechar aria-label="Fechar as informações"><svg class="tuff-ico" aria-hidden="true"><use href="#ico-close"></use></svg></button>
+            </div>
+            <div class="moldura-previa" id="moldura-previa"></div>
+            <dl class="tuff-kv">
+              <dt>Tipo</dt><dd id="moldura-tipo"></dd>
+              <dt>Dimensões</dt><dd>4032 × 3024</dd>
+              <dt>Pasta</dt><dd id="moldura-onde"></dd>
+              <dt>Modificado</dt><dd>07/10/2026</dd>
+            </dl>
+            <button type="button" class="tuff-btn tuff-btn--primario">Abrir no visor</button>
+          </aside>
+          <div class="tuff-app-rodape tuff-status" id="moldura-rodape"></div>
+        </div>
+      </div>
+    </section>
+  </div>
 
   <header class="capa">
     <h2>Mídia</h2>
@@ -529,6 +730,141 @@
    *
    * Os grupos saem dos `<h2>` que já separam a página: a marcação continua sendo a fonte.
    */
+  function desenharNomes() {
+    for (const el of document.querySelectorAll('#nomes-de-arquivo [data-nome]')) {
+      el.style.cssText = 'overflow-wrap:anywhere; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden';
+      TuffNome.desenhar(el, el.dataset.nome);
+    }
+  }
+
+  function montarAbas() {
+    const tira = document.getElementById('abas-exemplo');
+    const nova = tira.querySelector('.tuff-aba-nova');
+    const sprite = (id) => `<svg class="tuff-ico" aria-hidden="true"><use href="#ico-${id}"></use></svg>`;
+    const abas = [
+      TuffAbas.aba({ titulo: 'Início', icone: sprite('home') }),
+      TuffAbas.aba({ titulo: 'capitulo-3.md', icone: sprite('file') }),
+      TuffAbas.aba({ titulo: 'typst.app/docs', icone: sprite('globe') }),
+    ];
+    TuffAbas.sujo(abas[1], true);
+    abas[2].classList.add('tuff-aba--carregando');
+    for (const a of abas) nova.before(a);
+    TuffAbas.escolher(abas[0]);
+    TuffAbas.ligar(tira, { escolher: (a) => TuffAbas.escolher(a), fechar: (a) => a.remove(), reordenar: () => {} });
+  }
+
+  function montarTrilhaEMenus() {
+    const partes = ['Início', 'tese', 'capitulos', 'figuras', 'mapas'].map((rotulo) => ({ rotulo, ir: () => {} }));
+    TuffTrilha.desenhar(document.getElementById('trilha-larga'), partes);
+    TuffTrilha.desenhar(document.getElementById('trilha-estreita'), partes);
+    const itens = (...rotulos) => () => rotulos.map((label) => ({ label, action: () => {} }));
+    TuffMenus.ligar(document.getElementById('menus-exemplo'), {
+      menus: { arquivo: itens('Novo', 'Abrir', 'Salvar'), editar: itens('Desfazer', 'Localizar'), exibir: itens('Aumentar fonte', 'Diminuir fonte') },
+    });
+  }
+
+  function montarMoldura() {
+    const raiz = document.getElementById('moldura-exemplo');
+    const pastas = ['Campo 2026', 'Viagem a Franca', 'Microscopia', 'PDFs digitalizados'];
+    const imagens = [['talhao-03_norte.jpg', 'JPEG'], ['talhao-03_sul.jpg', 'JPEG'], ['armadilha-luminosa-1.jpg', 'JPEG'],
+      ['armadilha-luminosa-2.jpg', 'JPEG'], ['folha-ataque-lagarta.heic', 'HEIC'], ['amostra-solo-07.tif', 'TIFF'],
+      ['estacao-meteo.jpg', 'JPEG'], ['equipe-campo.jpg', 'JPEG']];
+    const app = TuffApp.ligar(raiz);
+    const imagem = '<svg class="tuff-ico" aria-hidden="true"><use href="#ico-image"></use></svg>';
+    document.getElementById('moldura-previa').innerHTML = imagem;
+    const lateral = document.getElementById('moldura-lateral');
+    const grade = document.getElementById('moldura-grade');
+    let pasta = 0;
+    const desenhar = () => {
+      lateral.innerHTML = '<div class="tuff-gaveta-cap">Pastas</div>';
+      pastas.forEach((nome, i) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'tuff-gaveta-item';
+        if (i === pasta) b.setAttribute('aria-current', 'true');
+        b.innerHTML = '<svg class="tuff-ico" aria-hidden="true"><use href="#ico-folder"></use></svg><span></span>';
+        b.lastChild.textContent = nome;
+        b.addEventListener('click', () => { pasta = i; desenhar(); });
+        lateral.append(b);
+      });
+      document.getElementById('moldura-pasta').textContent = pastas[pasta];
+      document.getElementById('moldura-rodape').textContent = `${imagens.length} imagens em ${pastas[pasta]}`;
+      document.getElementById('moldura-onde').textContent = pastas[pasta];
+    };
+    const escolher = (i, botao) => {
+      for (const b of grade.children) b.setAttribute('aria-selected', String(b === botao));
+      document.getElementById('moldura-sel').textContent = imagens[i][0];
+      document.getElementById('moldura-tipo').textContent = imagens[i][1];
+    };
+    imagens.forEach(([nome], i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('role', 'option');
+      b.innerHTML = `<span class="moldura-miniatura">${imagem}</span><span></span>`;
+      b.lastChild.textContent = nome;
+      b.addEventListener('click', () => { escolher(i, b); app.abrirPainel(b); });
+      grade.append(b);
+    });
+    desenhar();
+    escolher(2, grade.children[2]);
+  }
+
+  function montarTabelas() {
+    const linhas = [
+      { nome: 'capitulo-3.md', tipo: 'Markdown', tamanho: 18400, mod: '08/10/2026' },
+      { nome: 'dados_coleta.csv', tipo: 'CSV', tamanho: 912000, mod: '02/10/2026' },
+      { nome: 'figura-1.png', tipo: 'PNG', tamanho: 48213, mod: '28/09/2026' },
+    ];
+    const kb = (n) => (n / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' KB';
+    for (const caixa of document.querySelectorAll('.tabela-exemplo')) {
+      let chave = 'nome', crescente = true;
+      caixa.className += ' tuff-tabela';
+      caixa.setAttribute('role', 'table');
+      caixa.style.setProperty('--tuff-tabela-colunas', 'minmax(0, 1fr) 90px 80px 90px');
+      const desenhar = () => {
+        const ordem = [...linhas].sort((a, b) => {
+          const c = chave === 'tamanho' ? a.tamanho - b.tamanho : String(a[chave]).localeCompare(String(b[chave]), 'pt-BR');
+          return crescente ? c : -c;
+        });
+        caixa.innerHTML = '<div class="tuff-tabela-cab" role="row">'
+          + [['nome', 'Nome', ' tuff-tabela-essencial tuff-tabela-principal'], ['tipo', 'Tipo', ''], ['tamanho', 'Tamanho', ' tuff-tabela-num'], ['mod', 'Modificado', ' tuff-tabela-num']]
+            .map(([k, r, c]) => `<div class="tuff-tabela-th${c}" role="columnheader"><button class="tuff-tabela-ordem" type="button" data-chave="${k}">${r}</button></div>`).join('')
+          + '</div>'
+          + ordem.map((l) => `<div class="tuff-tabela-linha" role="row">`
+            + `<div class="tuff-tabela-cel tuff-tabela-essencial tuff-tabela-principal" role="cell">${l.nome}</div>`
+            + `<div class="tuff-tabela-cel" role="cell">${l.tipo}</div>`
+            + `<div class="tuff-tabela-cel tuff-tabela-num" role="cell">${kb(l.tamanho)}</div>`
+            + `<div class="tuff-tabela-cel tuff-tabela-num" role="cell">${l.mod}</div></div>`).join('');
+        TuffTabela.marcar(caixa, chave, crescente);
+      };
+      TuffTabela.ligar(caixa, (k) => {
+        crescente = k === chave ? !crescente : true;
+        chave = k;
+        desenhar();
+        caixa.querySelector(`.tuff-tabela-ordem[data-chave="${k}"]`).focus();
+      });
+      desenhar();
+    }
+  }
+
+  function montarIconesDeArquivo() {
+    const caixa = document.getElementById('icones-de-arquivo');
+    const pecas = [
+      ['pasta', {}], ['pasta', { glifo: 'documentos' }], ['pasta', { glifo: 'downloads' }],
+      ['pdf', { ext: 'pdf' }], ['documento', { ext: 'docx' }], ['planilha', { ext: 'csv' }],
+      ['apresentacao', { ext: 'pptx' }], ['imagem', { ext: 'png' }], ['video', { ext: 'mp4' }],
+      ['audio', { ext: 'flac' }], ['comprimido', { ext: 'zip' }], ['codigo', { ext: 'py' }],
+      ['outro', { ext: 'bin' }], ['lixeira', {}], ['lixeira', { cheia: true }],
+    ];
+    for (const [tipo, op] of pecas) {
+      const el = document.createElement('span');
+      el.style.cssText = 'width:44px; height:44px; display:inline-flex';
+      el.title = op.ext ? `${tipo}, .${op.ext}` : (op.glifo ? `pasta de ${op.glifo}` : (op.cheia ? 'lixeira cheia' : tipo));
+      el.innerHTML = TuffArquivo.svg(tipo, op);
+      caixa.append(el);
+    }
+  }
+
   function montarNavegacao() {
     const nav = document.getElementById('gaveta-nav');
     const slug = (t) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -563,6 +899,12 @@
 
   addEventListener('DOMContentLoaded', () => {
     montarNavegacao();
+    desenharNomes();
+    montarAbas();
+    montarTrilhaEMenus();
+    montarTabelas();
+    montarMoldura();
+    montarIconesDeArquivo();
 
     // A galeria de ícones sai da própria lista da biblioteca: uma lista escrita à mão seria uma
     // segunda lista para esquecer de atualizar, e um ícone novo nasceria invisível.

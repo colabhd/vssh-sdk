@@ -11,7 +11,7 @@ Os diálogos do sistema e o menu de contexto, desenhados pelo shell com os dados
 |---|---|
 | [`vssh.dialogos.mostrar(mensagem, titulo)`](#mostrar) | sim, em até 10 min |
 | [`vssh.dialogos.erro(mensagem, titulo)`](#erro) | sim, em até 10 min |
-| [`vssh.dialogos.confirmar(mensagem, titulo)`](#confirmar) | sim, em até 10 min |
+| [`vssh.dialogos.confirmar(mensagem, titulo, sim, perigo)`](#confirmar) | sim, em até 10 min |
 | [`vssh.dialogos.escolher(mensagem, opcoes, titulo)`](#escolher) | sim, em até 10 min |
 | [`vssh.dialogos.perguntar(mensagem, valor, titulo)`](#perguntar) | sim, em até 10 min |
 | [`vssh.dialogos.senha(mensagem, titulo)`](#senha) | sim, em até 10 min |
@@ -47,10 +47,12 @@ No fio: `type: "dialog", variant: "error"`.
 
 ### `confirmar`
 
-`vssh.dialogos.confirmar(mensagem, titulo)`
+`vssh.dialogos.confirmar(mensagem, titulo, sim, perigo)`
 
-Uma pergunta com "Sim" e "Não". A resposta é `true` só quando a pessoa disse sim; fechar a caixa
-vale como não.
+Uma pergunta com dois botões, Cancelar e o que confirma, que diz o verbo em `sim` ("Excluir",
+"Publicar"; "OK" quando não vem). Com `perigo`, o botão que confirma tem a cor de destruir e o foco
+abre no Cancelar. A caixa mostra o ícone e o nome do app em cima. A resposta é `true` só quando a
+pessoa confirmou; fechar a caixa vale como cancelar.
 
 Responde: uma promessa, com prazo de 10 min (ritmo `humano`, a resposta depende de uma pessoa).
 No fio: `type: "dialog", variant: "confirm"`.
@@ -59,6 +61,8 @@ No fio: `type: "dialog", variant: "confirm"`.
 |---|---|---|---|
 | `mensagem` | `string` | não | `message` |
 | `titulo` | `string` | sim | `title` |
+| `sim` | `string` | sim | `yes` |
+| `perigo` | `boolean` | sim | `danger` |
 
 ### `escolher`
 

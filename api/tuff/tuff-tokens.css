@@ -99,45 +99,63 @@
 @layer vssh {
 
 :root {
-  /* Superfícies */
-  --tuff-bg:           #1e1e1e;
-  --tuff-bg2:          #252526;
-  --tuff-bg3:          #2d2d30;
-  --tuff-bg-input:     #3c3c3c;
+  /* Superfícies. Os degraus da pedra em cinza puro, sem matiz: a cor do ambiente é a de destaque
+     que a pessoa escolhe, e a paleta é medida contra as sete opções de Configurações. */
+  --tuff-bg:           #1b1b1b;
+  --tuff-bg2:          #222222;
+  --tuff-bg3:          #2b2b2b;
+  --tuff-bg-input:     #353535;
   --tuff-bg-hover:     rgba(255,255,255,0.06);
 
-  /* Bordas */
-  --tuff-border:       #3e3e42;
+  /* Bordas. O contorno de campo é mais claro que o fio porque o campo se acha por ele: o degrau
+     de fundo entre o campo e a peça fica em 1,30:1, e o contorno passa de 3:1 (3,21 sobre
+     `--tuff-bg2`), o mínimo de um componente de interface. */
+  --tuff-border:       #454545;
+  --tuff-border-input: #707070;
   --tuff-border-dark:  #1a1a1a;
   --tuff-border-focus: var(--tuff-accent);
 
-  /* Texto. O apagado passa no AA (4,5:1) sobre as três superfícies: 5,85:1 em `--tuff-bg`,
-     5,38:1 em `--tuff-bg2` e 4,82:1 em `--tuff-bg3`. */
-  --tuff-text:         #cccccc;
-  --tuff-text-dim:     #999999;
-  --tuff-text-bright:  #d4d4d4;
+  /* Texto. O apagado passa no AA (4,5:1) sobre as três superfícies e sobre o campo: 6,59:1 em
+     `--tuff-bg`, 6,08:1 em `--tuff-bg2`, 5,41:1 em `--tuff-bg3` e 4,69:1 em `--tuff-bg-input`. */
+  --tuff-text:         #d8d8d8;
+  --tuff-text-dim:     #a0a0a0;
+  --tuff-text-bright:  #ededed;
   --tuff-text-inv:     #ffffff;
 
-  /* Acentos. Os quatro tokens de destaque são os únicos que mudam em runtime: a
+  /* Acentos. Os cinco tokens de destaque são os únicos que mudam em runtime: a
      pessoa escolhe a cor em Configurações, e o shell reescreve `--ds-accent`,
-     `--ds-accent-h`, `--ds-accent-bg` e `--ds-sel` inline no `<html>`. O resto
-     da paleta é estático, e é isso que mantém a ponte com os apps pequena. */
+     `--ds-accent-h`, `--ds-accent-bg`, `--ds-sel` e `--ds-on-accent` inline no
+     `<html>`. O resto da paleta é estático, e é isso que mantém a ponte com os
+     apps pequena. O tom sob o ponteiro é o destaque com 15% de preto, porque o
+     texto sobre o azul padrão é branco e o hover não pode tirar contraste dele. */
   --tuff-accent:       #0e639c;
-  --tuff-accent-h:     #1177bb;
+  --tuff-accent-h:     #0c5485;
   --tuff-accent-bg:    rgba(14,99,156,0.15);
-  --tuff-sel:          #094771;
+  /* A seleção é o destaque a 22% sobre a superfície, o mesmo que `_applyAccentColor` escreve
+     quando a pessoa escolhe uma cor, para quem não escolheu ver a seleção de quem escolheu o azul. */
+  --tuff-sel:          rgba(14,99,156,0.22);
   --tuff-sel-text:     #ffffff;
 
-  /* Status e sintaxe. Os cinco últimos não têm par semântico: um visualizador de
-     dados ou um editor precisa de uma paleta de categorias que seja daqui, e seis
-     cores inventadas por app é como o ambiente deixa de parecer um ambiente. */
-  --tuff-green:        #00e676;   /* cursor terminal */
+  /* Estado. Três cores semânticas, longe do destaque e de luminosidade parecida, todas acima de
+     4,5:1 sobre a página: o ok a 6,34, o aviso a 7,62 e o erro a 5,15 (4,76 sobre `--tuff-bg2`).
+     Com o âmbar ou o vermelho como destaque, o aviso e o erro se separam dele pelo ícone e pelo
+     texto que trazem, e nunca só pela cor. O ok é também o cursor do terminal. */
+  --tuff-green:        #4caf7d;
+  --tuff-red:          #f05a50;
+  --tuff-red-bg:       rgba(240,90,80,0.12);
+  /* O fundo do botão que destrói: 5,65:1 com o texto branco (o `DESIGN.md`, "Estado e
+     categoria"). O `--tuff-red` é cor de texto e de ícone, e branco sobre ele não passa de 4,5. */
+  --tuff-red-solid:    #b93a32;
+  --tuff-red-solid-h:  #9f322b;
+  /* O âmbar de aviso, para a pílula e a dica de aviso, a barra de quase cheio e a linha de aviso
+     do log concordarem. */
+  --tuff-amber:        #d6a531;
+
+  /* Categoria. Uma paleta para dado e para código, sem par semântico: um visualizador de dados
+     ou um editor precisa de cores de categoria que sejam daqui, e seis cores inventadas por app é
+     como o ambiente deixa de parecer um ambiente. Elas servem a gráfico e a código, e nunca à
+     moldura. */
   --tuff-green2:       #6a9955;   /* código: strings */
-  --tuff-red:          #f44747;
-  --tuff-red-bg:       rgba(244,71,71,0.12);
-  /* O âmbar de aviso, para `.pnd-type-icon--warning`, `.ds-pill--warn`, `.ds-hint--warn`,
-     `.ds-meter--alerta` e a linha de aviso do log concordarem. */
-  --tuff-amber:        #c89b00;
   --tuff-yellow:       #dcdcaa;
   --tuff-orange:       #ce9178;
   --tuff-blue:         #569cd6;
@@ -182,7 +200,7 @@
 
   /* Scrollbar */
   --tuff-sb-w:         6px;
-  --tuff-sb-track:     #1e1e1e;
+  --tuff-sb-track:     #1b1b1b;
   --tuff-sb-thumb:     #4a4a4a;
   --tuff-sb-thumb-h:   #606060;
 
@@ -208,16 +226,17 @@
   --ds-bg-input:       var(--tuff-bg-input);
   --ds-bg-hover:       var(--tuff-bg-hover);
   --ds-border:         var(--tuff-border);
+  --ds-border-input:   var(--tuff-border-input);
   --ds-border-focus:   var(--tuff-border-focus);
   --ds-text:           var(--tuff-text);
   --ds-text-dim:       var(--tuff-text-dim);
   --ds-text-mid:       var(--tuff-text-bright);
   --ds-text-inv:       var(--tuff-text-inv);
 
-  /* ── Os quatro que mudam em runtime, e um contrato lido de fora ────────────
-     `SettingsWindow._applyAccentColor` reescreve estes quatro inline no `<html>`
+  /* ── Os cinco que mudam em runtime, e um contrato lido de fora ─────────────
+     `SettingsWindow._applyAccentColor` reescreve estes cinco inline no `<html>`
      quando a pessoa escolhe uma cor. Um vssh-app acompanha a cor lendo estas
-     custom properties do `<html>` do pai, pela ponte do SDK web, então os quatro
+     custom properties do `<html>` do pai, pela ponte do SDK web, então os cinco
      nomes são um contrato: renomear um deles não quebra nada no shell e deixa a
      janela de todo app instalado fora do tom, sem erro em lugar nenhum. */
   --ds-accent:         var(--tuff-accent);
@@ -226,9 +245,9 @@
   --ds-sel:            var(--tuff-sel);
   --ds-sel-text:       var(--tuff-sel-text);
 
-  /* Texto sobre a cor de destaque. `#0e639c` é azul médio: preto sobre ele dá
-     ~3,3:1 e reprova AA; branco dá 5,2:1. O token faz a escolha uma vez, para o
-     dia em que o destaque padrão clarear não ter cinco lugares onde se esconder. */
+  /* Texto sobre a cor de destaque. Branco sobre o azul padrão dá 6,40:1. Quando
+     a pessoa escolhe uma cor, o shell reescreve este token: branco quando ele
+     passa de 4,5:1 sobre a cor, e `#1b1b1b` quando não passa. */
   --ds-on-accent:      var(--tuff-text-inv);
 
   /* A cor de destaque como TEXTO ou ícone sobre as superfícies (o item ativo, o marcado, o link).
@@ -238,10 +257,20 @@
      `--ds-sel-text`: ali o destaque clareado não chega a 4,5:1. */
   --ds-accent-texto:   color-mix(in srgb, var(--ds-accent) 55%, #ffffff);
 
+  /* A pasta é o único ícone de arquivo na cor de destaque, clareada: a frente com 62% do destaque
+     e o fundo com 85%, misturados com branco, passam de 3,7:1 sobre a página com qualquer uma das
+     sete cores. A gravura das pastas da pessoa fica um tom abaixo da frente. `TuffArquivo` lê os
+     três, e eles seguem a cor quando ela muda. */
+  --ds-pasta-frente:   color-mix(in oklab, var(--ds-accent) 62%, #ffffff);
+  --ds-pasta-fundo:    color-mix(in oklab, var(--ds-accent) 85%, #ffffff);
+  --ds-pasta-gravura:  color-mix(in oklab, var(--ds-accent) 70%, #000000);
+
   --ds-green:          var(--tuff-green);
   --ds-warn:           var(--tuff-amber);
   --ds-danger:         var(--tuff-red);
   --ds-danger-bg:      var(--tuff-red-bg);
+  --ds-danger-solid:   var(--tuff-red-solid);
+  --ds-danger-solid-h: var(--tuff-red-solid-h);
   --ds-font:           var(--tuff-font);
   --ds-font-mono:      var(--tuff-font-mono);
   --ds-radius-sm:      var(--tuff-radius-sm);
@@ -268,22 +297,40 @@
   --ds-gap-xl:         var(--tuff-gap-xl);
   --ds-gap-2xl:        var(--tuff-gap-2xl);
 
-  /* ── As superfícies do próprio ambiente ────────────────────────────────────
-     Dois tokens que só o shell lê: um app não desenha a barra de status nem a
-     área de trabalho. Eles moram aqui porque a fonte é uma, e chegam a um app
-     sem custo e sem uso. */
-  --ds-statusbar-bg:   var(--ds-accent);
+  /* A altura de um controle e a largura do botão de ícone: 26 px sob o ponteiro fino, a densidade
+     de uma ferramenta, e 44 px sob o dedo, o alvo de toque mínimo. Quem decide é o ponteiro, e não
+     a largura: uma janela estreita no desktop continua apontada por um mouse, e um tablet largo
+     continua tocado por um dedo. */
+  --ds-alvo:           26px;
 
-  /* O fundo padrão da área de trabalho: o que se vê sem papel de parede
-     escolhido. "Fundo padrão" é a primeira opção em Configurações, uma escolha
-     de produto, e três consumidores precisam concordar sobre ela: o `body` do
-     desktop, a prévia da área de trabalho e a miniatura do seletor de parede.
-     Ele se tinge com a cor de destaque, então trocar de cor muda o ambiente
-     inteiro, e não só os realces. */
+  /* ── A superfície do próprio ambiente ──────────────────────────────────────
+     Um token que só o shell lê: um app não desenha a área de trabalho. Ele mora
+     aqui porque a fonte é uma, e chega a um app sem custo e sem uso.
+
+     O fundo padrão da área de trabalho, o que se vê sem escolha: os estratos.
+     Três consumidores concordam sobre ele, o `body` do desktop, a prévia de
+     Configurações e a camada de baixo de uma imagem. Os estratos se tingem com
+     a cor de destaque, e um SVG num `data:` não lê variável CSS: quem escreve o
+     valor de verdade é o shell (`SettingsWindow._initWallpaper`, com o desenho
+     de `Fundos.css`), a cada troca de cor. O valor daqui é o que aparece antes
+     do primeiro script, no cinza dos estratos. */
   --ds-fundo-padrao:
-    radial-gradient(1200px 700px at 22% 12%, color-mix(in srgb, var(--ds-accent) 26%, transparent), transparent 62%),
-    radial-gradient(900px 620px at 82% 88%, rgba(120, 90, 190, 0.30), transparent 60%),
-    linear-gradient(150deg, #191a22 0%, #101016 55%, #16121c 100%);
+    linear-gradient(180deg, #181818 0%, #1c1c1c 35%, #202020 70%, #191919 100%);
+}
+
+@media (pointer: coarse) {
+  :root { --ds-alvo: 44px; }
+}
+
+/* No celular, o dedo numa tela estreita, a letra pequena sobe um ponto: o corpo vai a 14 px e as
+   notas a 12, lidos a um braço de distância. O tablet, largo, fica na escala da ferramenta, e os
+   títulos não mudam. */
+@media (pointer: coarse) and (width < 600px) {
+  :root {
+    --tuff-size-xs: 12px;
+    --tuff-size-sm: 13px;
+    --tuff-size-md: 14px;
+  }
 }
 
 }  /* @layer vssh */

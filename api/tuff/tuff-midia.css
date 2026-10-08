@@ -39,8 +39,8 @@
 
   /* ── O palco ────────────────────────────────────────────────────────────────
      Letterbox contra o fundo da janela, e não contra preto. Preto puro ao lado
-     de `#1e1e1e` vira uma moldura que ninguém pediu; o mesmo fundo desaparece,
-     e o que sobra é a imagem. */
+     do cinza da página vira uma moldura que ninguém pediu; o mesmo fundo
+     desaparece, e o que sobra é a imagem. */
 
   .tuff-palco {
     position: relative;
@@ -168,10 +168,9 @@
     min-width: 4rem;
   }
   /* O trilho é `--ds-bg3` e o buffer é `--ds-text-dim`, escolhidos olhando a
-     peça ampliada: `--ds-bg-input` (#3c3c3c) e `--ds-border` (#3e3e42) são duas
-     cores separadas por dois níveis, e uma faixa bufferizada pintada com elas
-     é invisível, sendo que ela existe para se distinguir do que ainda não
-     baixou. A hierarquia é a de um player: sulco escuro, buffer em cinza
+     peça ampliada: `--ds-bg-input` e `--ds-border` ficam a 1,28:1 um do outro,
+     e uma faixa bufferizada pintada com eles some, sendo que ela existe para se
+     distinguir do que ainda não baixou. A hierarquia é a de um player: sulco escuro, buffer em cinza
      neutro, tocado na cor de destaque, que é saturada e domina mesmo sendo
      mais escura que o cinza. */
   .tuff-trilha-trilho {
