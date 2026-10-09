@@ -26,6 +26,7 @@ resposta é não (`não declarada no manifesto`, `sem GPU utilizável: ...`,
 registro, e o gerenciador de tarefas mostra a mesma frase.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: recusado. A GPU é da estação, e um hiperlink não roda nela.
 No fio: `type: "gpu", op: "estado"`.
 
 Sem argumentos.

@@ -24,10 +24,14 @@
 // Fora do ambiente (`window.parent === window`, o app aberto numa aba solta durante o
 // desenvolvimento) nada lança na carga: cada verbo degrada para o equivalente do navegador, para
 // um valor vazio ou para uma recusa, conforme a tabela `FORA` abaixo.
+//
+// Uma plataforma aberta como hiperlink (o Bases, o marimohub) carrega este mesmo arquivo da raiz
+// do portal, `<script src="https://<portal>/sdk/vssh.js">`, e só passa a falar com o ambiente
+// depois do aperto de mão (`vssh.pronto`, abaixo).
 (function () {
   'use strict';
 
-  const noAmbiente = window.parent !== window;
+  const emQuadro = window.parent !== window;
 
   // ── A origem do shell ─────────────────────────────────────────────────────────────────────
   //
@@ -41,7 +45,7 @@
   // Aceitar qualquer origem com o `e.source` certo seria um erro: um app pode navegar para fora
   // sozinho, e aí `window.parent` continua sendo o mesmo objeto. A origem é o que separa o shell
   // do que aquela página virou.
-  const ORIGEM_DO_SHELL = (() => {
+  const ORIGEM_DO_PAI = (() => {
     try {
       const a = location.ancestorOrigins;
       if (a && a.length) return a[0];
@@ -50,8 +54,44 @@
     return location.origin;
   })();
 
+  // Um vssh-app pede `_sdk/vssh.js` à própria origem, e quem responde ali é sempre o sistema (o
+  // proxy do portal, o relay do cliente de desktop). Um hiperlink pede o script ao portal, de outra
+  // origem, e o pai que importa para ele é esse portal, e nenhum outro: a plataforma pode estar num
+  // quadro de qualquer site. A origem do script é a âncora, porque quem a escreveu na página foi o
+  // autor da plataforma. Sem `currentScript` (o script como módulo, ou avaliado à mão) vale o
+  // caminho do vssh-app.
+  const ORIGEM_DO_SCRIPT = (() => {
+    try {
+      const s = document.currentScript;
+      return s && s.src ? new URL(s.src, location.href).origin : null;
+    } catch { return null; }
+  })();
+  const deOutraOrigem = !!ORIGEM_DO_SCRIPT && ORIGEM_DO_SCRIPT !== 'null' && ORIGEM_DO_SCRIPT !== location.origin;
+
+  const ORIGEM_DO_SHELL = deOutraOrigem ? ORIGEM_DO_SCRIPT : ORIGEM_DO_PAI;
+
   const doShell = (e) => e.origin === ORIGEM_DO_SHELL && e.source === window.parent
     && e.data && e.data.vsshApp === true;
+
+  // ── Em que quadro ─────────────────────────────────────────────────────────────────────────
+  //
+  // Um vssh-app num quadro está no ambiente desde a carga. Um hiperlink fica `aguardando` até o
+  // shell responder ao aperto de mão (o verbo `app.ola`): até lá ele não assume links, nem o
+  // `window.open`, nem o menu de contexto da página, e as chamadas esperam a resposta. Sem
+  // resposta em cinco segundos, ou com um pai de outra origem que o `ancestorOrigins` já mostra,
+  // a página segue como numa aba solta. A conferência que protege a plataforma é a da origem: a
+  // mensagem sai com o alvo na origem do portal, e o navegador a descarta quando o pai é outro.
+  let noAmbiente = emQuadro && !deOutraOrigem;
+  let aguardando = emQuadro && deOutraOrigem && (!location.ancestorOrigins
+    || !location.ancestorOrigins.length || location.ancestorOrigins[0] === ORIGEM_DO_SCRIPT);
+  let confirmar = () => {};
+  const pronto = aguardando ? new Promise((r) => { confirmar = r; }) : Promise.resolve(noAmbiente);
+
+  /** Roda `fn` quando a página está no ambiente: agora, depois do aperto de mão, ou nunca. */
+  function noAmbienteFaca(fn) {
+    if (aguardando) pronto.then((sim) => { if (sim) fn(); });
+    else if (noAmbiente) fn();
+  }
 
   // ── O transporte ──────────────────────────────────────────────────────────────────────────
   //
@@ -82,14 +122,56 @@
     if (m.type === 'grants') adotar(m.paths);
     if (m.type === 'spelling-menu') ortografiaNoMenu = m.inMenu === true;
     if (m.type === 'volume') { ganho = limitar(m.gain); mudo = !!m.muted; aplicarVolume(); }
+    if (m.type === 'appearance') tokensRecebidos = m.tokens && typeof m.tokens === 'object' ? m.tokens : null;
+    entregar(m);
+  });
+
+  function entregar(m) {
     const cbs = ouvintes.get(m.type);
     if (!cbs) return;
     for (const cb of [...cbs]) {
       try { cb(m); } catch (err) { console.warn(`[vssh] ouvinte de ${m.type}:`, err); }
     }
-  });
+  }
+
+  // ── O aperto de mão ───────────────────────────────────────────────────────────────────────
+  //
+  // Só um hiperlink aperta a mão. O pedido se repete a cada meio segundo, porque a página pode
+  // rodar este script antes de a janela do shell terminar de montar, e todas as voltas usam o
+  // mesmo `requestId`: a primeira resposta decide. A resposta traz os tokens de destaque, que uma
+  // página de outra origem não lê do documento do shell.
+  let tokensRecebidos = null;
+  if (aguardando) {
+    const requestId = `ola-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    const mandar = () => {
+      try { window.parent.postMessage({ vsshApp: true, type: 'vssh-ola', requestId }, ORIGEM_DO_SHELL); }
+      catch { /* sem pai alcançável: o prazo decide */ }
+    };
+    const repetir = setInterval(mandar, 500);
+    const concluir = (valor) => {
+      if (!aguardando) return;
+      aguardando = false;
+      clearInterval(repetir);
+      clearTimeout(prazo);
+      window.removeEventListener('message', ouvir);
+      noAmbiente = !!valor;
+      confirmar(noAmbiente);
+      if (valor && valor.tokens && typeof valor.tokens === 'object') {
+        tokensRecebidos = valor.tokens;
+        entregar({ type: 'appearance', tokens: valor.tokens });
+      }
+    };
+    const ouvir = (e) => {
+      if (!doShell(e) || e.data.type !== 'result' || e.data.requestId !== requestId) return;
+      concluir(e.data.ok ? (e.data.value || {}) : null);
+    };
+    const prazo = setTimeout(() => concluir(null), 5000);
+    window.addEventListener('message', ouvir);
+    mandar();
+  }
 
   function chamar(nome, mensagem, prazo) {
+    if (aguardando) return pronto.then(() => chamar(nome, mensagem, prazo));
     if (!noAmbiente) return foraDoAmbiente(nome, mensagem);
     const requestId = ++seq;
     return new Promise((resolve, reject) => {
@@ -104,6 +186,7 @@
   }
 
   function disparar(nome, mensagem) {
+    if (aguardando) { pronto.then((sim) => { if (sim) disparar(nome, mensagem); }); return true; }
     if (!noAmbiente) return false;
     window.parent.postMessage({ vsshApp: true, ...mensagem }, ORIGEM_DO_SHELL);
     return true;
@@ -198,7 +281,11 @@
   /** O que a superfície gerada usa: o transporte, por nome de verbo, e a tabela de eventos. */
   const ponte = { chamar, disparar, escutar };
   const EVENTOS = {};
-  const vssh = { noAmbiente };
+  const vssh = {};
+  // Lido na hora: num hiperlink ele vira `true` quando o shell responde ao aperto de mão.
+  Object.defineProperty(vssh, 'noAmbiente', { enumerable: true, get: () => noAmbiente });
+  /** Resolve com `noAmbiente` assim que ele é definitivo: na carga, ou depois do aperto de mão. */
+  vssh.pronto = pronto;
 
   // ── A superfície gerada de js/app/abi.js ────────────────────────────────────────────────
   //
@@ -208,6 +295,8 @@
   // tabela. `ponte` e `EVENTOS` são do runtime, declarados logo acima.
 
   EVENTOS.app = {
+    // Os tokens de destaque do ambiente, quando a pessoa troca a cor. Chega a quem não alcança o documento do shell, que é a página de outra origem.
+    aparencia: ['appearance', { tokens: 'tokens' }],
     // O contexto com que o app foi aberto ("abrir aqui", "abrir com", um item da jump list). Chega depois do load, e de novo quando uma ação alcança uma janela que já está aberta. `item` é o `id` do item de `contributes.contextMenu` que a pessoa clicou, e é por ele que um app com mais de um item no mesmo arquivo sabe qual foi.
     abertura: ['open-context', { caminho: 'path', url: 'url', tipo: 'tipo', rota: 'rota', item: 'item' }],
   };
@@ -268,6 +357,8 @@
 
   // ── app: Quem o app é e em que ambiente ele está: as capacidades do shell, os verbos disponíveis, o título que a janela mostra e a rota que a sessão restaura.
   vssh.app = {
+    // O aperto de mão com que o SDK confirma que está numa janela do ambiente, antes de assumir os links, o `window.open` e o menu de contexto da página. O SDK o manda sozinho ao carregar; a resposta vem da origem do shell, e é dela que ele passa a conferir as mensagens. Traz também os tokens de destaque do ambiente.
+    ola: () => ponte.chamar('app.ola', { type: 'vssh-ola' }, 5000),
     // O ambiente em que o app está: o nome do host, o que ele sabe fazer, a versão do shell e a lista de verbos e eventos desta tabela. Com a lista, o app decide sozinho se o shell em que caiu tem o que ele precisa.
     capacidades: () => ponte.chamar('app.capacidades', { type: 'capabilities' }, 5000),
     // O título que a janela mostra na barra de título, na barra de tarefas e no Alt+Tab. O app o reporta sempre que o dele muda; o shell corta em 200 caracteres.
@@ -276,7 +367,7 @@
     lembrarRota: (rota) => ponte.disparar('app.lembrarRota', { type: 'rota', rota: rota }),
     // Um erro do app, para o log do ambiente, onde quem mantém o sistema o lê ao lado do que aconteceu no portal. O SDK chama este verbo sozinho a cada exceção sem tratamento e a cada promessa rejeitada sem `catch` dentro do app; o app o chama com `tipo: 'relatado'` para um erro que ele mesmo tratou e quer registrar. O shell carimba o id do app, corta a mensagem em 1000 caracteres e a pilha em 8000, tira a query da fonte, e manda o mesmo erro uma vez a cada dez minutos.
     relatarErro: (mensagem, pilha, fonte, linha, coluna, tipo) => ponte.disparar('app.relatarErro', { type: 'error-report', message: mensagem, stack: pilha, source: fonte, line: linha, column: coluna, kind: tipo }),
-    // Assina um evento deste espaço (abertura) e devolve a função que cancela.
+    // Assina um evento deste espaço (aparencia, abertura) e devolve a função que cancela.
     ao: (evento, cb) => ponte.escutar('app', evento, cb),
   };
 
@@ -567,6 +658,7 @@
    * vigia escolhido aqui.
    */
   vssh.arquivos.acompanhar = async (caminho, aoMudar) => {
+    if (aguardando) await pronto;
     if (!noAmbiente) return () => {};
     const vigia = `v${++seq}`;
     const parar = ponte.escutar('arquivos', 'arquivoMudou', (m) => {
@@ -840,6 +932,10 @@
   // variáveis no documento do app é a biblioteca de UI, e um app com identidade própria puxa só
   // a cor. São cinco tokens, e não um derivado de outro: a fórmula dos derivados mora no shell,
   // e copiá-la seria uma segunda cópia livre para divergir.
+  //
+  // Na mesma origem do shell, a leitura é do documento dele. Uma página de outra origem não o
+  // alcança, e recebe os tokens pela ponte: na resposta do aperto de mão e no evento
+  // `app.aparencia`, que o shell manda a cada troca de cor.
   const TOKENS_DE_DESTAQUE = ['--ds-accent', '--ds-accent-h', '--ds-accent-bg', '--ds-sel', '--ds-on-accent'];
 
   function raizDoAmbiente() {
@@ -857,7 +953,7 @@
   // nas preferências, e quem nunca escolheu tem o valor certo vindo da folha.
   function tokensDoAmbiente() {
     const raiz = raizDoAmbiente();
-    if (!raiz) return null;
+    if (!raiz) return noAmbiente && tokensRecebidos ? { ...tokensRecebidos } : null;
     try {
       const estilo = window.getComputedStyle(raiz);
       const fora = {};
@@ -886,6 +982,15 @@
      */
     aoMudar(fn) {
       const raiz = raizDoAmbiente();
+      if (!raiz && (noAmbiente || aguardando)) {
+        let anterior = JSON.stringify(tokensRecebidos);
+        return ponte.escutar('app', 'aparencia', ({ tokens }) => {
+          const serial = JSON.stringify(tokens || null);
+          if (serial === anterior) return;
+          anterior = serial;
+          fn(tokens ? { ...tokens } : null);
+        });
+      }
       if (!raiz || typeof MutationObserver !== 'function') return () => {};
       let ultimo = JSON.stringify(tokensDoAmbiente());
       const mo = new MutationObserver(() => {
@@ -939,7 +1044,7 @@
 
   const ALVOS_DE_ABA = new Set(['_blank', 'blank', '_new']);
 
-  if (noAmbiente && typeof window.open === 'function') {
+  if (typeof window.open === 'function') noAmbienteFaca(() => {
     const abrirDeVerdade = window.open.bind(window);
     window.open = function (url, alvo, feicoes) {
       const destino = urlDeAba(url);
@@ -948,13 +1053,13 @@
       vssh.arquivos.abrirLink(destino).catch(() => {});
       return tocoDeJanela();
     };
-  }
+  });
 
   // Em fase de bolha, e só o que iria para a ação padrão: o handler do app roda primeiro, e se
   // ele reivindicou o evento (`preventDefault`) a rede sai de cena. Um handler que chama só
   // `stopPropagation()` deixa a aba escapar, e é o lado certo do erro: errar para mais quebraria
   // o app.
-  if (noAmbiente && typeof document !== 'undefined' && document.addEventListener) {
+  if (typeof document !== 'undefined' && document.addEventListener) noAmbienteFaca(() => {
     const aoClicar = (e) => {
       if (e.defaultPrevented) return;
       const meio = e.button === 1;
@@ -974,7 +1079,7 @@
     };
     document.addEventListener('click', aoClicar);
     document.addEventListener('auxclick', aoClicar);
-  }
+  });
 
   // ── O menu de contexto nativo não é do app ────────────────────────────────────────────────
   //
@@ -1015,7 +1120,7 @@
     return vssh.dialogos.menuDeContexto(x, y, itens, comOrtografia || undefined);
   };
 
-  if (noAmbiente && typeof document !== 'undefined' && document.addEventListener) {
+  if (typeof document !== 'undefined' && document.addEventListener) noAmbienteFaca(() => {
     const EDITAVEL = 'input, textarea, [contenteditable=""], [contenteditable="true"]';
     document.addEventListener('contextmenu', (e) => {
       if (e.defaultPrevented) return;
@@ -1024,7 +1129,7 @@
       if (editavel) return;
       e.preventDefault();
     });
-  }
+  });
 
   // ── As salas de edição: o provedor do Yjs ─────────────────────────────────────────────────
   //
@@ -1342,7 +1447,7 @@
   // `vssh.app.relatarErro`, e de lá ao log do ambiente. O app não escreve nada para isso, e o
   // shell decide o que manda e quando. Fora do ambiente o console do navegador continua sendo o
   // lugar, e nada se instala.
-  if (noAmbiente && typeof window.addEventListener === 'function') {
+  if (typeof window.addEventListener === 'function') noAmbienteFaca(() => {
     const relatar = (mensagem, pilha, fonte, linha, coluna, tipo) => {
       try { vssh.app.relatarErro(mensagem, pilha, fonte, linha, coluna, tipo); } catch { /* relatar não lança */ }
     };
@@ -1355,15 +1460,18 @@
       const r = ev.reason;
       relatar(r instanceof Error ? `${r.name}: ${r.message}` : String(r), r && r.stack, undefined, undefined, undefined, 'rejeicao');
     });
-  }
+  });
 
   // ── O título, espelhado sem o app pedir ───────────────────────────────────────────────────
   //
   // O shell lê o título uma vez, no `load` do iframe, e todo web app que abre um documento troca
   // `document.title` depois disso. Observar é o que faz um app portado funcionar sem editar o
   // app: o mesmo código que dá o título à aba dá o título à janela.
-  if (noAmbiente && typeof MutationObserver === 'function' && typeof document !== 'undefined') {
-    let ultimo = document.title;
+  //
+  // Numa página de outra origem o shell não lê nem o primeiro título, e o primeiro que não for
+  // vazio vai daqui.
+  if (typeof MutationObserver === 'function' && typeof document !== 'undefined') noAmbienteFaca(() => {
+    let ultimo = deOutraOrigem ? '' : document.title;
     const sincronizar = () => {
       if (document.title === ultimo) return;
       ultimo = document.title;
@@ -1378,10 +1486,13 @@
     };
     if (document.head) observar();
     else document.addEventListener('DOMContentLoaded', observar, { once: true });
-  }
+  });
 
-  if (noAmbiente) {
-    instalarWebAudio();
+  // O gancho do Web Audio entra na carga também enquanto o aperto de mão não respondeu: um contexto
+  // criado antes dele ficaria fora do mixer. Até o shell mandar um volume, o ganho é 1, e o som
+  // da página sai como sairia sem o gancho.
+  if (noAmbiente || aguardando) instalarWebAudio();
+  noAmbienteFaca(() => {
     if (typeof document === 'undefined') { /* sem DOM não há mídia a adotar */ }
     else if (document.documentElement || !document.addEventListener) iniciarAudio();
     else document.addEventListener('DOMContentLoaded', iniciarAudio, { once: true });
@@ -1389,7 +1500,7 @@
     // As permissões já na carga, sem esperar o push do shell no `load` do iframe: `urlFor` é
     // síncrona e um app pode montar um `<img src>` antes daquele evento.
     vssh.arquivos.permissoes().then(adotar).catch(() => {});
-  }
+  });
 })();
 
 // A File System Access API sobre o shell VSSH: a parte do SDK web que faz um web app "que abre uma

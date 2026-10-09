@@ -33,6 +33,7 @@ recentes às mais antigas. Cada uma traz `id`, `titulo`, `papel` (`dona`, `edita
 `ver`), `criadaEm` e `atualizadaEm`.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: recusado. O provedor das salas abre o WebSocket na origem do portal, e um hiperlink tem backend próprio.
 No fio: `type: "salas", op: "list"`.
 
 Sem argumentos.
@@ -45,6 +46,7 @@ Cria uma sala deste app, com a pessoa como dona, e responde a sala. Sem `titulo`
 título".
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: recusado. O provedor das salas abre o WebSocket na origem do portal, e um hiperlink tem backend próprio.
 No fio: `type: "salas", op: "create"`.
 
 | argumento | tipo | opcional | no fio |
@@ -60,6 +62,7 @@ A sala e quem está nela, em `{ sala, pessoas, grupos }`: as pessoas com `usuari
 uma em que a pessoa não está, responde o erro de sala não encontrada.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: recusado. O provedor das salas abre o WebSocket na origem do portal, e um hiperlink tem backend próprio.
 No fio: `type: "salas", op: "get"`.
 
 | argumento | tipo | opcional | no fio |
@@ -73,6 +76,7 @@ No fio: `type: "salas", op: "get"`.
 Troca o título da sala e responde a sala. Só a dona renomeia.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: recusado. O provedor das salas abre o WebSocket na origem do portal, e um hiperlink tem backend próprio.
 No fio: `type: "salas", op: "rename"`.
 
 | argumento | tipo | opcional | no fio |
@@ -88,6 +92,7 @@ Apaga a sala, o documento e os anexos. Só a dona apaga, e quem estava conectado
 4410.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: recusado. O provedor das salas abre o WebSocket na origem do portal, e um hiperlink tem backend próprio.
 No fio: `type: "salas", op: "delete"`.
 
 | argumento | tipo | opcional | no fio |
@@ -102,6 +107,7 @@ Dá a uma pessoa (o `usuario` de `vssh.pessoas.buscar`) um papel na sala, ou mud
 responde a pessoa. Quem não estava na sala recebe o convite no sino. Só a dona dá acesso.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: recusado. O provedor das salas abre o WebSocket na origem do portal, e um hiperlink tem backend próprio.
 No fio: `type: "salas", op: "share"`.
 
 | argumento | tipo | opcional | no fio |
@@ -119,6 +125,7 @@ sala. A dona tira qualquer pessoa, e cada pessoa tira a si mesma (o `usuario` de
 Responde `{ tirado: true }`.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: recusado. O provedor das salas abre o WebSocket na origem do portal, e um hiperlink tem backend próprio.
 No fio: `type: "salas", op: "unshare"`.
 
 | argumento | tipo | opcional | no fio |
@@ -135,6 +142,7 @@ até a sala fica com o papel mais forte. Só a dona, e só com um grupo de que e
 no grupo recebe o convite. Responde `{ grupo, papel, pessoas }`, com quantas pessoas o grupo tem.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: recusado. O provedor das salas abre o WebSocket na origem do portal, e um hiperlink tem backend próprio.
 No fio: `type: "salas", op: "share-group"`.
 
 | argumento | tipo | opcional | no fio |
@@ -151,6 +159,7 @@ Tira o grupo da sala; quem ficou sem caminho até ela sai com 4403. Só a dona. 
 `{ tirado: true }`.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: recusado. O provedor das salas abre o WebSocket na origem do portal, e um hiperlink tem backend próprio.
 No fio: `type: "salas", op: "unshare-group"`.
 
 | argumento | tipo | opcional | no fio |
@@ -169,6 +178,7 @@ duas vezes. Só quem escreve comentários na sala avisa, e só quem está nela r
 `{ avisados }`.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: recusado. O provedor das salas abre o WebSocket na origem do portal, e um hiperlink tem backend próprio.
 No fio: `type: "salas", op: "notify"`.
 
 | argumento | tipo | opcional | no fio |
@@ -190,6 +200,7 @@ apagada, a pessoa saiu dela, ou é de outro app), a resposta é `{ bilhete: null
 o usa direto.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: recusado. O provedor das salas abre o WebSocket na origem do portal, e um hiperlink tem backend próprio.
 No fio: `type: "salas", op: "ticket"`.
 
 | argumento | tipo | opcional | no fio |
@@ -208,4 +219,5 @@ sala, uma sala trocou de nome ou foi apagada. O evento não traz a lista; quem a
 
 O `cb` recebe um objeto vazio.
 
+Num hiperlink: não chega. O provedor das salas abre o WebSocket na origem do portal, e um hiperlink tem backend próprio.
 No fio: `type: "salas-changed"`.

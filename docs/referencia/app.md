@@ -10,10 +10,26 @@ que a janela mostra e a rota que a sessão restaura.
 
 | verbo | responde |
 |---|---|
+| [`vssh.app.ola()`](#ola) | sim, em até 5 s |
 | [`vssh.app.capacidades()`](#capacidades) | sim, em até 5 s |
 | [`vssh.app.titulo(titulo)`](#titulo) | não |
 | [`vssh.app.lembrarRota(rota)`](#lembrarrota) | não |
 | [`vssh.app.relatarErro(mensagem, pilha, fonte, linha, coluna, tipo)`](#relatarerro) | não |
+
+### `ola`
+
+`vssh.app.ola()`
+
+O aperto de mão com que o SDK confirma que está numa janela do ambiente, antes de assumir os links,
+o `window.open` e o menu de contexto da página. O SDK o manda sozinho ao carregar; a resposta vem da
+origem do shell, e é dela que ele passa a conferir as mensagens. Traz também os tokens de destaque
+do ambiente.
+
+Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
+No fio: `type: "vssh-ola"`.
+
+Sem argumentos.
 
 ### `capacidades`
 
@@ -24,6 +40,7 @@ verbos e eventos desta tabela. Com a lista, o app decide sozinho se o shell em q
 ele precisa.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "capabilities"`.
 
 Sem argumentos.
@@ -36,6 +53,7 @@ O título que a janela mostra na barra de título, na barra de tarefas e no Alt+
 sempre que o dele muda; o shell corta em 200 caracteres.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "title"`.
 
 | argumento | tipo | opcional | no fio |
@@ -51,6 +69,7 @@ cola na URL quando restaura a janela. Uma rota que sai do app (um esquema, um ca
 `..`) é recusada no console, sem resposta.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "rota"`.
 
 | argumento | tipo | opcional | no fio |
@@ -68,6 +87,7 @@ registrar. O shell carimba o id do app, corta a mensagem em 1000 caracteres e a 
 a query da fonte, e manda o mesmo erro uma vez a cada dez minutos.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "error-report"`.
 
 | argumento | tipo | opcional | no fio |
@@ -80,6 +100,20 @@ No fio: `type: "error-report"`.
 | `tipo` | `'erro' \| 'rejeicao' \| 'relatado'` | sim | `kind` |
 
 ## Eventos
+
+### `aparencia`
+
+`vssh.app.ao('aparencia', cb)`
+
+Os tokens de destaque do ambiente, quando a pessoa troca a cor. Chega a quem não alcança o documento
+do shell, que é a página de outra origem.
+
+| campo | tipo | opcional | no fio |
+|---|---|---|---|
+| `tokens` | `Record<string, string>` | não | `tokens` |
+
+Num hiperlink: chega.
+No fio: `type: "appearance"`.
 
 ### `abertura`
 
@@ -98,4 +132,5 @@ arquivo sabe qual foi.
 | `rota` | `string` | sim | `rota` |
 | `item` | `string` | sim | `item` |
 
+Num hiperlink: chega.
 No fio: `type: "open-context"`.

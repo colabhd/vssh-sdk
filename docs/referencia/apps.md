@@ -27,6 +27,7 @@ casos. Um caminho que sai do prefixo, uma capacidade que o app não declara em `
 da pessoa respondem erro, sem pedido nenhum.
 
 Responde: uma promessa, com prazo de 10 min (ritmo `humano`, a resposta depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "apps", op: "request"`.
 
 | argumento | tipo | opcional | no fio |

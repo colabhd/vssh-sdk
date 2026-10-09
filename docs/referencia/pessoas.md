@@ -22,6 +22,7 @@ A pessoa que usa o app: `{ usuario, nome, login, iniciais, grupos }`, com os gru
 último login dela trouxe.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "pessoas", op: "me"`.
 
 Sem argumentos.
@@ -34,6 +35,7 @@ Até 20 pessoas cujo nome ou login contém cada palavra de `texto`, sem olhar ac
 os grupos da própria pessoa que casam com `texto`, em `grupos`, cada um `{ grupo, pessoas }`.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "pessoas", op: "search"`.
 
 | argumento | tipo | opcional | no fio |

@@ -45,6 +45,7 @@ As entradas de uma pasta concedida: `{ path, items }`, com nome, tipo e tamanho 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
 Um 404 do servidor é resposta, e não falha: é o verbo com que um app sonda antes de criar.
 Consentimento: o shell confere `caminho` contra o que o usuário concedeu a este app.
+Num hiperlink: vale.
 No fio: `type: "fs", op: "list"`.
 
 | argumento | tipo | opcional | no fio |
@@ -61,6 +62,7 @@ que não existe responde 404, e o app que sonda antes de criar lê isso como res
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
 Um 404 do servidor é resposta, e não falha: é o verbo com que um app sonda antes de criar.
 Consentimento: o shell confere `caminho` contra o que o usuário concedeu a este app.
+Num hiperlink: vale.
 No fio: `type: "fs", op: "stat"`.
 
 | argumento | tipo | opcional | no fio |
@@ -76,6 +78,7 @@ O conteúdo de um arquivo, como texto.
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
 Um 404 do servidor é resposta, e não falha: é o verbo com que um app sonda antes de criar.
 Consentimento: o shell confere `caminho` contra o que o usuário concedeu a este app.
+Num hiperlink: vale.
 No fio: `type: "fs", op: "read"`.
 
 | argumento | tipo | opcional | no fio |
@@ -92,6 +95,7 @@ atravessa o `postMessage` entre os dois documentos sem cópia; o SDK o devolve c
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
 Um 404 do servidor é resposta, e não falha: é o verbo com que um app sonda antes de criar.
 Consentimento: o shell confere `caminho` contra o que o usuário concedeu a este app.
+Num hiperlink: vale.
 No fio: `type: "fs", op: "readBytes"`.
 
 | argumento | tipo | opcional | no fio |
@@ -106,6 +110,7 @@ Grava texto num arquivo, criando ou substituindo.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
 Consentimento: o shell confere `caminho` contra o que o usuário concedeu a este app.
+Num hiperlink: vale.
 No fio: `type: "fs", op: "write"`.
 
 | argumento | tipo | opcional | no fio |
@@ -123,6 +128,7 @@ base64 para o fio; uma string já é base64 e passa como veio.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
 Consentimento: o shell confere `caminho` contra o que o usuário concedeu a este app.
+Num hiperlink: vale.
 No fio: `type: "fs", op: "writeBytes"`.
 
 | argumento | tipo | opcional | no fio |
@@ -138,6 +144,7 @@ Cria uma pasta.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
 Consentimento: o shell confere `caminho` contra o que o usuário concedeu a este app.
+Num hiperlink: vale.
 No fio: `type: "fs", op: "mkdir"`.
 
 | argumento | tipo | opcional | no fio |
@@ -153,6 +160,7 @@ caminho com desfazer usa o gerenciador de arquivos.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
 Consentimento: o shell confere `caminho` contra o que o usuário concedeu a este app.
+Num hiperlink: vale.
 No fio: `type: "fs", op: "delete"`.
 
 | argumento | tipo | opcional | no fio |
@@ -168,6 +176,7 @@ fora lançam, porque "não pude perguntar" e "não existe" pedem do app ações 
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
 Consentimento: o shell confere `caminho` contra o que o usuário concedeu a este app.
+Num hiperlink: vale.
 No fio: `type: "fs", op: "exists"`.
 
 | argumento | tipo | opcional | no fio |
@@ -184,6 +193,7 @@ não tem desfazer.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
 Consentimento: o shell confere `origem` e `destino` contra o que o usuário concedeu a este app.
+Num hiperlink: vale.
 No fio: `type: "fs", op: "rename"`.
 
 | argumento | tipo | opcional | no fio |
@@ -201,6 +211,7 @@ Copia. Origem e destino precisam estar concedidos, e um destino que já existe s
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
 Consentimento: o shell confere `origem` e `destino` contra o que o usuário concedeu a este app.
+Num hiperlink: vale.
 No fio: `type: "fs", op: "copy"`.
 
 | argumento | tipo | opcional | no fio |
@@ -220,6 +231,7 @@ janela.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
 Consentimento: o shell confere `caminho` contra o que o usuário concedeu a este app.
+Num hiperlink: vale.
 No fio: `type: "fs", op: "watch"`.
 
 | argumento | tipo | opcional | no fio |
@@ -235,6 +247,7 @@ Encerra uma assinatura de `vigiar`. Cada assinatura segura um vigia vivo no serv
 teto por usuário, e encerrar a que deixou de servir é o que mantém as outras cabendo.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "fs", op: "unwatch"`.
 
 | argumento | tipo | opcional | no fio |
@@ -251,6 +264,7 @@ Escolher é consentir: o caminho passa a estar concedido a este app, e a concess
 e à sessão.
 
 Responde: uma promessa, com prazo de 10 min (ritmo `humano`, a resposta depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "pick", variant: "open"`.
 
 | argumento | tipo | opcional | no fio |
@@ -268,6 +282,7 @@ Abre o seletor de "salvar como", com `nome` sugerido, e responde com o caminho o
 `null` se o usuário cancelou. O caminho escolhido fica concedido a este app.
 
 Responde: uma promessa, com prazo de 10 min (ritmo `humano`, a resposta depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "pick", variant: "save"`.
 
 | argumento | tipo | opcional | no fio |
@@ -286,6 +301,7 @@ inteira fica concedida a este app, e é assim que um app trabalha numa árvore s
 arquivo.
 
 Responde: uma promessa, com prazo de 10 min (ritmo `humano`, a resposta depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "pick", variant: "directory"`.
 
 | argumento | tipo | opcional | no fio |
@@ -302,6 +318,7 @@ ele, com que o app refaz um handle sem abrir seletor. Quem decide é o shell; o 
 mantém serve só ao que precisa responder sem esperar.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "grants"`.
 
 | argumento | tipo | opcional | no fio |
@@ -317,6 +334,7 @@ O que está na área de transferência de arquivos do ambiente: `{ action, paths
 `navigator.clipboard`, direto no app.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: recusado. A área de transferência de arquivos tem os caminhos que a pessoa copiou, sem passar pelo seletor.
 No fio: `type: "clipboard", op: "files"`.
 
 Sem argumentos.
@@ -331,6 +349,7 @@ na próxima colagem a partir de uma mensagem de iframe, e fica com o gerenciador
 que faz.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale só para o que o seletor de arquivos concedeu (`caminhos`).
 No fio: `type: "clipboard", op: "setFiles"`.
 
 | argumento | tipo | opcional | no fio |
@@ -345,6 +364,7 @@ Abre um arquivo no visualizador do ambiente que a extensão pede: PDF, vídeo, e
 planilha. O app manda o caminho e não precisa saber em que servidor está.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale só para o que o seletor de arquivos concedeu (`caminho`).
 No fio: `type: "open-file"`.
 
 | argumento | tipo | opcional | no fio |
@@ -358,6 +378,7 @@ No fio: `type: "open-file"`.
 Abre uma pasta no gerenciador de arquivos.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale só para o que o seletor de arquivos concedeu (`caminho`).
 No fio: `type: "open-folder"`.
 
 | argumento | tipo | opcional | no fio |
@@ -373,6 +394,7 @@ gerenciador, e abre no escolhido. Responde com o nome do aplicativo, ou `null` s
 cancelou. Sem X11 a lista tem só vssh-apps.
 
 Responde: uma promessa, com prazo de 10 min (ritmo `humano`, a resposta depende de uma pessoa).
+Num hiperlink: vale só para o que o seletor de arquivos concedeu (`caminho`).
 No fio: `type: "open-with"`.
 
 | argumento | tipo | opcional | no fio |
@@ -389,6 +411,7 @@ lê. Só `http` e `https`. Um link cujo host outro app declarou em `opens.urls` 
 `destino: 'navegador'` pede o navegador mesmo assim.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "open-url"`.
 
 | argumento | tipo | opcional | no fio |
@@ -406,6 +429,7 @@ leem um estado do documento do shell que um gesto nascido no iframe não escreve
 dentro do `dragstart`.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale só para o que o seletor de arquivos concedeu (`caminhos`).
 No fio: `type: "arraste", fase: "inicio"`.
 
 | argumento | tipo | opcional | no fio |
@@ -421,6 +445,7 @@ aviso os alvos do ambiente ficariam acesos para um gesto que já terminou. O SDK
 `dragend` do app.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "arraste", fase: "fim"`.
 
 Sem argumentos.
@@ -439,6 +464,7 @@ revogação lá apaga aqui.
 |---|---|---|---|
 | `caminhos` | `string[]` | não | `paths` |
 
+Num hiperlink: chega.
 No fio: `type: "grants"`.
 
 ### `arquivoMudou`
@@ -455,6 +481,7 @@ que vigia.
 | `caminho` | `string \| null` | não | `path` |
 | `encerrado` | `boolean` | sim | `closed` |
 
+Num hiperlink: chega.
 No fio: `type: "fs-change"`.
 
 ### `areaDeTransferenciaMudou`
@@ -468,4 +495,5 @@ voltou para o app. Sem o evento, o app só descobriria perguntando em laço.
 |---|---|---|---|
 | `conteudo` | `{ action, paths } \| null` | não | `clipboard` |
 
+Num hiperlink: não chega. A área de transferência de arquivos tem os caminhos que a pessoa copiou, sem passar pelo seletor.
 No fio: `type: "clipboard-change"`.

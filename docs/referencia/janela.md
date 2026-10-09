@@ -34,6 +34,7 @@ janela nova leva o título e o ícone do app. O shell recusa uma rota que sai do
 caminho absoluto, um `..`) e responde `false`.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "window", op: "open"`.
 
 | argumento | tipo | opcional | no fio |
@@ -50,6 +51,7 @@ No fio: `type: "window", op: "open"`.
 Recolhe a janela para a barra de tarefas. Uma janela já minimizada fica como está.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "window", op: "minimize"`.
 
 Sem argumentos.
@@ -61,6 +63,7 @@ Sem argumentos.
 Ocupa a área de trabalho inteira. Uma janela já maximizada fica como está.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "window", op: "maximize"`.
 
 Sem argumentos.
@@ -73,6 +76,7 @@ Devolve a janela ao tamanho normal: tira da barra de tarefas a que está minimiz
 que está maximizada.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "window", op: "restore"`.
 
 Sem argumentos.
@@ -84,6 +88,7 @@ Sem argumentos.
 Traz a janela para a frente das outras e lhe dá o foco.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "window", op: "focus"`.
 
 Sem argumentos.
@@ -96,6 +101,7 @@ Fecha a janela pelo mesmo caminho do botão de fechar, sem passar por `perguntar
 é a última do app, o backend segue o que `backend.aoFechar` declara no manifesto.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "window", op: "close"`.
 
 Sem argumentos.
@@ -111,6 +117,7 @@ Um app que não responde ao pedido não prende a janela: a pessoa que tenta fech
 segundos depois, recebe do shell a escolha de fechar mesmo assim.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "window", op: "ask-before-close"`.
 
 | argumento | tipo | opcional | no fio |
@@ -129,6 +136,7 @@ ponto por `arrastarPara`, e o fim por `terminarArraste`. Uma janela maximizada i
 ignora o cabeçalho padrão.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "window", op: "drag-start"`.
 
 | argumento | tipo | opcional | no fio |
@@ -147,6 +155,7 @@ porque o quadro do app se move junto com a janela, e um ponto relativo a ele dep
 gesto acabou de mudar. Sem arraste começado, o shell ignora.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "window", op: "drag-move"`.
 
 | argumento | tipo | opcional | no fio |
@@ -162,6 +171,7 @@ O fim do arraste, no `pointerup` ou `pointercancel` do app. Sem ele a janela con
 ponteiro depois que a pessoa solta o botão.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "window", op: "drag-end"`.
 
 Sem argumentos.
@@ -174,6 +184,7 @@ O duplo-clique da barra de título de quem tem `cabecalho: "app"`: maximiza a ja
 restaura a maximizada.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "window", op: "toggle-maximize"`.
 
 Sem argumentos.
@@ -186,6 +197,7 @@ O menu de contexto do cabeçalho (mover, maximizar, fechar, o log do backend), a
 `y` do quadro do app. O shell traduz o ponto para a tela dele.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "window", op: "head-menu"`.
 
 | argumento | tipo | opcional | no fio |
@@ -204,6 +216,7 @@ inteira a cada mudança; o shell responde aos cliques pelos eventos `ativarAba`,
 shell ignora a lista.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "tabs"`.
 
 | argumento | tipo | opcional | no fio |
@@ -226,6 +239,7 @@ uma aba inicial.
 | `abas` | `{ sessionName: string }[] \| null` | não | `tabs` |
 | `sessaoAtiva` | `string \| null` | não | `activeSessionName` |
 
+Num hiperlink: chega.
 No fio: `type: "restore-tabs"`.
 
 ### `ativarAba`
@@ -238,6 +252,7 @@ A pessoa clicou numa aba da barra de título.
 |---|---|---|---|
 | `abaId` | `string` | não | `tabId` |
 
+Num hiperlink: chega.
 No fio: `type: "activate-tab"`.
 
 ### `fecharAba`
@@ -250,6 +265,7 @@ A pessoa clicou no fechar de uma aba, ou em "Fechar aba" no menu do cabeçalho.
 |---|---|---|---|
 | `abaId` | `string` | não | `tabId` |
 
+Num hiperlink: chega.
 No fio: `type: "close-tab"`.
 
 ### `novaAba`
@@ -260,6 +276,7 @@ A pessoa clicou no `+` da barra de abas, ou em "Nova aba" no menu do cabeçalho.
 
 O `cb` recebe um objeto vazio.
 
+Num hiperlink: chega.
 No fio: `type: "new-tab"`.
 
 ### `fechamentoPedido`
@@ -271,4 +288,5 @@ aberta até o app chamar `fechar()`.
 
 O `cb` recebe um objeto vazio.
 
+Num hiperlink: chega.
 No fio: `type: "close-requested"`.

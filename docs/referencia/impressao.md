@@ -20,6 +20,7 @@ a impressora e confirma é a pessoa, com o `nome` do arquivo na tela (o do camin
 resposta é `true` assim que a tela abre, sem esperar a impressão.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale só para o que o seletor de arquivos concedeu (`caminho`).
 No fio: `type: "print"`.
 
 | argumento | tipo | opcional | no fio |

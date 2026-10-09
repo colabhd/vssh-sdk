@@ -6,11 +6,11 @@
 ## A ponte, espaço a espaço
 
 A superfície que o SDK web (`_sdk/vssh.js`) expõe a um app com janela: `vssh.<espaco>.<verbo>()`
-para pedir, `vssh.<espaco>.ao('<evento>', cb)` para ouvir. 13 espaços, 80 verbos e 16 eventos.
+para pedir, `vssh.<espaco>.ao('<evento>', cb)` para ouvir. 13 espaços, 81 verbos e 17 eventos.
 
 | espaço | verbos | eventos | o que cobre |
 |---|---|---|---|
-| [`vssh.app`](app.md) | 4 | 1 | Quem o app é e em que ambiente ele está: as capacidades do shell, os verbos disponíveis, o título que a janela mostra e a rota que a sessão restaura. |
+| [`vssh.app`](app.md) | 5 | 2 | Quem o app é e em que ambiente ele está: as capacidades do shell, os verbos disponíveis, o título que a janela mostra e a rota que a sessão restaura. |
 | [`vssh.janela`](janela.md) | 13 | 5 | A janela do app: controlada em runtime pelo app que a ocupa, e declarada no manifesto para quem a abre. |
 | [`vssh.arquivos`](arquivos.md) | 25 | 3 | Ler e escrever com o consentimento do usuário, escolher, vigiar, abrir, abrir com, arrastar, e a área de transferência de arquivos. |
 | [`vssh.avisos`](avisos.md) | 6 | 3 | Notificação, aviso efêmero, atividade em curso e bandeja, para um app com janela aberta. |

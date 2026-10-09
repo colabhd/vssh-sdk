@@ -23,6 +23,7 @@ mídia e o Web Audio que ele vê; um app só chama isto por conta própria quand
 caminho que o SDK não alcança.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "audio-state"`.
 
 | argumento | tipo | opcional | no fio |
@@ -39,6 +40,7 @@ anterior e próximo dependem de uma fila, e a fila é do app. A central de mídi
 declarados, e o clique volta pelo evento `acao`.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "media-transporte"`.
 
 | argumento | tipo | opcional | no fio |
@@ -55,6 +57,7 @@ mídia montada por MSE tem um `blob:` sem nome. `capa` é uma URL de imagem rela
 dentro dele. Sem título e sem capa, a decisão volta ao ambiente.
 
 Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
 No fio: `type: "media-agora"`.
 
 | argumento | tipo | opcional | no fio |
@@ -78,6 +81,7 @@ para desenhar o próprio controle.
 | `ganho` | `number` | não | `gain` |
 | `mudo` | `boolean` | não | `muted` |
 
+Num hiperlink: chega.
 No fio: `type: "volume"`.
 
 ### `acao`
@@ -90,4 +94,5 @@ A central de mídia pedindo a faixa anterior ou a próxima ao app que declarou o
 |---|---|---|---|
 | `acao` | `'anterior' \| 'proximo'` | não | `acao` |
 
+Num hiperlink: chega.
 No fio: `type: "media-acao"`.

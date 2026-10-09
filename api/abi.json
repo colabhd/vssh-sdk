@@ -1,9 +1,19 @@
 {
-  "descricao": "A tabela de exportação da ponte entre um vssh-app e o shell, como dado: um espaço por assunto, e em cada um os verbos (nome público, os campos fixos do fio, os argumentos com nome público, nome no fio e tipo, se responde, o ritmo, a descrição) e os eventos (o `type` no fio e os campos). Gerada de `vssh-client/js/app/abi.js` pelo canal de publicação do sistema; é a fonte de `api/vssh.d.ts`, de `docs/referencia/` e do emulador.",
+  "descricao": "A tabela de exportação da ponte entre um vssh-app e o shell, como dado: um espaço por assunto, e em cada um os verbos (nome público, os campos fixos do fio, os argumentos com nome público, nome no fio e tipo, se responde, o ritmo, a descrição, o que um hiperlink alcança) e os eventos (o `type` no fio e os campos). Gerada de `vssh-client/js/app/abi.js` pelo canal de publicação do sistema; é a fonte de `api/vssh.d.ts`, de `docs/referencia/` e do emulador.",
   "espacos": {
     "app": {
+      "hiperlink": true,
       "descricao": "Quem o app é e em que ambiente ele está: as capacidades do shell, os verbos disponíveis, o título que a janela mostra e a rota que a sessão restaura.",
       "verbos": {
+        "ola": {
+          "fio": {
+            "type": "vssh-ola"
+          },
+          "campos": [],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "O aperto de mão com que o SDK confirma que está numa janela do ambiente, antes de assumir os links, o `window.open` e o menu de contexto da página. O SDK o manda sozinho ao carregar; a resposta vem da origem do shell, e é dela que ele passa a conferir as mensagens. Traz também os tokens de destaque do ambiente."
+        },
         "capacidades": {
           "fio": {
             "type": "capabilities"
@@ -87,6 +97,17 @@
         }
       },
       "eventos": {
+        "aparencia": {
+          "fio": "appearance",
+          "campos": [
+            {
+              "nome": "tokens",
+              "fio": "tokens",
+              "tipo": "Record<string, string>"
+            }
+          ],
+          "descricao": "Os tokens de destaque do ambiente, quando a pessoa troca a cor. Chega a quem não alcança o documento do shell, que é a página de outra origem."
+        },
         "abertura": {
           "fio": "open-context",
           "campos": [
@@ -126,6 +147,7 @@
       }
     },
     "janela": {
+      "hiperlink": true,
       "descricao": "A janela do app: controlada em runtime pelo app que a ocupa, e declarada no manifesto para quem a abre.",
       "verbos": {
         "abrir": {
@@ -384,6 +406,7 @@
       }
     },
     "arquivos": {
+      "hiperlink": true,
       "descricao": "Ler e escrever com o consentimento do usuário, escolher, vigiar, abrir, abrir com, arrastar, e a área de transferência de arquivos.",
       "verbos": {
         "listar": {
@@ -784,6 +807,7 @@
           "descricao": "Com `caminho`, se este app pode tocá-lo: `true` ou `false`. Sem, a lista dos caminhos concedidos a ele, com que o app refaz um handle sem abrir seletor. Quem decide é o shell; o espelho que o SDK mantém serve só ao que precisa responder sem esperar."
         },
         "areaDeTransferencia": {
+          "hiperlink": "A área de transferência de arquivos tem os caminhos que a pessoa copiou, sem passar pelo seletor.",
           "fio": {
             "type": "clipboard",
             "op": "files"
@@ -794,6 +818,11 @@
           "descricao": "O que está na área de transferência de arquivos do ambiente: `{ action, paths }`, ou `null`. É a área do gerenciador de arquivos, que nenhuma API do navegador alcança; texto e imagem vão por `navigator.clipboard`, direto no app."
         },
         "copiarParaAreaDeTransferencia": {
+          "hiperlink": {
+            "caminhos": [
+              "paths"
+            ]
+          },
           "fio": {
             "type": "clipboard",
             "op": "setFiles"
@@ -810,6 +839,11 @@
           "descricao": "Põe caminhos na área de transferência de arquivos, como se o usuário os tivesse copiado no gerenciador, e responde com quantos entraram. Sempre copiar: recortar moveria um arquivo do usuário na próxima colagem a partir de uma mensagem de iframe, e fica com o gerenciador, onde a pessoa vê o que faz."
         },
         "abrir": {
+          "hiperlink": {
+            "caminhos": [
+              "path"
+            ]
+          },
           "fio": {
             "type": "open-file"
           },
@@ -824,6 +858,11 @@
           "descricao": "Abre um arquivo no visualizador do ambiente que a extensão pede: PDF, vídeo, editor de texto, planilha. O app manda o caminho e não precisa saber em que servidor está."
         },
         "abrirPasta": {
+          "hiperlink": {
+            "caminhos": [
+              "path"
+            ]
+          },
           "fio": {
             "type": "open-folder"
           },
@@ -838,6 +877,11 @@
           "descricao": "Abre uma pasta no gerenciador de arquivos."
         },
         "abrirCom": {
+          "hiperlink": {
+            "caminhos": [
+              "path"
+            ]
+          },
           "fio": {
             "type": "open-with"
           },
@@ -874,6 +918,11 @@
           "descricao": "Abre um link no navegador do ambiente, que resolve a rede a partir do servidor Linux: um `http://localhost:3000` chega ao loopback do servidor, e numa aba de fora chegaria à máquina de quem lê. Só `http` e `https`. Um link cujo host outro app declarou em `opens.urls` vai para esse app; `destino: 'navegador'` pede o navegador mesmo assim."
         },
         "arrastar": {
+          "hiperlink": {
+            "caminhos": [
+              "caminhos"
+            ]
+          },
           "fio": {
             "type": "arraste",
             "fase": "inicio"
@@ -933,6 +982,7 @@
           "descricao": "Algo mudou sob um caminho vigiado. `encerrado` é o shell dizendo que a assinatura acabou de vez, porque a conexão com o servidor desistiu de reconectar; avisar é melhor que seguir calado fingindo que vigia."
         },
         "areaDeTransferenciaMudou": {
+          "hiperlink": "A área de transferência de arquivos tem os caminhos que a pessoa copiou, sem passar pelo seletor.",
           "fio": "clipboard-change",
           "campos": [
             {
@@ -946,6 +996,7 @@
       }
     },
     "avisos": {
+      "hiperlink": true,
       "descricao": "Notificação, aviso efêmero, atividade em curso e bandeja, para um app com janela aberta.",
       "verbos": {
         "notificar": {
@@ -1166,6 +1217,7 @@
       }
     },
     "dialogos": {
+      "hiperlink": true,
       "descricao": "Os diálogos do sistema e o menu de contexto, desenhados pelo shell com os dados que o app manda.",
       "verbos": {
         "mostrar": {
@@ -1369,6 +1421,7 @@
       }
     },
     "segredos": {
+      "hiperlink": "O cofre de um app vai para o ambiente do processo dele na estação, e um hiperlink não tem processo lá.",
       "descricao": "O cofre: o app pede uma credencial pelo nome, o shell mostra o campo e grava, e o valor nunca passa pelo app. A pessoa confere, troca e apaga o que guardou no Chaveiro, a janela do ambiente que lista as credenciais de todo app.",
       "verbos": {
         "listar": {
@@ -1429,6 +1482,7 @@
       "eventos": {}
     },
     "salas": {
+      "hiperlink": "O provedor das salas abre o WebSocket na origem do portal, e um hiperlink tem backend próprio.",
       "descricao": "As salas de edição: várias pessoas no mesmo documento Yjs, com o portal de relé. Toda sala é de um app, e daqui o app só alcança as dele. Quem conecta o documento é `vssh.salas.entrar(id, { Y, awarenessProtocol })`, o provedor do SDK, que pede um `bilhete` a cada conexão; os verbos abaixo são a lista, a criação, quem entra, os avisos e o bilhete.",
       "verbos": {
         "listar": {
@@ -1662,6 +1716,7 @@
       }
     },
     "apps": {
+      "hiperlink": true,
       "descricao": "Um app usando outro. Quem oferece declara a capacidade em `provides` e o prefixo das rotas dela em `capacidades`; quem usa a declara em `requires`. O shell faz o pedido como a mesma pessoa, depois de ela permitir, e o backend que responde recebe `X-Vssh-Chamador` com o id de quem chamou.",
       "verbos": {
         "pedir": {
@@ -1695,6 +1750,7 @@
       "eventos": {}
     },
     "pessoas": {
+      "hiperlink": true,
       "descricao": "As pessoas do ambiente, para compartilhar uma sala. Cada pessoa é `{ usuario, nome, login, iniciais }`, e o `usuario` é o que os verbos de `vssh.salas` recebem. O e-mail de ninguém sai daqui.",
       "verbos": {
         "eu": {
@@ -1727,6 +1783,7 @@
       "eventos": {}
     },
     "configuracoes": {
+      "hiperlink": "A seção de um app em Configurações roda o script dele na origem do shell.",
       "descricao": "A seção que o app traz a Configurações do ambiente (`contributes.settings`). Um app que a declara opcional (`contributes.settingsOptIn`) a liga e desliga daqui, de dentro dele; a escolha é por usuário e acompanha a pessoa.",
       "verbos": {
         "ligada": {
@@ -1769,6 +1826,7 @@
       "eventos": {}
     },
     "midia": {
+      "hiperlink": true,
       "descricao": "O que o app está tocando, o transporte que ele sabe fazer e o volume que o usuário deixou para ele.",
       "verbos": {
         "audio": {
@@ -1867,9 +1925,15 @@
       }
     },
     "impressao": {
+      "hiperlink": true,
       "descricao": "Imprimir pela tela do sistema: o app pede, e quem escolhe a impressora e confirma é o usuário.",
       "verbos": {
         "imprimir": {
+          "hiperlink": {
+            "caminhos": [
+              "path"
+            ]
+          },
           "fio": {
             "type": "print"
           },
@@ -1894,6 +1958,7 @@
       "eventos": {}
     },
     "gpu": {
+      "hiperlink": "A GPU é da estação, e um hiperlink não roda nela.",
       "descricao": "O recurso que o sistema arbitra ao subir o app. O manifesto declara o que o app precisa em `recursos.gpu.modo`; quem decide, com o que o servidor tem, é o `vssh-app-run`, e o app pergunta o que recebeu sem conhecer `CUDA_VISIBLE_DEVICES` nem o inventário do servidor.",
       "verbos": {
         "estado": {

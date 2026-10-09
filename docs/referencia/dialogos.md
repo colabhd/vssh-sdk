@@ -24,6 +24,7 @@ Os diálogos do sistema e o menu de contexto, desenhados pelo shell com os dados
 Uma caixa de informação com um botão OK. A resposta chega quando a pessoa fecha a caixa.
 
 Responde: uma promessa, com prazo de 10 min (ritmo `humano`, a resposta depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "dialog"`.
 
 | argumento | tipo | opcional | no fio |
@@ -38,6 +39,7 @@ No fio: `type: "dialog"`.
 A mesma caixa de `mostrar`, com o tom de erro.
 
 Responde: uma promessa, com prazo de 10 min (ritmo `humano`, a resposta depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "dialog", variant: "error"`.
 
 | argumento | tipo | opcional | no fio |
@@ -55,6 +57,7 @@ abre no Cancelar. A caixa mostra o ícone e o nome do app em cima. A resposta é
 pessoa confirmou; fechar a caixa vale como cancelar.
 
 Responde: uma promessa, com prazo de 10 min (ritmo `humano`, a resposta depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "dialog", variant: "confirm"`.
 
 | argumento | tipo | opcional | no fio |
@@ -73,6 +76,7 @@ escolhida, ou `null` quando a pessoa fechou a caixa sem escolher. É a pergunta 
 salvar" e "Cancelar", em que fechar a caixa não pode valer como nenhuma das duas primeiras.
 
 Responde: uma promessa, com prazo de 10 min (ritmo `humano`, a resposta depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "dialog", variant: "choice"`.
 
 | argumento | tipo | opcional | no fio |
@@ -88,6 +92,7 @@ No fio: `type: "dialog", variant: "choice"`.
 Um campo de texto de uma linha. A resposta é o que a pessoa escreveu, ou `null` quando ela cancelou.
 
 Responde: uma promessa, com prazo de 10 min (ritmo `humano`, a resposta depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "dialog", variant: "prompt"`.
 
 | argumento | tipo | opcional | no fio |
@@ -105,6 +110,7 @@ cancelou. O valor chega ao app; para uma credencial que o app não deve ver, o c
 `segredos.pedir`.
 
 Responde: uma promessa, com prazo de 10 min (ritmo `humano`, a resposta depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "dialog", variant: "password"`.
 
 | argumento | tipo | opcional | no fio |
@@ -126,6 +132,7 @@ errada do clique, e quem o passa é `vssh.dialogos.menuDoEvento`, do runtime: el
 de uma sugestão troca a palavra no campo e responde `null`.
 
 Responde: uma promessa, com prazo de 10 min (ritmo `humano`, a resposta depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "context-menu"`.
 
 | argumento | tipo | opcional | no fio |
@@ -149,4 +156,5 @@ da janela, e só no cliente de desktop. O SDK já o usa em `vssh.dialogos.menuDo
 |---|---|---|---|
 | `noMenu` | `boolean` | não | `inMenu` |
 
+Num hiperlink: chega.
 No fio: `type: "spelling-menu"`.

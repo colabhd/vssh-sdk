@@ -2,7 +2,7 @@
   "shellVersion": "5.0.0-rc0",
   "artifacts": {
     "api/abi.json": {
-      "sha256": "1996aa85f0415c0d2463b5a8009c78ca4bda7d0c318287ecca87e5f3a7c32974"
+      "sha256": "b594ea1df0c4a58f0ae33fa84d87b250e1ed0f71f3417638c008655ffe6d5974"
     },
     "api/electron.js": {
       "sha256": "802402efad47701fd6b50d90404fd04aae3b477820a720224ddd8ed3fa148269"
@@ -59,58 +59,58 @@
       "sha256": "92b30bb2b0d97fa14afb94df96bbb879d26499375584c903875a15ac8ece5b19"
     },
     "api/vssh.d.ts": {
-      "sha256": "24714fb835cf4391bb15c45cd69c5963092a3fbbd39fa133f2a7bd6e95d3d27b"
+      "sha256": "0d37711d90e2e2d7b21409a36b7cfc6e6c22a3a4525d4c4bd87e6a6e5dbb6f65"
     },
     "api/vssh.js": {
-      "sha256": "75a768b94e0259ad693d55a6a70f5df30d9826e762e6364ca411acbb7d64a5bf"
+      "sha256": "ddb50299d42b85ec2fd339c570e08670bdc764bcb1d6d187308da79b7f740d05"
     },
     "docs/referencia/README.md": {
-      "sha256": "14ccb82be915614fff83b2d4ab0686fb43834b03c6772b8f8345262d35c4bd1c"
+      "sha256": "bbf42cbde5539309c1cda127cc4a080db6836c662d348728ab399837305c22ec"
     },
     "docs/referencia/ambiente.md": {
       "sha256": "80e837c926040cea8cb4d43136cfde641222aab76144af1549172f18428de387"
     },
     "docs/referencia/app.md": {
-      "sha256": "ce2ab1644a3750fe80585cfaae423bb1c2d7568fd8f831c11c7a4fb57679e1d8"
+      "sha256": "4960b10a14674cbe527c01a1c899b8bef4139bfb8460c3f18434af7037e0a4a1"
     },
     "docs/referencia/apps.md": {
-      "sha256": "d2255a22fa6e128614e16defcbcda42b6e62e8a6f1929f70b72d00b1b0e6b3aa"
+      "sha256": "4e3d16344429debb83861280e65bc739458fc54331427390a1732f01cc1825a0"
     },
     "docs/referencia/arquivos.md": {
-      "sha256": "444f8dc34d8ab60a2b866fb329d6ec10b6f5306cd5c662dbf00580cc592af1dc"
+      "sha256": "c258a151da7f536fb0da549ca9fd58d7bfbe41a940c57a1e2feff2a298839f4e"
     },
     "docs/referencia/avisos.md": {
-      "sha256": "8675907c30b1e2f3252bf0eec7c4883b0a75aadebec3e93d3f2d60465327059e"
+      "sha256": "6b8835ecd4510fac63a90491858d16b5657ca832d77f6e32e2421c3d6d922e4f"
     },
     "docs/referencia/configuracoes.md": {
-      "sha256": "4dd481587572f11975c4b72b7185f5928b64bcc775185b17c6906c65bb4ff6b8"
+      "sha256": "d80a542ea2cf872048888e66436ce29fc124e78bd309a4fe73a8d3f6582202d3"
     },
     "docs/referencia/dialogos.md": {
-      "sha256": "802b5147284f3e27a32a8fbfd38fe258d71b2fb243156b657229544ec9b2f1f4"
+      "sha256": "8c9f5d8adc93dec5ae65fdc826f71c87bb7ea0cf259e0fb58ad5f7536d586f15"
     },
     "docs/referencia/gpu.md": {
-      "sha256": "b3f15575f545de6d12e44bfeb599051fc2b27333cbeb7ea7896ec3d0993882c8"
+      "sha256": "aacc6e46d64664d676e55bb063e19437c3342f1b8082690613bcd33de2d170ed"
     },
     "docs/referencia/impressao.md": {
-      "sha256": "b2c221f136ef614da4e61329b9344c3cc9cc0f803fe938090c0292fa988be709"
+      "sha256": "8ea19b483dc6942605385d284fb3c5164e443f503385f44708b7dcb53d7c3c11"
     },
     "docs/referencia/janela.md": {
-      "sha256": "ac7b82419f57426b26a9c77b66bfcb5f838899333810cae32135b02d3fff22ed"
+      "sha256": "c8fd408df22c5bd6905108720bd27db3b5cb26a53f152ffbcb8957f41da66682"
     },
     "docs/referencia/manifesto.md": {
       "sha256": "8aedaf05b5253545dbdb34e5f66652c6e406f438986db881107558f4eb83f200"
     },
     "docs/referencia/midia.md": {
-      "sha256": "189b0de451e02e02c80829dc3c5dd844a0a4d0648a57b1c3514a8faae8a05015"
+      "sha256": "97c1bd04f2b70355c93d668872c2547395b4450df48bb5352ea99a1183d3f6d9"
     },
     "docs/referencia/pessoas.md": {
-      "sha256": "d10fff6404e48efe5cb011a1f925f166073d7c1fee6f49f9f03e669c34855671"
+      "sha256": "855f987106388c19b08367f0d68b08494fe412ef2c47f912c25d3099dcd4b2c5"
     },
     "docs/referencia/salas.md": {
-      "sha256": "5db64435853414a88800ee81a982d9ce4be1453b64594eff6d6498fc34437e5f"
+      "sha256": "4445170801d3faddd542365cee937f3e93fd4696af90657344f52b336541f614"
     },
     "docs/referencia/segredos.md": {
-      "sha256": "9833abbc96dd9f0b422342a7e113966ce2b94612cb9fdd8cb25ad2865d4ec159"
+      "sha256": "d834536a979665ab937c40023bc6eea57e6c1abdf09b68bbe631ac26a21bb33d"
     },
     "runtime/README.md": {
       "sha256": "3e922bb272ece2d510a4599142915c5956dcb2ec99213739bfeb541e67c683c1"

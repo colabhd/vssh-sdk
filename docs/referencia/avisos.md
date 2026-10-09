@@ -32,6 +32,7 @@ servidor) ou uma imagem de dentro do pacote do app (`icone`, com o caminho relat
 e o nome do app vêm do manifesto. A resposta é o id da notificação.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "notify"`.
 
 | argumento | tipo | opcional | no fio |
@@ -54,6 +55,7 @@ A frase que se lê e se esquece ("copiado", "salvo"): some sozinha depois de `du
 recomeça o relógio dele.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "toast"`.
 
 | argumento | tipo | opcional | no fio |
@@ -76,6 +78,7 @@ A resposta é a chave completa, `app:<id>:<chave>`, que é a que o ambiente usa.
 fio encerra a atividade, como `encerrarAtividade`.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "live"`.
 
 | argumento | tipo | opcional | no fio |
@@ -92,6 +95,7 @@ indisponibilidade resolvida; com `registrar` (`titulo`, `texto`, `level`) o fim 
 no histórico, como "550 arquivos copiados". A resposta é a chave completa.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "live", item: null`.
 
 | argumento | tipo | opcional | no fio |
@@ -109,6 +113,7 @@ e `label`). É um item por app, e chamar de novo troca o conteúdo sem o ícone 
 clique e a escolha no menu voltam pelo evento `acaoNaBandeja`. A resposta é `true`.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "tray", op: "set"`.
 
 | argumento | tipo | opcional | no fio |
@@ -122,6 +127,7 @@ No fio: `type: "tray", op: "set"`.
 Tira o ícone do app da bandeja. A resposta diz se havia um.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
 No fio: `type: "tray", op: "remove"`.
 
 Sem argumentos.
@@ -140,6 +146,7 @@ A pessoa clicou numa ação de uma notificação deste app. Chega à janela do a
 | `notificacaoId` | `string` | não | `notificationId` |
 | `acaoId` | `string` | não | `actionId` |
 
+Num hiperlink: chega.
 No fio: `type: "notify-action"`.
 
 ### `acaoDeAtividade`
@@ -154,6 +161,7 @@ escolheu, sem o prefixo do ambiente.
 | `chave` | `string` | não | `chave` |
 | `acaoId` | `string` | não | `actionId` |
 
+Num hiperlink: chega.
 No fio: `type: "live-action"`.
 
 ### `acaoNaBandeja`
@@ -168,4 +176,5 @@ A pessoa clicou no ícone da bandeja (`click`) ou escolheu um item do menu dele 
 | `evento` | `'click' \| 'menu'` | não | `event` |
 | `menuId` | `string` | sim | `menuId` |
 
+Num hiperlink: chega.
 No fio: `type: "tray-event"`.

@@ -22,6 +22,7 @@ as credenciais de todo app.
 Os nomes guardados para este app, em `names`. Só os nomes: o cofre não devolve valor.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: recusado. O cofre de um app vai para o ambiente do processo dele na estação, e um hiperlink não tem processo lá.
 No fio: `type: "secrets", op: "list"`.
 
 Sem argumentos.
@@ -37,6 +38,7 @@ start, e `requerReinicio` é o app saber que precisa reiniciar para enxergar o s
 responde `{ names: null, cancelado: true }`.
 
 Responde: uma promessa, com prazo de 10 min (ritmo `humano`, a resposta depende de uma pessoa).
+Num hiperlink: recusado. O cofre de um app vai para o ambiente do processo dele na estação, e um hiperlink não tem processo lá.
 No fio: `type: "secrets", op: "set"`.
 
 | argumento | tipo | opcional | no fio |
@@ -53,6 +55,7 @@ Apaga uma credencial pelo nome. A resposta é `{ names, requerReinicio: true }`,
 sobrou.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: recusado. O cofre de um app vai para o ambiente do processo dele na estação, e um hiperlink não tem processo lá.
 No fio: `type: "secrets", op: "del"`.
 
 | argumento | tipo | opcional | no fio |

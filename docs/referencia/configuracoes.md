@@ -23,6 +23,7 @@ Se a seção deste app aparece em Configurações, em `ligada`, e se ela é opci
 app sem `settingsOptIn` lê `ligada: true` sempre.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: recusado. A seção de um app em Configurações roda o script dele na origem do shell.
 No fio: `type: "settings-section", op: "get"`.
 
 Sem argumentos.
@@ -36,6 +37,7 @@ Liga (`true`) ou desliga (`false`) a seção deste app em Configurações, e res
 diz isso.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: recusado. A seção de um app em Configurações roda o script dele na origem do shell.
 No fio: `type: "settings-section", op: "set"`.
 
 | argumento | tipo | opcional | no fio |
@@ -50,6 +52,7 @@ Abre Configurações na seção deste app. Com a seção desligada, ou antes de 
 abre Configurações no índice; a resposta traz em `secao` o id da seção aberta, ou `null`.
 
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: recusado. A seção de um app em Configurações roda o script dele na origem do shell.
 No fio: `type: "settings-section", op: "open"`.
 
 Sem argumentos.

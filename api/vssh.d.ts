@@ -17,6 +17,13 @@ declare namespace vssh {
    */
   namespace app {
     /**
+     * O aperto de mão com que o SDK confirma que está numa janela do ambiente, antes de assumir os
+     * links, o `window.open` e o menu de contexto da página. O SDK o manda sozinho ao carregar; a
+     * resposta vem da origem do shell, e é dela que ele passa a conferir as mensagens. Traz também
+     * os tokens de destaque do ambiente.
+     */
+    function ola(): Promise<unknown>;
+    /**
      * O ambiente em que o app está: o nome do host, o que ele sabe fazer, a versão do shell e a
      * lista de verbos e eventos desta tabela. Com a lista, o app decide sozinho se o shell em que
      * caiu tem o que ele precisa.
@@ -45,6 +52,11 @@ declare namespace vssh {
 
     /** Os eventos deste espaço, e o que cada um entrega ao `cb` de `ao`. */
     interface Eventos {
+      /**
+       * Os tokens de destaque do ambiente, quando a pessoa troca a cor. Chega a quem não alcança o
+       * documento do shell, que é a página de outra origem.
+       */
+      aparencia: { tokens: Record<string, string> };
       /**
        * O contexto com que o app foi aberto ("abrir aqui", "abrir com", um item da jump list).
        * Chega depois do load, e de novo quando uma ação alcança uma janela que já está aberta.
@@ -722,9 +734,16 @@ declare namespace vssh {
   /**
    * `true` dentro do ambiente (o app num iframe do shell). Numa aba solta, durante o
    * desenvolvimento, cada verbo degrada para o equivalente do navegador, para um valor vazio ou
-   * para uma recusa, sem lançar na carga.
+   * para uma recusa, sem lançar na carga. Numa plataforma aberta como hiperlink, que carrega o SDK
+   * de `/sdk/vssh.js` do portal, ele é `false` até o shell responder ao aperto de mão.
    */
   const noAmbiente: boolean;
+  /**
+   * Resolve com `noAmbiente` quando ele é definitivo: na carga, para um vssh-app; depois do
+   * aperto de mão com o shell, ou do prazo de cinco segundos, para um hiperlink. As chamadas feitas
+   * antes disso esperam e seguem pelo caminho certo.
+   */
+  const pronto: Promise<boolean>;
 
   namespace arquivos {
     /** O tipo MIME do arraste de arquivos do ambiente: caminhos absolutos, um por linha. */
@@ -824,7 +843,10 @@ declare namespace vssh {
     }): Conexao<Doc, Presenca>;
   }
 
-  /** A aparência do ambiente: a cor de destaque que o usuário escolheu. Reporta, e não escreve. */
+  /**
+   * A aparência do ambiente: a cor de destaque que o usuário escolheu. Reporta, e não escreve. Na
+   * origem do shell ela é lida do documento dele; numa página de outra origem, chega pela ponte.
+   */
   namespace aparencia {
     /**
      * Os tokens de destaque do ambiente (`--ds-accent`, `--ds-accent-h`, `--ds-accent-bg`,
