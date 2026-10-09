@@ -81,9 +81,18 @@
   // resposta em cinco segundos, ou com um pai de outra origem que o `ancestorOrigins` já mostra,
   // a página segue como numa aba solta. A conferência que protege a plataforma é a da origem: a
   // mensagem sai com o alvo na origem do portal, e o navegador a descarta quando o pai é outro.
+  //
+  // No cliente de desktop a plataforma não está num quadro: a janela dela é um <webview>, onde o
+  // documento é de cima, e o preload do cliente põe `window.vsshPonteDoCliente` no lugar do pai
+  // (`vssh-electron/preload-hiperlink.js`). A ponte dele é o transporte, e o shell confere a origem
+  // que o preload lê. Uma página que definisse o objeto sozinha só falaria consigo mesma.
+  const PONTE_DO_CLIENTE = (() => {
+    const p = !emQuadro && deOutraOrigem ? window.vsshPonteDoCliente : null;
+    return p && typeof p.enviar === 'function' && typeof p.ouvir === 'function' ? p : null;
+  })();
   let noAmbiente = emQuadro && !deOutraOrigem;
-  let aguardando = emQuadro && deOutraOrigem && (!location.ancestorOrigins
-    || !location.ancestorOrigins.length || location.ancestorOrigins[0] === ORIGEM_DO_SCRIPT);
+  let aguardando = deOutraOrigem && (!!PONTE_DO_CLIENTE || (emQuadro && (!location.ancestorOrigins
+    || !location.ancestorOrigins.length || location.ancestorOrigins[0] === ORIGEM_DO_SCRIPT)));
   let confirmar = () => {};
   const pronto = aguardando ? new Promise((r) => { confirmar = r; }) : Promise.resolve(noAmbiente);
 
@@ -103,9 +112,17 @@
   let seq = 0;
   const ouvintes = new Map();
 
-  window.addEventListener('message', (e) => {
-    if (!doShell(e)) return;
-    const m = e.data;
+  /** Manda ao shell: ao pai, na origem dele, ou pela ponte do cliente de desktop. */
+  function aoShell(mensagem) {
+    if (PONTE_DO_CLIENTE) PONTE_DO_CLIENTE.enviar(mensagem);
+    else window.parent.postMessage(mensagem, ORIGEM_DO_SHELL);
+  }
+
+  window.addEventListener('message', (e) => { if (doShell(e)) receber(e.data); });
+  if (PONTE_DO_CLIENTE) PONTE_DO_CLIENTE.ouvir((m) => { if (m && m.vsshApp === true) receber(m); });
+
+  function receber(m) {
+    if (m.type === 'result' && m.requestId === OLA) { respostaDoOla(m); return; }
     if (m.type === 'result') {
       const p = pendentes.get(m.requestId);
       if (!p) return;
@@ -124,7 +141,7 @@
     if (m.type === 'volume') { ganho = limitar(m.gain); mudo = !!m.muted; aplicarVolume(); }
     if (m.type === 'appearance') tokensRecebidos = m.tokens && typeof m.tokens === 'object' ? m.tokens : null;
     entregar(m);
-  });
+  }
 
   function entregar(m) {
     const cbs = ouvintes.get(m.type);
@@ -141,10 +158,11 @@
   // mesmo `requestId`: a primeira resposta decide. A resposta traz os tokens de destaque, que uma
   // página de outra origem não lê do documento do shell.
   let tokensRecebidos = null;
+  const OLA = `ola-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  let respostaDoOla = () => {};
   if (aguardando) {
-    const requestId = `ola-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
     const mandar = () => {
-      try { window.parent.postMessage({ vsshApp: true, type: 'vssh-ola', requestId }, ORIGEM_DO_SHELL); }
+      try { aoShell({ vsshApp: true, type: 'vssh-ola', requestId: OLA }); }
       catch { /* sem pai alcançável: o prazo decide */ }
     };
     const repetir = setInterval(mandar, 500);
@@ -153,7 +171,6 @@
       aguardando = false;
       clearInterval(repetir);
       clearTimeout(prazo);
-      window.removeEventListener('message', ouvir);
       noAmbiente = !!valor;
       confirmar(noAmbiente);
       if (valor && valor.tokens && typeof valor.tokens === 'object') {
@@ -161,12 +178,8 @@
         entregar({ type: 'appearance', tokens: valor.tokens });
       }
     };
-    const ouvir = (e) => {
-      if (!doShell(e) || e.data.type !== 'result' || e.data.requestId !== requestId) return;
-      concluir(e.data.ok ? (e.data.value || {}) : null);
-    };
+    respostaDoOla = (m) => concluir(m.ok ? (m.value || {}) : null);
     const prazo = setTimeout(() => concluir(null), 5000);
-    window.addEventListener('message', ouvir);
     mandar();
   }
 
@@ -181,14 +194,14 @@
       }, prazo);
       pendentes.set(requestId, { nome, resolve, reject, timer });
       const m = PEDIDOS[nome] ? PEDIDOS[nome](mensagem) : mensagem;
-      window.parent.postMessage({ vsshApp: true, requestId, ...m }, ORIGEM_DO_SHELL);
+      aoShell({ vsshApp: true, requestId, ...m });
     });
   }
 
   function disparar(nome, mensagem) {
     if (aguardando) { pronto.then((sim) => { if (sim) disparar(nome, mensagem); }); return true; }
     if (!noAmbiente) return false;
-    window.parent.postMessage({ vsshApp: true, ...mensagem }, ORIGEM_DO_SHELL);
+    aoShell({ vsshApp: true, ...mensagem });
     return true;
   }
 
@@ -950,7 +963,7 @@
 
   function raizDoAmbiente() {
     try {
-      if (!noAmbiente) return null;
+      if (!noAmbiente || !emQuadro) return null;
       const doc = window.parent.document;
       return (doc && doc.documentElement) || null;
     } catch {
