@@ -54,9 +54,14 @@ O cookie de sessão da plataforma acompanha o quadro quando a plataforma e o por
 site, como `cadernos.exemplo.org` e `vssh.exemplo.org`. Em sites diferentes, o cookie precisa de
 `SameSite=None; Secure`, e um navegador que bloqueia cookie de terceiros o recusa assim mesmo.
 
-A página de login do provedor de identidade costuma recusar o quadro, e no cliente de desktop não
-há sessão nele. Dentro da janela, a plataforma recebe a pessoa pela ponte (ver
-[A identidade](#a-identidade)).
+A página de login do provedor de identidade costuma recusar o quadro. Dentro da janela, a
+plataforma recebe a pessoa pela ponte (ver [A identidade](#a-identidade)).
+
+No cliente de desktop a janela não é um quadro: a plataforma abre num `<webview>`, como documento
+de cima, numa partição só dos hiperlinks. Ali o `frame-ancestors` não se aplica, o cookie da
+plataforma é de primeira parte, e a página de login do provedor abre dentro da janela. O SDK fala
+com o shell pela ponte que o cliente põe na página (`window.vsshPonteDoCliente`), e a plataforma
+não muda uma linha para isso.
 
 ## O cadastro
 
