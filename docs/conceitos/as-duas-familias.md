@@ -17,6 +17,10 @@ publicou na semana passada.
 
 O app que você escreve é da família instalada. As páginas deste portal falam dela.
 
+A lista traz também os hiperlinks, com `origem: 'hiperlink'`: plataformas web que rodam no domínio
+delas e entram no menu pela URL, cadastradas pelo admin no painel, sem pacote e sem estação. O
+guia delas é [Uma plataforma como hiperlink](../guias/uma-plataforma-como-hiperlink.md).
+
 ## Quem carimba
 
 `origem` é palavra do portal, e o manifesto não a tem. O manifesto é escrito por quem publica o
