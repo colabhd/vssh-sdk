@@ -753,7 +753,8 @@ declare namespace vssh {
     /**
      * A URL HTTP do conteúdo de um arquivo, para `<img src>`, `<video>`, `<embed>` ou `fetch`.
      * Síncrona, porque substitui `URL.createObjectURL(file)`. Fora do que foi concedido a URL sai
-     * do mesmo jeito, com um aviso no console; quem recusa é o servidor.
+     * do mesmo jeito, com um aviso no console; quem recusa é o servidor. Numa plataforma aberta
+     * como hiperlink ela lança, porque o portal não serve o arquivo a outra origem: lá, `lerBytes`.
      */
     function urlFor(caminho: string): string;
     /**

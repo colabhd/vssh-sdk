@@ -637,9 +637,15 @@
    *
    * O aviso sai uma vez por página. Um visualizador que anda por uma pasta pede a URL de cada
    * vizinho, e um aviso por arquivo enterraria o resto do console.
+   *
+   * Numa plataforma de outra origem a função lança: o portal serve `/api/fs/read` só à origem
+   * dele, e uma URL que o navegador recusa no `<img>` falharia em silêncio.
    */
   let avisouUrlFor = false;
   vssh.arquivos.urlFor = (caminho) => {
+    if (deOutraOrigem) {
+      throw new Error('vssh.arquivos.urlFor não serve a uma plataforma de outra origem: leia os bytes com vssh.arquivos.lerBytes.');
+    }
     const abs = String(caminho || '');
     if (!avisouUrlFor && !concedido(abs)) {
       avisouUrlFor = true;
@@ -1523,6 +1529,13 @@
   }
   // Um navegador que já tem a API de verdade, fora do ambiente: nada a sequestrar.
   if (window.showDirectoryPicker && !window.vssh.noAmbiente) return;
+  // Uma plataforma aberta como hiperlink carrega o SDK do portal, de outra origem, e fica com a API
+  // do navegador, sobre o computador da pessoa: os arquivos da estação chegam a ela pelos verbos
+  // de `vssh.arquivos`, e um `File` preguiçoso dependeria de `urlFor`, que não a serve.
+  try {
+    const s = document.currentScript;
+    if (s && s.src && new URL(s.src, location.href).origin !== location.origin) return;
+  } catch { /* sem currentScript legível: vale o caminho do vssh-app */ }
 
   const arquivos = window.vssh.arquivos;
   const basename = (p) => p.replace(/\/+$/, '').split('/').pop() || p;
