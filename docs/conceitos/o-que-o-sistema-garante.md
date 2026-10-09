@@ -56,18 +56,21 @@ app instalado continua funcionando enquanto o SDK evolui. Um shell que não conh
 responde, e o SDK termina a chamada por prazo em vez de deixá-la pendurada; `vssh.app.capacidades()`
 lista os verbos e eventos do shell em que o app caiu, e é com ela que o app decide o que oferecer.
 
-## Shell e apps compartilham uma origem
+## A origem do app, em cada hospedagem
 
-Dois apps conversam por `BroadcastChannel`, e um app conversa com o shell do mesmo jeito. Isso
-vem de duas decisões: o backend é servido por caminho relativo na origem do portal, e o iframe da
-janela não tem `sandbox`. Dependem disso o `BroadcastChannel`, o `localStorage` compartilhado, o
-`postMessage` da ponte e o polyfill de File System Access.
+No portal, o backend é servido por caminho relativo na origem dele, e o iframe da janela não tem
+`sandbox`: shell e apps dividem uma origem, e dois apps conversam por `BroadcastChannel` sem nada
+no meio. No cliente de desktop cada app mora numa porta própria, que é outra origem, e o canal e o
+`localStorage` de um app ficam só dele. A ponte com o shell é `postMessage` nas duas hospedagens,
+com a origem conferida nos dois lados, e é ela que o seu app usa para falar com o ambiente. Uma
+plataforma aberta como hiperlink mora no domínio dela, e fala a ponte depois do aperto de mão (ver
+[o guia](../guias/uma-plataforma-como-hiperlink.md)).
 
-O limite é a metade que importa: a mesma origem é o que torna o isolamento entre apps fraco. Outro
-app da mesma sessão escuta os seus canais. Não mande por `BroadcastChannel` o que você não mandaria
-por um mural. O modelo é "um admin instalou, portanto é confiável", e a fronteira de segurança é a
-instalação, como root, num servidor compartilhado. No dia em que houver origem separada por app, a
-mensageria passará a atravessar o shell; o seu código muda nesse dia, e não antes.
+O limite é a metade que importa: na web, a mesma origem é o que torna o isolamento entre apps
+fraco. Outro app da mesma sessão escuta os seus canais. Não mande por `BroadcastChannel` o que você
+não mandaria por um mural, e não conte com ele para falar com outro app, porque no cliente de
+desktop ele não atravessa. O modelo é "um admin instalou, portanto é confiável", e a fronteira de
+segurança é a instalação, como root, num servidor compartilhado.
 
 ## O que o sistema não garante
 

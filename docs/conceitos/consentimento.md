@@ -46,11 +46,16 @@ estado normal, e um app o trata como tal.
 ## O que o grant protege
 
 O grant mantém o app dentro do que a pessoa escolheu e transforma um erro de programação numa
-mensagem clara. Ele não é uma fronteira contra um app hostil: o app roda num iframe de mesma
-origem que o portal, e o JS dele alcança `/api/*` com o cookie de sessão, com ou sem a tabela de
-grants. A fronteira de segurança é outra, e é a instalação: um admin instalou o app, como root, num
-servidor compartilhado, e por isso ele é confiável. O backend do app já lê qualquer arquivo que a
-pessoa lê, porque roda como a conta dela.
+mensagem clara. Ele não é uma fronteira contra um app hostil: na web o app roda num iframe de
+mesma origem que o portal, e o JS dele alcança `/api/*` com o cookie de sessão, com ou sem a tabela
+de grants. A fronteira de segurança é outra, e é a instalação: um admin instalou o app, como root,
+num servidor compartilhado, e por isso ele é confiável. O backend do app já lê qualquer arquivo que
+a pessoa lê, porque roda como a conta dela.
+
+Numa plataforma aberta como hiperlink o grant pesa mais. A plataforma mora em outra origem e não
+roda na estação, então os arquivos da pessoa chegam a ela pela ponte, e só o que o seletor
+concedeu passa. Abrir, abrir com, arrastar, copiar e imprimir
+pedem o mesmo grant, e a área de transferência de arquivos fica fora do alcance dela.
 
 O que o ambiente ganha com o grant é uniformidade. Todo app pede do mesmo jeito, a pessoa concede
 no mesmo seletor, revoga no mesmo lugar e vê a mesma lista. Um app que inventasse o próprio

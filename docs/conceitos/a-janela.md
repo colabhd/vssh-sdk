@@ -11,11 +11,17 @@ desenhado pelo navegador, ao lado das outras janelas do ambiente (o terminal, o 
 arquivos, o navegador embutido). O que o app ocupa é o corpo dela, um iframe apontando para
 `/<serverId>/proxy/app/<id>/`.
 
-O iframe não tem `sandbox`, e o backend é servido por caminho relativo na origem do portal, então
-o app compartilha a origem com o shell e com os outros apps. É isso que faz `BroadcastChannel`,
-`localStorage` e `postMessage` funcionarem entre eles sem nada no meio, e é o mesmo fato que torna
-o isolamento entre apps fraco. O modelo é "um admin instalou, portanto é confiável". Ver
-[o que o sistema garante](o-que-o-sistema-garante.md).
+O iframe não tem `sandbox`, e a origem do app depende de onde o ambiente roda:
+
+| hospedagem | a origem do app | o que vem com ela |
+|---|---|---|
+| o portal, no navegador | a do portal, a mesma do shell e dos outros apps | `BroadcastChannel` e `localStorage` alcançam o shell e os outros apps sem nada no meio |
+| o cliente de desktop | uma porta própria por app, e porta é origem | canais e armazenamento ficam só do app |
+| uma plataforma aberta como hiperlink | a da plataforma, no domínio dela | a ponte vale depois do aperto de mão, com o [recorte](../guias/uma-plataforma-como-hiperlink.md#o-que-a-ponte-alcança) |
+
+A ponte é `postMessage`, com a origem conferida nos dois lados em toda mensagem, e é ela que
+funciona igual nas três. Na web, a mesma origem torna o isolamento entre apps fraco, e o modelo é
+"um admin instalou, portanto é confiável". Ver [o que o sistema garante](o-que-o-sistema-garante.md).
 
 Como toda janela do ambiente, a do app tem botão na barra de tarefas, entrada no Alt+Tab, encaixe
 nas bordas, fixar no topo, minimizar e maximizar. Nada disso pede código do app.

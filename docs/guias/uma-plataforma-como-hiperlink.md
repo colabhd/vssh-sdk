@@ -124,6 +124,11 @@ if (caminho) {
 O arquivo vem pela ponte, do servidor da pessoa, para a página. O backend da plataforma não alcança
 a estação; quem leva os bytes até ele é a página, se for o caso.
 
+Duas coisas de um vssh-app ficam de fora. `vssh.arquivos.urlFor` lança, porque o portal só serve o
+arquivo à origem dele: leia com `lerBytes` e monte o `Blob` na página. E o SDK não troca a API de
+arquivos do navegador: `showOpenFilePicker` e `showDirectoryPicker` continuam abrindo o computador
+da pessoa, como em qualquer site.
+
 ## A aparência
 
 O Tuff vem do mesmo lugar que o SDK, `https://<portal>/sdk/tuff/<arquivo>`, com as folhas, as
