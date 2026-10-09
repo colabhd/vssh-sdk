@@ -54,14 +54,15 @@ O cookie de sessão da plataforma acompanha o quadro quando a plataforma e o por
 site, como `cadernos.exemplo.org` e `vssh.exemplo.org`. Em sites diferentes, o cookie precisa de
 `SameSite=None; Secure`, e um navegador que bloqueia cookie de terceiros o recusa assim mesmo.
 
-A página de login do provedor de identidade costuma recusar o quadro. A pessoa entra uma vez pelo
-"Abrir no navegador" do menu da janela, e a sessão que ela abriu ali vale para o quadro no mesmo
-site. A ponte ainda não entrega a identidade da pessoa à plataforma.
+A página de login do provedor de identidade costuma recusar o quadro, e no cliente de desktop não
+há sessão nele. Dentro da janela, a plataforma recebe a pessoa pela ponte (ver
+[A identidade](#a-identidade)).
 
 ## O cadastro
 
 O admin do ambiente cola a URL da plataforma na página Hiperlinks do painel e dá acesso aos
-vínculos (os grupos do provedor de identidade) que devem vê-la. "Reler o manifesto" refaz a
+vínculos (os grupos do provedor de identidade) que devem vê-la. Na ficha, ele preenche o slug da
+aplicação da plataforma no Authentik, que a identidade confere. "Reler o manifesto" refaz a
 leitura depois de uma mudança no site; o ambiente não relê sozinho.
 
 ## O SDK
@@ -105,6 +106,49 @@ lista já recortada.
 | a área de transferência de arquivos | ela tem os caminhos que a pessoa copiou, sem passar pelo seletor |
 
 Um verbo fora do recorte responde com a promessa rejeitada, e a mensagem do erro é o motivo.
+
+## A identidade
+
+`vssh.app.identidade()` responde `{ bilhete, expira }`: um JWT que o portal assina para a origem da
+plataforma, com a pessoa dentro. A página o entrega ao backend dela, que o confere e abre a sessão
+própria, no lugar do redirecionamento ao login:
+
+```js
+if (await vssh.pronto) {
+  const { bilhete } = await vssh.app.identidade();
+  // A rota de entrada é da plataforma, com o nome que ela quiser.
+  const r = await fetch('/api/auth/vssh', { method: 'POST', headers: { authorization: `Bearer ${bilhete}` } });
+  if (r.ok) location.reload();
+}
+```
+
+O backend confere o bilhete como confere o `id_token` do provedor, pela chave pública do portal em
+`https://<portal>/.well-known/jwks.json`:
+
+| o que conferir | valor |
+|---|---|
+| a assinatura | RS256, com a chave do `kid` do cabeçalho |
+| `typ` no cabeçalho | `vssh-bilhete+jwt`, para um bilhete nunca passar por `id_token` |
+| `iss` | a origem do portal |
+| `aud` | a origem da plataforma |
+| `exp` | 60 s depois do `iat` |
+| `jti` | guardado até o `exp`, para recusar o mesmo bilhete duas vezes |
+
+O `sub` é o `uid` do Authentik, o mesmo que o login da plataforma recebe quando o provedor dela usa
+o modo `hashed_user_id`; com ele, a sessão aberta pelo bilhete é a da mesma pessoa. O bilhete traz
+também `email`, `name`, `preferred_username` e `groups`.
+
+O portal só emite para quem vê o hiperlink e passa na política da aplicação da plataforma no
+Authentik, a mesma que o login confere. Sem o slug da aplicação na ficha, a chamada é recusada com o
+motivo. Fora do ambiente, `identidade()` recusa, e a plataforma segue com o login dela.
+
+## Oferecer uma capacidade
+
+Uma plataforma oferece uma capacidade como um app oferece (ver [chamar outro
+app](chamar-outro-app.md)), com `provides` e `capacidades` no membro `vssh`. O pedido de outro app
+chega do servidor do portal, com o bilhete da pessoa no `Authorization` e o id de quem pediu em
+`X-Vssh-Chamador`, só nas rotas debaixo do prefixo declarado. O backend confere o bilhete como na
+entrada, e responde como responderia à própria página.
 
 ## Arquivos
 
