@@ -29,6 +29,7 @@ do campo na mensagem. Obrigatórios: `id`, `version`, `backend`.
 | [`engine`](#engine) | `object` | não |
 | [`provides`](#provides) | `array` de `string` | não |
 | [`requires`](#requires) | `array` de `string` | não |
+| [`usa`](#usa) | `array` de `string` | não |
 | [`capacidades`](#capacidades) | `object` | não |
 | [`minShellVersion`](#minshellversion) | `string` | não |
 | [`contributes`](#contributes) | `object` | não |
@@ -137,6 +138,16 @@ conferência lê o catálogo do repositório, que é o único que responde antes
 sem este campo não confere. Só o nome com a versão, sem faixa nem comparação: uma capacidade é um
 contrato, e `nome/v2` é outro contrato.
 
+## `usa`
+
+`array` de `string`, opcional.
+
+Capacidades que este app usa quando algum app as oferece, no formato 'nome/vN': a forma opcional do
+`requires`. O Prelo cita da biblioteca do Zotero, e escreve sem ela. A instalação não confere este
+campo, e a ponte aceita a capacidade em `vssh.apps.pedir` e em `vssh.apps.listar` como aceita uma de
+`requires`. Sem quem ofereça, o `pedir` responde 404 com o nome da capacidade, e o `listar` responde
+a lista vazia.
+
 ## `capacidades`
 
 `object`, opcional.
@@ -145,10 +156,13 @@ Onde cada capacidade de `provides` é atendida, para outro app a chamar: o nome 
 prefixo das rotas do backend que a respondem. O Zotero declara
 `"bibliography/v1": { "rota": "/bibliografia/v1" }`. Outro app chama pela ponte
 (`vssh.apps.pedir(capacidade, caminho, opcoes)`): o shell acha quem oferece, pergunta à pessoa na
-primeira vez, sobe o app se estiver parado e faz o pedido como a mesma pessoa, só dentro do prefixo.
-Quem chama precisa declarar a capacidade em `requires`. O backend que responde recebe
-`X-Vssh-Chamador` com o id de quem chamou. Uma capacidade que não está em `provides` é ignorada, e
-uma de `provides` sem entrada aqui não se chama pela ponte.
+primeira vez que este app usa aquele, sobe o app se estiver parado e faz o pedido como a mesma
+pessoa, só dentro do prefixo. Quem chama precisa declarar a capacidade em `requires` ou em `usa`.
+Com mais de um app oferecendo a mesma capacidade, quem chama os lista por
+`vssh.apps.listar(capacidade)` e escolhe um com `{ app }` no `pedir`; sem a escolha, o pedido vai ao
+primeiro, na ordem dos ids. O backend que responde recebe `X-Vssh-Chamador` com o id de quem chamou.
+Uma capacidade que não está em `provides` é ignorada, e uma de `provides` sem entrada aqui não se
+chama pela ponte.
 
 ### `capacidades.<chave>.rota`
 
@@ -156,6 +170,14 @@ uma de `provides` sem entrada aqui não se chama pela ponte.
 
 O prefixo das rotas, a partir da raiz do backend do app, sem barra no fim e sem `.` nem `..` como
 segmento. Um pedido pela ponte só alcança o que fica sob ele.
+
+### `capacidades.<chave>.rotulo`
+
+`string`, opcional, comprimento mínimo 1, comprimento máximo 60.
+
+Como o app que chama nomeia esta oferta num menu, quando mais de um app oferece a capacidade:
+`Biblioteca do Zotero`. O `vssh.apps.listar` o devolve sem subir o app. Sem ele, quem chama mostra o
+nome do app.
 
 ## `minShellVersion`
 

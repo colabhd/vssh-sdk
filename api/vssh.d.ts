@@ -24,6 +24,16 @@ declare namespace vssh {
      */
     function ola(): Promise<unknown>;
     /**
+     * O bilhete com que uma plataforma aberta como hiperlink reconhece a pessoa:
+     * `{ bilhete, expira }`, um JWT RS256 de 60 s que o portal assina para a origem da plataforma.
+     * O backend dela o confere pela chave em `/.well-known/jwks.json` do portal (`typ`
+     * `vssh-bilhete+jwt`, `aud` na origem dela, o `jti` guardado até o `exp`) e abre a sessão
+     * própria. Antes de emitir, o portal confere a política da aplicação da plataforma no
+     * Authentik. Só a janela de um hiperlink recebe o bilhete; um vssh-app roda na estação, como a
+     * pessoa.
+     */
+    function identidade(): Promise<unknown>;
+    /**
      * O ambiente em que o app está: o nome do host, o que ele sabe fazer, a versão do shell e a
      * lista de verbos e eventos desta tabela. Com a lista, o app decide sozinho se o shell em que
      * caiu tem o que ele precisa.
@@ -573,22 +583,32 @@ declare namespace vssh {
 
   /**
    * Um app usando outro. Quem oferece declara a capacidade em `provides` e o prefixo das rotas dela
-   * em `capacidades`; quem usa a declara em `requires`. O shell faz o pedido como a mesma pessoa,
-   * depois de ela permitir, e o backend que responde recebe `X-Vssh-Chamador` com o id de quem
-   * chamou.
+   * em `capacidades`; quem usa a declara em `requires`, quando não funciona sem ela, ou em `usa`,
+   * quando funciona. O shell faz o pedido como a mesma pessoa, depois de ela permitir, e o backend
+   * que responde recebe `X-Vssh-Chamador` com o id de quem chamou.
    */
   namespace apps {
     /**
-     * Faz um pedido HTTP ao app que oferece `capacidade` (`nome/vN`), em `caminho`, relativo ao
-     * prefixo que ele declarou, com a consulta junto (`buscar?q=silva`). Na primeira vez, a pessoa
-     * responde se este app pode usar a capacidade, e a resposta vale até ela a revogar em
-     * Configurações. Um app parado sobe antes do pedido. `opcoes` leva `metodo` (GET por padrão;
-     * POST, PUT, PATCH, DELETE), `corpo` (um objeto vai como JSON) e `tipo`, o Content-Type de um
-     * corpo em texto. Responde `{ status, tipo, corpo }`: `corpo` é o JSON lido quando a resposta é
-     * JSON, e o texto nos outros casos. Um caminho que sai do prefixo, uma capacidade que o app não
-     * declara em `requires` e a recusa da pessoa respondem erro, sem pedido nenhum.
+     * Os apps deste ambiente que oferecem `capacidade` (`nome/vN`), em `apps`, cada um
+     * `{ id, nome, icone, rotulo }`, na ordem dos ids: `icone` é o endereço do ícone no portal, e
+     * `rotulo` o que o manifesto dele declara para a capacidade, ou `null`. Nenhum app sobe e a
+     * pessoa não responde nada. Sem quem ofereça, `apps` vem vazia. Uma capacidade que este app não
+     * declara em `requires` nem em `usa` responde erro.
      */
-    function pedir(capacidade: string, caminho: string, opcoes?: { metodo?: string; corpo?: unknown; tipo?: string }): Promise<unknown>;
+    function listar(capacidade: string): Promise<unknown>;
+    /**
+     * Faz um pedido HTTP ao app que oferece `capacidade` (`nome/vN`), em `caminho`, relativo ao
+     * prefixo que ele declarou, com a consulta junto (`buscar?q=silva`). Na primeira vez que este
+     * app usa aquele, a pessoa responde se pode, e a resposta vale até ela a revogar em
+     * Configurações. Um app parado sobe antes do pedido. `opcoes` leva `metodo` (GET por padrão;
+     * POST, PUT, PATCH, DELETE), `corpo` (um objeto vai como JSON), `tipo`, o Content-Type de um
+     * corpo em texto, e `app`, o id de um dos apps que `listar` devolveu; sem `app`, o pedido vai
+     * ao primeiro. Responde `{ status, tipo, corpo }`: `corpo` é o JSON lido quando a resposta é
+     * JSON, e o texto nos outros casos. Um caminho que sai do prefixo, uma capacidade que o app não
+     * declara em `requires` nem em `usa`, um `app` que não a oferece e a recusa da pessoa respondem
+     * erro, sem pedido nenhum.
+     */
+    function pedir(capacidade: string, caminho: string, opcoes?: { metodo?: string; corpo?: unknown; tipo?: string; app?: string }): Promise<unknown>;
 
     /** Este espaço não declara eventos: `ao` não aceita nome nenhum. */
     interface Eventos {}

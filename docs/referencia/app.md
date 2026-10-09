@@ -11,6 +11,7 @@ que a janela mostra e a rota que a sessão restaura.
 | verbo | responde |
 |---|---|
 | [`vssh.app.ola()`](#ola) | sim, em até 5 s |
+| [`vssh.app.identidade()`](#identidade) | sim, em até 5 s |
 | [`vssh.app.capacidades()`](#capacidades) | sim, em até 5 s |
 | [`vssh.app.titulo(titulo)`](#titulo) | não |
 | [`vssh.app.lembrarRota(rota)`](#lembrarrota) | não |
@@ -28,6 +29,23 @@ do ambiente.
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
 Num hiperlink: vale.
 No fio: `type: "vssh-ola"`.
+
+Sem argumentos.
+
+### `identidade`
+
+`vssh.app.identidade()`
+
+O bilhete com que uma plataforma aberta como hiperlink reconhece a pessoa: `{ bilhete, expira }`, um
+JWT RS256 de 60 s que o portal assina para a origem da plataforma. O backend dela o confere pela
+chave em `/.well-known/jwks.json` do portal (`typ` `vssh-bilhete+jwt`, `aud` na origem dela, o `jti`
+guardado até o `exp`) e abre a sessão própria. Antes de emitir, o portal confere a política da
+aplicação da plataforma no Authentik. Só a janela de um hiperlink recebe o bilhete; um vssh-app roda
+na estação, como a pessoa.
+
+Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
+No fio: `type: "identity"`.
 
 Sem argumentos.
 
