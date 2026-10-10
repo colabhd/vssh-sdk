@@ -25,6 +25,7 @@ repositório de app, de uma organização ou de uma conta pessoal, e o script é
 | [`examples/`](examples/) | Apps de referência completos (`palco`, `lupa`, `print-engine`), feitos para serem instalados. | Pessoas. |
 | [`scripts/vssh-app-publish`](scripts/vssh-app-publish) | Valida o manifesto contra `api/vssh-app.schema.json`, empacota e publica no repositório de artefatos. Roda no CI e na sua máquina. | Pessoas. |
 | [`.github/workflows/_publish-app-reusable.yml`](.github/workflows/_publish-app-reusable.yml) | O workflow reutilizável que o CI do seu repositório de app chama com um `uses:`. | Pessoas. |
+| [`imagens/fila-base/`](imagens/fila-base/Dockerfile) | A imagem de partida de um job da fila de processamento, com o runtime do SkyPilot pré-instalado, publicada em `ghcr.io/colabhd/vssh-fila-base` pelo workflow `fila-base.yml`. | Pessoas. |
 | [`emulador/`](emulador/) | O ambiente de mentira para desenvolver sem servidor. Chega na etapa seguinte. | Pessoas. |
 | [`MIGRATION.md`](MIGRATION.md) | O que muda para quem vem do `vssh-app-toolkit`, e o que muda a cada geração das libs. | Pessoas. |
 

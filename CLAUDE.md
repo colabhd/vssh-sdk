@@ -146,6 +146,7 @@ Rode o que a sua mudança alcança, com `node --test --test-concurrency=1 --test
 | O reusable que o CI de um app chama | `.github/workflows/_publish-app-reusable.yml` |
 | Publicar os templates e exemplos daqui | `.github/workflows/publish-apps.yml` (pede o secret `VSSH_REPO_PUBLISH_TOKEN` e a var `VSSH_REPO_API`) |
 | O CI deste repositório | `.github/workflows/ci.yml` |
+| A imagem base da fila (o runtime do SkyPilot pré-instalado) | `imagens/fila-base/` + `.github/workflows/fila-base.yml`, que monta, confere e publica em `ghcr.io/colabhd/vssh-fila-base`; o guia é a seção "A imagem do job" de `docs/guias/trabalho-longo.md` |
 | Os templates | `templates/hello-vssh-app{,-node}/` + `tests/galeria-paridade.test.js` + `tests/template-galeria.test.js` + `tests/python/test_template.py` + `tests/browser/template-fora-do-ambiente.test.js` (o SDK de verdade, num Chrome) |
 | Os exemplos | `examples/palco/` (testes em `examples/palco/test/`), `examples/lupa/` (testes em `examples/lupa/test/`), `examples/print-engine/` |
 | Conceitos, guias e a aparência (o Tuff) | `docs/`; `docs/aparencia/` é autorado, e o que ele cita (classe `tuff-*`, ícone `#ico-*`) é conferido no build do site contra `api/tuff/` |

@@ -81,8 +81,9 @@ o pedido e a imagem seguem estas regras:
 
 - o `comando` vai inteiro, porque o `ENTRYPOINT` e o `WORKDIR` da imagem não rodam. O `PATH` e o
   resto do `ENV` dela continuam valendo;
-- a imagem tem bash e apt (Debian ou Ubuntu). Antes do comando, o SkyPilot instala por apt o que
-  falta para o runtime dele, e numa `alpine` o job termina em `falhou` com o motivo `imagem`;
+- a imagem tem bash e apt (Debian ou Ubuntu). Antes do comando, o SkyPilot prepara nela o runtime
+  dele (pacotes por apt, um Python 3.10 e um venv com o Ray), e numa `alpine` o job termina em
+  `falhou` com o motivo `imagem`;
 - o comando roda num diretório com `entradas/` e `saidas/`, que `VSSH_ENTRADAS` e `VSSH_SAIDAS`
   apontam. As entradas do pedido já estão em `entradas/`, e só volta como saída o que o comando
   escreve em `saidas/` com um nome que o pedido lista;
@@ -91,15 +92,48 @@ o pedido e a imagem seguem estas regras:
   descem de novo, o comando roda desde o começo e o progresso volta para trás. Enquanto isso o job
   continua `rodando`, com o motivo "o nó caiu; retomando".
 
-O primeiro job numa imagem leva minutos para começar, entre puxar a imagem e preparar o runtime:
-de 1 a 4 min nas medições do portal, e mais numa imagem de dezenas de GB. O job fica em `na_fila`
-enquanto isso. Um pedido de GPU sem `tipo` aceita os tipos padrão da fila, e o cluster escolhe o
-sítio pela placa livre.
+Entre o envio e o comando rodando, o job passa pelo servidor do SkyPilot, pela fila do Kueue do
+sítio, pelo download da imagem e pela preparação do runtime, e fica em `na_fila` enquanto isso. O
+download acontece uma vez em cada nó, e numa imagem de dezenas de GB essa vez leva minutos. A
+preparação acontece em todo job, porque cada job ganha um pod novo, e "A imagem do job", abaixo,
+diz como tirá-la do caminho.
+
+Um pedido de GPU sem `tipo` aceita os tipos padrão da fila, e o SkyPilot os tenta numa ordem que
+ele mesmo escolhe. Quando a placa do primeiro sítio está ocupada, o job espera a fila desse sítio
+(até 10 min em SP e 30 min em Franca) antes de tentar o outro.
 
 Aqui a biblioteca não escreve atividade nem notificação. O portal já põe o job em curso na bandeja
 de quem está com o ambiente aberto e avisa o fim, e escrever de novo daria duas linhas para o mesmo
 trabalho. Para o aviso do portal levar a pessoa de volta ao trabalho, o pedido diz onde:
 `'abrir': '?trabalho=3f2a'`.
+
+### A imagem do job
+
+Uma imagem qualquer paga a preparação do runtime em todo job: o SkyPilot baixa da internet o que
+ela não traz, e num pod do cluster isso leva de 25 a 66 s. Uma imagem que parte da base da fila já
+traz cada peça no lugar onde o SkyPilot procura, e a preparação cai para uns 3 s:
+
+```text
+FROM ghcr.io/colabhd/vssh-fila-base:skypilot0.14.0-ubuntu24.04-<commit>
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
+ && rm -rf /var/lib/apt/lists/*
+COPY motor/ /opt/meu-motor/
+```
+
+A etiqueta com o commit é fixa, e a sem commit muda quando a base é refeita. A base parte de
+`ubuntu:24.04`. Um app de GPU recebe o driver do nó, e as bibliotecas CUDA vêm do pip, com o torch.
+
+O runtime mora no HOME de root, e a imagem derivada continua rodando como root. Com outro `USER`, o
+SkyPilot não acha o runtime e prepara tudo de novo, em todo job. Um Ray instalado noutra versão no
+mesmo venv tem o mesmo efeito. Para conferir uma imagem derivada:
+
+```bash
+docker run --rm minha-imagem bash /opt/vssh-fila/conferir-runtime-skypilot.sh
+```
+
+Cada linha diz `ok` ou `falta`, e a saída é 0 quando o SkyPilot vai pular a preparação. Quem
+precisa de outra imagem de partida, Debian ou Ubuntu, monta a própria base com o `Dockerfile` de
+`imagens/fila-base/` deste repositório e `--build-arg BASE=<imagem>`.
 
 ## Os eventos
 

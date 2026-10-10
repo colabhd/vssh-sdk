@@ -1,0 +1,67 @@
+name: Imagem base da fila
+
+# Monta e publica ghcr.io/colabhd/vssh-fila-base, a imagem de partida dos jobs da fila de
+# processamento: Ubuntu com o runtime do SkyPilot já instalado (imagens/fila-base/). O build
+# confere a imagem com o mesmo script que um app usa na dele, e falha se o SkyPilot ainda fosse
+# preparar alguma coisa no pod.
+#
+# ── As etiquetas ─────────────────────────────────────────────────────────────
+#
+#   skypilot<versão>-ubuntu24.04             a mais recente para esta versão do SkyPilot; muda
+#                                            quando a imagem é refeita
+#   skypilot<versão>-ubuntu24.04-<commit>    fixa, a que o FROM de um app usa
+#   pr-<número>                              a de um PR deste repositório, para medir num job de
+#                                            verdade antes do merge
+#
+# Um PR de fork só monta, porque o token dele não escreve no ghcr.
+#
+# O pacote nasce privado na organização. Na primeira publicação, quem administra a organização o
+# torna público (Package settings, Change visibility), e o FROM de qualquer repositório de app
+# passa a funcionar sem credencial.
+
+on:
+  push:
+    branches: [main]
+    paths: ['imagens/fila-base/**', '.github/workflows/fila-base.yml']
+  pull_request:
+    paths: ['imagens/fila-base/**', '.github/workflows/fila-base.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  imagem:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      IMAGEM: ghcr.io/colabhd/vssh-fila-base
+      # A versão do servidor do SkyPilot (apps/skypilot/values-sp.yaml, no devops). Sobe junto
+      # com ele.
+      SKYPILOT_VERSAO: '0.14.0'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Montar e conferir
+        run: docker build --build-arg SKYPILOT_VERSAO="${SKYPILOT_VERSAO}" -t fila-base imagens/fila-base
+
+      - name: Publicar
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          echo "${TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+          base="${IMAGEM}:skypilot${SKYPILOT_VERSAO}-ubuntu24.04"
+          if [ -n "${PR}" ]; then
+            etiquetas=("${IMAGEM}:pr-${PR}")
+          else
+            etiquetas=("${base}" "${base}-${GITHUB_SHA::7}")
+          fi
+          for etiqueta in "${etiquetas[@]}"; do
+            docker tag fila-base "${etiqueta}"
+            docker push "${etiqueta}"
+            echo "publicada: ${etiqueta}"
+          done
