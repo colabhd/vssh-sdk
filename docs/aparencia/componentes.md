@@ -34,6 +34,48 @@ e a descrição em `--ds-text-dim`, um corpo menor.
 `margin-top: auto`, que só morde dentro de um flex em coluna; `--direita` alinha os botões à
 direita.
 
+## Alça de largura
+
+A borda entre duas regiões lado a lado, que a pessoa arrasta para mudar a largura de uma delas: o
+painel de detalhes ao lado de uma lista, a lateral de um navegador de pastas. A alça desenha a
+linha de 1px que a borda da região desenharia, e o ponteiro a pega a 4px de cada lado dela. A
+linha clareia sob o ponteiro, e só leva `--ds-accent` no arraste e no foco do teclado.
+
+```html vivo
+<div style="display:flex; height:140px; border:1px solid var(--ds-border); border-radius:var(--ds-radius-lg); overflow:hidden">
+  <div style="flex:1; min-width:0; padding:var(--ds-gap-md)">a lista</div>
+  <div class="tuff-alca" aria-label="Largura do painel de detalhes"></div>
+  <aside id="detalhes" style="width:240px; padding:var(--ds-gap-md); background:var(--ds-bg2)">o painel</aside>
+</div>
+```
+
+A alça é filha de um flex em linha, entre as duas regiões, e a região que ela redimensiona não
+leva borda própria do lado dela. O comportamento vem de `tuff.js`:
+
+```js
+const detalhes = document.getElementById('detalhes');
+const alca = TuffAlca.ligar(document.querySelector('.tuff-alca'), {
+  alvo: detalhes,
+  lado: 'fim',      // a região vem depois da alça; 'inicio' para uma lateral antes dela
+  min: 200,
+  max: () => detalhes.parentElement.clientWidth - 320,   // o que fica para a lista
+  padrao: 280,      // a largura do duplo clique
+  inicial: Number(localStorage.getItem('largura-detalhes')) || null,
+  aoMudar: (largura) => localStorage.setItem('largura-detalhes', String(largura)),
+});
+// alca.largura(320), alca.destruir()
+```
+
+`ligar` dá à alça o papel de separador, a põe na ordem de tabulação e escreve a largura em
+`aria-valuenow`, entre `aria-valuemin` e `aria-valuemax`, para o leitor de tela dizer quanto o
+painel tem. As setas andam 16px (64 com Shift) e levam a borda para o lado delas, Home e End vão
+aos limites, e o duplo clique volta ao `padrao`. A largura conta o padding e a borda da região,
+que é o que ela ocupa na tela. O `max` pode ser uma função, perguntada a cada gesto, para o
+limite acompanhar o contêiner, e a largura `inicial` só passa pelo `min`, porque o contêiner pode
+ainda não ter tamanho quando o app liga a alça. Guardar a escolha é do app, no `aoMudar`. Durante
+o arraste o cursor é o mesmo na página inteira, e um `iframe` ou `embed` no caminho não toma o
+ponteiro.
+
 ## Botões
 
 Três variantes, e nenhuma a mais: o shell tem exatamente estas, e o motivo de não inventar outras
