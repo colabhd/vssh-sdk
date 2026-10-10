@@ -55,6 +55,11 @@
   .moldura-miniatura .tuff-ico { width: 28px; height: 28px; }
   .moldura-previa { border-radius: var(--ds-radius-lg); }
   .moldura-previa .tuff-ico { width: 40px; height: 40px; }
+  /* As duas regiões do exemplo da alça: o conteúdo delas é de app. */
+  .alca-caixa { display: flex; height: 180px; border: 1px solid var(--ds-border); border-radius: var(--ds-radius-lg); overflow: hidden; }
+  .alca-caixa > div { padding: var(--ds-gap-md); color: var(--ds-text-dim); font-size: var(--tuff-size-sm); }
+  .alca-lista { flex: 1; min-width: 0; }
+  .alca-painel { width: 200px; background: var(--ds-bg2); }
 </style>
 </head>
 <body>
@@ -369,6 +374,18 @@
       <div class="amostra" style="align-items:flex-start; gap:var(--ds-gap-lg)">
         <div class="tabela-exemplo" style="flex:1 1 480px; min-width:0"></div>
         <div class="tabela-exemplo" style="flex:none; width:300px"></div>
+      </div>
+    </section>
+
+    <section class="tuff-painel" style="grid-column: 1 / -1">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Alça de largura</div>
+        <div class="tuff-sec-desc">A borda entre duas regiões, que se arrasta para mudar a largura de uma delas, com <code>TuffAlca.ligar</code>. No teclado, as setas andam 16 px, Home e End vão aos limites, e o duplo clique volta à largura de partida.</div>
+      </div>
+      <div class="alca-caixa">
+        <div class="alca-lista">A lista cede o espaço.</div>
+        <div class="tuff-alca" id="alca-exemplo" aria-label="Largura do painel"></div>
+        <div class="alca-painel" id="alca-painel">O painel muda de largura.</div>
       </div>
     </section>
 
@@ -903,6 +920,9 @@
     montarAbas();
     montarTrilhaEMenus();
     montarTabelas();
+    TuffAlca.ligar(document.getElementById('alca-exemplo'), {
+      alvo: document.getElementById('alca-painel'), lado: 'fim', min: 140, max: 420, padrao: 200,
+    });
     montarMoldura();
     montarIconesDeArquivo();
 

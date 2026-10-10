@@ -1196,6 +1196,127 @@
   window.TuffTabela = { marcar, ligar };
 })();
 
+// ─── A alça de largura ───────────────────────────────────────────────────────────────────────────
+//
+// A borda entre duas regiões lado a lado, que a pessoa arrasta para mudar a largura de uma delas.
+// A `.tuff-alca` fica entre as duas, e `ligar` diz qual ela redimensiona: com `lado: 'fim'` a
+// região vem depois dela (um painel à direita), e arrastar para a esquerda a alarga; com
+// `lado: 'inicio'` ela vem antes (uma lateral). As setas andam `PASSO` px, Home e End vão aos
+// limites, e o duplo clique volta à largura `padrao`. O `max` pode ser uma função, perguntada a
+// cada gesto, para o limite acompanhar o tamanho do contêiner. A largura `inicial` só passa pelo
+// `min`, porque na hora de ligar o contêiner pode ainda não ter tamanho; o `max` vale a partir
+// do primeiro gesto.
+//
+// A largura é a que a região ocupa na tela, com padding e borda. A peça a escreve no estilo da
+// região, descontando o padding e a borda de quem mede pelo conteúdo, e no `aria-valuenow` da
+// alça, e avisa `aoMudar(largura)` no fim do gesto. Guardar a largura é de quem chama.
+
+(function () {
+  const PASSO = 16;
+
+  function ligar(alca, { alvo, lado = 'fim', min = 160, max = 640, padrao = null, inicial = null, aoMudar = null } = {}) {
+    if (!alca || !alvo) return null;
+    const limite = () => Math.max(min, Math.round(typeof max === 'function' ? max() : max));
+    const prender = (l) => Math.min(limite(), Math.max(min, Math.round(l)));
+    const sentido = lado === 'fim' ? -1 : 1;
+
+    alca.setAttribute('role', 'separator');
+    alca.setAttribute('aria-orientation', 'vertical');
+    if (!alca.hasAttribute('tabindex')) alca.tabIndex = 0;
+
+    // O que a tela soma à largura do estilo numa região `content-box`.
+    function bordas() {
+      const cs = getComputedStyle(alvo);
+      if (cs.boxSizing === 'border-box') return 0;
+      return ['paddingLeft', 'paddingRight', 'borderLeftWidth', 'borderRightWidth']
+        .reduce((soma, k) => soma + (parseFloat(cs[k]) || 0), 0);
+    }
+
+    function largura(l) {
+      const v = prender(l);
+      alvo.style.width = `${v - bordas()}px`;
+      alca.setAttribute('aria-valuemin', String(min));
+      alca.setAttribute('aria-valuemax', String(limite()));
+      alca.setAttribute('aria-valuenow', String(v));
+      return v;
+    }
+
+    const atual = () => alvo.getBoundingClientRect().width;
+
+    alca.setAttribute('aria-valuemin', String(min));
+    if (inicial != null) {
+      const v = Math.max(min, Math.round(inicial));
+      alvo.style.width = `${v - bordas()}px`;
+      alca.setAttribute('aria-valuenow', String(v));
+    }
+    const avisar = (v) => { try { aoMudar?.(v); } catch (e) { console.warn('[TuffAlca] aoMudar:', e); } };
+
+    let gesto = null;
+    function aoApertar(e) {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      gesto = { x: e.clientX, base: atual(), id: e.pointerId };
+      alca.setPointerCapture?.(e.pointerId);
+      alca.dataset.arrastando = '';
+      document.documentElement.classList.add('tuff-alca-arrastando');
+    }
+    function aoMover(e) {
+      if (!gesto || e.pointerId !== gesto.id) return;
+      largura(gesto.base + sentido * (e.clientX - gesto.x));
+    }
+    function aoSoltar(e) {
+      if (!gesto || e.pointerId !== gesto.id) return;
+      gesto = null;
+      delete alca.dataset.arrastando;
+      document.documentElement.classList.remove('tuff-alca-arrastando');
+      avisar(largura(atual()));
+    }
+    function aoTeclar(e) {
+      const passo = e.shiftKey ? PASSO * 4 : PASSO;
+      let v = null;
+      // A seta leva a borda para o lado dela, como o ponteiro levaria.
+      if (e.key === 'ArrowLeft') v = atual() - sentido * passo;
+      else if (e.key === 'ArrowRight') v = atual() + sentido * passo;
+      else if (e.key === 'Home') v = min;
+      else if (e.key === 'End') v = limite();
+      if (v === null) return;
+      e.preventDefault();
+      avisar(largura(v));
+    }
+    function aoDuploClique() {
+      if (padrao != null) avisar(largura(padrao));
+    }
+    // O foco do teclado lê a largura e o limite de agora, para o leitor de tela dizer os dois.
+    function aoFocar() {
+      if (atual() > 0) largura(atual());
+    }
+
+    alca.addEventListener('pointerdown', aoApertar);
+    alca.addEventListener('pointermove', aoMover);
+    alca.addEventListener('pointerup', aoSoltar);
+    alca.addEventListener('pointercancel', aoSoltar);
+    alca.addEventListener('keydown', aoTeclar);
+    alca.addEventListener('dblclick', aoDuploClique);
+    alca.addEventListener('focus', aoFocar);
+
+    return {
+      largura,
+      destruir() {
+        alca.removeEventListener('pointerdown', aoApertar);
+        alca.removeEventListener('pointermove', aoMover);
+        alca.removeEventListener('pointerup', aoSoltar);
+        alca.removeEventListener('pointercancel', aoSoltar);
+        alca.removeEventListener('keydown', aoTeclar);
+        alca.removeEventListener('dblclick', aoDuploClique);
+        alca.removeEventListener('focus', aoFocar);
+        if (gesto) document.documentElement.classList.remove('tuff-alca-arrastando');
+      },
+    };
+  }
+
+  window.TuffAlca = { ligar };
+})();
+
 // ─── O limpar da busca ───────────────────────────────────────────────────────────────────────────
 //
 // O botão `.tuff-busca-limpar` esvazia o `.tuff-busca` da mesma caixa e manda um `input`, como se a

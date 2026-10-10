@@ -833,6 +833,33 @@
     div.tuff-tabela .tuff-tabela-th.tuff-tabela-num .tuff-tabela-ordem { flex-direction: row; }
   }
 
+  /* ── Alça de largura ────────────────────────────────────────────────────────
+     A borda entre duas regiões lado a lado, que se arrasta para mudar a largura
+     de uma delas (`TuffAlca.ligar`, em `tuff.js`). A linha horizontal que separa
+     blocos é outra peça, o `.tuff-divisor`, lá em cima. Ela desenha a linha de
+     1 px que a borda da região desenharia, e o ponteiro pega 4 px de cada lado
+     dela. O destaque aparece no arraste e no foco do teclado; o passar por cima
+     só clareia a linha. Durante o arraste o cursor fica o mesmo na página
+     inteira, e um quadro (`iframe`, `embed`) não toma o ponteiro no caminho. */
+  .tuff-alca {
+    position: relative;
+    flex: none;
+    width: 1px;
+    align-self: stretch;
+    background: var(--ds-border);
+    cursor: col-resize;
+    touch-action: none;
+    transition: background var(--ds-dur-fast) var(--ds-ease);
+  }
+  .tuff-alca[hidden] { display: none; }
+  .tuff-alca::before { content: ''; position: absolute; inset: 0 -4px; z-index: 1; }
+  .tuff-alca:hover { background: var(--ds-text-dim); }
+  .tuff-alca[data-arrastando] { background: var(--ds-accent); }
+  .tuff-alca:focus-visible { outline: 2px solid var(--ds-border-focus); outline-offset: 1px; }
+  .tuff-alca-arrastando,
+  .tuff-alca-arrastando * { cursor: col-resize !important; user-select: none; }
+  .tuff-alca-arrastando :is(iframe, embed, object) { pointer-events: none; }
+
 
   /* ── Barra de ferramentas ───────────────────────────────────────────────────
      A divisa é `border-bottom`: blocos que mudam juntos, separados por linha. */
