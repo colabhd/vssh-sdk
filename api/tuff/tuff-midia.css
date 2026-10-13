@@ -131,7 +131,7 @@
     gap: var(--ds-gap-md);
     padding: var(--ds-gap-sm) var(--ds-gap-md) 0;
   }
-  .tuff-transporte-tempo > .tuff-trilha { flex: 1; }
+  .tuff-transporte-tempo > .tuff-trilha[data-tuff-trilha] { flex: 1; }
 
   .tuff-transporte-controles {
     display: grid;
@@ -157,10 +157,13 @@
      já tocou, e as marcas de capítulo. As marcas são falhas de 1px na cor do
      fundo, espaço negativo em vez de pontinhos somados por cima. */
 
-  .tuff-trilha {
+  /* O seletor leva o `data-tuff-trilha`, que é por onde o `TuffMidia` acha a peça, porque a
+     `.tuff-trilha` sozinha é a trilha do caminho, do `tuff.css`: com as duas folhas na página, a
+     do caminho ficaria com 14 px de altura e sem rolagem pelo dedo. */
+  .tuff-trilha[data-tuff-trilha] {
     position: relative;
     flex: 1;
-    height: 14px;                 /* área de clique; o trilho pintado é menor */
+    height: max(24px, var(--ds-alvo));   /* área de clique; o trilho pintado é menor */
     display: flex;
     align-items: center;
     cursor: pointer;
@@ -182,8 +185,8 @@
     overflow: hidden;
     transition: height var(--ds-dur-fast) var(--ds-ease);
   }
-  .tuff-trilha:hover .tuff-trilha-trilho,
-  .tuff-trilha:focus-visible .tuff-trilha-trilho,
+  .tuff-trilha[data-tuff-trilha]:hover .tuff-trilha-trilho,
+  .tuff-trilha[data-tuff-trilha]:focus-visible .tuff-trilha-trilho,
   .tuff-trilha--arrastando .tuff-trilha-trilho { height: var(--tuff-sb-w); }
 
   .tuff-trilha-buffer {
@@ -222,8 +225,8 @@
     pointer-events: none;
     transition: opacity var(--ds-dur-fast) var(--ds-ease);
   }
-  .tuff-trilha:hover .tuff-trilha-polegar,
-  .tuff-trilha:focus-visible .tuff-trilha-polegar,
+  .tuff-trilha[data-tuff-trilha]:hover .tuff-trilha-polegar,
+  .tuff-trilha[data-tuff-trilha]:focus-visible .tuff-trilha-polegar,
   .tuff-trilha--arrastando .tuff-trilha-polegar { opacity: 1; }
 
   /* A prévia do ponto sob o ponteiro: o timecode, e um quadro se o app tiver um. */
@@ -244,19 +247,19 @@
     opacity: 0;
     transition: opacity var(--ds-dur-fast) var(--ds-ease);
   }
-  .tuff-trilha:hover .tuff-trilha-previa,
+  .tuff-trilha[data-tuff-trilha]:hover .tuff-trilha-previa,
   .tuff-trilha--arrastando .tuff-trilha-previa { opacity: 1; }
 
   /* ── A forma de onda ────────────────────────────────────────────────────────
      O canvas ocupa a caixa inteira, e a altura é do app (40px por padrão, a de
-     uma linha de transporte). A prévia de tempo é a mesma peça da trilha, sobre
+     uma linha de transporte, e o alvo sob o dedo). A prévia de tempo é a mesma peça da trilha, sobre
      o ponteiro. */
 
   .tuff-onda {
     position: relative;
     flex: 1;
     min-width: 4rem;
-    height: 40px;
+    height: max(40px, var(--ds-alvo));
     cursor: pointer;
     touch-action: none;           /* o arraste é da onda, não do scroll da página */
     border-radius: var(--ds-radius-sm);
@@ -313,7 +316,7 @@
   .tuff-volume-trilha {
     position: relative;
     width: 64px;
-    height: 14px;
+    height: max(24px, var(--ds-alvo));
     display: flex;
     align-items: center;
     cursor: pointer;

@@ -110,6 +110,7 @@
     gap: var(--ds-gap-sm);
     padding: 5px var(--ds-gap-lg);
     min-height: var(--ds-alvo);
+    min-width: var(--ds-alvo);
     font: var(--tuff-weight-n) var(--tuff-size-sm) var(--ds-font);
     color: var(--ds-text);
     background: var(--ds-bg3);
@@ -611,7 +612,9 @@
     position: relative;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     height: max(24px, var(--ds-alvo));
+    min-width: var(--ds-alvo);
     padding: 0 10px;
     font-size: var(--tuff-size-sm);
     color: var(--ds-text);
@@ -750,15 +753,19 @@
     background: var(--ds-bg2);
     border-bottom: 1px solid var(--ds-border);
   }
-  table.tuff-tabela .tuff-tabela-th { height: 26px; padding: 0 var(--ds-gap-md); }
+  table.tuff-tabela .tuff-tabela-th { height: max(26px, var(--ds-alvo)); padding: 0 var(--ds-gap-md); }
   .tuff-tabela-th[aria-sort="ascending"],
   .tuff-tabela-th[aria-sort="descending"] { color: var(--ds-text); }
 
+  /* O botão de ordenar é o alvo do cabeçalho inteiro: tem a altura e a largura de um alvo, e
+     a coluna estreita ("CRC", "Tipo") não o encolhe abaixo disso. */
   .tuff-tabela-ordem {
     display: inline-flex;
     align-items: center;
     gap: 5px;
     max-width: 100%;
+    min-height: max(24px, var(--ds-alvo));
+    min-width: max(24px, var(--ds-alvo));
     padding: 0;
     border: 0;
     background: none;
@@ -829,9 +836,11 @@
     div.tuff-tabela .tuff-tabela-linha > .tuff-tabela-essencial { order: 0; align-self: center; }
     div.tuff-tabela .tuff-tabela-cab > .tuff-tabela-principal,
     div.tuff-tabela .tuff-tabela-linha > .tuff-tabela-principal { flex: 1 1 0; min-width: 0; }
-    /* A quebra entre a linha das colunas essenciais e a das outras. */
+    /* A quebra entre a linha das colunas essenciais e a das outras. A margem devolve o recuo
+       negativo da primeira coluna: sem ela, um cabeçalho com a primeira coluna vazia (a do
+       ícone) deixa a quebra caber na linha de cima, e a coluna principal fica com quase nada. */
     div.tuff-tabela .tuff-tabela-cab::after,
-    div.tuff-tabela .tuff-tabela-linha::after { content: ''; order: 1; flex-basis: 100%; }
+    div.tuff-tabela .tuff-tabela-linha::after { content: ''; order: 1; flex-basis: 100%; margin-left: var(--tuff-tabela-recuo, 0px); }
     div.tuff-tabela .tuff-tabela-linha > :not(.tuff-tabela-essencial) { font-size: var(--tuff-size-xs); color: var(--ds-text-dim); }
     div.tuff-tabela .tuff-tabela-th.tuff-tabela-num .tuff-tabela-ordem { flex-direction: row; }
   }
@@ -910,6 +919,8 @@
   }
   .tuff-trilha-parte {
     flex: none;
+    min-width: var(--ds-alvo);
+    min-height: var(--ds-alvo);
     padding: 3px 6px;
     border: 0;
     border-radius: var(--ds-radius-sm);
@@ -921,10 +932,12 @@
   }
   .tuff-trilha-parte:hover { background: var(--ds-bg-hover); color: var(--ds-text-mid); }
   .tuff-trilha-parte:focus-visible { outline: 2px solid var(--ds-border-focus); outline-offset: -2px; }
+  /* A parte atual é texto, e não alvo: ela não leva a medida do botão. */
   .tuff-trilha-atual,
   .tuff-trilha-atual:hover {
     flex: 0 1 auto;
     min-width: 0;
+    min-height: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     background: none;
@@ -948,7 +961,7 @@
     flex-shrink: 0;
     align-items: center;
     gap: 2px;
-    min-height: 28px;
+    min-height: max(28px, var(--ds-alvo));
     padding: 0 6px;
     background: var(--ds-bg2);
     color: var(--ds-text);
@@ -956,6 +969,7 @@
     user-select: none;
   }
   .tuff-menus > button {
+    min-height: max(24px, var(--ds-alvo));
     padding: 3px 8px;
     border: 0;
     border-radius: var(--ds-radius-sm);
@@ -1395,7 +1409,7 @@
     align-items: center;
     gap: 6px;
     flex: 0 1 auto;
-    height: 29px;
+    height: max(29px, var(--ds-alvo));
     min-width: 96px;
     max-width: 200px;
     padding: 0 6px 0 12px;
@@ -1434,8 +1448,8 @@
     flex: none;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
+    width: 24px;
+    height: 24px;
     padding: 0;
     border: 0;
     border-radius: var(--ds-radius-md);
@@ -1443,6 +1457,9 @@
     color: var(--ds-text-dim);
     cursor: pointer;
     opacity: 0;
+  }
+  @media (pointer: coarse) {
+    .tuff-aba-fechar { width: var(--ds-alvo); height: var(--ds-alvo); }
   }
   .tuff-aba:hover .tuff-aba-fechar,
   .tuff-aba:focus-visible .tuff-aba-fechar,
@@ -1475,8 +1492,8 @@
     align-self: center;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
+    width: max(28px, var(--ds-alvo));
+    height: max(28px, var(--ds-alvo));
     margin: 0 0 -3px 2px;
     padding: 0;
     border: 0;
@@ -1525,15 +1542,15 @@
     display: flex;
     align-items: center;
   }
-  .tuff-busca-caixa > .tuff-busca { padding-right: 26px; }
+  .tuff-busca-caixa > .tuff-busca { padding-right: 28px; }
   .tuff-busca-limpar {
     position: absolute;
-    right: 3px;
+    right: 1px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     padding: 0;
     border: 0;
     border-radius: var(--ds-radius-sm);
@@ -1544,6 +1561,10 @@
   .tuff-busca-limpar:hover { background: var(--ds-bg-hover); color: var(--ds-text-mid); }
   .tuff-busca-limpar svg { width: 12px; height: 12px; }
   .tuff-busca:placeholder-shown + .tuff-busca-limpar { display: none; }
+  @media (pointer: coarse) {
+    .tuff-busca-caixa > .tuff-busca { padding-right: calc(var(--ds-alvo) + 2px); }
+    .tuff-busca-limpar { right: 0; width: var(--ds-alvo); height: var(--ds-alvo); }
+  }
 
   /* ── Detalhe (disclosure) ───────────────────────────────────────────────────
      `<details>` nativo: abre sem JavaScript, é encontrável pelo Ctrl+F do
@@ -1559,6 +1580,7 @@
     display: flex;
     align-items: center;
     gap: var(--ds-gap-md);
+    min-height: var(--ds-alvo);
     padding: var(--ds-gap-md) var(--ds-gap-lg);
     font-size: var(--tuff-size-sm);
     color: var(--ds-text);
@@ -1642,6 +1664,10 @@
     box-shadow: 0 0 0 2px var(--ds-bg2);
   }
   button.tuff-avatar { cursor: pointer; }
+  /* Sob o dedo, o avatar que leva a algum lugar cresce até o alvo, e as iniciais com ele. */
+  @media (pointer: coarse) {
+    button.tuff-avatar { width: var(--ds-alvo); height: var(--ds-alvo); font-size: 13px; }
+  }
   button.tuff-avatar:focus-visible { outline: 2px solid var(--ds-border-focus); outline-offset: 2px; }
   .tuff-avatar--pequeno { width: 20px; height: 20px; font-size: 9px; }
   .tuff-avatar--presente::after {

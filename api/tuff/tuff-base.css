@@ -240,6 +240,20 @@
   :where(input[type="checkbox"], input[type="radio"], input[type="range"], progress) {
     accent-color: var(--ds-accent);
   }
+  /* A caixa de marcar é pequena, e o alvo é o rótulo dela, com a altura de um controle. O
+     controle deslizante e o resumo de um `<details>` ganham a mesma altura pela caixa: o desenho
+     nativo continua o mesmo, centrado nela. */
+  :where(label:has(> input[type="checkbox"], > input[type="radio"])) {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ds-gap-sm);
+    min-height: var(--ds-alvo);
+  }
+  :where(input[type="range"]) { min-height: var(--ds-alvo); }
+  :where(details:not([class]) > summary) {
+    padding-block: max(0px, calc((var(--ds-alvo) - 1lh) / 2));
+    cursor: pointer;
+  }
 
   :where(table:not([class])) { border-collapse: collapse; font-size: var(--tuff-size-sm); color: var(--ds-text); }
   :where(table:not([class]) th) {
