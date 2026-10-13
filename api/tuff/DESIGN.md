@@ -89,7 +89,9 @@ escuro, para o texto não perder contraste no hover. Quem aplica a regra é
 `SettingsWindow._applyAccentColor`, e o SDK web passa os cinco tokens a um app.
 
 O destaque como texto (`--ds-accent-texto`, 55% do destaque com branco) passa de 6,8:1 sobre a
-página com qualquer uma das sete.
+página com qualquer uma das sete. O anel de foco usa o mesmo tom, e não o destaque cru: o cru
+fica abaixo dos 3:1 de um indicador de estado (o azul dá 2,69 sobre a página e 1,92 sobre o
+campo), e o clareado passa de 4,8:1 em todas as superfícies com as sete cores.
 
 ### Estado e categoria
 

@@ -461,12 +461,16 @@
 //     TuffAbas.titular(aba, titulo, icone)        troca o título e, se vier, o ícone
 //     TuffAbas.sujo(aba, sim)                     o ponto de alteração não salva
 //     TuffAbas.ligar(tira, { escolher, fechar, reordenar })  o clique, o teclado e o arraste
+//     TuffAbas.lista(tira)                        a lista das abas, para quem desenha as próprias
 //
-// A tira é um `tablist` com a aba ativa no `tabindex` 0 e as outras fora da ordem do Tab, como pede
-// o padrão de abas: o Tab entra na tira pela ativa, e as setas andam entre elas. A seta já escolhe
-// a aba (ativação automática), porque trocar de aba aqui é barato e não abre nada. Home e End vão
-// às pontas, e Delete fecha. Quem guarda o estado é a janela: a tira só avisa qual aba a pessoa
-// pediu, e a janela chama `escolher` quando a troca acontece.
+// As abas moram numa lista dentro da tira (`.tuff-abas-lista`, com `role="tablist"` e `display:
+// contents`), e o "+" fica fora dela: um `tablist` só pode ter `tab`, e o leitor de tela contaria o
+// "+" como mais uma aba. Quem monta a janela pode inserir a aba antes do "+", e `ligar` a leva para
+// dentro da lista. A lista tem a aba ativa no `tabindex` 0 e as outras fora da ordem do Tab, como
+// pede o padrão de abas: o Tab entra na tira pela ativa, e as setas andam entre elas. A seta já
+// escolhe a aba (ativação automática), porque trocar de aba aqui é barato e não abre nada. Home e
+// End vão às pontas, e Delete fecha. Quem guarda o estado é a janela: a tira só avisa qual aba a
+// pessoa pediu, e a janela chama `escolher` quando a troca acontece.
 //
 // O ícone é texto de SVG confiável (o sprite, ou um desenho do próprio ambiente) ou um elemento,
 // como o favicon de uma página. Enquanto a aba carrega, a classe `tuff-aba--carregando` troca o
@@ -535,10 +539,24 @@
     }
   }
 
-  const abasDe = (tira) => [...tira.children].filter((c) => c.classList.contains('tuff-aba'));
+  // A tira é o `.tuff-abas` que rola; a lista é onde as abas moram. Uma aba que chegou direto na
+  // tira (inserida antes do "+") entra na lista na hora em que alguém pergunta por ela.
+  const tiraDe = (el) => el?.closest?.('.tuff-abas') || null;
+  function listaDe(tira) {
+    if (!tira) return null;
+    let lista = tira.querySelector(':scope > .tuff-abas-lista');
+    if (!lista) {
+      lista = document.createElement('div');
+      lista.className = 'tuff-abas-lista';
+      tira.prepend(lista);
+    }
+    for (const a of [...tira.children]) if (a.classList.contains('tuff-aba')) lista.append(a);
+    return lista;
+  }
+  const abasDe = (tira) => [...listaDe(tira).children].filter((c) => c.classList.contains('tuff-aba'));
 
   function escolher(el) {
-    const tira = el?.parentElement;
+    const tira = tiraDe(el);
     if (!tira) return;
     for (const a of abasDe(tira)) {
       const ativa = a === el;
@@ -554,26 +572,44 @@
     else if (ra.right > rt.right - nova) tira.scrollLeft += ra.right - (rt.right - nova);
   }
 
+  /**
+   * A lista das abas da tira, já com o papel de `tablist` e o nome da tira ("Abas de Arquivos"), que
+   * passa a ela porque é ela que o leitor de tela anuncia. Quem desenha as próprias abas (o
+   * Navegador, a janela de um app) as põe aqui, e não direto na tira.
+   */
+  function lista(tira) {
+    const l = listaDe(tira);
+    if (!l) return null;
+    l.setAttribute('role', 'tablist');
+    if (tira.getAttribute('role') === 'tablist') tira.removeAttribute('role');
+    for (const at of ['aria-label', 'aria-labelledby']) {
+      if (tira.hasAttribute(at)) { l.setAttribute(at, tira.getAttribute(at)); tira.removeAttribute(at); }
+    }
+    return l;
+  }
+
   function ligar(tira, { escolher: aoEscolher, fechar: aoFechar, reordenar } = {}) {
     if (!tira) return;
-    tira.setAttribute('role', 'tablist');
+    const fila = lista(tira);
+    new MutationObserver(() => listaDe(tira)).observe(tira, { childList: true });
+    const daTira = (a) => a && a.parentElement === fila;
     let arraste = null;
     tira.addEventListener('click', (e) => {
       const a = e.target.closest('.tuff-aba');
-      if (!a || a.parentElement !== tira) return;
+      if (!daTira(a)) return;
       if (e.target.closest('.tuff-aba-fechar')) { e.stopPropagation(); aoFechar?.(a); return; }
       aoEscolher?.(a);
     });
     // O botão do meio fecha, como numa aba de navegador.
     tira.addEventListener('auxclick', (e) => {
       const a = e.target.closest('.tuff-aba');
-      if (e.button !== 1 || !a || a.parentElement !== tira) return;
+      if (e.button !== 1 || !daTira(a)) return;
       e.preventDefault();
       aoFechar?.(a);
     });
     tira.addEventListener('keydown', (e) => {
       const atual = e.target.closest('.tuff-aba');
-      if (!atual || atual.parentElement !== tira) return;
+      if (!daTira(atual)) return;
       const abas = abasDe(tira);
       const i = abas.indexOf(atual);
       let alvo = null;
@@ -597,7 +633,7 @@
     if (!reordenar) return;
     tira.addEventListener('keydown', (e) => {
       const atual = e.target.closest('.tuff-aba');
-      if (!atual || atual.parentElement !== tira || !e.ctrlKey || !e.shiftKey) return;
+      if (!daTira(atual) || !e.ctrlKey || !e.shiftKey) return;
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
       e.preventDefault();
       e.stopImmediatePropagation();
@@ -610,7 +646,7 @@
     }, true);
     tira.addEventListener('pointerdown', (e) => {
       const a = e.target.closest('.tuff-aba');
-      if (e.button !== 0 || e.pointerType === 'touch' || !a || a.parentElement !== tira || e.target.closest('.tuff-aba-fechar')) return;
+      if (e.button !== 0 || e.pointerType === 'touch' || !daTira(a) || e.target.closest('.tuff-aba-fechar')) return;
       arraste = { aba: a, x: e.clientX, id: e.pointerId, andou: false, antes: abasDe(tira) };
     });
     tira.addEventListener('pointermove', (e) => {
@@ -624,12 +660,11 @@
         tira.setPointerCapture?.(e.pointerId);
       }
       // A aba vai para antes da primeira outra cujo meio fica à direita do ponteiro, e para o fim
-      // da fila de abas (antes do "+") quando não há nenhuma.
+      // da lista (antes do "+") quando não há nenhuma.
       const outras = abasDe(tira).filter((x) => x !== arraste.aba);
-      const ref = outras.find((x) => { const r = x.getBoundingClientRect(); return e.clientX < r.left + r.width / 2; })
-        || tira.querySelector(':scope > .tuff-aba-nova');
-      if (ref && arraste.aba.nextElementSibling !== ref) tira.insertBefore(arraste.aba, ref);
-      else if (!ref && tira.lastElementChild !== arraste.aba) tira.append(arraste.aba);
+      const ref = outras.find((x) => { const r = x.getBoundingClientRect(); return e.clientX < r.left + r.width / 2; });
+      if (ref && arraste.aba.nextElementSibling !== ref) fila.insertBefore(arraste.aba, ref);
+      else if (!ref && fila.lastElementChild !== arraste.aba) fila.append(arraste.aba);
     });
     const soltar = (e) => {
       if (!arraste || e.pointerId !== arraste.id) return;
@@ -645,7 +680,7 @@
     tira.addEventListener('pointercancel', soltar);
   }
 
-  window.TuffAbas = { aba, escolher, titular, sujo, ligar };
+  window.TuffAbas = { aba, escolher, titular, sujo, ligar, lista };
 })();
 
 // ─── A trilha, a barra de menus e a moldura ──────────────────────────────────────────────────────
@@ -1248,6 +1283,10 @@
       const v = Math.max(min, Math.round(inicial));
       alvo.style.width = `${v - bordas()}px`;
       alca.setAttribute('aria-valuenow', String(v));
+    } else {
+      // Um separador que recebe foco precisa de valor desde já; a largura que a região tem agora,
+      // ou o `min` quando ela ainda não tem tamanho, e o foco a acerta depois.
+      alca.setAttribute('aria-valuenow', String(Math.max(min, Math.round(alvo.getBoundingClientRect().width))));
     }
     const avisar = (v) => { try { aoMudar?.(v); } catch (e) { console.warn('[TuffAlca] aoMudar:', e); } };
 

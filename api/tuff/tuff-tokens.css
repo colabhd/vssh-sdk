@@ -236,7 +236,10 @@
   --ds-bg-hover:       var(--tuff-bg-hover);
   --ds-border:         var(--tuff-border);
   --ds-border-input:   var(--tuff-border-input);
-  --ds-border-focus:   var(--tuff-border-focus);
+  /* O anel de foco é o destaque clareado do texto (`--ds-accent-texto`, abaixo): o destaque cru
+     fica entre 1,92 e 3,35:1 sobre as superfícies, e um indicador de estado pede 3:1. O clareado
+     passa de 4,8:1 com as sete cores sobre a página, a peça, o terceiro degrau e o campo. */
+  --ds-border-focus:   var(--ds-accent-texto);
   --ds-text:           var(--tuff-text);
   --ds-text-dim:       var(--tuff-text-dim);
   --ds-text-mid:       var(--tuff-text-bright);

@@ -302,10 +302,32 @@
     if (elVolume) {
       const trilho = elVolume.querySelector('.tuff-volume-trilha') || elVolume;
       const nivel = elVolume.querySelector('.tuff-volume-nivel');
+      // O volume é um `slider`, como a posição: sem o papel e o foco ele só existia para o ponteiro,
+      // e o leitor de tela não dizia o nível. As setas andam 5%, PageUp e PageDown 10%, Home e End
+      // vão aos extremos.
+      trilho.setAttribute('role', 'slider');
+      if (!trilho.hasAttribute('tabindex')) trilho.tabIndex = 0;
+      if (!trilho.hasAttribute('aria-label')) trilho.setAttribute('aria-label', 'Volume');
+      trilho.setAttribute('aria-valuemin', '0');
+      trilho.setAttribute('aria-valuemax', '100');
       const pintarVolume = () => {
-        if (nivel) nivel.style.width = `${(video.muted ? 0 : video.volume) * 100}%`;
+        const pct = Math.round((video.muted ? 0 : video.volume) * 100);
+        if (nivel) nivel.style.width = `${pct}%`;
         elVolume.classList.toggle('tuff-volume--mudo', !!video.muted);
+        trilho.setAttribute('aria-valuenow', String(pct));
+        trilho.setAttribute('aria-valuetext', video.muted ? 'Sem som' : `${pct}%`);
       };
+      ouvir(trilho, 'keydown', (e) => {
+        const passo = { ArrowRight: 0.05, ArrowUp: 0.05, ArrowLeft: -0.05, ArrowDown: -0.05, PageUp: 0.1, PageDown: -0.1 }[e.key];
+        let v = null;
+        if (passo !== undefined) v = (video.muted ? 0 : video.volume) + passo;
+        else if (e.key === 'Home') v = 0;
+        else if (e.key === 'End') v = 1;
+        if (v === null) return;
+        e.preventDefault();
+        video.volume = Math.min(1, Math.max(0, Math.round(v * 100) / 100));
+        if (video.volume > 0) video.muted = false;
+      });
       const ajustar = (clientX) => {
         video.volume = fracaoDoPonteiro(trilho, clientX);
         // Mexer no volume desliga o mudo. Ficar mudo enquanto a barra sobe é a interação que faz
@@ -615,7 +637,8 @@
    * `.tuff-grade-fuso` dá ao contêiner a altura que a barra de rolagem precisa ter.
    *
    * `montar(indice, no)` é chamada toda vez que um nó é reusado para outro índice. Ela recebe o nó
-   * já posicionado e só precisa preencher o conteúdo.
+   * já posicionado e só precisa preencher o conteúdo. `rotulo` é o nome da grade para o leitor de
+   * tela ("Fotos de Coleta"); uma lista sem nome é anunciada só como "lista".
    *
    * Devolve `{ atualizar(total), selecionar(i), redimensionar(largura, altura), destruir() }`.
    */
@@ -744,6 +767,7 @@
     };
     el.addEventListener('keydown', aoTeclar);
     el.setAttribute('role', 'listbox');
+    if (o.rotulo && !el.hasAttribute('aria-label') && !el.hasAttribute('aria-labelledby')) el.setAttribute('aria-label', o.rotulo);
     if (!el.hasAttribute('tabindex')) el.tabIndex = 0;
 
     medir(); desenhar();

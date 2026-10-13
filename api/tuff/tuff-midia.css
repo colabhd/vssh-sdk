@@ -380,7 +380,9 @@
 
   /* ── A tira ─────────────────────────────────────────────────────────────────
      A fita horizontal ao pé do visor. Mesma seleção da grade, para as duas
-     peças não ensinarem coisas diferentes sobre "o que está aberto". */
+     peças não ensinarem coisas diferentes sobre "o que está aberto": a tira é
+     um `role="listbox"` com nome, e cada item um `role="option"`, que é o papel
+     que aceita o `aria-selected`. */
 
   .tuff-tira {
     display: flex;
