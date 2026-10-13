@@ -69,7 +69,7 @@ qual for a ordem em que as folhas chegam, e é isso que dá a hierarquia certa s
 }
 
 /* O app, fora da camada: vence em todo empate, mesmo carregado antes. */
-.tuff-btn { min-height: 30px; }
+.tuff-btn { min-height: max(30px, var(--ds-alvo)); }
 ```
 
 A ordem é: padrão da biblioteca, depois a escolha do app, depois a escolha do ambiente. A folha do

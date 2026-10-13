@@ -36,7 +36,7 @@
                 data-tuff-dica="Reduzir (−)">
           <svg class="tuff-ico" aria-hidden="true"><use href="#ico-zoom-out"></use></svg>
         </button>
-        <button class="tuff-btn escala" id="btn-escala" data-prioridade="baixa" aria-label="Caber na janela ou 1:1"
+        <button class="tuff-btn escala" id="btn-escala" data-prioridade="baixa" aria-label="100%, caber na janela ou 1:1"
                 data-tuff-dica="Caber na janela (0) ou 1:1 (1)">100%</button>
         <button class="tuff-btn tuff-btn--icone" id="btn-mais" data-prioridade="baixa" aria-label="Ampliar"
                 data-tuff-dica="Ampliar (+)">
@@ -105,7 +105,7 @@
       <label class="tuff-seg-btn"><input type="radio" name="pdf-aba" value="paginas" checked>Páginas</label>
       <label class="tuff-seg-btn"><input type="radio" name="pdf-aba" value="sumario">Sumário</label>
     </div>
-    <div class="pdf-miniaturas" id="pdf-miniaturas"></div>
+    <div class="pdf-miniaturas" id="pdf-miniaturas" role="listbox" aria-label="Páginas"></div>
     <div class="pdf-sumario" id="pdf-sumario" hidden></div>
   </nav>
 
@@ -192,7 +192,7 @@
   </aside>
 
   <!-- A pasta, em miniaturas, com a atual marcada. -->
-  <nav class="tuff-app-rodape tuff-tira tira" id="tira" hidden aria-label="Arquivos da pasta"></nav>
+  <div class="tuff-app-rodape tuff-tira tira" id="tira" hidden role="listbox" aria-label="Arquivos da pasta" aria-orientation="horizontal"></div>
 </div>
 
 </body>

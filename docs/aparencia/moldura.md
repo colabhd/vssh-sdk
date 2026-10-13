@@ -113,6 +113,11 @@ Sob ponteiro de toque, `--ds-alvo` sobe de 26 para 44 px, e os botões, os itens
 cabeçalho do painel crescem com ele. Uma peça do app que desenha linhas próprias usa o mesmo valor:
 o Palco dá às linhas da fila `height: max(30px, var(--ds-alvo))`.
 
+A folha do app fica fora da camada do Tuff e vence em todo empate, e por isso uma medida fixa num
+`.tuff-btn` desfaz o alvo: com `height: 28px` na folha do app, o botão continua com 28 px sob o
+dedo. A medida própria entra num `max()` com o token, `min-height: max(30px, var(--ds-alvo))`, e
+o botão fica com a maior das duas. A largura de um botão quadrado de ícone segue a mesma regra.
+
 `matchMedia('(pointer: coarse)')` responde dentro do quadro do app, sem a ponte. O Palco usa a
 consulta para tocar a faixa com um toque só na fila, onde o mouse pede o clique duplo.
 

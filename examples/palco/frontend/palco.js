@@ -726,6 +726,7 @@ function montarPalco() {
     video.playbackRate = v;
     const b = $('btn-veloc');
     b.textContent = `${numero(v)}×`;
+    b.setAttribute('aria-label', `Velocidade ${b.textContent}`);
     b.dataset.alterada = v === 1 ? '0' : '1';
   }
 

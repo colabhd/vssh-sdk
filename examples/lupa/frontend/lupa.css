@@ -83,7 +83,7 @@ body { margin: 0; overflow: hidden; }
   top: 50%;
   transform: translateY(-50%);
   z-index: 1;
-  width: 40px;
+  width: max(40px, var(--ds-alvo));
   height: 64px;
   display: grid;
   place-items: center;

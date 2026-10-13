@@ -131,8 +131,14 @@ function montarLupa() {
   // `aoMudar` já na construção.
   const noPdf = () => !!(atual && ehPdf(atual) && visorPdf && visorPdf.doc);
   const visor = TuffMidia.visor($('visor'), {
-    aoMudar: ({ escala }) => { if (!noPdf()) $('btn-escala').textContent = `${Math.round(escala * 100)}%`; },
+    aoMudar: ({ escala }) => { if (!noPdf()) pintarEscala(escala); },
   });
+  // O nome do botão começa pelo que ele mostra, para quem o aciona pela voz dizer o que vê.
+  function pintarEscala(escala) {
+    const b = $('btn-escala');
+    b.textContent = `${Math.round(escala * 100)}%`;
+    b.setAttribute('aria-label', `${b.textContent}, caber na janela ou 1:1`);
+  }
   const ampliar = () => (noPdf() ? visorPdf.viewer.increaseScale() : visor.ampliar());
   const reduzir = () => (noPdf() ? visorPdf.viewer.decreaseScale() : visor.reduzir());
   const caber = () => { if (noPdf()) visorPdf.viewer.currentScaleValue = 'page-fit'; else visor.ajustar(); };
@@ -313,7 +319,7 @@ function montarLupa() {
     eventBus.on('pagesinit', () => { viewer.currentScaleValue = 'auto'; });
     eventBus.on('pagechanging', ({ pageNumber }) => pintarPaginaPdf(pageNumber));
     eventBus.on('scalechanging', ({ scale }) => {
-      if (noPdf()) $('btn-escala').textContent = `${Math.round(scale * 100)}%`;
+      if (noPdf()) pintarEscala(scale);
     });
     eventBus.on('updatefindmatchescount', ({ matchesCount }) => pintarContagem(matchesCount));
     eventBus.on('updatefindcontrolstate', ({ state, matchesCount }) => pintarContagem(matchesCount, state));
@@ -411,11 +417,8 @@ function montarLupa() {
 
   function pintarPaginaPdf(n) {
     $('pdf-pagina').value = String(n);
-    for (const b of $('pdf-miniaturas').children) {
-      const sim = Number(b.dataset.pagina) === n;
-      b.setAttribute('aria-selected', String(sim));
-      if (sim && !$('pdf-lateral').hidden) b.scrollIntoView({ block: 'nearest' });
-    }
+    marcarNaLista($('pdf-miniaturas'), (b) => Number(b.dataset.pagina) === n,
+      $('pdf-lateral').hidden ? null : { block: 'nearest' });
   }
 
   // Ctrl e a roda ampliam no ponteiro, proporcionais ao gesto, como o visor faz com uma imagem.
@@ -516,6 +519,8 @@ function montarLupa() {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'pdf-miniatura';
+      b.setAttribute('role', 'option');
+      b.tabIndex = n === 1 ? 0 : -1;
       b.dataset.pagina = String(n);
       b.setAttribute('aria-label', `Página ${n}`);
       b.innerHTML = `<span class="folha"></span><span class="numero">${n}</span>`;
@@ -547,6 +552,14 @@ function montarLupa() {
   $('pdf-miniaturas').addEventListener('click', (e) => {
     const b = e.target.closest('.pdf-miniatura');
     if (b) irPaginaPdf(Number(b.dataset.pagina));
+  });
+  // A lista de páginas é uma parada só do Tab, e ↑ ↓ andam por ela; Home e End são da janela.
+  $('pdf-miniaturas').addEventListener('keydown', (e) => {
+    if (!noPdf() || e.ctrlKey || e.metaKey || e.altKey) return;
+    const passo = { ArrowUp: -1, ArrowDown: 1 }[e.key];
+    if (!passo) return;
+    e.preventDefault();
+    irPaginaPdf(visorPdf.viewer.currentPageNumber + passo);
   });
 
   function montarSumario(itens) {
@@ -905,6 +918,8 @@ function montarLupa() {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'tuff-tira-item';
+      b.setAttribute('role', 'option');
+      b.tabIndex = -1;
       b.dataset.i = String(i);
       b.title = it.nome;
       b.setAttribute('aria-label', it.nome);
@@ -928,11 +943,22 @@ function montarLupa() {
   }
   $('btn-tira').addEventListener('click', alternarTira);
 
+  // A tira é uma parada só do Tab, no arquivo aberto, e ← → da janela andam por ela.
   function marcarNaTira() {
-    for (const b of tira.children) {
-      const sim = Number(b.dataset.i) === indice;
+    marcarNaLista(tira, (b) => Number(b.dataset.i) === indice,
+      tira.hidden ? null : { block: 'nearest', inline: 'center' });
+  }
+
+  // A opção marcada é a única que o Tab alcança, e o foco que estava na lista vai com a marca.
+  function marcarNaLista(lista, eh, rolar) {
+    const comFoco = lista.contains(document.activeElement);
+    for (const b of lista.children) {
+      const sim = eh(b);
       b.setAttribute('aria-selected', String(sim));
-      if (sim && !tira.hidden) b.scrollIntoView({ block: 'nearest', inline: 'center' });
+      b.tabIndex = sim ? 0 : -1;
+      if (!sim) continue;
+      if (rolar) b.scrollIntoView(rolar);
+      if (comFoco) b.focus({ preventScroll: true });
     }
   }
   tira.addEventListener('click', (e) => {
