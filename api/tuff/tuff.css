@@ -1669,7 +1669,7 @@
     button.tuff-avatar { width: var(--ds-alvo); height: var(--ds-alvo); font-size: 13px; }
   }
   button.tuff-avatar:focus-visible { outline: 2px solid var(--ds-border-focus); outline-offset: 2px; }
-  .tuff-avatar--pequeno { width: 20px; height: 20px; font-size: 9px; }
+  .tuff-avatar--pequeno { width: 20px; height: 20px; font-size: var(--tuff-size-2xs); }
   .tuff-avatar--presente::after {
     content: '';
     position: absolute;
@@ -1700,7 +1700,7 @@
     top: -1.45em;
     left: -2px;
     padding: 3px 5px;
-    font: 600 10.5px/1 var(--ds-font);
+    font: 600 var(--tuff-size-xs)/1 var(--ds-font);
     color: #161616;
     background: var(--tuff-cor, var(--ds-accent));
     border-radius: 3px 3px 3px 0;

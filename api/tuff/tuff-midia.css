@@ -140,12 +140,13 @@
     gap: var(--ds-gap-md);
     padding: 2px var(--ds-gap-md) var(--ds-gap-sm);
   }
-  /* `min-width: 0` nas pontas: sem ele, um nome comprido de faixa empurra o
+  /* `min-width: 0` no início: sem ele, um nome comprido de faixa empurra o
      aglomerado do meio para fora do centro, que é o que a grade existe para
-     impedir. */
+     impedir. O fim guarda a largura dos botões dele: numa barra estreita ele
+     toma o espaço do início, e nunca fica por cima do meio. */
   .tuff-transporte-inicio,
-  .tuff-transporte-fim { display: flex; align-items: center; min-width: 0; }
-  .tuff-transporte-inicio { gap: var(--ds-gap-sm); }
+  .tuff-transporte-fim { display: flex; align-items: center; }
+  .tuff-transporte-inicio { gap: var(--ds-gap-sm); min-width: 0; }
   .tuff-transporte-fim { gap: 2px; justify-content: flex-end; }
   /* Sem espaço entre os botões de transporte: eles são um grupo. Separá-los
      faria cada um parecer um comando independente, e é assim que "parar" vira
