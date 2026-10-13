@@ -230,10 +230,20 @@ class Pedido(http.server.BaseHTTPRequestHandler):
     recusa = 'Sem autorização.'
 
     # Entre um pedido e o seguinte de uma conexão keep-alive, a thread dela só espera a próxima
-    # linha, e o cliente (o `agenteHttp` do portal) guarda conexões ociosas no pool dele. Passado
-    # este prazo sem pedido, a conexão fecha e a thread sai junto. O prazo vale só na espera pelo
-    # pedido: um SSE ou um terminal depois do `101` correm sem ele.
+    # linha, e o cliente (o agente HTTP do proxy do portal) guarda conexões ociosas no pool dele.
+    # Passado este prazo sem pedido, a conexão fecha e a thread sai junto. O prazo vale só na
+    # espera pelo pedido: um SSE ou um terminal depois do `101` correm sem ele.
+    #
+    # Toda resposta anuncia o prazo em `Keep-Alive: timeout=<s>`, e o `http.Agent` do Node larga a
+    # conexão parada um segundo antes dele. Quem guarda a conexão fecha antes de quem serve: o
+    # fechamento do app leva uma ida pelo túnel até chegar ao portal, e um pedido que saísse nesse
+    # intervalo encontraria a conexão já fechada do outro lado.
     conexao_ociosa_s = float(os.environ.get('VSSH_CONEXAO_OCIOSA_S') or 300)
+
+    def send_response(self, code, message=None):
+        super().send_response(code, message)
+        if code != 101:
+            self.send_header('Keep-Alive', 'timeout=%d' % int(self.conexao_ociosa_s))
 
     def handle(self):
         self.close_connection = False
