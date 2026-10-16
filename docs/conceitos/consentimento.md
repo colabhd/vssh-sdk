@@ -11,6 +11,13 @@ ela escolheu num seletor. Um `showDirectoryPicker()` abre o gerenciador de arqui
 em modo de escolha; a pasta escolhida passa a ser alcançável pelo app, e só ela, com o que há
 dentro. Não há segunda confirmação: a escolha é o consentimento.
 
+Abrir um arquivo com o app também é escolher. O duplo-clique no gerenciador de arquivos, o "Abrir
+com" e um item que o app declarou no menu do arquivo entregam o caminho pelo evento `abertura`, e o
+shell concede aquele arquivo antes de entregá-lo, como o seletor faria. Um editor aberto num
+documento grava nele sem perguntar de novo onde. A concessão cobre o arquivo, e a pasta dele
+continua fora. Uma abertura de pasta (`tipo: 'pasta'`) não concede nada, porque ali a pessoa
+escolheu onde o app começa.
+
 Cada operação de arquivo do app atravessa a ponte e é conferida pelo shell contra a lista de
 concessões (os grants) antes de chegar à API do portal. O app nunca fala com `/api/fs/*` direto.
 Uma operação com dois caminhos (`renomear`, `copiar`) confere os dois: sem isso, um `renomear`
