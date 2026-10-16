@@ -105,9 +105,10 @@
   // ── O transporte ──────────────────────────────────────────────────────────────────────────
   //
   // Toda chamada com resposta tem prazo, e o prazo vem do ritmo declarado na tabela: cinco
-  // segundos para o que não depende de uma pessoa, dez minutos para um diálogo ou um seletor. Um
-  // shell que não conhece o verbo responde `ok: false` na hora; o prazo é para o shell mudo, que
-  // sem ele deixaria a promessa pendurada para sempre, sem rastro no console.
+  // segundos para o que não depende de uma pessoa, dez minutos para um diálogo, um seletor ou os
+  // bytes de um arquivo inteiro atravessando a ponte. Um shell que não conhece o verbo responde
+  // `ok: false` na hora; o prazo é para o shell mudo, que sem ele deixaria a promessa pendurada
+  // para sempre, sem rastro no console.
   const pendentes = new Map();
   let seq = 0;
   const ouvintes = new Map();
@@ -310,7 +311,7 @@
   EVENTOS.app = {
     // Os tokens de destaque do ambiente, quando a pessoa troca a cor. Chega a quem não alcança o documento do shell, que é a página de outra origem.
     aparencia: ['appearance', { tokens: 'tokens' }],
-    // O contexto com que o app foi aberto ("abrir aqui", "abrir com", um item da jump list). Chega depois do load, e de novo quando uma ação alcança uma janela que já está aberta. `item` é o `id` do item de `contributes.contextMenu` que a pessoa clicou, e é por ele que um app com mais de um item no mesmo arquivo sabe qual foi.
+    // O contexto com que o app foi aberto ("abrir aqui", "abrir com", um item da jump list). Chega depois do load, e de novo quando uma ação alcança uma janela que já está aberta. `item` é o `id` do item de `contributes.contextMenu` que a pessoa clicou, e é por ele que um app com mais de um item no mesmo arquivo sabe qual foi. Com `tipo: 'arquivo'`, o arquivo chega já concedido ao app, como se a pessoa o tivesse escolhido no seletor: o app lê e grava nele pelos verbos de `arquivos`. Uma pasta não é concedida.
     abertura: ['open-context', { caminho: 'path', url: 'url', tipo: 'tipo', rota: 'rota', item: 'item' }],
   };
   EVENTOS.janela = {
@@ -427,11 +428,11 @@
     // O conteúdo de um arquivo, como texto.
     ler: (caminho) => ponte.chamar('arquivos.ler', { type: 'fs', op: 'read', path: caminho }, 5000),
     // O conteúdo de um arquivo, em bytes. No fio ele viaja em base64, porque um `ArrayBuffer` não atravessa o `postMessage` entre os dois documentos sem cópia; o SDK o devolve como `Uint8Array`.
-    lerBytes: (caminho) => ponte.chamar('arquivos.lerBytes', { type: 'fs', op: 'readBytes', path: caminho }, 5000),
+    lerBytes: (caminho) => ponte.chamar('arquivos.lerBytes', { type: 'fs', op: 'readBytes', path: caminho }, 600000),
     // Grava texto num arquivo, criando ou substituindo.
     escrever: (caminho, conteudo) => ponte.chamar('arquivos.escrever', { type: 'fs', op: 'write', path: caminho, content: conteudo }, 5000),
     // Grava bytes num arquivo, criando ou substituindo. É a rota de um binário: um PNG passado por `escrever` sairia corrompido sem aviso, porque aquela rota é de texto. O SDK codifica os bytes em base64 para o fio; uma string já é base64 e passa como veio.
-    escreverBytes: (caminho, bytes) => ponte.chamar('arquivos.escreverBytes', { type: 'fs', op: 'writeBytes', path: caminho, base64: bytes }, 5000),
+    escreverBytes: (caminho, bytes) => ponte.chamar('arquivos.escreverBytes', { type: 'fs', op: 'writeBytes', path: caminho, base64: bytes }, 600000),
     // Cria uma pasta.
     criarPasta: (caminho) => ponte.chamar('arquivos.criarPasta', { type: 'fs', op: 'mkdir', path: caminho }, 5000),
     // Apaga de vez um arquivo ou uma pasta com o conteúdo dela. A lixeira fica de fora; quem quer o caminho com desfazer usa o gerenciador de arquivos.

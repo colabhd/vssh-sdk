@@ -13,9 +13,9 @@ Ler e escrever com o consentimento do usuário, escolher, vigiar, abrir, abrir c
 | [`vssh.arquivos.listar(caminho)`](#listar) | sim, em até 5 s |
 | [`vssh.arquivos.consultar(caminho)`](#consultar) | sim, em até 5 s |
 | [`vssh.arquivos.ler(caminho)`](#ler) | sim, em até 5 s |
-| [`vssh.arquivos.lerBytes(caminho)`](#lerbytes) | sim, em até 5 s |
+| [`vssh.arquivos.lerBytes(caminho)`](#lerbytes) | sim, em até 10 min |
 | [`vssh.arquivos.escrever(caminho, conteudo)`](#escrever) | sim, em até 5 s |
-| [`vssh.arquivos.escreverBytes(caminho, bytes)`](#escreverbytes) | sim, em até 5 s |
+| [`vssh.arquivos.escreverBytes(caminho, bytes)`](#escreverbytes) | sim, em até 10 min |
 | [`vssh.arquivos.criarPasta(caminho)`](#criarpasta) | sim, em até 5 s |
 | [`vssh.arquivos.apagar(caminho)`](#apagar) | sim, em até 5 s |
 | [`vssh.arquivos.existe(caminho)`](#existe) | sim, em até 5 s |
@@ -92,7 +92,7 @@ No fio: `type: "fs", op: "read"`.
 O conteúdo de um arquivo, em bytes. No fio ele viaja em base64, porque um `ArrayBuffer` não
 atravessa o `postMessage` entre os dois documentos sem cópia; o SDK o devolve como `Uint8Array`.
 
-Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Responde: uma promessa, com prazo de 10 min (ritmo `transferencia`, a resposta leva o tempo de mover o arquivo inteiro).
 Um 404 do servidor é resposta, e não falha: é o verbo com que um app sonda antes de criar.
 Consentimento: o shell confere `caminho` contra o que o usuário concedeu a este app.
 Num hiperlink: vale.
@@ -126,7 +126,7 @@ Grava bytes num arquivo, criando ou substituindo. É a rota de um binário: um P
 `escrever` sairia corrompido sem aviso, porque aquela rota é de texto. O SDK codifica os bytes em
 base64 para o fio; uma string já é base64 e passa como veio.
 
-Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Responde: uma promessa, com prazo de 10 min (ritmo `transferencia`, a resposta leva o tempo de mover o arquivo inteiro).
 Consentimento: o shell confere `caminho` contra o que o usuário concedeu a este app.
 Num hiperlink: vale.
 No fio: `type: "fs", op: "writeBytes"`.

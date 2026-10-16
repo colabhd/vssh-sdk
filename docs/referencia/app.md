@@ -140,7 +140,9 @@ No fio: `type: "appearance"`.
 O contexto com que o app foi aberto ("abrir aqui", "abrir com", um item da jump list). Chega depois
 do load, e de novo quando uma ação alcança uma janela que já está aberta. `item` é o `id` do item de
 `contributes.contextMenu` que a pessoa clicou, e é por ele que um app com mais de um item no mesmo
-arquivo sabe qual foi.
+arquivo sabe qual foi. Com `tipo: 'arquivo'`, o arquivo chega já concedido ao app, como se a pessoa
+o tivesse escolhido no seletor: o app lê e grava nele pelos verbos de `arquivos`. Uma pasta não é
+concedida.
 
 | campo | tipo | opcional | no fio |
 |---|---|---|---|
