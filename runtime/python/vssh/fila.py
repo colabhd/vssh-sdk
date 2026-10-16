@@ -8,9 +8,9 @@ dele. É com esse par que tudo aqui fala com `/api/fila/*`. Sem ele, `disponivel
 pergunta. O app pergunta antes de prometer um botão.
 
 O trabalho é um container: a imagem do app, o comando, arquivos de entrada da estação e os nomes
-das saídas que ele vai escrever em `saidas/`. O SkyPilot escolhe o sítio, roda a imagem com o
-runtime dele instalado e ignora o ENTRYPOINT: o comando vai inteiro, e a imagem precisa de bash e
-apt (Debian ou Ubuntu). O comando roda num diretório com `entradas/` e `saidas/`, e
+das saídas que ele vai escrever em `saidas/`. O portal escolhe o sítio pela placa pedida e roda a
+imagem como um Job do cluster, que ignora o ENTRYPOINT: o comando vai inteiro, e a imagem precisa
+de bash e de curl ou python3. O comando roda num diretório com `entradas/` e `saidas/`, e
 `VSSH_ENTRADAS` e `VSSH_SAIDAS` têm os caminhos absolutos. Os arquivos viajam pelo S3 do cluster,
 por URLs que o portal assina; este módulo sobe as entradas e baixa as saídas com `urllib`, em
 stream.
@@ -32,9 +32,9 @@ stream.
             fila.baixar(ident, '/home/ana/videos/saida')
 
 Estados de um job: `declarado`, `enviado`, `na_fila`, `rodando`, e os finais `concluido`,
-`falhou` (com `motivo`: `prazo`, `imagem`, `espera`, `entrada:<nome>`, `codigo:<n>`, `sumiu`) e
-`cancelado`. Dentro do container, `VSSH_ENTRADAS` e `VSSH_SAIDAS` apontam os dois diretórios, e o
-diretório de trabalho é o pai deles.
+`falhou` (com `motivo`: `prazo`, `imagem`, `memoria`, `espera`, `entrada:<nome>`, `codigo:<n>`,
+`sumiu`) e `cancelado`. Dentro do container, `VSSH_ENTRADAS` e `VSSH_SAIDAS` apontam os dois
+diretórios, e o diretório de trabalho é o pai deles.
 
 Um trabalho que imprime linhas de `vssh.progresso` no stdout tem o progresso lido pelo portal: o
 `ao_evento` de `acompanhar` recebe `progresso` com o job, e `job['progresso']` traz `feito`,
