@@ -76,31 +76,26 @@ O `pedido` é o de `fila.submeter`. O trabalho segue o job pelos eventos do port
 o que o container imprimiu pelo mesmo protocolo: quem lê a linha no log é o portal. Com `linhas`,
 o log do container também chega ao app, sem as linhas de progresso.
 
-O job roda num pod do cluster, com a imagem do pedido, e o SkyPilot é quem o põe de pé. Por isso
-o pedido e a imagem seguem estas regras:
+O job roda num Job do Kubernetes, com a imagem do pedido, num contêiner só. Por isso o pedido e a
+imagem seguem estas regras:
 
-- o `comando` vai inteiro, porque o `ENTRYPOINT` e o `WORKDIR` da imagem não rodam. O `PATH` e o
-  resto do `ENV` dela continuam valendo;
-- a imagem tem bash e apt (Debian ou Ubuntu). Antes do comando, o SkyPilot prepara nela o runtime
-  dele (pacotes por apt, um Python 3.10 e um venv com o Ray), e numa `alpine` o job termina em
-  `falhou` com o motivo `imagem`;
+- o `comando` vai inteiro, porque o Job ignora o `ENTRYPOINT` da imagem. O `PATH` e o resto do
+  `ENV` dela continuam valendo;
 - o comando roda num diretório com `entradas/` e `saidas/`, que `VSSH_ENTRADAS` e `VSSH_SAIDAS`
   apontam. As entradas do pedido já estão em `entradas/`, e só volta como saída o que o comando
   escreve em `saidas/` com um nome que o pedido lista;
 - o comando aguenta recomeçar do zero. O cluster tira um job do nó quando uma carga de prioridade
-  maior precisa da placa ou o disco do nó aperta, e o SkyPilot o relança num pod novo: as entradas
-  descem de novo, o comando roda desde o começo e o progresso volta para trás. Enquanto isso o job
-  continua `rodando`, com o motivo "o nó caiu; retomando".
+  maior precisa da placa ou o disco do nó aperta, e o Job sobe outro pod: as entradas descem de
+  novo, o comando roda desde o começo e o progresso volta para trás. Enquanto isso o job continua
+  `rodando`, com o motivo "o pod saiu do nó; retomando".
 
-Entre o envio e o comando rodando, o job passa pelo servidor do SkyPilot, pela fila do Kueue do
-sítio, pelo download da imagem e pela preparação do runtime, e fica em `na_fila` enquanto isso. O
-download acontece uma vez em cada nó, e numa imagem de dezenas de GB essa vez leva minutos. A
-preparação acontece em todo job, porque cada job ganha um pod novo, e "A imagem do job", abaixo,
-diz como tirá-la do caminho.
+Entre o envio e o comando rodando, o job espera a fila do Kueue do sítio e o download da imagem, e
+fica em `na_fila` enquanto isso, com o motivo de cada espera. O download acontece uma vez em cada
+nó, e numa imagem de dezenas de GB essa vez leva minutos ("baixando a imagem").
 
-Um pedido de GPU sem `tipo` aceita os tipos padrão da fila, e o SkyPilot os tenta numa ordem que
-ele mesmo escolhe. Quando a placa do primeiro sítio está ocupada, o job espera a fila desse sítio
-(até 10 min em SP e 30 min em Franca) antes de tentar o outro.
+Um pedido de GPU sem `tipo` aceita os tipos padrão da fila. O portal lê a fila de cada sítio e
+manda o job primeiro aonde a placa está livre agora. Um job que espera num sítio sem ser admitido
+(10 min em SP, 30 min em Franca) vai ao sítio seguinte que tenha lugar.
 
 Aqui a biblioteca não escreve atividade nem notificação. O portal já põe o job em curso na bandeja
 de quem está com o ambiente aberto e avisa o fim, e escrever de novo daria duas linhas para o mesmo
@@ -109,31 +104,26 @@ trabalho. Para o aviso do portal levar a pessoa de volta ao trabalho, o pedido d
 
 ### A imagem do job
 
-Uma imagem qualquer paga a preparação do runtime em todo job: o SkyPilot baixa da internet o que
-ela não traz, e num pod do cluster isso leva de 25 a 66 s. Uma imagem que parte da base da fila já
-traz cada peça no lugar onde o SkyPilot procura, e a preparação cai para uns 3 s:
+A imagem precisa de bash e de curl ou python3. Quem roda o comando é um invólucro do portal, em
+bash, que baixa as entradas antes e sobe as saídas depois, pelo curl ou, sem ele, pelo python3. Sem
+bash o contêiner não sobe, e o job termina em `falhou` com o motivo `imagem`. Sem curl nem python3
+nada viaja: um job com entradas falha na primeira delas, antes do comando, e um sem entradas roda
+o comando, mas as saídas não voltam. A `alpine` pura não tem bash, e a `nvidia/cuda:*-base` não tem
+nem curl nem python3.
+
+Uma imagem de GPU não precisa trazer o driver nem o `nvidia-smi`: os dois vêm do nó junto com a
+placa, pelo runtime da NVIDIA. A `python:3.12-slim` serve de partida: com o torch do pip, ela já
+roda na placa.
 
 ```text
-FROM ghcr.io/colabhd/vssh-fila-base:skypilot0.14.0-ubuntu24.04-<commit>
+FROM python:3.12-slim
 RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
  && rm -rf /var/lib/apt/lists/*
 COPY motor/ /opt/meu-motor/
 ```
 
-A etiqueta com o commit é fixa, e a sem commit muda quando a base é refeita. A base parte de
-`ubuntu:24.04`. Um app de GPU recebe o driver do nó, e as bibliotecas CUDA vêm do pip, com o torch.
-
-O runtime mora no HOME de root, e a imagem derivada continua rodando como root. Com outro `USER`, o
-SkyPilot não acha o runtime e prepara tudo de novo, em todo job. Um Ray instalado noutra versão no
-mesmo venv tem o mesmo efeito. Para conferir uma imagem derivada:
-
-```bash
-docker run --rm minha-imagem bash /opt/vssh-fila/conferir-runtime-skypilot.sh
-```
-
-Cada linha diz `ok` ou `falta`, e a saída é 0 quando o SkyPilot vai pular a preparação. Quem
-precisa de outra imagem de partida, Debian ou Ubuntu, monta a própria base com o `Dockerfile` de
-`imagens/fila-base/` deste repositório e `--build-arg BASE=<imagem>`.
+Cada nó baixa a imagem uma vez e a guarda. Uma etiqueta fixa (`:0.3.1`, ou um digest) é baixada
+só quando falta no nó; `latest`, ou nenhuma etiqueta, é conferida no registro a cada job.
 
 ## Os eventos
 
