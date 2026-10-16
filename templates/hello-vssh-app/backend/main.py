@@ -210,8 +210,9 @@ def gpu_do_ambiente():
 # A quarta coisa que o app declara e o ambiente decide: `recursos.fila` no manifesto pede ao
 # portal a credencial (`VSSH_PORTAL_URL` + `VSSH_PORTAL_TOKEN`), e com ela o backend manda um
 # container ao cluster em vez de rodá-lo nesta máquina. A sonda abaixo é o menor trabalho que
-# prova o caminho inteiro: `nvidia-smi` numa imagem CUDA, com uma GPU do cluster, e a tabela volta
-# como arquivo de saída.
+# prova o caminho inteiro: `nvidia-smi` com uma GPU do cluster, e a tabela volta como arquivo de
+# saída. A imagem é a `python:3.12-slim`: o bash roda o invólucro do portal, o python3 dele sobe a
+# saída, e o `nvidia-smi` vem do nó junto com a placa, pelo runtime da NVIDIA.
 
 _sondas = {}
 _tranca_da_fila = threading.Lock()
@@ -241,7 +242,7 @@ def sondar_fila():
         return {"ok": False, "motivo": oferta["motivo"]}
     trabalho = {
         "nome": "sonda-gpu",
-        "imagem": "nvidia/cuda:12.6.0-base-ubuntu24.04",
+        "imagem": "python:3.12-slim",
         "comando": ["sh", "-c", 'nvidia-smi > "$VSSH_SAIDAS/placa.txt" 2>&1'],
         "saidas": ["placa.txt"],
         "cpu": "1", "memoria": "1Gi", "prazo": 600,
