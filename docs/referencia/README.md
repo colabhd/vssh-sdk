@@ -30,6 +30,7 @@ para pedir, `vssh.<espaco>.ao('<evento>', cb)` para ouvir. 13 espaços, 83 verbo
 |---|---|
 | [O manifesto](manifesto.md) | O `vssh-app.json` campo a campo, do schema: tipo, obrigatoriedade, padrão, valores e a descrição de cada um. |
 | [O ambiente do backend](ambiente.md) | As variáveis que o lançador exporta ao backend e os arquivos de `~/.vssh-apps/<id>/`. |
+| [O manifesto de um hiperlink](hiperlink.md) | O manifesto PWA de uma plataforma aberta como hiperlink e o membro `vssh` dele, campo a campo: o que o portal lê, o que ele recusa e o que ignora. |
 
 ## Os artefatos de que estas páginas saem
 

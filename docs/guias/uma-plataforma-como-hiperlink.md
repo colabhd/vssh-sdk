@@ -38,6 +38,10 @@ Os atalhos entram no botão direito do ícone, e só os da origem do manifesto. 
 link para aquele host, clicado em qualquer janela do ambiente, abrir na janela da plataforma. Um
 campo do membro `vssh` fora da forma do `vssh-app.json` some sem erro, como num app.
 
+Cada campo, com as faixas aceitas, a escolha do ícone, os tetos da busca e a tabela que leva as
+`categories` do W3C a uma seção do menu, está na referência
+[O manifesto de um hiperlink](../referencia/hiperlink.md).
+
 ## O quadro
 
 A janela é um quadro do portal do ambiente, e a plataforma precisa aceitá-lo:
@@ -61,14 +65,52 @@ No cliente de desktop a janela não é um quadro: a plataforma abre num `<webvie
 de cima, numa partição só dos hiperlinks. Ali o `frame-ancestors` não se aplica, o cookie da
 plataforma é de primeira parte, e a página de login do provedor abre dentro da janela. O SDK fala
 com o shell pela ponte que o cliente põe na página (`window.vsshPonteDoCliente`), e a plataforma
-não muda uma linha para isso.
+não muda uma linha para isso. Cada mensagem leva a origem lida fora do alcance da página, e o shell
+recusa o que não vem da origem da plataforma. Um `window.open` que o SDK não desviou vai ao
+navegador do sistema, e o menu de reserva do cliente (recortar, copiar, colar) não abre num campo
+da plataforma.
 
 ## O cadastro
 
-O admin do ambiente cola a URL da plataforma na página Hiperlinks do painel e dá acesso aos
-vínculos (os grupos do provedor de identidade) que devem vê-la. Na ficha, ele preenche o slug da
-aplicação da plataforma no Authentik, que a identidade confere. "Reler o manifesto" refaz a
-leitura depois de uma mudança no site; o ambiente não relê sozinho.
+O admin do ambiente cola a URL da plataforma na página Hiperlinks do painel: a página dela ou o
+próprio manifesto. Quem busca é o servidor do portal, e um site sem manifesto legível é recusado
+com o motivo. O id nasce ali, escolhido pelo admin ou tirado do primeiro rótulo do host (`cadernos`
+de `cadernos.exemplo.org`), com a forma de um id de app e começando por letra. Numa estação com um
+vssh-app instalado com o mesmo id, quem aparece é o app.
+
+Depois o admin dá acesso aos vínculos (os grupos do provedor de identidade) que devem ver a
+plataforma. Um hiperlink vale em toda estação, porque não depende de servidor Linux, e sem vínculo
+nenhum só o admin o vê. Na ficha, ele preenche o slug da aplicação da plataforma no Authentik, que
+a identidade confere. "Reler o manifesto" refaz a leitura depois de uma mudança no site; o
+ambiente não relê sozinho.
+
+A ficha mede, quando abre, se a página de início aceita o quadro. O portal a pede sem cookie e lê
+os cabeçalhos pela regra do navegador:
+
+| pílula | o que a plataforma respondeu |
+|---|---|
+| abre no VSSH | a página, com o portal no `frame-ancestors` ou sem recusa nenhuma |
+| recusa o quadro | `X-Frame-Options: DENY` ou `SAMEORIGIN`, ou um `frame-ancestors` sem o portal |
+| pede login | um redirecionamento para outra origem, que costuma ser o login da plataforma |
+| sem resposta | nada, um 404 ou um 5xx |
+
+## A janela
+
+A pessoa abre a plataforma como abre um app: menu iniciar, Launchpad, barra, atalho na área de
+trabalho, Alt+Tab. A janela carrega a URL da plataforma direto no navegador da pessoa, sem start,
+sem stop e sem o proxy do portal no meio.
+
+| pedido | para onde a janela vai |
+|---|---|
+| abrir | a URL de início |
+| um atalho do manifesto | o caminho dele, na origem da plataforma |
+| um link de um host de `opens.urls` | o link, quando ele é da origem da plataforma |
+| qualquer um deles com a janela já aberta | a mesma janela navega até lá; sem destino próprio, ela fica onde está |
+
+Um destino de outra origem nunca entra na janela. O menu do cabeçalho não tem "Ver log do backend"
+nem "Permissões de arquivo", que são de um app com processo na estação, e tem "Abrir no navegador",
+que leva o endereço da janela a uma aba fora do ambiente. Com a plataforma fora do ar, ou
+recusando o quadro, a janela mostra a página de erro do próprio navegador e continua de pé.
 
 ## O SDK
 
@@ -77,6 +119,11 @@ A plataforma carrega o SDK web do portal, e não de uma cópia:
 ```html
 <script src="https://<portal>/sdk/vssh.js"></script>
 ```
+
+O portal serve `/sdk/<arquivo>` sem sessão, com `Cross-Origin-Resource-Policy: cross-origin` e
+`Access-Control-Allow-Origin: *`, e com os mesmos bytes do `_sdk/` de um app. O cabeçalho é o que
+deixa a página da plataforma carregar o script, e o CORS é o que deixa o `@font-face` do Tuff
+buscar as fontes.
 
 O SDK reconhece que veio de outra origem e, antes de falar a ponte, aperta a mão do shell: manda
 uma mensagem ao quadro pai, com o alvo na origem do portal, e espera a resposta por até cinco
@@ -144,8 +191,17 @@ o modo `hashed_user_id`; com ele, a sessão aberta pelo bilhete é a da mesma pe
 também `email`, `name`, `preferred_username` e `groups`.
 
 O portal só emite para quem vê o hiperlink e passa na política da aplicação da plataforma no
-Authentik, a mesma que o login confere. Sem o slug da aplicação na ficha, a chamada é recusada com o
-motivo. Fora do ambiente, `identidade()` recusa, e a plataforma segue com o login dela.
+Authentik, a mesma que o login confere. Fora do ambiente, `identidade()` recusa, e a plataforma
+segue com o login dela. Dentro dele, a promessa rejeitada traz o motivo:
+
+| recusa | quando |
+|---|---|
+| `404` | a pessoa não vê o hiperlink |
+| `403` | a política da aplicação no Authentik não deixa a pessoa entrar |
+| `409` | a ficha não tem o slug da aplicação |
+| `503` | falta ao portal a chave do bilhete, o endereço ou o token do Authentik, ou o Authentik não respondeu em 4 s |
+
+Uma conta de serviço não recebe bilhete.
 
 ## Oferecer uma capacidade
 
@@ -153,7 +209,17 @@ Uma plataforma oferece uma capacidade como um app oferece (ver [chamar outro
 app](chamar-outro-app.md)), com `provides` e `capacidades` no membro `vssh`. O pedido de outro app
 chega do servidor do portal, com o bilhete da pessoa no `Authorization` e o id de quem pediu em
 `X-Vssh-Chamador`, só nas rotas debaixo do prefixo declarado. O backend confere o bilhete como na
-entrada, e responde como responderia à própria página.
+entrada, e responde como responderia à própria página. A resposta volta a quem pediu como a de um
+app: status, tipo e corpo. Como o pedido sai do servidor do portal, a plataforma não precisa de
+CORS para ele.
+
+| o relé | valor |
+|---|---|
+| métodos | `GET`, `POST`, `PUT`, `PATCH` e `DELETE`; outro responde `405` |
+| caminho | só debaixo dos prefixos de `capacidades`, conferido depois de resolver `..` e `%2e%2e`; fora deles, `403` |
+| prazo | 30 s, e `504` quando passa; `502` quando a plataforma não responde |
+| resposta | até 10 MB |
+| corpo JSON | até 100 kB, o teto dos parsers do portal |
 
 ## Arquivos
 

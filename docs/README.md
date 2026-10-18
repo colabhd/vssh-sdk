@@ -1,8 +1,9 @@
 # SDK do VSSH: conceitos e guias
 
 Este portal é para quem vai escrever um vssh-app: um pacote com frontend HTML e backend próprio,
-instalado num servidor Linux do VSSH e aberto como uma janela do ambiente. O público são as pessoas
-da casa e os parceiros que escrevem apps para pesquisa. O tom é de manual.
+instalado num servidor Linux do VSSH e aberto como uma janela do ambiente. Serve também a quem
+mantém uma plataforma web que entra no ambiente como hiperlink, pela URL dela, sem pacote. O
+público são as pessoas da casa e os parceiros que escrevem apps para pesquisa. O tom é de manual.
 
 O portal tem quatro seções. A referência é gerada pelo sistema a partir da tabela de exportação
 da ponte, verbo a verbo, e ninguém a edita. As três seções autoradas estão aqui: os conceitos, que
@@ -14,10 +15,12 @@ documenta o Tuff, o ambiente visual que um app recebe pronto.
 A referência mora em [`referencia/`](referencia/README.md): um capítulo por espaço da API
 (`vssh.app`, `vssh.janela`, `vssh.arquivos`, `vssh.avisos`, `vssh.dialogos`, `vssh.segredos`,
 `vssh.midia`, `vssh.impressao`, `vssh.gpu`, `vssh.configuracoes`, `vssh.salas`, `vssh.pessoas`,
-`vssh.apps`), com a assinatura de cada verbo, o que ele responde e
-os eventos que o shell manda de volta. O canal de publicação do sistema a escreve depois de cada
-deploy, junto de [`api/`](../api/) e [`runtime/`](../runtime/); uma correção nela se faz na
-descrição do verbo, na tabela do sistema, e chega aqui na rodada seguinte.
+`vssh.apps`), com a assinatura de cada verbo, o que ele responde, se ele vale num hiperlink, e
+os eventos que o shell manda de volta. Ao lado ficam o `vssh-app.json` campo a campo, o ambiente
+do backend e [o manifesto de um hiperlink](referencia/hiperlink.md). O canal de publicação do
+sistema a escreve depois de cada deploy, junto de [`api/`](../api/) e [`runtime/`](../runtime/);
+uma correção nela se faz na descrição do verbo, na tabela do sistema, e chega aqui na rodada
+seguinte.
 
 ## Conceitos
 

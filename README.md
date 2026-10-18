@@ -7,6 +7,13 @@ backend próprio, em qualquer linguagem, que roda como processo no servidor Linu
 aparece como uma janela dentro do ambiente. O autor desenvolve fora do repositório do sistema,
 publica um tarball no repositório de artefatos e um administrador instala com `vssh-app-install`.
 
+Uma plataforma web que já roda no domínio dela, com servidor e login próprios, entra no ambiente
+de outro jeito, como hiperlink: o admin cola a URL no painel, o portal lê o manifesto PWA do site,
+e a página fala com o ambiente pelo mesmo SDK web, carregado do portal. Ela não tem pacote nem
+passa por este fluxo de publicação. O guia é
+[Uma plataforma como hiperlink](docs/guias/uma-plataforma-como-hiperlink.md), e o manifesto dela,
+campo a campo, está em [`docs/referencia/hiperlink.md`](docs/referencia/hiperlink.md).
+
 Este repositório é público de propósito: o workflow de publicação é chamável do CI de qualquer
 repositório de app, de uma organização ou de uma conta pessoal, e o script é baixado com o
 `GITHUB_TOKEN` padrão, sem PAT.

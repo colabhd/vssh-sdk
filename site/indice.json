@@ -45,7 +45,8 @@
         { "arquivo": "docs/referencia/README.md", "titulo": "Visão geral" },
         { "espacos": "api/abi.json" },
         "docs/referencia/manifesto.md",
-        "docs/referencia/ambiente.md"
+        "docs/referencia/ambiente.md",
+        "docs/referencia/hiperlink.md"
       ]
     },
     {

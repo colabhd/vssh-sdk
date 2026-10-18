@@ -65,7 +65,7 @@
       "sha256": "7de0b4c8a524194cb47da44ca7592f2242f336178f8cc27b1ae2a84b447d38ec"
     },
     "docs/referencia/README.md": {
-      "sha256": "e4ecaa662f09ba3ae05c3c1ad4fc782eb48efe38bed7ade2df6cb3555d7d32d0"
+      "sha256": "3049a2cd63bbadf8aa18a0ada3a0bda592e211f033efa9dec488dd928f891dcd"
     },
     "docs/referencia/ambiente.md": {
       "sha256": "80e837c926040cea8cb4d43136cfde641222aab76144af1549172f18428de387"
@@ -90,6 +90,9 @@
     },
     "docs/referencia/gpu.md": {
       "sha256": "aacc6e46d64664d676e55bb063e19437c3342f1b8082690613bcd33de2d170ed"
+    },
+    "docs/referencia/hiperlink.md": {
+      "sha256": "2b96f1bd6f1e2b8ee0366ecb2688993879394694ad4a84049f66e59fe20008d1"
     },
     "docs/referencia/impressao.md": {
       "sha256": "8ea19b483dc6942605385d284fb3c5164e443f503385f44708b7dcb53d7c3c11"
