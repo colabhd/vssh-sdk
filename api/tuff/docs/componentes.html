@@ -690,7 +690,7 @@
         </div>
       </div>
       <div id="cat-grade" style="height:230px"></div>
-      <div class="tuff-tira" id="cat-tira" role="listbox" aria-label="Quadros"></div>
+      <div class="tuff-tira" id="cat-tira" role="listbox" aria-label="Quadros" aria-orientation="horizontal"></div>
     </section>
 
     <section class="tuff-painel">
@@ -951,15 +951,37 @@
       montar(i, no) { no.innerHTML = `<img alt="item ${i}" src="${ladrilho(i, 96, 68)}">`; },
     });
 
+    // A tira é uma parada só do Tab, no quadro escolhido, como na Lupa: as setas, Home e End
+    // escolhem outro quadro e levam o foco junto, e o clique escolhe.
     const tira = document.getElementById('cat-tira');
+    const escolherNaTira = (alvo, focar) => {
+      for (const it of tira.children) {
+        const sim = it === alvo;
+        it.setAttribute('aria-selected', String(sim));
+        it.tabIndex = sim ? 0 : -1;
+      }
+      if (focar) alvo.focus();
+    };
     for (let i = 0; i < 12; i++) {
       const it = document.createElement('div');
       it.className = 'tuff-tira-item';
       it.setAttribute('role', 'option');
-      it.setAttribute('aria-selected', String(i === 3));
       it.innerHTML = `<img alt="quadro ${i}" src="${ladrilho(i * 5, 64, 44)}">`;
       tira.appendChild(it);
     }
+    escolherNaTira(tira.children[3], false);
+    tira.addEventListener('click', (e) => {
+      const it = e.target.closest('.tuff-tira-item');
+      if (it) escolherNaTira(it, true);
+    });
+    tira.addEventListener('keydown', (e) => {
+      const atual = e.target.closest('.tuff-tira-item');
+      const prox = { ArrowRight: atual?.nextElementSibling, ArrowLeft: atual?.previousElementSibling,
+        Home: tira.firstElementChild, End: tira.lastElementChild }[e.key];
+      if (!prox) return;
+      e.preventDefault();
+      escolherNaTira(prox, true);
+    });
 
     // Uma entrevista de 3:10 inventada: picos de fala com pausas, e duas pessoas se alternando. O
     // tempo anda sozinho, e a onda o acompanha pela régua `tempo`, como acompanharia um <audio>.
