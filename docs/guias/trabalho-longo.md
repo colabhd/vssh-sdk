@@ -100,7 +100,10 @@ comando e "subindo as saídas" depois dele, enquanto o invólucro do portal faz 
 
 Um pedido de GPU sem `tipo` aceita os tipos padrão da fila. O portal lê a fila de cada sítio e
 manda o job primeiro aonde a placa está livre agora. Um job que espera num sítio sem ser admitido
-(10 min em SP, 30 min em Franca) vai ao sítio seguinte que tenha lugar.
+(10 min em SP, 30 min em Franca) vai ao sítio seguinte que tenha lugar, com o motivo "indo para
+Franca" enquanto o Job de antes sai. O Kueue devolve à fila o job cujo pod não fica pronto no prazo
+dele, e no primeiro job de um nó o download da imagem pode durar mais que esse prazo. Esse job conta
+a espera de novo no mesmo sítio, onde a imagem continua descendo.
 
 Aqui a biblioteca não escreve atividade nem notificação. O portal já põe o job em curso na bandeja
 de quem está com o ambiente aberto e avisa o fim, e escrever de novo daria duas linhas para o mesmo
