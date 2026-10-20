@@ -73,8 +73,10 @@ const t = trabalhos.naFila('transcrever:3f2a', pedido, { titulo: 'Entrevista 03'
 ```
 
 O `pedido` é o de `fila.submeter`. O trabalho segue o job pelos eventos do portal, e o progresso é
-o que o container imprimiu pelo mesmo protocolo: quem lê a linha no log é o portal. Com `linhas`,
-o log do container também chega ao app, sem as linhas de progresso.
+o que o container imprimiu pelo mesmo protocolo: quem lê a linha é o portal, que segue o log do
+container enquanto o job roda e repassa o progresso novo no máximo a cada 2 s, sempre com o último
+que leu. Com `linhas`, o log do container também chega ao app, sem as linhas de progresso e sem as
+marcas do invólucro do portal.
 
 O job roda num Job do Kubernetes, com a imagem do pedido, num contêiner só. Por isso o pedido e a
 imagem seguem estas regras:
@@ -90,8 +92,11 @@ imagem seguem estas regras:
   `rodando`, com o motivo "o pod saiu do nó; retomando".
 
 Entre o envio e o comando rodando, o job espera a fila do Kueue do sítio e o download da imagem, e
-fica em `na_fila` enquanto isso, com o motivo de cada espera. O download acontece uma vez em cada
-nó, e numa imagem de dezenas de GB essa vez leva minutos ("baixando a imagem").
+fica em `na_fila` enquanto isso, com o motivo de cada espera ("esperando uma placa livre",
+"esperando um nó com memória livre"). Uma espera que o portal não reconhece chega com a mensagem do
+cluster, em inglês. O download acontece uma vez em cada nó, e numa imagem de dezenas de GB essa vez
+leva minutos ("baixando a imagem"). Já `rodando`, o job tem o motivo "baixando as entradas" antes do
+comando e "subindo as saídas" depois dele, enquanto o invólucro do portal faz um dos dois.
 
 Um pedido de GPU sem `tipo` aceita os tipos padrão da fila. O portal lê a fila de cada sítio e
 manda o job primeiro aonde a placa está livre agora. Um job que espera num sítio sem ser admitido
@@ -131,7 +136,7 @@ só quando falta no nó; `latest`, ou nenhuma etiqueta, é conferida no registro
 
 | evento | quando |
 |---|---|
-| `estado` | o trabalho mudou de estado: `enviando`, `enviado`, `na_fila` (com o `motivo` que o cluster deu), `rodando` |
+| `estado` | o trabalho mudou de estado, ou o motivo dele mudou: `enviando`, `enviado`, `na_fila` (com o `motivo` da espera), `rodando` (com o `motivo` das entradas e das saídas) |
 | `progresso` | o trabalho informou um progresso novo, em `registro['progresso']` |
 | `linha` | uma linha do stdout que não é de progresso, em `registro['linha']` |
 | `fim` | `concluido`, `falhou` ou `cancelado`, com `motivo` e `codigo` |
