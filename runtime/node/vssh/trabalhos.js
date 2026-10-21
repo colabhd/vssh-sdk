@@ -11,8 +11,10 @@
 //   t.cancelar();
 //
 // `aoEvento(evento, registro)` recebe `estado`, `progresso`, `linha` (o stdout que não é progresso,
-// com o texto em `registro.linha`) e `fim` (concluido, falhou ou cancelado, com `motivo` e
-// `codigo`).
+// com o texto em `registro.linha`), `saida` (na fila, com `saidasAoVivo` no pedido: uma saída que
+// subiu com o job rodando, em `registro.saida`, com `nome` e `tamanho`) e `fim` (concluido, falhou
+// ou cancelado, com `motivo` e `codigo`). Cada saída chega uma vez por acompanhamento; depois de um
+// `retomar`, as que já tinham subido chegam de novo.
 //
 // Na estação, o processo sobe num grupo próprio, e cancelar manda SIGTERM ao grupo e SIGKILL cinco
 // segundos depois; as linhas de progresso viram a atividade na bandeja, e o fim vira notificação
@@ -119,6 +121,11 @@ class Trabalho {
   _linha(texto) {
     if (!this._aoEvento) return;
     try { this._aoEvento('linha', { ...this._reg, linha: texto }); } catch (e) { console.warn(`[vssh.trabalhos] aoEvento(linha) de ${this.chave} falhou: ${e.message}`); }
+  }
+
+  _saida(saida) {
+    if (!this._aoEvento) return;
+    try { this._aoEvento('saida', { ...this._reg, saida: { ...saida } }); } catch (e) { console.warn(`[vssh.trabalhos] aoEvento(saida) de ${this.chave} falhou: ${e.message}`); }
   }
 
   // Grava o fim, faz o que precisa estar feito antes de alguém saber dele (a notificação e a
@@ -252,6 +259,7 @@ function naFila(chave, pedido, opcoes = {}) {
 async function seguir(t, linhas, env) {
   const id = t._reg.job;
   const vistas = new Set();
+  const saidas = new Set();
   let seguindoLog = false;
 
   const seguirLog = async () => {
@@ -278,6 +286,9 @@ async function seguir(t, linhas, env) {
     } else if (evento === 'progresso' && job.progresso) {
       const p = job.progresso;
       t._mudar('progresso', { progresso: { feito: p.feito, total: p.total ?? null, etapa: p.etapa ?? null } });
+    } else if (evento === 'saida' && job.saida && !saidas.has(job.saida.nome)) {
+      saidas.add(job.saida.nome);
+      t._saida(job.saida);
     }
   };
 

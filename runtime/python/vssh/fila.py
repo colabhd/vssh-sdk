@@ -192,8 +192,10 @@ def submeter(trabalho, ao_progresso=None, env=None):
     `trabalho` leva `imagem` e `comando` (obrigatórios), `args`, `env`, `entradas` (dict nome →
     caminho, ou lista de caminhos), `saidas` (nomes em `saidas/`), `gpu` (`{'quantidade', 'tipo'}`,
     com `tipo` um tipo ou uma lista, ou `{'quantidade', 'memoriaMinGiB'}`), `cpu`, `memoria`,
-    `disco`, `prazo` (segundos de execução), `nome` e `abrir` (onde o clique no
-    aviso de fim leva, um caminho dentro do app). O que o portal recusa vem
+    `disco`, `prazo` (segundos de execução), `nome`, `abrir` (onde o clique no
+    aviso de fim leva, um caminho dentro do app) e `saidasAoVivo` (cada saída sobe
+    assim que aparece em `saidas/`, e `baixar` a alcança com o job rodando; o
+    comando a escreve fora e a renomeia para dentro). O que o portal recusa vem
     como `ErroDaFila` com a mensagem dele, antes de qualquer byte subir.
     """
     pares = _entradas_de(trabalho)
@@ -306,7 +308,8 @@ def remover(ident, env=None):
 
 
 def baixar(ident, destino, nomes=None, env=None):
-    """Baixa as saídas para `destino` (criado se preciso) e devolve os caminhos gravados."""
+    """Baixa as saídas para `destino` (criado se preciso) e devolve os caminhos gravados. Num job
+    com `saidasAoVivo`, também com ele rodando: as que já subiram."""
     r = _pedir('GET', '/jobs/%s/saidas' % ident, env=env)
     os.makedirs(destino, exist_ok=True)
     gravados = []

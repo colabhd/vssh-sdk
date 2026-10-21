@@ -17,6 +17,8 @@ vssh.trabalhos: um trabalho longo que o app acompanha, na estação ou na fila, 
     estado      o trabalho mudou de estado (enviando, enviado, na_fila, rodando)
     progresso   o trabalho informou um progresso novo (`vssh.progresso`)
     linha       uma linha do stdout que não é de progresso, sem o `\\n`: o protocolo do próprio app
+    saida       na fila, com `saidasAoVivo` no pedido: uma saída que subiu com o job rodando, em
+                `registro['saida']` (`nome`, `tamanho`), já pronta para `fila.baixar`
     fim         concluido, falhou ou cancelado; `motivo` e `codigo` dizem por quê
 
 ─── Na estação ──────────────────────────────────────────────────────────────
@@ -32,7 +34,9 @@ No fim, a notificação vai ao sino antes de a atividade sair, como em `avisos.l
 `na_fila` submete o pedido e segue o job pelos eventos do portal. Aqui a biblioteca não escreve
 atividade nem notificação: o portal já põe o job em curso na bandeja e avisa o fim, e escrever de
 novo daria duas linhas para o mesmo trabalho. Com `linhas=True`, ela segue também o log do
-container quando ele começa a rodar, e entrega como `linha` o que não é progresso.
+container quando ele começa a rodar, e entrega como `linha` o que não é progresso. Cada saída que
+sobe ao vivo chega uma vez como `saida`; depois de um `retomar`, as que já tinham subido chegam de
+novo, e o app que as baixa confere se já as tem.
 
 ─── Depois de um reinício ──────────────────────────────────────────────────
 
@@ -171,6 +175,13 @@ class Trabalho:
                 self._ao_evento('linha', dict(self._reg, linha=texto))
             except Exception as e:
                 print('[vssh.trabalhos] ao_evento(linha) de %s falhou: %s' % (self.chave, e))
+
+    def _saida(self, saida):
+        if self._ao_evento:
+            try:
+                self._ao_evento('saida', dict(self._reg, saida=dict(saida)))
+            except Exception as e:
+                print('[vssh.trabalhos] ao_evento(saida) de %s falhou: %s' % (self.chave, e))
 
     def _terminar(self, estado_final, motivo=None, codigo=None, antes_de_anunciar=None):
         """Grava o fim, faz o que precisa estar feito antes de alguém saber dele (a notificação e a
@@ -356,6 +367,7 @@ def _seguir(t, linhas, env):
     ident = t._reg['job']
     vistas = collections.OrderedDict()
     seguindo_log = []
+    saidas = set()
 
     def seguir_log():
         # O log reabre se o stream cair com o job ainda rodando, e o portal manda de novo as
@@ -383,6 +395,9 @@ def _seguir(t, linhas, env):
         elif evento == 'progresso' and job.get('progresso'):
             p = job['progresso']
             t._mudar('progresso', progresso={'feito': p.get('feito'), 'total': p.get('total'), 'etapa': p.get('etapa')})
+        elif evento == 'saida' and isinstance(job.get('saida'), dict) and job['saida'].get('nome') not in saidas:
+            saidas.add(job['saida'].get('nome'))
+            t._saida(job['saida'])
 
     try:
         final = fila.acompanhar(ident, ao_evento=ao_evento, env=env)

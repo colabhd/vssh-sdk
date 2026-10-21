@@ -129,8 +129,9 @@ function subir(url, caminho) {
 /**
  * Declara, sobe as entradas e inicia. Resolve com o id do job. `trabalho` leva `imagem`,
  * `comando`, `args`, `env`, `entradas` (objeto nome → caminho, ou lista de caminhos), `saidas`,
- * `gpu`, `cpu`, `memoria`, `disco`, `prazo`, `nome` e `abrir` (onde o clique no aviso de fim leva,
- * um caminho dentro do app).
+ * `gpu`, `cpu`, `memoria`, `disco`, `prazo`, `nome`, `abrir` (onde o clique no aviso de fim leva,
+ * um caminho dentro do app) e `saidasAoVivo` (cada saída sobe assim que aparece em `saidas/`, e
+ * `baixar` a alcança com o job rodando; o comando a escreve fora e a renomeia para dentro).
  */
 async function submeter(trabalho, aoProgresso, env = process.env) {
   const pares = entradasDe(trabalho);
@@ -219,7 +220,10 @@ async function cancelar(id, env = process.env) {
   return !!(r && r.success);
 }
 
-/** Baixa as saídas para `destino` e resolve com os caminhos gravados. */
+/**
+ * Baixa as saídas para `destino` e resolve com os caminhos gravados. Num job com `saidasAoVivo`,
+ * também com ele rodando: as que já subiram.
+ */
 async function baixar(id, destino, nomes, env = process.env) {
   const r = await pedir('GET', `/jobs/${id}/saidas`, { env });
   fs.mkdirSync(destino, { recursive: true });

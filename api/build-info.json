@@ -131,7 +131,7 @@
       "sha256": "0bbe0ed0bef8763cbb3c700379c6818e978329ed7c27b0d9c65487cf7bd56ff3"
     },
     "runtime/node/vssh/fila.js": {
-      "sha256": "246f0659b913dc1f6136d1c0a51320e63e20c04ad23ca8adeb1f08b77aecbb6f"
+      "sha256": "8b9830757df5ff1961831e3477ae09a2af4f2b4a4a401e238112ed6ef654a991"
     },
     "runtime/node/vssh/gpu.js": {
       "sha256": "6643de6528771774c3bef5dbc4a08f30701a1d4db6db7951af565c24b8cded29"
@@ -152,7 +152,7 @@
       "sha256": "9c17a7f2ff03479780e139eb387a1ac740170c333e8bb65edbc5f991e089f8b2"
     },
     "runtime/node/vssh/trabalhos.js": {
-      "sha256": "9c14768d7c876a75bda968dcb694a5658f6c6720dce60eef2511406c825f3a5e"
+      "sha256": "640269e88a8a993d5d70d9ca97077fb0c5ddf2a573c8c13bcf91612b8fc1a0de"
     },
     "runtime/node/vssh/web.js": {
       "sha256": "32729842b55604e318c23056718b94d34391de720b0d329a171bf41c4f8c5cbe"
@@ -173,7 +173,7 @@
       "sha256": "c5c3673a2c6d43c65785b8d22003d95485b11eeea01a545b5aa80ffe87c36f2d"
     },
     "runtime/python/vssh/fila.py": {
-      "sha256": "b8c53e5b5fe5a160fad9fc8c89e4d17b5387b31fbde2abb197a31bfa91cd43de"
+      "sha256": "2515763d93789b0e8631efabb2d182c64b54ad41e9b48c4d83360a98ca8aad54"
     },
     "runtime/python/vssh/gpu.py": {
       "sha256": "cac9d2600fe1b505847c5ff0b080cf10436b301a9cafc910e011d654789cc076"
@@ -188,7 +188,7 @@
       "sha256": "b0b114cd714aa6cf4dca4f34d921589153b18f0d61e474e3fc8501e33d4a029e"
     },
     "runtime/python/vssh/trabalhos.py": {
-      "sha256": "4c9b4ec2082f19b18c637005f3e58bcae0e810f9b9a10fd56a8b98141c29e3bf"
+      "sha256": "daad3dfe6521aac3e390fabbe094efdafc823a9f7609ccc5b4a10be2a25d7e57"
     },
     "runtime/python/vssh/web.py": {
       "sha256": "ff0d91639c2f726e3d5e52c53eb0fbe4640181fa4c1b44c4fc418fa9fce6e63d"
