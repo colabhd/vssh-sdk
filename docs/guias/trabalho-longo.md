@@ -110,6 +110,27 @@ de quem está com o ambiente aberto e avisa o fim, e escrever de novo daria duas
 trabalho. Para o aviso do portal levar a pessoa de volta ao trabalho, o pedido diz onde:
 `'abrir': '?trabalho=3f2a'`.
 
+### Várias saídas, cada uma quando fica pronta
+
+Um job que produz várias saídas independentes (um lote de áudios, um arquivo por página) pode
+entregar cada uma assim que ela existe, com `'saidasAoVivo': True` no pedido. O invólucro do portal
+sobe a saída listada que aparece em `saidas/`, com o comando ainda rodando, e o app recebe o evento
+`saida` com o nome dela; `fila.baixar` a alcança na hora, sem esperar o fim do job.
+
+A saída que aparece está pronta, e é esse o contrato: o comando a escreve com outro nome, ou fora de
+`saidas/`, e a renomeia para o nome listado. Um arquivo escrito no lugar subiria pela metade. No fim,
+o invólucro sobe de novo só a saída que mudou depois de subir.
+
+```python
+def publicar(evento, r):
+    if evento == 'saida':
+        fila.baixar(r['job'], pasta, [r['saida']['nome']])
+```
+
+Cada saída chega uma vez em cada acompanhamento. Depois de um `retomar()`, as que já tinham subido
+chegam de novo, e o app confere se já as tem. Um portal anterior às saídas ao vivo ignora o campo, e
+todas chegam no fim, pelo caminho de sempre.
+
 ### A imagem do job
 
 A imagem precisa de bash e de curl ou python3. Quem roda o comando é um invólucro do portal, em
@@ -142,6 +163,7 @@ só quando falta no nó; `latest`, ou nenhuma etiqueta, é conferida no registro
 | `estado` | o trabalho mudou de estado, ou o motivo dele mudou: `enviando`, `enviado`, `na_fila` (com o `motivo` da espera), `rodando` (com o `motivo` das entradas e das saídas) |
 | `progresso` | o trabalho informou um progresso novo, em `registro['progresso']` |
 | `linha` | uma linha do stdout que não é de progresso, em `registro['linha']` |
+| `saida` | na fila, num pedido com `saidasAoVivo`: uma saída que subiu com o job rodando, em `registro['saida']` (`nome` e `tamanho`) |
 | `fim` | `concluido`, `falhou` ou `cancelado`, com `motivo` e `codigo` |
 
 O `registro` é o mesmo que fica em disco. Um `ao_evento` que levanta exceção não derruba o
