@@ -56,7 +56,7 @@
       "sha256": "43e440ec551e92f28376acdecdf1b285362a85f5b4afddfb028fef2213929862"
     },
     "api/vssh-app.schema.json": {
-      "sha256": "b9855afe84a66b73e04294a2c76415fa9d50e25ddde9385bb331978c90b862f3"
+      "sha256": "4f96a05b819a4331c4dec1465755240defd5eb1a28c1aa3224651f200b7dc820"
     },
     "api/vssh.d.ts": {
       "sha256": "41d6e65047122485b3e773466ef794c8656fde33215321d152f545b97637d769"
@@ -101,7 +101,7 @@
       "sha256": "c8fd408df22c5bd6905108720bd27db3b5cb26a53f152ffbcb8957f41da66682"
     },
     "docs/referencia/manifesto.md": {
-      "sha256": "0ebc30dfbd77990179548ae548ff79c033a76070799abf5f2464ff96aa92ba73"
+      "sha256": "4f0d55981da6a349333e8c7e7c8f337cc19eefba9be65ed7d19e2e870bd314bf"
     },
     "docs/referencia/midia.md": {
       "sha256": "97c1bd04f2b70355c93d668872c2547395b4450df48bb5352ea99a1183d3f6d9"

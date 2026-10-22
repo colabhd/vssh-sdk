@@ -655,6 +655,17 @@
           },
           "description": "Seletores CSS que não iniciam o arraste da janela, somados à lista do ambiente (botões, campos de formulário). Só alcançam o que o shell desenha em volta do iframe, como a barra de abas de quem tem `richChrome`: o ponteiro dentro do documento do app nunca chega ao shell. O shell descarta um seletor que o navegador não aceita."
         },
+        "permissoes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "microfone"
+            ]
+          },
+          "description": "O que o quadro do app pode pedir ao navegador além da área de transferência e da tela cheia, que todo app tem. `microfone` deixa a janela chamar `getUserMedia({ audio })`, para gravar uma nota de voz: na origem do shell o microfone já valeria, e é na origem própria do app, no cliente de desktop, que ele precisa da declaração. O navegador ainda pergunta à pessoa antes de abrir o microfone; a declaração só deixa o quadro perguntar. Um nome fora da lista é recusado aqui, e o shell o descarta."
+        },
         "icone": {
           "type": "object",
           "additionalProperties": false,

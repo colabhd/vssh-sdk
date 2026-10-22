@@ -911,6 +911,16 @@ formulário). Só alcançam o que o shell desenha em volta do iframe, como a bar
 `richChrome`: o ponteiro dentro do documento do app nunca chega ao shell. O shell descarta um
 seletor que o navegador não aceita.
 
+### `window.permissoes`
+
+`array` de `string`, opcional, cada item um de `"microfone"`.
+
+O que o quadro do app pode pedir ao navegador além da área de transferência e da tela cheia, que
+todo app tem. `microfone` deixa a janela chamar `getUserMedia({ audio })`, para gravar uma nota de
+voz: na origem do shell o microfone já valeria, e é na origem própria do app, no cliente de desktop,
+que ele precisa da declaração. O navegador ainda pergunta à pessoa antes de abrir o microfone; a
+declaração só deixa o quadro perguntar. Um nome fora da lista é recusado aqui, e o shell o descarta.
+
 ### `window.icone`
 
 `object`, opcional, sem campo além dos listados.
