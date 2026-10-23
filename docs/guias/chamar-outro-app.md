@@ -99,7 +99,7 @@ Pela ponte, o shell faz, nesta ordem:
 4. pergunta à pessoa, na primeira vez, se o seu app pode usar a capacidade;
 5. sobe o outro app, se ele estiver parado, e faz o pedido como a mesma pessoa.
 
-A resposta da pessoa vale até ela a revogar, em Configurações, em Apps que usam outros.
+A resposta da pessoa vale até ela a revogar, em Configurações, em Permissões, na página do app.
 Por isso a promessa de `pedir` tem prazo de 10 minutos: o primeiro pedido espera alguém responder.
 Um app parado sobe antes do pedido, e o shell repete por até 20 s enquanto ele fica de pé.
 
