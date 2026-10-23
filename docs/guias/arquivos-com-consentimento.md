@@ -95,8 +95,8 @@ if (await dir.queryPermission() !== 'granted') {
 ```
 
 Se a pessoa escolher outra pasta no seletor reaberto, a resposta é `'denied'` e o handle antigo
-continua fora. `'denied'` é um estado normal; a pessoa revoga em Configurações, em Permissões, na
-página do app, ou em Permissões de arquivo, no menu de contexto da janela.
+continua fora. `'denied'` é um estado normal; a pessoa revoga em Permissões de arquivo, no menu de
+contexto da janela.
 
 ## Existe? Renomear, mover, copiar
 

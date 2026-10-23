@@ -47,8 +47,8 @@ Duas precisões sobre o que o shell responde:
 - `{ mode: 'read' | 'readwrite' }` é aceito e repassado, e todo grant de hoje é `readwrite`. Pedir
   `read` e receber `granted` está correto.
 
-A pessoa revoga em Configurações, em Permissões, na página do app, ou em Permissões de arquivo, no
-menu de contexto da janela do app. `'denied'` é um estado normal, e um app o trata como tal.
+A pessoa revoga em Permissões de arquivo, no menu de contexto da janela do app. `'denied'` é um
+estado normal, e um app o trata como tal.
 
 ## O que o grant protege
 
