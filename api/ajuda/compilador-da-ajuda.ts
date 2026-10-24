@@ -183,7 +183,7 @@ export const TELAS = ['larga', 'estreita'];
 const MODIFICADORES = new Set(['Ctrl', 'Alt', 'Shift', 'Super']);
 const TECLAS = /^(Enter|Escape|Tab|Space|Backspace|Delete|Home|End|PageUp|PageDown|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|F([1-9]|1[0-2])|[A-Z0-9])$/;
 /** As referências geradas que a cerca `referencia` pode pedir ao shell. */
-export const REFERENCIAS = ['configuracoes', 'atalhos', 'aplicativos', 'tipos', 'conexao'];
+export const REFERENCIAS = ['configuracoes', 'atalhos', 'aplicativos', 'tipos', 'conexao', 'placa'];
 
 const ID = /^[a-z0-9][a-z0-9-]{0,62}$/;
 const APP = /^[a-z0-9][a-z0-9-]{0,47}$/;

@@ -173,6 +173,10 @@
       "titulo": "Pastas de rede (Nextcloud, ownCloud, SharePoint)"
     },
     {
+      "id": "placa-de-video",
+      "titulo": "A placa de vídeo da estação"
+    },
+    {
       "id": "portal-nao-responde",
       "titulo": "O portal não está respondendo"
     },

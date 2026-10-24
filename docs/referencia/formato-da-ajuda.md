@@ -30,7 +30,7 @@ executa para tirar a figura e o Mostrar onde fica executa na tela da pessoa. Uma
 | `pronto <alvo>` | o passo terminou quando o alvo aparece |
 
 A cerca `referencia` pede ao shell uma tabela gerada: `configuracoes`, `atalhos`, `aplicativos`,
-`tipos`, `conexao`.
+`tipos`, `conexao`, `placa`.
 
 ## As superfícies que o `cobre` nomeia
 
@@ -52,7 +52,7 @@ existe quando o manifesto declara o campo dela.
 
 ## Os tópicos do ambiente
 
-Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 54 que existem:
+Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 55 que existem:
 
 | id | título |
 |---|---|
@@ -99,6 +99,7 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 54 q
 | `o-ambiente` | O que é o VSSH |
 | `onde-as-coisas-estao` | O seu computador, o portal e a estação |
 | `pastas-de-rede` | Pastas de rede (Nextcloud, ownCloud, SharePoint) |
+| `placa-de-video` | A placa de vídeo da estação |
 | `portal-nao-responde` | O portal não está respondendo |
 | `praticar` | Praticar os gestos |
 | `renomear` | Mudar o nome de um arquivo |
