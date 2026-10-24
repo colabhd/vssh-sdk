@@ -161,6 +161,9 @@
   // "Sessão remota" no mixer de volume: a linha do stream do motor X11, que não é app nem aba.
   'monitor':
     '<symbol id="ico-monitor" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"/><path d="M6 14h4M8 11.5V14"/></symbol>',
+  // O celular ou o tablet de quem usa, no diagrama da conexão da Ajuda, ao lado do monitor.
+  'smartphone':
+    '<symbol id="ico-smartphone" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="1.5" width="8" height="13" rx="1.5"/><path d="M7.25 12h1.5"/></symbol>',
   // Janela sobre janela: a sessão de aplicativos nativos (o motor X11), que traz as janelas do
   // servidor para dentro do ambiente. O monitor ao lado é a tela inteira; este é o que se abre nela.
   'janelas':

@@ -137,6 +137,10 @@
       "titulo": "O que é o VSSH"
     },
     {
+      "id": "onde-as-coisas-estao",
+      "titulo": "O seu computador, o portal e a estação"
+    },
+    {
       "id": "pastas-de-rede",
       "titulo": "Pastas de rede (Nextcloud, ownCloud, SharePoint)"
     },
@@ -190,6 +194,7 @@
     "pasta",
     "portal",
     "servidor",
+    "seu computador",
     "tela cheia",
     "toque duplo",
     "toque longo"

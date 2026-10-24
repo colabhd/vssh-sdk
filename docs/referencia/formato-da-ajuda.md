@@ -30,7 +30,7 @@ executa para tirar a figura e o Mostrar onde fica executa na tela da pessoa. Uma
 | `pronto <alvo>` | o passo terminou quando o alvo aparece |
 
 A cerca `referencia` pede ao shell uma tabela gerada: `configuracoes`, `atalhos`, `aplicativos`,
-`tipos`.
+`tipos`, `conexao`.
 
 ## As superfícies que o `cobre` nomeia
 
@@ -52,7 +52,7 @@ existe quando o manifesto declara o campo dela.
 
 ## Os tópicos do ambiente
 
-Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 42 que existem:
+Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 43 que existem:
 
 | id | título |
 |---|---|
@@ -90,6 +90,7 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 42 q
 | `navegador` | O Navegador do ambiente |
 | `nova-pasta` | Criar uma pasta |
 | `o-ambiente` | O que é o VSSH |
+| `onde-as-coisas-estao` | O seu computador, o portal e a estação |
 | `pastas-de-rede` | Pastas de rede (Nextcloud, ownCloud, SharePoint) |
 | `portal-nao-responde` | O portal não está respondendo |
 | `praticar` | Praticar os gestos |
@@ -104,4 +105,4 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 42 q
 `{{g:<termo>}}` cita um termo do glossário do app ou um destes: aba, ambiente, aplicativo, área de
 trabalho, área de transferência, arquivo, arrastar, barra de tarefas, clique direito, clique duplo,
 encaixar, endereço, estação, janela, Lixeira, Não perturbe, notificação, pasta, portal, servidor,
-tela cheia, toque duplo, toque longo.
+seu computador, tela cheia, toque duplo, toque longo.
