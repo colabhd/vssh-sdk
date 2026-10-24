@@ -660,3 +660,29 @@ test('um manifesto sem contributes.ajuda é nível 0, e o compilador nem é carr
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('o build de um hiperlink compila a pasta ao lado do manifesto PWA, e o ajuda.json leva as fontes', semAjuda, () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vssh-ajuda-hl-'));
+  try {
+    const manifesto = path.join(dir, 'manifest.webmanifest');
+    fs.writeFileSync(manifesto, JSON.stringify({
+      name: 'Bases', vssh: { provides: ['bibliography/v1'], contributes: { ajuda: { url: 'ajuda.json', inicio: 'comecar' } } },
+    }));
+    fs.mkdirSync(path.join(dir, 'ajuda'));
+    fs.writeFileSync(path.join(dir, 'ajuda', 'comecar.md'), topico('O Bases guarda as referências.', 'janela, oferece:bibliography/v1'));
+    const saida = path.join(dir, 'ajuda.json');
+    const r = spawnSync(process.execPath, [CLI, '--hiperlink', manifesto, '--saida', saida], { encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+    assert.match(r.stdout, /^NIVEL=2$/m);
+    const ajuda = JSON.parse(fs.readFileSync(saida, 'utf8'));
+    assert.equal(ajuda.inicio, 'comecar');
+    assert.deepEqual(ajuda.fontes.map((f) => f.caminho), ['comecar.md']);
+
+    fs.writeFileSync(manifesto, JSON.stringify({ name: 'Bases', vssh: {} }));
+    const sem = spawnSync(process.execPath, [CLI, '--hiperlink', manifesto, '--saida', saida], { encoding: 'utf8' });
+    assert.equal(sem.status, 1);
+    assert.match(sem.stdout, /ERRO=.*contributes\.ajuda/);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

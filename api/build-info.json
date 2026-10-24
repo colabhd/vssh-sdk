@@ -8,7 +8,7 @@
       "sha256": "5473f6befcca0ab4fb66decd11ace7ea08c973479751a01ed87936a6f3b485fd"
     },
     "api/ajuda/compilador-da-ajuda.ts": {
-      "sha256": "8d896bba1e389f16f8f9cbd5e9ff9d5436c683f2c5af14cb2b9c16df190491a2"
+      "sha256": "f5f46cb0db1432ded0c2eff9f0c19c0bcbe8b3293f9d7ee2f581745b8431cf25"
     },
     "api/ajuda/package.json": {
       "sha256": "5a065fe7d8eab2a582f428e11c2ea63aaf70607a54f69cfd5c711b5c53d91b32"
@@ -107,7 +107,7 @@
       "sha256": "aacc6e46d64664d676e55bb063e19437c3342f1b8082690613bcd33de2d170ed"
     },
     "docs/referencia/hiperlink.md": {
-      "sha256": "2b96f1bd6f1e2b8ee0366ecb2688993879394694ad4a84049f66e59fe20008d1"
+      "sha256": "0f540a992433b0bedfa8d92d6d9534b6a1c045bfeea1aa1a5dfb56eb7385833e"
     },
     "docs/referencia/impressao.md": {
       "sha256": "8ea19b483dc6942605385d284fb3c5164e443f503385f44708b7dcb53d7c3c11"

@@ -81,8 +81,9 @@ vssh-app instalado com o mesmo id, quem aparece é o app.
 Depois o admin dá acesso aos vínculos (os grupos do provedor de identidade) que devem ver a
 plataforma. Um hiperlink vale em toda estação, porque não depende de servidor Linux, e sem vínculo
 nenhum só o admin o vê. Na ficha, ele preenche o slug da aplicação da plataforma no Authentik, que
-a identidade confere. "Reler o manifesto" refaz a leitura depois de uma mudança no site; o
-ambiente não relê sozinho.
+a identidade confere. O ambiente relê o manifesto uma vez por dia, e "Reler o manifesto" refaz a
+leitura na hora, depois de uma mudança no site. Um site fora do ar na releitura fica com a última
+leitura boa, e a ficha diz quando a tentativa falhou e por quê.
 
 A ficha mede, quando abre, se a página de início aceita o quadro. O portal a pede sem cookie e lê
 os cabeçalhos pela regra do navegador:
@@ -259,6 +260,37 @@ vssh.aparencia.aoMudar(pintar);
 ```
 
 `aoMudar` chama de volta também quando o aperto de mão traz a cor, depois da carga.
+
+## A ajuda
+
+A plataforma pode trazer a ajuda dela para a Ajuda do ambiente, como um livro com o nome dela, e o
+F1 na janela abre o tópico de entrada. Os tópicos têm o formato da [ajuda de um
+app](ajuda.md) e moram numa pasta do repositório da plataforma; o manifesto aponta o arquivo
+compilado e o tópico de entrada:
+
+```json
+"vssh": {
+  "provides": ["bibliography/v1"],
+  "contributes": { "ajuda": { "url": "ajuda.json", "inicio": "comecar" } }
+}
+```
+
+O build da plataforma escreve o `ajuda.json` com o compilador deste repositório, a partir da pasta
+`ajuda/` ao lado do manifesto, e o publica junto do site:
+
+```bash
+node scripts/compilar-ajuda.mjs --hiperlink public/manifest.webmanifest --saida public/ajuda.json
+```
+
+O compilador recusa um tópico fora do formato com o arquivo e a linha, como no publish de um app, e
+o arquivo leva as fontes junto. O portal lê o `ajuda.json` com o manifesto e compila a ajuda de novo
+a partir das fontes, com os tópicos do ambiente; uma ajuda que não compila ali fica de fora, e a
+ficha do painel diz o motivo. As superfícies que o `cobre` nomeia são a janela, os itens de
+`contributes.contextMenu` e as capacidades de `provides` e `usa`.
+
+Um passo que aponta um controle da plataforma (`> mostrar <alvo>`, com o `alvos.json` da pasta) é
+achado pelo SDK web dentro da janela. Numa plataforma que não carrega o SDK, o passo cerca a janela
+inteira.
 
 ## Testar
 

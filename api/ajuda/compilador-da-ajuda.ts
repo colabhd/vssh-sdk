@@ -785,6 +785,29 @@ export function superficiesDoManifesto(man: Record<string, any>): Superficie[] {
   return s;
 }
 
+/**
+ * O manifesto contra o qual a ajuda de um hiperlink compila: o membro `vssh` do manifesto PWA da
+ * plataforma, na forma do `vssh-app.json` que `compilarAjudaDoApp` lê. A ajuda declarada é
+ * `vssh.contributes.ajuda` (`{ "url": "ajuda.json", "inicio": "comecar" }`), e as superfícies são a
+ * janela, os itens de menu e as capacidades que a plataforma oferece e usa.
+ */
+export function manifestoDoHiperlink(pwa: Record<string, any>, id = 'hiperlink'): Record<string, any> {
+  const v = pwa?.vssh && typeof pwa.vssh === 'object' && !Array.isArray(pwa.vssh) ? pwa.vssh : {};
+  const ajuda = v.contributes?.ajuda;
+  const menu = v.contributes?.contextMenu;
+  return {
+    id,
+    name: pwa?.name || pwa?.short_name || id,
+    contributes: {
+      ...(ajuda && typeof ajuda === 'object' ? { ajuda: { pasta: 'ajuda', inicio: ajuda.inicio } } : {}),
+      ...(Array.isArray(menu) ? { contextMenu: menu } : {}),
+    },
+    provides: Array.isArray(v.provides) ? v.provides : [],
+    requires: Array.isArray(v.requires) ? v.requires : [],
+    usa: Array.isArray(v.usa) ? v.usa : [],
+  };
+}
+
 /** O pacote de ajuda de um app, o `ajuda.json` que viaja com a versão dele. */
 export interface AjudaDoApp {
   formato: 1;

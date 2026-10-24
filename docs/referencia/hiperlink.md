@@ -108,10 +108,17 @@ do `vssh-app.json`. O portal lê só os campos desta tabela, com as regras de um
 | `capacidades` | `{ "<nome/vN>": { "rota": "/prefixo", "rotulo": "..." } }`, só para o que está em `provides` | [`capacidades`](manifesto.md#capacidades) |
 | `opens.urls` | lista de hosts | [`opens.urls`](manifesto.md#opensurls) |
 | `contributes.contextMenu` | lista de itens | [`contributes.contextMenu`](manifesto.md#contributescontextmenu) |
+| `contributes.ajuda` | `{ "url": "ajuda.json", "inicio": "<tópico de entrada>" }`: o `url` na origem do manifesto | [`contributes.ajuda`](manifesto.md#contributesajuda), com o `url` no lugar da `pasta` |
 
 Qualquer outro campo do `vssh-app.json` (`backend`, `secrets`, `recursos`, `motores`, `handles`, o
 resto de `opens` e de `contributes`) não tem sentido num hiperlink, porque ele não tem processo na
 estação, e o portal o ignora.
+
+O `ajuda.json` sai do build da plataforma, pelo compilador deste repositório: `node
+scripts/compilar-ajuda.mjs --hiperlink <manifesto PWA> --pasta <pasta dos tópicos> --saida <ajuda.json>`.
+Ele leva as fontes junto, e o portal compila a ajuda de novo a partir delas, com os tópicos do
+ambiente, a cada leitura do manifesto. Uma ajuda que não compila fica de fora, e o painel diz o
+motivo. O formato dos tópicos é o da [ajuda de um app](formato-da-ajuda.md).
 
 Uma capacidade com a forma errada sai da lista, e uma `rota` em `capacidades` fora do formato (um
 `.` ou `..` como segmento, mais de 200 caracteres, uma capacidade que `provides` não declara) sai
