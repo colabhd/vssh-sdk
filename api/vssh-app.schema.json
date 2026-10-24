@@ -233,6 +233,24 @@
               "description": "Uma frase dizendo para que o app precisa dela, mostrada a quem for decidir. Sem isto o convite diz só o nome da extensão, e quem nunca ouviu falar dela não tem como responder."
             }
           }
+        },
+        "ajuda": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["pasta", "inicio"],
+          "description": "A ajuda do app, na Ajuda do ambiente. `pasta` é o caminho, relativo à raiz do pacote, da pasta com os tópicos (`<id>.md`, no formato da Ajuda do ambiente, mais um `glossario.md` e um `alvos.json` opcionais); `inicio` é o id do tópico que o F1 na janela do app e o \"Ajuda de\" do cabeçalho abrem. O `vssh-app-publish` compila a pasta com o compilador do ambiente, recusa o tópico inválido e manda o `ajuda.json` ao repositório junto com a versão. Num tópico, `cobre` lista as superfícies do manifesto que ele explica (`janela`, `menu:<id>`, `segredo:<NOME>`, `recurso:gpu`, `oferece:<capacidade>`, `usa:<capacidade>`, `configuracoes`, `navegador`), e o nível de ajuda do app sai daí.",
+          "properties": {
+            "pasta": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*(/[A-Za-z0-9][A-Za-z0-9._-]*)*$",
+              "description": "A pasta dos tópicos, relativa à raiz do pacote: `ajuda`."
+            },
+            "inicio": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{0,62}$",
+              "description": "O id do tópico de entrada, um arquivo `<inicio>.md` da pasta."
+            }
+          }
         }
       }
     },

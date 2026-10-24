@@ -724,6 +724,61 @@ declare namespace vssh {
   }
 
   /**
+   * A ajuda do app na Ajuda do ambiente. O app abre um tópico dele; o resto o SDK faz sozinho
+   * dentro do quadro: acha o controle que um passo aponta, avisa quando a pessoa faz o gesto do
+   * Passo a passo, e diz o que é o controle clicado no modo "O que é isto?". Quem desenha o
+   * holofote é o shell, sobre o retângulo que o quadro devolve.
+   */
+  namespace ajuda {
+    /**
+     * Abre a Ajuda num tópico do app, pelo id dele na pasta `contributes.ajuda` (sem o argumento, o
+     * tópico de entrada), ou num tópico do ambiente com `ambiente/<id>`. A resposta é `true` quando
+     * a Ajuda abre no tópico, e `false` quando o tópico não existe.
+     */
+    function abrir(topico?: string): Promise<unknown>;
+    /**
+     * O SDK chama este verbo sozinho: o retângulo, no quadro, do controle que o evento `mostrar`
+     * pediu, de novo a cada rolagem, e `null` quando ele some.
+     */
+    function achou(pedido: number, retangulo?: { x: number; y: number; w: number; h: number } | null): void;
+    /**
+     * O SDK chama este verbo sozinho quando a pessoa faz no controle o gesto que o evento `gesto`
+     * pediu, e o Passo a passo segue para o passo seguinte.
+     */
+    function feito(pedido: number): void;
+    /**
+     * O SDK chama este verbo sozinho quando o modo "O que é isto?" liga: o quadro passa a receber o
+     * clique, que ele mesmo explica.
+     */
+    function ouvindo(): void;
+    /**
+     * O SDK chama este verbo sozinho com o controle que a pessoa clicou no modo "O que é isto?": o
+     * nome que ela lê, o `data-ajuda` do primeiro ancestral que o tem, e o retângulo. O clique não
+     * chega ao app.
+     */
+    function isto(nome: string, ajuda?: string | null, retangulo?: { x: number; y: number; w: number; h: number }): void;
+
+    /** Os eventos deste espaço, e o que cada um entrega ao `cb` de `ao`. */
+    interface Eventos {
+      /**
+       * O shell pede o retângulo de um controle do app, pelo seletor (como
+       * `[data-ajuda="transcrever"]`) ou pelo nome que a pessoa lê. Com `alvo` nulo, o pedido
+       * acaba. O SDK atende sozinho.
+       */
+      mostrar: { pedido: number; alvo: { seletor?: string; nome?: string } | null };
+      /**
+       * O shell pede o aviso do gesto de um passo no controle. Com `tipo` nulo, o pedido acaba. O
+       * SDK atende sozinho.
+       */
+      gesto: { pedido: number; alvo: { seletor?: string; nome?: string } | null; tipo: 'click' | 'dblclick' | 'contextmenu' | 'keydown' | null; tecla?: string };
+      /** O modo "O que é isto?" ligou ou desligou. O SDK atende sozinho. */
+      modo: { ligado: boolean };
+    }
+    /** Assina um evento deste espaço e devolve a função que cancela a assinatura. */
+    function ao<E extends keyof Eventos>(evento: E, cb: (dados: Eventos[E]) => void): () => void;
+  }
+
+  /**
    * O recurso que o sistema arbitra ao subir o app. O manifesto declara o que o app precisa em
    * `recursos.gpu.modo`; quem decide, com o que o servidor tem, é o `vssh-app-run`, e o app
    * pergunta o que recebeu sem conhecer `CUDA_VISIBLE_DEVICES` nem o inventário do servidor.

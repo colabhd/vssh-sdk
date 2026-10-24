@@ -141,6 +141,9 @@
     if (m.type === 'spelling-menu') ortografiaNoMenu = m.inMenu === true;
     if (m.type === 'volume') { ganho = limitar(m.gain); mudo = !!m.muted; aplicarVolume(); }
     if (m.type === 'appearance') tokensRecebidos = m.tokens && typeof m.tokens === 'object' ? m.tokens : null;
+    if (m.type === 'ajuda-mostrar') ajudaMostrar(m);
+    if (m.type === 'ajuda-gesto') ajudaGesto(m);
+    if (m.type === 'ajuda-modo') ajudaModo(m);
     entregar(m);
   }
 
@@ -365,6 +368,14 @@
     acao: ['media-acao', { acao: 'acao' }],
   };
   EVENTOS.impressao = {
+  };
+  EVENTOS.ajuda = {
+    // O shell pede o retângulo de um controle do app, pelo seletor (como `[data-ajuda="transcrever"]`) ou pelo nome que a pessoa lê. Com `alvo` nulo, o pedido acaba. O SDK atende sozinho.
+    mostrar: ['ajuda-mostrar', { pedido: 'pedido', alvo: 'alvo' }],
+    // O shell pede o aviso do gesto de um passo no controle. Com `tipo` nulo, o pedido acaba. O SDK atende sozinho.
+    gesto: ['ajuda-gesto', { pedido: 'pedido', alvo: 'alvo', tipo: 'tipo', tecla: 'tecla' }],
+    // O modo "O que é isto?" ligou ou desligou. O SDK atende sozinho.
+    modo: ['ajuda-modo', { ligado: 'ligado' }],
   };
   EVENTOS.gpu = {
   };
@@ -603,6 +614,22 @@
     imprimir: (caminho, nome) => ponte.chamar('impressao.imprimir', { type: 'print', path: caminho, name: nome }, 5000),
     // Este espaço não declara eventos: qualquer nome aqui é recusado.
     ao: (evento, cb) => ponte.escutar('impressao', evento, cb),
+  };
+
+  // ── ajuda: A ajuda do app na Ajuda do ambiente. O app abre um tópico dele; o resto o SDK faz sozinho dentro do quadro: acha o controle que um passo aponta, avisa quando a pessoa faz o gesto do Passo a passo, e diz o que é o controle clicado no modo "O que é isto?". Quem desenha o holofote é o shell, sobre o retângulo que o quadro devolve.
+  vssh.ajuda = {
+    // Abre a Ajuda num tópico do app, pelo id dele na pasta `contributes.ajuda` (sem o argumento, o tópico de entrada), ou num tópico do ambiente com `ambiente/<id>`. A resposta é `true` quando a Ajuda abre no tópico, e `false` quando o tópico não existe.
+    abrir: (topico) => ponte.chamar('ajuda.abrir', { type: 'ajuda', op: 'abrir', topico: topico }, 5000),
+    // O SDK chama este verbo sozinho: o retângulo, no quadro, do controle que o evento `mostrar` pediu, de novo a cada rolagem, e `null` quando ele some.
+    achou: (pedido, retangulo) => ponte.disparar('ajuda.achou', { type: 'ajuda', op: 'achou', pedido: pedido, retangulo: retangulo }),
+    // O SDK chama este verbo sozinho quando a pessoa faz no controle o gesto que o evento `gesto` pediu, e o Passo a passo segue para o passo seguinte.
+    feito: (pedido) => ponte.disparar('ajuda.feito', { type: 'ajuda', op: 'feito', pedido: pedido }),
+    // O SDK chama este verbo sozinho quando o modo "O que é isto?" liga: o quadro passa a receber o clique, que ele mesmo explica.
+    ouvindo: () => ponte.disparar('ajuda.ouvindo', { type: 'ajuda', op: 'ouvindo' }),
+    // O SDK chama este verbo sozinho com o controle que a pessoa clicou no modo "O que é isto?": o nome que ela lê, o `data-ajuda` do primeiro ancestral que o tem, e o retângulo. O clique não chega ao app.
+    isto: (nome, ajuda, retangulo) => ponte.disparar('ajuda.isto', { type: 'ajuda', op: 'isto', nome: nome, ajuda: ajuda, retangulo: retangulo }),
+    // Assina um evento deste espaço (mostrar, gesto, modo) e devolve a função que cancela.
+    ao: (evento, cb) => ponte.escutar('ajuda', evento, cb),
   };
 
   // ── gpu: O recurso que o sistema arbitra ao subir o app. O manifesto declara o que o app precisa em `recursos.gpu.modo`; quem decide, com o que o servidor tem, é o `vssh-app-run`, e o app pergunta o que recebeu sem conhecer `CUDA_VISIBLE_DEVICES` nem o inventário do servidor.
@@ -1464,6 +1491,103 @@
     conectar();
     return conexao;
   };
+
+  // ── A Ajuda dentro do quadro, sem o app pedir ─────────────────────────────────────────────
+  //
+  // O shell não enxerga o documento do app, e pede por evento o que precisa: o retângulo de um
+  // controle que um passo aponta (`ajuda-mostrar`), o aviso do gesto do Passo a passo nele
+  // (`ajuda-gesto`), e o controle clicado no modo "O que é isto?" (`ajuda-modo`). O controle se acha
+  // pelo seletor do `alvos.json` da ajuda do app (o `[data-ajuda="…"]` é a âncora estável) ou pelo
+  // nome que a pessoa lê. Quem desenha o holofote é o shell, sobre o retângulo que sai daqui; o
+  // retângulo vai de novo a cada rolagem e mudança de tamanho, e `null` quando o controle some.
+  const COM_NOME = 'button, a[href], input, select, textarea, summary, label, [role], [aria-label], [title], [data-ajuda]';
+  const visivelNoQuadro = (el) => !!el && el.isConnected && el.getClientRects().length > 0;
+  const nomeNoQuadro = (el) => String(el.getAttribute('aria-label') || el.getAttribute('title')
+    || el.getAttribute('placeholder') || el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+  function acharNoQuadro(alvo) {
+    if (!alvo || typeof alvo !== 'object' || typeof document === 'undefined') return null;
+    if (typeof alvo.seletor === 'string' && alvo.seletor) {
+      try { return [...document.querySelectorAll(alvo.seletor)].find(visivelNoQuadro) || null; } catch { return null; }
+    }
+    const nome = typeof alvo.nome === 'string' ? alvo.nome.trim() : '';
+    if (!nome) return null;
+    return [...document.querySelectorAll(COM_NOME)].find((el) => visivelNoQuadro(el) && nomeNoQuadro(el) === nome) || null;
+  }
+  const retanguloDe = (el) => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+
+  const mostrados = new Map();   // pedido → { alvo, el, desfazer }
+  function ajudaMostrar(m) {
+    const anterior = mostrados.get(m.pedido);
+    if (anterior) { anterior.desfazer(); mostrados.delete(m.pedido); }
+    if (!m.alvo) return;
+    const estado = { alvo: m.alvo, el: null, quadro: 0 };
+    const medir = () => {
+      estado.quadro = 0;
+      const el = acharNoQuadro(estado.alvo);
+      if (el && el !== estado.el) el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      if (!el && !estado.el) return;
+      estado.el = el;
+      disparar('ajuda.achou', { type: 'ajuda', op: 'achou', pedido: m.pedido, retangulo: el ? retanguloDe(el) : null });
+    };
+    const agendar = () => { if (!estado.quadro && typeof requestAnimationFrame === 'function') estado.quadro = requestAnimationFrame(medir); };
+    // O controle pode não estar na tela ainda (a lista carregando, o painel abrindo): a procura
+    // segue por meio segundo a cada vez, até o shell desistir do pedido.
+    const procura = setInterval(() => { if (!visivelNoQuadro(estado.el)) medir(); }, 500);
+    window.addEventListener('scroll', agendar, true);
+    window.addEventListener('resize', agendar);
+    estado.desfazer = () => {
+      clearInterval(procura);
+      window.removeEventListener('scroll', agendar, true);
+      window.removeEventListener('resize', agendar);
+    };
+    mostrados.set(m.pedido, estado);
+    medir();
+  }
+
+  const gestos = new Map();   // pedido → desfazer
+  function ajudaGesto(m) {
+    gestos.get(m.pedido)?.();
+    gestos.delete(m.pedido);
+    if (!m.alvo || !m.tipo) return;
+    const ouvinte = (e) => {
+      if (m.tipo === 'keydown' && m.tecla && e.key !== String(m.tecla).split('+').pop()) return;
+      const el = acharNoQuadro(m.alvo);
+      if (!el || !(el === e.target || el.contains(e.target))) return;
+      gestos.get(m.pedido)?.();
+      gestos.delete(m.pedido);
+      disparar('ajuda.feito', { type: 'ajuda', op: 'feito', pedido: m.pedido });
+    };
+    document.addEventListener(m.tipo, ouvinte, true);
+    gestos.set(m.pedido, () => document.removeEventListener(m.tipo, ouvinte, true));
+  }
+
+  // No modo ligado, o clique seguinte não chega ao app: ele vira a pergunta "o que é isto?".
+  let modoDaAjuda = null;
+  function ajudaModo(m) {
+    modoDaAjuda?.();
+    modoDaAjuda = null;
+    if (!m.ligado || typeof document === 'undefined') return;
+    const engolir = (e) => {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (e.type !== 'click') return;
+      modoDaAjuda?.();
+      modoDaAjuda = null;
+      const t = e.target instanceof Element ? e.target : null;
+      const controle = t && (t.closest(COM_NOME) || t);
+      const ancora = t && t.closest('[data-ajuda]');
+      disparar('ajuda.isto', {
+        type: 'ajuda', op: 'isto',
+        nome: controle ? nomeNoQuadro(controle) : '',
+        ajuda: ancora ? ancora.getAttribute('data-ajuda') : null,
+        retangulo: controle ? retanguloDe(controle) : undefined,
+      });
+    };
+    const tipos = ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click', 'dblclick', 'contextmenu'];
+    for (const tipo of tipos) window.addEventListener(tipo, engolir, true);
+    modoDaAjuda = () => { for (const tipo of tipos) window.removeEventListener(tipo, engolir, true); };
+    disparar('ajuda.ouvindo', { type: 'ajuda', op: 'ouvindo' });
+  }
 
   // ── Os erros do app, relatados sem o app pedir ────────────────────────────────────────────
   //
