@@ -142,6 +142,8 @@ export interface PacoteDaAjuda {
   topicos: Topico[];
   glossario: Termo[];
   alvos: Record<string, Alvo>;
+  /** As cenas de cada tópico que mudaram desde o deploy anterior, quando o palco as mediu (`juntarMudancas`). */
+  mudancas?: { topico: string; cenas: { id: string; tela: 'larga' | 'estreita' }[] }[];
 }
 
 /**
@@ -742,6 +744,22 @@ export function juntarFiguras(pacote: PacoteDaAjuda, cenas: Record<string, CenaD
     }
   };
   for (const t of pacote.topicos) andar(t.id, t.blocos);
+}
+
+/**
+ * Pendura no pacote as cenas que o palco diz terem mudado desde o deploy anterior (`mudancas.json`),
+ * agrupadas por tópico, na ordem dos tópicos. Fica só a cena que o índice das figuras tem e cujo
+ * tópico existe: as duas figuras dela, a de antes e a de agora, estão na pasta.
+ */
+export function juntarMudancas(pacote: PacoteDaAjuda, mudancas: { id: string; topico: string; tela: string }[], cenas: Record<string, CenaDoIndice>): void {
+  const porTopico = new Map<string, { id: string; tela: 'larga' | 'estreita' }[]>();
+  for (const m of mudancas) {
+    const c = cenas[m.id];
+    if (!c || c.topico !== m.topico) continue;
+    if (!porTopico.has(m.topico)) porTopico.set(m.topico, []);
+    porTopico.get(m.topico)!.push({ id: m.id, tela: c.tela });
+  }
+  pacote.mudancas = pacote.topicos.filter((t) => porTopico.has(t.id)).map((t) => ({ topico: t.id, cenas: porTopico.get(t.id)! }));
 }
 
 // ─── A ajuda de um app ───────────────────────────────────────────────────────
