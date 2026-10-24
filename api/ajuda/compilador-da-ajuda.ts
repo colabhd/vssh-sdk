@@ -42,6 +42,7 @@ export type Inline =
   | { t: 'topico'; id: string; v: string }
   | { t: 'clique'; forma: 'clique' | 'Clique' | 'clicar' | 'Clicar' | 'direito' | 'Direito' }
   | { t: 'barra' }
+  | { t: 'estacao' }
   | { t: 'tecla'; v: string }
   | { t: 'cod'; v: string }
   | { t: 'link'; href: string; v: string }
@@ -260,6 +261,8 @@ function inline(ctx: Ctx, linha: number, s: string, refs: { id: string; linha: n
     if (['clique', 'Clique', 'clicar', 'Clicar', 'direito', 'Direito'].includes(corpo)) { out.push({ t: 'clique', forma: corpo as 'clique' }); continue; }
     // A borda da tela onde a barra de tarefas da pessoa está: "de baixo", "de cima", "da esquerda".
     if (corpo === 'barra') { out.push({ t: 'barra' }); continue; }
+    // O nome da estação em que o ambiente está aberto, o mesmo do menu iniciar.
+    if (corpo === 'estacao') { out.push({ t: 'estacao' }); continue; }
     const mm = /^([a-z]+):([^|]+)(?:\|(.+))?$/.exec(corpo);
     if (!mm) { erro(ctx, linha, `marcação desconhecida: {{${corpo}}}`); continue; }
     const [, tipo, alvo, txt] = mm;

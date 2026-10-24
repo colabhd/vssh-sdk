@@ -9,6 +9,10 @@
       "titulo": "Abrir um aplicativo"
     },
     {
+      "id": "abrir-um-servidor-seu",
+      "titulo": "Abrir o seu Dash, Vite ou notebook"
+    },
+    {
       "id": "algo-travou",
       "titulo": "A tela travou ou um aplicativo parou de responder"
     },
@@ -121,6 +125,10 @@
       "titulo": "Instalar um aplicativo pela Loja de apps"
     },
     {
+      "id": "mandar-para-a-fila",
+      "titulo": "Mandar um trabalho pesado para a fila"
+    },
+    {
       "id": "mouse-e-teclado",
       "titulo": "Clicar, arrastar e o clique direito"
     },
@@ -171,6 +179,10 @@
     {
       "id": "renomear",
       "titulo": "Mudar o nome de um arquivo"
+    },
+    {
+      "id": "rodar-um-script",
+      "titulo": "Rodar um script e ver o resultado"
     },
     {
       "id": "sessao-expirou",

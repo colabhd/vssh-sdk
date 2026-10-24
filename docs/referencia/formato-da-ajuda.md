@@ -52,12 +52,13 @@ existe quando o manifesto declara o campo dela.
 
 ## Os tópicos do ambiente
 
-Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 47 que existem:
+Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 50 que existem:
 
 | id | título |
 |---|---|
 | `abrir-com` | Que aplicativo abre cada arquivo |
 | `abrir-um-aplicativo` | Abrir um aplicativo |
+| `abrir-um-servidor-seu` | Abrir o seu Dash, Vite ou notebook |
 | `algo-travou` | A tela travou ou um aplicativo parou de responder |
 | `alternar-janelas` | Passar de uma janela para outra |
 | `aplicativos-do-servidor` | Os aplicativos deste servidor |
@@ -86,6 +87,7 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 47 q
 | `janelas` | Mover, aumentar e fechar uma janela |
 | `log-de-um-aplicativo` | As mensagens de um aplicativo (o log) |
 | `loja-de-apps` | Instalar um aplicativo pela Loja de apps |
+| `mandar-para-a-fila` | Mandar um trabalho pesado para a fila |
 | `mouse-e-teclado` | Clicar, arrastar e o clique direito |
 | `navegador` | O Navegador do ambiente |
 | `no-celular` | No celular |
@@ -99,6 +101,7 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 47 q
 | `portal-nao-responde` | O portal não está respondendo |
 | `praticar` | Praticar os gestos |
 | `renomear` | Mudar o nome de um arquivo |
+| `rodar-um-script` | Rodar um script e ver o resultado |
 | `sessao-expirou` | Sua sessão expirou |
 | `tela-cheia` | Usar a tela inteira |
 | `terminal` | O Terminal |
