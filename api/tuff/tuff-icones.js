@@ -148,6 +148,16 @@
   'volume-low':
     '<symbol id="ico-volume-low" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.5L5 6H2.5v4H5l3 3V3.5z"/><path d="M10.75 6.5c.5.45.75.95.75 1.5s-.25 1.05-.75 1.5"/></symbol>',
 
+  // A bateria do aparelho, na bandeja: três níveis de carga e o raio de quando está na tomada.
+  'bateria-cheia':
+    '<symbol id="ico-bateria-cheia" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="4.5" width="11.5" height="7" rx="1.5"/><path d="M14.5 6.75v2.5"/><rect x="3.25" y="6.25" width="8" height="3.5" rx=".5" fill="currentColor" stroke="none"/></symbol>',
+  'bateria-media':
+    '<symbol id="ico-bateria-media" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="4.5" width="11.5" height="7" rx="1.5"/><path d="M14.5 6.75v2.5"/><rect x="3.25" y="6.25" width="4.5" height="3.5" rx=".5" fill="currentColor" stroke="none"/></symbol>',
+  'bateria-baixa':
+    '<symbol id="ico-bateria-baixa" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="4.5" width="11.5" height="7" rx="1.5"/><path d="M14.5 6.75v2.5"/><rect x="3.25" y="6.25" width="1.75" height="3.5" rx=".5" fill="currentColor" stroke="none"/></symbol>',
+  'bateria-carregando':
+    '<symbol id="ico-bateria-carregando" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="4.5" width="11.5" height="7" rx="1.5"/><path d="M14.5 6.75v2.5"/><path d="M8 6 6.25 8.25h2.5L7 10.25" stroke-width="1.25"/></symbol>',
+
   // "Sessão remota" no mixer de volume: a linha do stream do motor X11, que não é app nem aba.
   'monitor':
     '<symbol id="ico-monitor" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"/><path d="M6 14h4M8 11.5V14"/></symbol>',
