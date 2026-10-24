@@ -129,6 +129,22 @@
       "titulo": "O Navegador do ambiente"
     },
     {
+      "id": "no-celular",
+      "titulo": "No celular"
+    },
+    {
+      "id": "no-chromebook",
+      "titulo": "No Chromebook"
+    },
+    {
+      "id": "no-cliente-de-desktop",
+      "titulo": "No cliente de desktop"
+    },
+    {
+      "id": "no-navegador",
+      "titulo": "No navegador"
+    },
+    {
       "id": "nova-pasta",
       "titulo": "Criar uma pasta"
     },

@@ -52,7 +52,7 @@ existe quando o manifesto declara o campo dela.
 
 ## Os tópicos do ambiente
 
-Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 43 que existem:
+Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 47 que existem:
 
 | id | título |
 |---|---|
@@ -88,6 +88,10 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 43 q
 | `loja-de-apps` | Instalar um aplicativo pela Loja de apps |
 | `mouse-e-teclado` | Clicar, arrastar e o clique direito |
 | `navegador` | O Navegador do ambiente |
+| `no-celular` | No celular |
+| `no-chromebook` | No Chromebook |
+| `no-cliente-de-desktop` | No cliente de desktop |
+| `no-navegador` | No navegador |
 | `nova-pasta` | Criar uma pasta |
 | `o-ambiente` | O que é o VSSH |
 | `onde-as-coisas-estao` | O seu computador, o portal e a estação |
