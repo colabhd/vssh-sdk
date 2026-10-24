@@ -526,7 +526,9 @@ export function compilarAjuda(arquivos: ArquivoDaAjuda[], opcoes: { app?: Opcoes
   for (const a of ordenados) {
     const ctx: Ctx = { arquivo: a.caminho, erros };
     if (a.caminho === 'alvos.json') { alvos = lerAlvos(ctx, a.texto); continue; }
-    if (!a.caminho.endsWith('.md')) { erro(ctx, 1, 'a pasta da Ajuda só tem .md, e o alvos.json'); continue; }
+    // A catraca da cobertura, que o palco lê e escreve (`scripts/palco.js`): não é texto da Ajuda.
+    if (a.caminho === 'cobertura.json') continue;
+    if (!a.caminho.endsWith('.md')) { erro(ctx, 1, 'a pasta da Ajuda só tem .md, o alvos.json e o cobertura.json'); continue; }
 
     if (a.caminho === 'glossario.md') { lerGlossario(ctx, a.texto, glossario, col); continue; }
 
@@ -706,6 +708,8 @@ export interface CenaDoIndice {
   alvos: Figura['alvos'];
   raiz?: Figura['raiz'];
   origem?: Figura['origem'];
+  /** A classe da janela que a cena recorta, quando ela recorta uma. É o que conta como janela com cena na cobertura. */
+  janela?: string | null;
 }
 
 /**
