@@ -67,7 +67,7 @@
   'terminal':
     '<symbol id="ico-terminal" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5L7 8 2.5 11.5"/><path d="M9.5 12h4"/></symbol>',
   'settings':
-    '<symbol id="ico-settings" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1.5V3M8 13V14.5M1.5 8H3M13 8H14.5M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M12.6 3.4l-1.1 1.1M4.5 11.5l-1.1 1.1"/></symbol>',
+    '<symbol id="ico-settings" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 3.37 6.74 1.52h2.52l.34 1.85 1.61.93 1.77-.63 1.26 2.18-1.43 1.22v1.86l1.43 1.22-1.26 2.18-1.77-.63-1.61.93-.34 1.85H6.74l-.34-1.85-1.61-.93-1.77.63-1.26-2.18 1.43-1.22V7.07L1.76 5.85l1.26-2.18 1.77.63z"/><circle cx="8" cy="8" r="2.25"/></symbol>',
   'search':
     '<symbol id="ico-search" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4.5"/><path d="M11 11L14.5 14.5"/></symbol>',
   'refresh':
@@ -253,6 +253,12 @@
     '<symbol id="ico-zoom-in" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4.5"/><path d="M11 11l3.5 3.5"/><path d="M7 5.2v3.6M5.2 7h3.6"/></symbol>',
   'zoom-out':
     '<symbol id="ico-zoom-out" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4.5"/><path d="M11 11l3.5 3.5"/><path d="M5.2 7h3.6"/></symbol>',
+  // O tamanho do texto é a letra com menos e mais, e não a lupa: a lupa é a busca, e as duas ficam
+  // lado a lado na barra da Ajuda.
+  'texto-menor':
+    '<symbol id="ico-texto-menor" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.75 13 5.5 3.5 9.25 13M3.1 9.6h4.8"/><path d="M11 6h3.5"/></symbol>',
+  'texto-maior':
+    '<symbol id="ico-texto-maior" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.75 13 5.5 3.5 9.25 13M3.1 9.6h4.8"/><path d="M11 6h3.5M12.75 4.25v3.5"/></symbol>',
   'fit':
     '<symbol id="ico-fit" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="3.2" width="12.4" height="9.6" rx="1"/><path d="M5.2 6.2h5.6v3.6H5.2z"/></symbol>',
   'rotate-left':
