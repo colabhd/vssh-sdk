@@ -95,8 +95,8 @@ cabeçalhos de seção dos comentários.
 Cada um destes tem um modo de falha silencioso, e é por isso que estão aqui.
 
 - Os dois templates são o mesmo app em dois runtimes: mesmas peças, mesmas rotas, e o
-  `frontend/galeria.js` byte a byte idêntico. `tests/galeria-paridade.test.js` reprova a deriva.
-  Uma peça nova entra nos dois lados no mesmo commit.
+  `frontend/galeria.js` e a pasta `ajuda/` byte a byte idênticos. `tests/galeria-paridade.test.js`
+  reprova a deriva. Uma peça nova entra nos dois lados no mesmo commit.
 - O `vssh-app-publish` valida contra `api/vssh-app.schema.json`. Um checkout sem `api/` cai nas
   checagens mínimas e diz isso numa anotação do run. O validador implementa um subconjunto de
   JSON Schema (type, required, properties, enum, pattern, items, minimum/maximum,
@@ -143,6 +143,7 @@ Rode o que a sua mudança alcança, com `node --test --test-concurrency=1 --test
 | Validação e empacotamento de um app | `scripts/vssh-app-publish` (o validador é o heredoc Python) + `tests/publish-validacao.test.js` |
 | Publicar um motor de app (`motores` no manifesto) | `scripts/vssh-motor-publish` + `.github/actions/publicar-motor/` + `tests/publish-motor.test.js`; o guia é `docs/guias/motor.md` |
 | O portão de versão das libs | a seção `2b` do mesmo script + `tests/publish-libs-gate.test.js` |
+| A ajuda de um app (compilar, nível, regra dos oficiais, envio) | `scripts/compilar-ajuda.mjs` (importa `api/ajuda/compilador-da-ajuda.ts`, gerado, o mesmo arquivo do portal) + as seções `2c` e `4b` do `vssh-app-publish` + os casos da ajuda em `tests/publish-validacao.test.js` + `tests/publish-ajuda.test.js` (o publish inteiro contra um Worker de mentira); o guia é `docs/guias/ajuda.md` |
 | O reusable que o CI de um app chama | `.github/workflows/_publish-app-reusable.yml` |
 | Publicar os templates e exemplos daqui | `.github/workflows/publish-apps.yml` (pede o secret `VSSH_REPO_PUBLISH_TOKEN` e a var `VSSH_REPO_API`) |
 | O CI deste repositório | `.github/workflows/ci.yml` |

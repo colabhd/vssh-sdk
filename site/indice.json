@@ -36,6 +36,7 @@
         "docs/guias/metricas-e-erros.md",
         "docs/guias/motor.md",
         "docs/guias/ambiente-de-desenvolvimento.md",
+        "docs/guias/ajuda.md",
         "docs/guias/publicar.md"
       ]
     },
@@ -46,7 +47,8 @@
         { "espacos": "api/abi.json" },
         "docs/referencia/manifesto.md",
         "docs/referencia/ambiente.md",
-        "docs/referencia/hiperlink.md"
+        "docs/referencia/hiperlink.md",
+        "docs/referencia/formato-da-ajuda.md"
       ]
     },
     {

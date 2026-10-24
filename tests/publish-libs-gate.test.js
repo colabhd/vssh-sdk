@@ -29,11 +29,11 @@ function temBash() {
 }
 const seNaoTemBash = { skip: temBash() ? false : 'sem bash no PATH' };
 
-/** O bloco 2b do publish, recortado pelos delimitadores reais. */
+/** O bloco 2b do publish, recortado pelos delimitadores reais: do cabeçalho dele ao da seção seguinte. */
 function portao() {
   const linhas = fs.readFileSync(SCRIPT, 'utf8').replace(/\r/g, '').split('\n');
   const inicio = linhas.findIndex((l) => l.startsWith('# ── 2b.'));
-  const fim = linhas.findIndex((l, i) => i > inicio && l.startsWith('# ── 3.'));
+  const fim = linhas.findIndex((l, i) => i > inicio && l.startsWith('# ── '));
   assert.ok(inicio > 0 && fim > inicio, 'não achei a seção 2b no vssh-app-publish');
   return linhas.slice(inicio, fim).join('\n');
 }

@@ -21,7 +21,7 @@
   "secrets": [
     {
       "name": "HELLO_SEGREDO",
-      "description": "Qualquer texto. Serve só para demonstrar o cofre: guarde aqui, reinicie o app, e a galeria mostra que ele chegou — sem nunca mostrar o valor.",
+      "description": "Qualquer texto. Serve só para demonstrar o cofre: guarde aqui, reinicie o app, e a galeria mostra que ele chegou, sem nunca mostrar o valor.",
       "required": false
     }
   ],
@@ -32,6 +32,7 @@
   },
   "handles": "editor",
   "contributes": {
+    "ajuda": { "pasta": "ajuda", "inicio": "comecar" },
     "settings": "configuracoes.js",
     "settingsOptIn": true,
     "contextMenu": [

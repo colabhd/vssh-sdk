@@ -17,7 +17,8 @@ A referência mora em [`referencia/`](referencia/README.md): um capítulo por es
 `vssh.midia`, `vssh.impressao`, `vssh.gpu`, `vssh.configuracoes`, `vssh.salas`, `vssh.pessoas`,
 `vssh.apps`), com a assinatura de cada verbo, o que ele responde, se ele vale num hiperlink, e
 os eventos que o shell manda de volta. Ao lado ficam o `vssh-app.json` campo a campo, o ambiente
-do backend e [o manifesto de um hiperlink](referencia/hiperlink.md). O canal de publicação do
+do backend, [o manifesto de um hiperlink](referencia/hiperlink.md) e [o formato da ajuda de um
+app](referencia/formato-da-ajuda.md). O canal de publicação do
 sistema a escreve depois de cada deploy, junto de [`api/`](../api/) e [`runtime/`](../runtime/);
 uma correção nela se faz na descrição do verbo, na tabela do sistema, e chega aqui na rodada
 seguinte.
@@ -52,6 +53,7 @@ seguinte.
 | [Uma plataforma como hiperlink](guias/uma-plataforma-como-hiperlink.md) | Pôr no menu do ambiente uma plataforma web que já roda no domínio dela: o manifesto PWA com o membro `vssh`, o quadro, o cadastro, o SDK carregado do portal com o aperto de mão, e o que a ponte alcança dali. |
 | [Métricas e erros](guias/metricas-e-erros.md) | Contar e medir o que o backend faz, mandar exceções ao log do ambiente por `vssh.metricas` com `recursos.metricas`, o erro da janela que o SDK web já relata sozinho, e o que um rótulo pode carregar. |
 | [Um motor fora do pacote](guias/motor.md) | Entregar ao servidor o que o app usa e não cabe no pacote (um ambiente com PyTorch, os pesos de um modelo), baixado uma vez por servidor e achado por `VSSH_MOTOR_<NOME>`. |
+| [A ajuda do seu app](guias/ajuda.md) | Um livro do app na Ajuda do ambiente: a pasta de tópicos, o que o `cobre` declara e o nível que sai dele, os passos que apontam a sua janela, `vssh.ajuda.abrir`, e o que o publish confere. |
 | [Publicar](guias/publicar.md) | Empacotar, publicar no repositório de artefatos e instalar num servidor, por CI ou à mão. |
 
 ## Aparência

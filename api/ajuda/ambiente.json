@@ -1,0 +1,193 @@
+{
+  "topicos": [
+    {
+      "id": "abrir-com",
+      "titulo": "Que aplicativo abre cada arquivo"
+    },
+    {
+      "id": "abrir-um-aplicativo",
+      "titulo": "Abrir um aplicativo"
+    },
+    {
+      "id": "algo-travou",
+      "titulo": "A tela travou ou um aplicativo parou de responder"
+    },
+    {
+      "id": "alternar-janelas",
+      "titulo": "Passar de uma janela para outra"
+    },
+    {
+      "id": "aplicativos-do-servidor",
+      "titulo": "Os aplicativos deste servidor"
+    },
+    {
+      "id": "app-nao-abre",
+      "titulo": "Um aplicativo não abre"
+    },
+    {
+      "id": "area-de-trabalho",
+      "titulo": "A área de trabalho e os ícones"
+    },
+    {
+      "id": "arquivo-sumiu",
+      "titulo": "Um arquivo sumiu"
+    },
+    {
+      "id": "arquivos",
+      "titulo": "Os seus arquivos e pastas"
+    },
+    {
+      "id": "atalhos-de-teclado",
+      "titulo": "Atalhos de teclado"
+    },
+    {
+      "id": "avisos-e-notificacoes",
+      "titulo": "Avisos, notificações e Não perturbe"
+    },
+    {
+      "id": "baixar-arquivos",
+      "titulo": "Levar um arquivo do servidor para o seu computador"
+    },
+    {
+      "id": "barra-de-tarefas",
+      "titulo": "A barra de tarefas"
+    },
+    {
+      "id": "chaveiro",
+      "titulo": "Senhas guardadas no Chaveiro"
+    },
+    {
+      "id": "como-usar-a-ajuda",
+      "titulo": "Como usar a Ajuda"
+    },
+    {
+      "id": "compactar-e-extrair",
+      "titulo": "Arquivos compactados (.zip)"
+    },
+    {
+      "id": "configuracoes",
+      "titulo": "Configurações"
+    },
+    {
+      "id": "copiar-e-mover",
+      "titulo": "Copiar e mover arquivos"
+    },
+    {
+      "id": "desfazer",
+      "titulo": "Desfazer o que acabou de fazer"
+    },
+    {
+      "id": "editor-de-texto",
+      "titulo": "O Editor de texto"
+    },
+    {
+      "id": "entrar-e-sair",
+      "titulo": "Entrar, trocar de servidor e sair"
+    },
+    {
+      "id": "enviar-arquivos",
+      "titulo": "Levar arquivos do seu computador para o servidor"
+    },
+    {
+      "id": "excluir-e-lixeira",
+      "titulo": "Excluir e a Lixeira"
+    },
+    {
+      "id": "fundo-e-cor",
+      "titulo": "Trocar o fundo da tela e a cor de destaque"
+    },
+    {
+      "id": "gerenciador-de-tarefas",
+      "titulo": "Ver o que está rodando e encerrar um programa travado"
+    },
+    {
+      "id": "imprimir",
+      "titulo": "Imprimir um arquivo"
+    },
+    {
+      "id": "janela-nao-abriu",
+      "titulo": "Uma janela diz que não abriu"
+    },
+    {
+      "id": "janelas",
+      "titulo": "Mover, aumentar e fechar uma janela"
+    },
+    {
+      "id": "log-de-um-aplicativo",
+      "titulo": "As mensagens de um aplicativo (o log)"
+    },
+    {
+      "id": "loja-de-apps",
+      "titulo": "Instalar um aplicativo pela Loja de apps"
+    },
+    {
+      "id": "mouse-e-teclado",
+      "titulo": "Clicar, arrastar e o clique direito"
+    },
+    {
+      "id": "navegador",
+      "titulo": "O Navegador do ambiente"
+    },
+    {
+      "id": "nova-pasta",
+      "titulo": "Criar uma pasta"
+    },
+    {
+      "id": "o-ambiente",
+      "titulo": "O que é o VSSH"
+    },
+    {
+      "id": "pastas-de-rede",
+      "titulo": "Pastas de rede (Nextcloud, ownCloud, SharePoint)"
+    },
+    {
+      "id": "portal-nao-responde",
+      "titulo": "O portal não está respondendo"
+    },
+    {
+      "id": "renomear",
+      "titulo": "Mudar o nome de um arquivo"
+    },
+    {
+      "id": "sessao-expirou",
+      "titulo": "Sua sessão expirou"
+    },
+    {
+      "id": "tela-cheia",
+      "titulo": "Usar a tela inteira"
+    },
+    {
+      "id": "terminal",
+      "titulo": "O Terminal"
+    },
+    {
+      "id": "versao-nova",
+      "titulo": "Versão nova publicada"
+    }
+  ],
+  "termos": [
+    "aba",
+    "ambiente",
+    "aplicativo",
+    "área de trabalho",
+    "área de transferência",
+    "arquivo",
+    "arrastar",
+    "barra de tarefas",
+    "clique direito",
+    "clique duplo",
+    "encaixar",
+    "endereço",
+    "estação",
+    "janela",
+    "Lixeira",
+    "Não perturbe",
+    "notificação",
+    "pasta",
+    "portal",
+    "servidor",
+    "tela cheia",
+    "toque duplo",
+    "toque longo"
+  ]
+}

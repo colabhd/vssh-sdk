@@ -67,6 +67,16 @@ test('a contribuição a Configurações é o MESMO ARQUIVO', () => {
   assert.equal(ler(path.join(PY, 'configuracoes.js')), ler(path.join(NODE, 'configuracoes.js')));
 });
 
+test('a ajuda é a MESMA pasta', () => {
+  // A ajuda fala da janela, e a janela é a mesma nos dois runtimes. Um tópico que citasse o
+  // backend seria instrução errada para metade de quem lê, como na galeria.
+  const pastas = [NODE, PY].map((t) => path.join(t, 'ajuda'));
+  const nomes = pastas.map((p) => fs.readdirSync(p).sort());
+  assert.ok(nomes[0].length > 0, 'o template Node não tem a pasta ajuda/');
+  assert.deepEqual(nomes[1], nomes[0]);
+  for (const nome of nomes[0]) assert.equal(ler(path.join(pastas[1], nome)), ler(path.join(pastas[0], nome)), `ajuda/${nome} divergiu`);
+});
+
 test('a marcação tem as MESMAS peças, e só o nome do runtime difere', () => {
   const a = ler(path.join(NODE, 'frontend', 'index.html'));
   const b = ler(path.join(PY, 'frontend', 'index.html'));
@@ -108,6 +118,7 @@ test('os manifestos declaram as mesmas capacidades', () => {
   assert.deepEqual(b.contributes?.contextMenu, a.contributes?.contextMenu,
     'a jump list difere entre os templates');
   assert.equal(b.contributes?.settings, a.contributes?.settings);
+  assert.deepEqual(b.contributes?.ajuda, a.contributes?.ajuda, 'a ajuda declarada difere entre os templates');
   assert.equal(b.backend?.healthcheckPath, a.backend?.healthcheckPath);
   assert.equal(b.backend?.aoFechar, a.backend?.aoFechar);
   assert.equal(b.backend?.transport, a.backend?.transport);

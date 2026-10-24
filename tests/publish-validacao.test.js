@@ -582,3 +582,81 @@ test('o schema conhece browserExtension, e fecha a porta como todo objeto do man
   assert.match(validar({ ...BASE, contributes: { browserExtension: { id: 'x-ext', bundleUrl: 'https://x' } } }),
     /ERROR=schema:/, 'bundleUrl aqui seria uma segunda verdade sobre o que o catálogo já sabe');
 });
+
+// ── A ajuda do app ──────────────────────────────────────────────────────────
+//
+// `scripts/compilar-ajuda.mjs` compila a pasta com o compilador que o canal do sistema gera em
+// `api/ajuda/`, e é ele que o publish chama. O canal roda este arquivo sobre o `api/` recém-gerado,
+// então um compilador novo que recuse o que o CLI manda, ou um `ambiente.json` sem os tópicos que um
+// app cita, fica vermelho aqui antes de chegar ao `main` deste repositório.
+
+const { spawnSync } = require('node:child_process');
+
+const CLI = path.join(ROOT, 'scripts', 'compilar-ajuda.mjs');
+const AMBIENTE = path.join(ROOT, 'api', 'ajuda', 'ambiente.json');
+const semAjuda = {
+  skip: !fs.existsSync(AMBIENTE) ? 'sem api/ajuda/ neste checkout: o canal do sistema ainda não a gerou'
+    : !process.features.typescript ? `o Node ${process.version} não importa TypeScript (22.18 ou mais novo)` : false,
+};
+
+/** Um app com a pasta de ajuda dada (`{ 'comecar.md': '…' }`) e o compilador de verdade sobre ele. */
+function compilarAjuda(arquivos, manifesto = {}) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vssh-ajuda-'));
+  try {
+    fs.writeFileSync(path.join(dir, 'vssh-app.json'), JSON.stringify({
+      ...BASE, name: 'Exemplo', contributes: { ajuda: { pasta: 'ajuda', inicio: 'comecar' } }, ...manifesto,
+    }));
+    fs.mkdirSync(path.join(dir, 'ajuda'));
+    for (const [nome, texto] of Object.entries(arquivos)) fs.writeFileSync(path.join(dir, 'ajuda', nome), texto);
+    const saida = path.join(dir, 'ajuda.json');
+    const r = spawnSync(process.execPath, [CLI, dir, '--saida', saida], { encoding: 'utf8' });
+    const linhas = r.stdout.trim().split('\n').filter(Boolean);
+    const valores = (chave) => linhas.filter((l) => l.startsWith(`${chave}=`)).map((l) => l.slice(chave.length + 1));
+    return { codigo: r.status, stderr: r.stderr, valores, ajuda: fs.existsSync(saida) ? JSON.parse(fs.readFileSync(saida, 'utf8')) : null };
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+const topico = (corpo, cobre = 'janela') => `---\nid: comecar\ntitulo: Começar\ncobre: [${cobre}]\n---\n\n${corpo}\n`;
+
+test('a ajuda que liga a um tópico do ambiente compila, e o nível sai das superfícies cobertas', semAjuda, () => {
+  const [doAmbiente] = JSON.parse(fs.readFileSync(AMBIENTE, 'utf8')).topicos;
+  const comSegredo = { secrets: [{ name: 'CHAVE_DA_API', description: 'A chave do serviço.' }] };
+
+  const parcial = compilarAjuda({ 'comecar.md': topico(`Veja {{t:ambiente/${doAmbiente.id}|${doAmbiente.titulo}}}.`) }, comSegredo);
+  assert.equal(parcial.codigo, 0, parcial.stderr + parcial.valores('ERRO').join('\n'));
+  assert.deepEqual(parcial.valores('NIVEL'), ['1']);
+  assert.deepEqual(parcial.valores('SEM_TOPICO'), ['a senha CHAVE_DA_API']);
+  assert.equal(parcial.ajuda.inicio, 'comecar');
+  assert.equal(parcial.ajuda.versao, '1.0.0');
+
+  const total = compilarAjuda({ 'comecar.md': topico('A janela e a senha.', 'janela, segredo:CHAVE_DA_API') }, comSegredo);
+  assert.deepEqual(total.valores('NIVEL'), ['2']);
+  assert.deepEqual(total.valores('SEM_TOPICO'), []);
+});
+
+test('a ajuda inválida é recusada com o arquivo e a linha, e nada é escrito', semAjuda, () => {
+  const r = compilarAjuda({ 'comecar.md': topico('Veja {{t:ambiente/nao-existe|isto}} — e aquilo.') });
+  assert.equal(r.codigo, 1);
+  assert.equal(r.ajuda, null);
+  const erros = r.valores('ERRO');
+  assert.ok(erros.some((e) => /^ajuda\/comecar\.md:\d+: .*nao-existe/.test(e)), erros.join('\n'));
+  assert.ok(erros.some((e) => /^ajuda\/comecar\.md:\d+: travessão/.test(e)), erros.join('\n'));
+
+  const semInicio = compilarAjuda({ 'outro.md': topico('Texto.').replace('id: comecar', 'id: outro') });
+  assert.equal(semInicio.codigo, 1);
+  assert.ok(semInicio.valores('ERRO').some((e) => e.includes('contributes.ajuda.inicio')), semInicio.valores('ERRO').join('\n'));
+});
+
+test('um manifesto sem contributes.ajuda é nível 0, e o compilador nem é carregado', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vssh-ajuda-'));
+  try {
+    fs.writeFileSync(path.join(dir, 'vssh-app.json'), JSON.stringify(BASE));
+    const r = spawnSync(process.execPath, [CLI, dir], { encoding: 'utf8', env: { ...process.env, VSSH_SDK_API: path.join(dir, 'sem-api') } });
+    assert.equal(r.status, 0, r.stderr);
+    assert.equal(r.stdout.trim(), 'NIVEL=0');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

@@ -5,8 +5,10 @@
 #
 # Lê VSSH_REPO_API e VSSH_REPO_PUBLISH_TOKEN do ambiente (ou das flags). Valida o vssh-app.json
 # contra `api/vssh-app.schema.json` deste repositório, empacota, confere o sha256 e faz
-# POST /v1/publish/app (e o ícone, se houver). Roda no CI do repositório do app, pelo
-# `_publish-app-reusable.yml`, e na máquina de quem desenvolve.
+# POST /v1/publish/app (e o ícone, se houver). Com `contributes.ajuda` no manifesto, compila a
+# pasta de ajuda (`compilar-ajuda.mjs`, com o Node), recusa a que não compila, escreve o nível no
+# resumo do run e manda o `ajuda.json` ao repositório depois do pacote. Roda no CI do repositório do
+# app, pelo `_publish-app-reusable.yml`, e na máquina de quem desenvolve.
 #
 # As notas de versão (`--notes`, `--notes-file`, ou VSSH_RELEASE_NOTES no ambiente) são o que
 # mudou NESTA versão, em markdown, e vão para a ficha do app na loja. Um changelog inteiro não é
@@ -346,19 +348,41 @@ else:
     # resumo do run. Uma linha no meio do log passa meses sem ninguém ler.
     print('WARN=schema não encontrado neste checkout; o manifesto foi validado SÓ no mínimo (id/runtime/entrypoint)')
 
+# A ficha do app na Loja e na Ajuda mostra os textos do manifesto, e o travessão é o padrão que a
+# Ajuda recusa num tópico. Aqui ele é aviso, com o caminho do campo: o texto do manifesto não passa
+# pela régua da Ajuda, e recusar um app publicado há meses por pontuação seria desproporcional.
+def _travessoes(v, caminho=''):
+    if isinstance(v, str): return [caminho or '<raiz>'] if '\u2014' in v else []
+    if isinstance(v, list): return [c for i, x in enumerate(v) for c in _travessoes(x, f"{caminho}[{i}]")]
+    if isinstance(v, dict): return [c for k, x in v.items() for c in _travessoes(x, f"{caminho}.{k}" if caminho else k)]
+    return []
+for c in _travessoes(m): print(f"TRAVESSAO={c}")
+
+dev = m.get('developer')
+print("DEVELOPER=" + (dev['name'] if isinstance(dev, dict) and isinstance(dev.get('name'), str) else ''))
+contrib = m.get('contributes')
+print("AJUDA=" + ('1' if isinstance(contrib, dict) and isinstance(contrib.get('ajuda'), dict) else ''))
 print(f"ID={app_id}")
 print(f"VERSION={version}")
 print("ICON=" + (m.get('icon') or ''))
 PYEOF
 )"
 
-APP_ID="" VERSION="" ICON="" ERR="" WARN=""
+APP_ID="" VERSION="" ICON="" ERR="" WARN="" DEVELOPER="" AJUDA=""
+TRAVESSOES=()
 INFO="${INFO//$'\r'/}"   # robustez: python em Windows emite \r\n; header do curl não pode ter \r
 while IFS='=' read -r k v; do
-  case "${k}" in ERROR) ERR="${v}";; ID) APP_ID="${v}";; VERSION) VERSION="${v}";; ICON) ICON="${v}";; WARN) WARN="${v}";; esac
+  case "${k}" in
+    ERROR) ERR="${v}";; ID) APP_ID="${v}";; VERSION) VERSION="${v}";; ICON) ICON="${v}";; WARN) WARN="${v}";;
+    DEVELOPER) DEVELOPER="${v}";; AJUDA) AJUDA="${v}";; TRAVESSAO) TRAVESSOES+=("${v}");;
+  esac
 done <<< "${INFO}"
 [ -z "${WARN}" ] || anotar warning "validação parcial" "${WARN}"
 [ -z "${ERR}" ] || { echo "ERRO: vssh-app.json inválido (${ERR})." >&2; exit 1; }
+for campo in "${TRAVESSOES[@]}"; do
+  anotar warning "travessão no manifesto" \
+    "${campo} tem travessão. A ficha do app mostra esse texto; troque por vírgula, ponto, dois-pontos ou parênteses."
+done
 
 # ── 2b. O app ainda cita o vssh-app-toolkit? ──────────────────────────────────
 #
@@ -412,6 +436,90 @@ if [ -n "${DECLARA_PY}" ]; then
     "${DECLARA_PY} instala vssh-app-toolkit (${TAG_PY:-sem versão}${INSTALADA_PY:+, instalada ${INSTALADA_PY} em vendor/py}). ${SUBSTITUI}"
 fi
 
+# ── 2c. A ajuda do app ────────────────────────────────────────────────────────
+#
+# `compilar-ajuda.mjs` compila a pasta de `contributes.ajuda` com o compilador que o portal executa
+# (`api/ajuda/`, gerado pelo sistema) e diz o nível. Uma pasta que não compila recusa a publicação,
+# com o arquivo e a linha de cada erro: a ajuda vai para a tela de quem usa o app, e um link
+# quebrado ali não tem quem conserte. O nível e as superfícies sem tópico vão para o resumo do run.
+#
+# Sem `node` ou sem `api/ajuda/` no checkout, a ajuda não é compilada, e o app publica sem ela no
+# repositório; o portal ainda a compila do disco da estação. O aviso diz isso no resumo do run.
+#
+# A regra dos oficiais: um app que a colabhd desenvolve (`developer.name`) publica com cobertura
+# total, que é o nível 3, a partir da primeira versão dele que chega lá. O script lê do repositório
+# o maior nível já publicado, e a recusa não desliga mais. Antes disso o resumo do run mostra o que
+# falta, e os outros apps publicam com qualquer nível.
+AJUDA_JSON="${WORKDIR}/ajuda.json"
+AJUDA_NIVEL=0
+OFICIAL="colabhd"
+NOMES_DO_NIVEL=(
+  "a Ajuda mostra a ficha gerada do manifesto"
+  "o F1 abre o tópico de entrada"
+  "toda superfície do manifesto tem tópico"
+  "com as figuras do palco do app"
+  "com o app respondendo ao Mostrar onde fica"
+)
+SEM_TOPICO=()
+if [ -n "${AJUDA}" ] && ! command -v node >/dev/null 2>&1; then
+  anotar warning "ajuda não compilada" \
+    "O vssh-app.json declara contributes.ajuda, e este runner não tem node 22.18 ou mais novo. ${APP_ID}@${VERSION} publica sem a ajuda no repositório."
+elif [ -n "${AJUDA}" ]; then
+  ERROS_DA_AJUDA=()
+  set +e
+  SAIDA_DA_AJUDA="$(node "$(cd "$(dirname "$0")" && pwd)/compilar-ajuda.mjs" "${PKG}" --saida "${AJUDA_JSON}")"
+  CODIGO_DA_AJUDA=$?
+  set -e
+  while IFS='=' read -r k v; do
+    case "${k}" in
+      NIVEL) AJUDA_NIVEL="${v}";; SEM_TOPICO) SEM_TOPICO+=("${v}");; ERRO) ERROS_DA_AJUDA+=("${v}");;
+      SEM_COMPILADOR) anotar warning "ajuda não compilada" "${v}. ${APP_ID}@${VERSION} publica sem a ajuda no repositório." ;;
+    esac
+  done <<< "${SAIDA_DA_AJUDA//$'\r'/}"
+  if [ "${CODIGO_DA_AJUDA}" = 1 ]; then
+    echo "ERRO: a ajuda de ${APP_ID} não compila:" >&2
+    printf '  %s\n' "${ERROS_DA_AJUDA[@]}" >&2
+    anotar error "ajuda inválida" "$(printf '%s\n' "${ERROS_DA_AJUDA[@]}")"
+    exit 1
+  fi
+fi
+
+if [ "${DEVELOPER,,}" = "${OFICIAL}" ]; then
+  PUBLICADO="$(curl -fsS "${REPO_API}/v1/apps/${APP_ID}/manifest.json" 2>/dev/null || true)"
+  MAIOR_PUBLICADO="$(PUBLICADO="${PUBLICADO}" python3 -c '
+import json, os
+try: d = json.loads(os.environ["PUBLICADO"])
+except Exception: d = {}
+vs = [d.get("latest") or {}] + (d.get("history") or [])
+print(max([v["ajudaNivel"] for v in vs if isinstance(v, dict) and isinstance(v.get("ajudaNivel"), int)] + [0]))')"
+  if [ "${MAIOR_PUBLICADO}" -ge 3 ] && [ "${AJUDA_NIVEL}" -lt 3 ]; then
+    echo "ERRO: ${APP_ID} é um app oficial, e uma versão anterior publicou com cobertura total (nível ${MAIOR_PUBLICADO})." >&2
+    echo "      Esta versão tem nível ${AJUDA_NIVEL}: ${NOMES_DO_NIVEL[${AJUDA_NIVEL}]}." >&2
+    [ "${#SEM_TOPICO[@]}" -eq 0 ] || printf '      sem tópico: %s\n' "${SEM_TOPICO[@]}" >&2
+    exit 1
+  fi
+fi
+
+NIVEL_DA_AJUDA="Nível ${AJUDA_NIVEL} de 4: ${NOMES_DO_NIVEL[${AJUDA_NIVEL}]}."
+FALTA_AO_OFICIAL=""
+[ "${DEVELOPER,,}" != "${OFICIAL}" ] || [ "${AJUDA_NIVEL}" -ge 3 ] \
+  || FALTA_AO_OFICIAL="App oficial: a cobertura total é o nível 3, com as figuras do palco do app."
+anotar notice "ajuda de ${APP_ID}" "${NIVEL_DA_AJUDA}${SEM_TOPICO[*]:+ Sem tópico: $(printf '%s; ' "${SEM_TOPICO[@]}" | sed 's/; $//').}${FALTA_AO_OFICIAL:+ ${FALTA_AO_OFICIAL}}"
+if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+  {
+    echo "### A ajuda de ${APP_ID}@${VERSION}"
+    echo
+    echo "${NIVEL_DA_AJUDA}${FALTA_AO_OFICIAL:+ ${FALTA_AO_OFICIAL}}"
+    if [ "${#SEM_TOPICO[@]}" -gt 0 ]; then
+      echo
+      echo "Sem tópico:"
+      echo
+      printf -- '- %s\n' "${SEM_TOPICO[@]}"
+    fi
+    echo
+  } >> "${GITHUB_STEP_SUMMARY}"
+fi
+
 # ── 3. Empacota (só o que está versionado, quando é repo git) ──────────────────
 TARBALL="${WORKDIR}/app.tar.gz"
 # `--version` reescreveu o vssh-app.json no PKG acima; para o `git archive` levar essa versão (e
@@ -463,6 +571,27 @@ case "${RESPOSTA}" in
     anotar warning "Worker não conferiu o schema" \
       "O repositório publicou ${APP_ID}@${VERSION} sem conseguir ler o schema do manifesto; valeu só a validação deste script." ;;
 esac
+
+# ── 4b. A ajuda da versão ──────────────────────────────────────────────────────
+#
+# O repositório guarda a ajuda ao lado do pacote, pela versão, e o portal a lê de lá. Ela vai
+# depois do pacote porque o repositório só aceita a ajuda de uma versão que já existe. Uma recusa
+# aqui é aviso: o pacote já foi publicado, e o portal compila a ajuda do disco da estação.
+if [ -s "${AJUDA_JSON}" ]; then
+  echo "Publicando a ajuda (nível ${AJUDA_NIVEL})"
+  CODIGO_HTTP="$(curl -sS -o "${WORKDIR}/ajuda-resposta" -w '%{http_code}' -X POST \
+    "${REPO_API}/v1/publish/app/${APP_ID}/${VERSION}/ajuda" \
+    -H "Authorization: Bearer ${TOKEN}" \
+    -H "Content-Type: application/json" \
+    -H "X-Vssh-Sha256: $(sha256sum "${AJUDA_JSON}" | cut -d' ' -f1)" \
+    --data-binary "@${AJUDA_JSON}" || true)"
+  if [ "${CODIGO_HTTP}" = 201 ]; then
+    cat "${WORKDIR}/ajuda-resposta"; echo
+  else
+    anotar warning "ajuda não guardada" \
+      "O repositório respondeu ${CODIGO_HTTP:-000} à ajuda de ${APP_ID}@${VERSION}: $(head -c 400 "${WORKDIR}/ajuda-resposta" 2>/dev/null || true). O app foi publicado, e o portal compila a ajuda do disco da estação."
+  fi
+fi
 
 # ── 5. Ícone (opcional) ────────────────────────────────────────────────────────
 ICON_PATH=""

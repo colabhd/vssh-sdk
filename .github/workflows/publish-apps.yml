@@ -52,6 +52,12 @@ jobs:
           # partir do segundo por "já está nessa versão".
           fetch-depth: 0
 
+      # O publish compila a ajuda dos templates com o compilador de `api/ajuda/`, que pede o Node
+      # 22.18 ou mais novo.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
       - name: Publicar
         env:
           VSSH_REPO_API: ${{ vars.VSSH_REPO_API }}
