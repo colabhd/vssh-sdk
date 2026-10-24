@@ -489,6 +489,36 @@ elif [ -n "${AJUDA}" ]; then
   fi
 fi
 
+# O palco do app executa os passos da ajuda na janela de verdade, num Chrome, e é dele que saem as
+# figuras (o nível 3) e a resposta do app pela ponte (o 4). Sem Chrome, sem backend que suba ou com
+# VSSH_SEM_PALCO no ambiente, ele não roda, e o nível fica no que a pasta alcança sozinha. Com o
+# palco executado, a ajuda é compilada de novo com o que ele mediu.
+PALCO="${WORKDIR}/palco"
+FIGURAS=()
+FALTAS_DO_PALCO=()
+if [ -s "${AJUDA_JSON}" ] && [ -z "${VSSH_SEM_PALCO:-}" ]; then
+  set +e
+  SAIDA_DO_PALCO="$(node "$(cd "$(dirname "$0")" && pwd)/palco-do-app.mjs" "${PKG}" --saida "${PALCO}" 2>&1)"
+  CODIGO_DO_PALCO=$?
+  set -e
+  MOTIVO_SEM_PALCO=""
+  while IFS='=' read -r k v; do
+    case "${k}" in FALTA) FALTAS_DO_PALCO+=("${v}");; SEM_PALCO) MOTIVO_SEM_PALCO="${v}";; esac
+  done <<< "${SAIDA_DO_PALCO//$'\r'/}"
+  if [ "${CODIGO_DO_PALCO}" = 0 ]; then
+    [ "${#FALTAS_DO_PALCO[@]}" -eq 0 ] || anotar warning "palco do app" "$(printf '%s\n' "${FALTAS_DO_PALCO[@]}")"
+    SEM_TOPICO=()
+    SAIDA_DA_AJUDA="$(node "$(cd "$(dirname "$0")" && pwd)/compilar-ajuda.mjs" "${PKG}" --saida "${AJUDA_JSON}" --palco "${PALCO}")"
+    while IFS='=' read -r k v; do
+      case "${k}" in NIVEL) AJUDA_NIVEL="${v}";; SEM_TOPICO) SEM_TOPICO+=("${v}");; FIGURA) FIGURAS+=("${v}");; esac
+    done <<< "${SAIDA_DA_AJUDA//$'\r'/}"
+  elif [ "${CODIGO_DO_PALCO}" = 3 ]; then
+    anotar notice "palco do app" "O palco não rodou: ${MOTIVO_SEM_PALCO}. O nível fica no que a pasta alcança sem as figuras."
+  else
+    anotar warning "palco do app" "O palco saiu com o código ${CODIGO_DO_PALCO}: $(printf '%s' "${SAIDA_DO_PALCO}" | tail -n 5)"
+  fi
+fi
+
 if [ "${DEVELOPER,,}" = "${OFICIAL}" ]; then
   PUBLICADO="$(curl -fsS "${REPO_API}/v1/apps/${APP_ID}/manifest.json" 2>/dev/null || true)"
   MAIOR_PUBLICADO="$(PUBLICADO="${PUBLICADO}" python3 -c '
@@ -520,6 +550,12 @@ if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
       echo "Sem tópico:"
       echo
       printf -- '- %s\n' "${SEM_TOPICO[@]}"
+    fi
+    if [ "${#FALTAS_DO_PALCO[@]}" -gt 0 ]; then
+      echo
+      echo "O que o palco não achou na janela:"
+      echo
+      printf -- '- %s\n' "${FALTAS_DO_PALCO[@]}"
     fi
     echo
   } >> "${GITHUB_STEP_SUMMARY}"
@@ -592,6 +628,19 @@ if [ -s "${AJUDA_JSON}" ]; then
     --data-binary "@${AJUDA_JSON}" || true)"
   if [ "${CODIGO_HTTP}" = 201 ]; then
     cat "${WORKDIR}/ajuda-resposta"; echo
+    # As figuras vão depois do pacote da ajuda, porque o repositório só as aceita de uma versão
+    # que já tem ajuda. Uma recusada é aviso, e o passo dela aparece sem a figura.
+    for f in "${FIGURAS[@]}"; do
+      CODIGO_DA_FIGURA="$(curl -sS -o "${WORKDIR}/figura-resposta" -w '%{http_code}' -X POST \
+        "${REPO_API}/v1/publish/app/${APP_ID}/${VERSION}/ajuda/${f}" \
+        -H "Authorization: Bearer ${TOKEN}" \
+        -H "Content-Type: image/png" \
+        -H "X-Vssh-Sha256: $(sha256sum "${PALCO}/${f}" | cut -d' ' -f1)" \
+        --data-binary "@${PALCO}/${f}" || true)"
+      [ "${CODIGO_DA_FIGURA}" = 201 ] || anotar warning "figura não guardada" \
+        "O repositório respondeu ${CODIGO_DA_FIGURA:-000} à figura ${f}: $(head -c 300 "${WORKDIR}/figura-resposta" 2>/dev/null || true)."
+    done
+    [ "${#FIGURAS[@]}" -eq 0 ] || echo "Figuras da ajuda: ${#FIGURAS[@]}"
   else
     anotar warning "ajuda não guardada" \
       "O repositório respondeu ${CODIGO_HTTP:-000} à ajuda de ${APP_ID}@${VERSION}: $(head -c 400 "${WORKDIR}/ajuda-resposta" 2>/dev/null || true). O app foi publicado, e o portal compila a ajuda do disco da estação."

@@ -13,8 +13,8 @@ name: Publish App (reusable)
 #       secrets:
 #         publish_token: ${{ secrets.VSSH_REPO_PUBLISH_TOKEN }}   # token escopado app:<id>
 #
-# Faz checkout do repositório do app (o chamador) e deste (só `scripts/` e `api/`), e roda o
-# `vssh-app-publish`.
+# Faz checkout do repositório do app (o chamador) e deste (só `scripts/`, `api/` e `runtime/`), e
+# roda o `vssh-app-publish`.
 #
 # POR QUE `main`:
 #   O que o publish valida é o `api/vssh-app.schema.json`, e esse arquivo é gerado pelo sistema a
@@ -99,7 +99,7 @@ jobs:
         with:
           path: app
 
-      - name: Checkout das ferramentas do vssh-sdk (scripts, api)
+      - name: Checkout das ferramentas do vssh-sdk (scripts, api, runtime)
         uses: actions/checkout@v5
         with:
           repository: colabhd/vssh-sdk
@@ -107,11 +107,13 @@ jobs:
           # `api` junto de `scripts`: o vssh-app-publish valida o manifesto contra
           # api/vssh-app.schema.json. Sem ele o script cai nas checagens mínimas
           # (id/runtime/entrypoint) e diz isso numa anotação do run, em vez de recusar a
-          # publicação. `runtime/` não entra: o publish não confere versão de lib, porque as libs
-          # de backend são o runtime que o servidor tem, e o app não as leva.
+          # publicação. `runtime/` vai para o palco do app, que sobe o backend dele para tirar as
+          # figuras da ajuda; o publish não confere versão de lib, porque as libs de backend são o
+          # runtime que o servidor tem, e o app não as leva.
           sparse-checkout: |
             scripts
             api
+            runtime
           path: _tools
           # Repositório público: o github.token do chamador o enxerga sem PAT.
 

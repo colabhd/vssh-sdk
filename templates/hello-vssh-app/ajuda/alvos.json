@@ -1,0 +1,4 @@
+{
+  "guardar-segredo": { "nome": "guardar HELLO_SEGREDO" },
+  "listar-segredos": { "nome": "listar os nomes guardados" }
+}

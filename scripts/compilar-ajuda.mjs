@@ -3,7 +3,7 @@
 // diz o nível dela. O `vssh-app-publish` o chama antes de empacotar; quem escreve a ajuda o roda na
 // própria máquina para ver os erros e o nível sem publicar nada.
 //
-//   node scripts/compilar-ajuda.mjs <diretório do app> [--saida <ajuda.json>]
+//   node scripts/compilar-ajuda.mjs <diretório do app> [--saida <ajuda.json>] [--palco <pasta>]
 //
 // A saída são linhas chave=valor, uma por fato, que o bash do publish lê:
 //
@@ -12,6 +12,7 @@
 //   TOPICOS=<n>           quantos tópicos a pasta tem
 //   SUPERFICIES=<n>       quantas superfícies o manifesto declara
 //   SEM_TOPICO=<rótulo>   uma linha por superfície que nenhum tópico cobre
+//   FIGURA=<arquivo>      uma linha por figura do palco que o pacote cita, com `--palco`
 //   ERRO=<arquivo:linha: motivo>   uma linha por erro da pasta
 //
 // Com algum ERRO o código de saída é 1 e o `--saida` não é escrito. Sem o compilador no checkout
@@ -24,7 +25,9 @@
 // `{{g:<termo>}}`) pode citar.
 //
 // O nível 3 pede as figuras do palco do app, e o 4 o app respondendo ao `ajuda.mostrar` pela
-// ponte. Este script ainda não mede nenhum dos dois, e por isso o nível que ele diz vai até o 2.
+// ponte. Quem mede os dois é o `palco-do-app.mjs`, e `--palco` aponta a pasta que ele escreveu: o
+// `palco.json` traz as duas evidências, e o `indice.json` as cenas que o `juntarFiguras` pendura
+// nos passos. Sem `--palco` o nível vai até o 2.
 
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -37,9 +40,10 @@ const AMBIENTE = join(API, 'ajuda', 'ambiente.json');
 const linha = (chave, valor) => process.stdout.write(`${chave}=${String(valor).replace(/[\r\n]+/g, ' ')}\n`);
 
 function argumentos(argv) {
-  const r = { dir: null, saida: null };
+  const r = { dir: null, saida: null, palco: null };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--saida') r.saida = argv[++i];
+    else if (argv[i] === '--palco') r.palco = argv[++i];
     else if (!r.dir) r.dir = argv[i];
     else throw new Error(`argumento inesperado: ${argv[i]}`);
   }
@@ -66,7 +70,7 @@ function arquivosDaPasta(pasta) {
 }
 
 async function main() {
-  const { dir, saida } = argumentos(process.argv.slice(2));
+  const { dir, saida, palco } = argumentos(process.argv.slice(2));
   const manifesto = JSON.parse(readFileSync(join(dir, 'vssh-app.json'), 'utf8'));
   const declarada = manifesto.contributes?.ajuda;
   if (!declarada) {
@@ -81,14 +85,16 @@ async function main() {
     linha('SEM_COMPILADOR', `o Node ${process.version} não importa TypeScript, e o compilador pede o 22.18 ou mais novo`);
     return 3;
   }
-  const { compilarAjudaDoApp } = await import(pathToFileURL(COMPILADOR).href);
+  const { compilarAjudaDoApp, juntarFiguras } = await import(pathToFileURL(COMPILADOR).href);
   const ambiente = JSON.parse(readFileSync(AMBIENTE, 'utf8'));
 
   const pasta = join(dir, declarada.pasta || 'ajuda');
   const arquivos = existsSync(pasta) ? arquivosDaPasta(pasta) : [];
+  const doPalco = palco && existsSync(join(palco, 'palco.json')) ? JSON.parse(readFileSync(join(palco, 'palco.json'), 'utf8')) : null;
   const r = compilarAjudaDoApp(arquivos, {
     manifesto,
     ambiente: { topicos: ambiente.topicos.map((t) => t.id), termos: ambiente.termos },
+    evidencias: { figuras: doPalco?.figuras === true, ponte: doPalco?.ponte === true },
   });
   if (!existsSync(pasta)) r.erros.unshift(`${declarada.pasta || 'ajuda'}: a pasta que contributes.ajuda declara não existe`);
   if (!r.ajuda || r.erros.length) {
@@ -97,6 +103,13 @@ async function main() {
   }
 
   const { ajuda } = r;
+  // As figuras entram no pacote mesmo abaixo do nível 3: o passo que o palco executou sem falta
+  // ganha a figura dele, e a falta de outro passo só segura o nível.
+  if (doPalco && existsSync(join(palco, 'indice.json'))) {
+    const { cenas } = JSON.parse(readFileSync(join(palco, 'indice.json'), 'utf8'));
+    juntarFiguras(ajuda, cenas || {});
+    for (const id of Object.keys(cenas || {})) if (existsSync(join(palco, `${id}.png`))) linha('FIGURA', `${id}.png`);
+  }
   linha('NIVEL', ajuda.nivel);
   linha('INICIO', ajuda.inicio);
   linha('TOPICOS', ajuda.topicos.length);

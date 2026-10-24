@@ -79,8 +79,14 @@ O nível da ajuda sai daí:
 | 3 | o 2, com as figuras que o palco do app tira dos passos |
 | 4 | o 3, com o app respondendo ao Mostrar onde fica pela ponte |
 
-O publish de hoje mede até o nível 2. O palco de um app, que executa os passos numa janela de
-verdade e tira as figuras, é o próximo passo deste repositório.
+Quem mede o 3 e o 4 é o palco do app ([`scripts/palco-do-app.mjs`](../../scripts/palco-do-app.mjs)),
+que o publish roda num Chrome. Ele sobe o backend do app, abre a janela num quadro do tamanho que o
+manifesto declara, com o SDK web, e executa cada cerca `passos` que aponta um alvo do seu
+`alvos.json`, numa carga nova da janela. De cada passo sai uma figura, e o palco confere que cada
+`[[rótulo]]` do passo apareceu na janela e que o controle apontado se chama por um deles. Um alvo
+que não aparece ou um rótulo que a janela não mostra vira uma linha no resumo do run, e o nível
+fica no 2. A janela abre vazia, como na primeira vez que alguém usa o app: um passo que precisa de
+um documento aberto começa pelos passos que chegam até ele.
 
 ## Os passos que apontam a sua janela
 
@@ -122,14 +128,19 @@ document.querySelector('#ajuda').addEventListener('click', () => vssh.ajuda.abri
 
 ## Ver enquanto escreve
 
-Para ver os erros e o nível sem publicar, rode o compilador deste repositório sobre a pasta do app:
+Para ver os erros e o nível sem publicar, rode o compilador deste repositório sobre a pasta do app,
+e o palco, se quiser as figuras:
 
 ```bash
 node scripts/compilar-ajuda.mjs ../meu-app
+node scripts/palco-do-app.mjs ../meu-app --saida /tmp/palco
+node scripts/compilar-ajuda.mjs ../meu-app --palco /tmp/palco
 ```
 
-Ele pede o Node 22.18 ou mais novo, que importa o compilador em TypeScript sem build. A saída diz o
-nível, as superfícies sem tópico e cada erro com o arquivo e a linha.
+Os dois pedem o Node 22.18 ou mais novo, que importa o compilador em TypeScript sem build, e o
+palco pede um Chrome instalado (`VSSH_TEST_CHROME` aponta um). A saída diz o nível, as superfícies
+sem tópico, o que o palco não achou e cada erro com o arquivo e a linha; as figuras ficam na pasta
+do `--saida`.
 
 Para ver o tópico na Ajuda de verdade, abra a pasta do app pelo "Abrir como app" do gerenciador de
 arquivos do ambiente. Num app ligado assim, o portal lê a ajuda do disco a cada abertura da Ajuda,
@@ -138,9 +149,10 @@ e o que você salva aparece na próxima.
 ## Publicar
 
 O `vssh-app-publish` compila a pasta antes de empacotar. Uma ajuda que não compila recusa a
-publicação, com o arquivo e a linha de cada erro, antes de qualquer envio. Uma que compila vai ao
-repositório depois do pacote, ao lado da versão, e o portal a lê de lá pela versão que cada
-estação tem. O resumo do run do GitHub Actions diz o nível e lista as superfícies sem tópico.
+publicação, com o arquivo e a linha de cada erro, antes de qualquer envio. Uma que compila passa
+pelo palco, quando o runner tem Chrome, e vai ao repositório depois do pacote, ao lado da versão,
+com as figuras em seguida. O portal a lê de lá pela versão que cada estação tem. O resumo do run do
+GitHub Actions diz o nível, lista as superfícies sem tópico e o que o palco não achou.
 
 Um texto do manifesto com travessão vira aviso no run, com o caminho do campo: a ficha do app
 mostra esses textos.

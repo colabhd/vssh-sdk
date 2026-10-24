@@ -1,20 +1,18 @@
 'use strict';
 
-// Um navegador de verdade para os testes, sem dependência npm nenhuma.
+// Um navegador de verdade, sem dependência npm nenhuma, para a bancada de navegador
+// (`tests/browser/`) e para o palco de um app (`scripts/palco-do-app.mjs`).
 //
 // O menor cliente de Chrome DevTools Protocol que serve: acha um Chrome/Edge já instalado, sobe
 // headless numa porta efêmera, abre uma aba e avalia expressões nela. Node >= 22 traz `WebSocket`
 // nativo e `fetch`, então não falta nada. É a cópia do cliente que o repositório do sistema usa
-// na bancada dele; aqui ele serve a uma pergunta só: o template, com o SDK web de verdade e fora
-// do ambiente, abre num Chrome sem exceção e com cada verbo degradando como o SDK promete.
+// na bancada dele. Os testes avaliam JavaScript numa plataforma real e leem o resultado; o palco
+// usa o `enviar` cru para o resto do protocolo (o tamanho da tela, o clique, a captura).
 //
-// Sem seletores, sem espera de elemento, sem rede interceptada, sem screenshot. O que o teste
-// precisa é avaliar JavaScript numa plataforma real e ler o resultado de volta, e é só isso que
-// está aqui.
-//
-// Não baixa navegador. Se não houver um instalado, `caminhoDoNavegador()` devolve `null` e o
-// teste que depende dele se marca como pulado, em vez de falhar por ausência de ambiente. O
-// runner ubuntu do GitHub Actions já traz Chrome.
+// Não baixa navegador. Se não houver um instalado, `caminhoDoNavegador()` devolve `null`, e quem
+// depende dele se pula em vez de falhar por ausência de ambiente. O runner ubuntu do GitHub
+// Actions já traz Chrome. Mora em `scripts/` porque o publish de um app faz checkout só de
+// `scripts/` e `api/` deste repositório.
 
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');

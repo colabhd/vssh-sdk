@@ -34,7 +34,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { test, before, after } = require('node:test');
 
-const { abrirNavegador, caminhoDoNavegador, motivoDoSkip } = require('./chrome.cjs');
+const { abrirNavegador, caminhoDoNavegador, motivoDoSkip } = require('../../scripts/navegador.cjs');
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const APP = path.join(ROOT, 'templates', 'hello-vssh-app-node');

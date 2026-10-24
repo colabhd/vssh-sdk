@@ -21,7 +21,16 @@ Um trabalho grande demais para este servidor vai para o cluster. No painel da fi
 
 ## A senha de exemplo
 
-O app pede uma senha chamada `HELLO_SEGREDO`, que serve só para mostrar o cofre. [[guardar HELLO_SEGREDO]] abre o campo do ambiente, e o valor vai para o seu servidor. O app recebe o valor quando sobe de novo, então feche e abra o app depois de guardar. A senha guardada fica no {{t:ambiente/chaveiro|Chaveiro}}, onde você a troca ou apaga.
+O app pede uma senha chamada `HELLO_SEGREDO`, que serve só para mostrar o cofre. O valor vai para o seu servidor, e o app o recebe quando sobe de novo.
+
+```passos
+- {{Clique}} em [[guardar HELLO_SEGREDO]] e escreva qualquer texto no campo que abre.
+  > clicar guardar-segredo
+- Feche e abra o app. [[listar os nomes guardados]] mostra o nome da senha, sem o valor.
+  > mostrar listar-segredos
+```
+
+A senha guardada fica no {{t:ambiente/chaveiro|Chaveiro}}, onde você a troca ou apaga.
 
 ## A seção em Configurações
 
