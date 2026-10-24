@@ -109,6 +109,10 @@
       "titulo": "Imprimir um arquivo"
     },
     {
+      "id": "instalar-uma-extensao",
+      "titulo": "Instalar uma extensão no Navegador"
+    },
+    {
       "id": "janela-nao-abriu",
       "titulo": "Uma janela diz que não abriu"
     },
@@ -195,6 +199,18 @@
     {
       "id": "terminal",
       "titulo": "O Terminal"
+    },
+    {
+      "id": "um-app-pede-um-arquivo",
+      "titulo": "Quando um aplicativo pede um arquivo ou uma pasta"
+    },
+    {
+      "id": "um-app-pede-uma-senha",
+      "titulo": "Quando um aplicativo pede uma senha"
+    },
+    {
+      "id": "um-app-quer-usar-outro",
+      "titulo": "Quando um aplicativo quer usar outro"
     },
     {
       "id": "versao-nova",

@@ -52,7 +52,7 @@ existe quando o manifesto declara o campo dela.
 
 ## Os tópicos do ambiente
 
-Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 50 que existem:
+Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 54 que existem:
 
 | id | título |
 |---|---|
@@ -83,6 +83,7 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 50 q
 | `fundo-e-cor` | Trocar o fundo da tela e a cor de destaque |
 | `gerenciador-de-tarefas` | Ver o que está rodando e encerrar um programa travado |
 | `imprimir` | Imprimir um arquivo |
+| `instalar-uma-extensao` | Instalar uma extensão no Navegador |
 | `janela-nao-abriu` | Uma janela diz que não abriu |
 | `janelas` | Mover, aumentar e fechar uma janela |
 | `log-de-um-aplicativo` | As mensagens de um aplicativo (o log) |
@@ -105,6 +106,9 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 50 q
 | `sessao-expirou` | Sua sessão expirou |
 | `tela-cheia` | Usar a tela inteira |
 | `terminal` | O Terminal |
+| `um-app-pede-um-arquivo` | Quando um aplicativo pede um arquivo ou uma pasta |
+| `um-app-pede-uma-senha` | Quando um aplicativo pede uma senha |
+| `um-app-quer-usar-outro` | Quando um aplicativo quer usar outro |
 | `versao-nova` | Versão nova publicada |
 
 ## Os termos do glossário do ambiente
