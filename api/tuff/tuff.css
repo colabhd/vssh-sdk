@@ -1532,6 +1532,9 @@
   }
   .tuff-busca:focus { border-color: var(--ds-border-focus); }
   .tuff-busca::-webkit-search-cancel-button { appearance: none; }
+  /* A cor do navegador para o placeholder dá 2,66:1 sobre o campo; o texto
+     apagado dá 4,69:1, como o da `.tuff-campo`. */
+  .tuff-busca::placeholder { color: var(--ds-text-dim); }
 
   /* A busca com o botão de limpar, que só aparece quando há texto: a caixa
      junta o campo e o botão, e o campo precisa de `placeholder` para o CSS
