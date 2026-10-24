@@ -81,7 +81,9 @@ function publicar({ manifesto = MANIFESTO, topico = TOPICO } = {}) {
   recebidos.length = 0;
   return new Promise((resolve) => {
     const p = spawn('bash', [posix(SCRIPT), posix(dir)], {
-      env: { ...process.env, VSSH_REPO_API: repoApi, VSSH_REPO_PUBLISH_TOKEN: 'tok', GITHUB_STEP_SUMMARY: resumo },
+      // Fora do Actions o `anotar` escreve `título: mensagem`, e é essa forma que os casos leem; o
+      // resumo do run vai para o arquivo do GITHUB_STEP_SUMMARY dos dois jeitos.
+      env: { ...process.env, VSSH_REPO_API: repoApi, VSSH_REPO_PUBLISH_TOKEN: 'tok', GITHUB_ACTIONS: '', GITHUB_STEP_SUMMARY: resumo },
     });
     let saida = '';
     p.stdout.on('data', (c) => { saida += c; });

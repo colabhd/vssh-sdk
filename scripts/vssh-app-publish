@@ -481,6 +481,11 @@ elif [ -n "${AJUDA}" ]; then
     printf '  %s\n' "${ERROS_DA_AJUDA[@]}" >&2
     anotar error "ajuda inválida" "$(printf '%s\n' "${ERROS_DA_AJUDA[@]}")"
     exit 1
+  elif [ "${CODIGO_DA_AJUDA}" != 0 ] && [ "${CODIGO_DA_AJUDA}" != 3 ]; then
+    # O node que existe e não roda (uma biblioteca que falta na imagem) sai com outro código.
+    anotar warning "ajuda não compilada" \
+      "O compilador da ajuda saiu com o código ${CODIGO_DA_AJUDA}. ${APP_ID}@${VERSION} publica sem a ajuda no repositório."
+    rm -f "${AJUDA_JSON}"
   fi
 fi
 
