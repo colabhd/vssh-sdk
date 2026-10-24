@@ -7,8 +7,8 @@
 // ─── O formato é pequeno de propósito ─────────────────────────────────────────
 //
 // Um tópico é Markdown com um frontmatter, e o compilador aceita só o subconjunto que a Ajuda
-// usa: parágrafo, `##` e `###`, lista, as cercas `passos`, `figura`, `nota`, `se` e `referencia`,
-// código inline, link https, e as marcações entre `[[ ]]` e `{{ }}`. Ao lado dos tópicos, o
+// usa: parágrafo, `##` e `###`, lista, as cercas `passos`, `figura`, `nota`, `se`, `referencia` e
+// `praticar`, código inline, link https, e as marcações entre `[[ ]]` e `{{ }}`. Ao lado dos tópicos, o
 // `alvos.json` nomeia os controles que um passo aponta na tela (`> clicar <alvo>`). O que ele não
 // conhece (HTML, imagem, tabela, negrito, citação, outra cerca) é recusado com o motivo. Um parser
 // completo aceitaria em silêncio o que ninguém revisou, e quem lê a Ajuda é quem menos consegue
@@ -84,6 +84,7 @@ export type Bloco =
   | { t: 'figura'; acoes: Acao[]; receita: number; figuras?: Figuras }
   | { t: 'nota'; inl: Inline[] }
   | { t: 'referencia'; qual: string }
+  | { t: 'praticar' }
   | { t: 'se'; cond: Condicao; blocos: Bloco[] };
 
 export interface Topico {
@@ -339,6 +340,11 @@ function blocos(ctx: Ctx, linhas: string[], base: number, col: Coletas, se: Cond
       } else if (tipo === 'referencia') {
         if (!REFERENCIAS.includes(args[0])) erro(ctx, n(i), `referência desconhecida: ${args[0] || '(nenhuma)'}`);
         out.push({ t: 'referencia', qual: args[0] });
+      } else if (tipo === 'praticar') {
+        // A caixa de areia de Primeiros passos (`vssh-client/js/ajuda/Praticar.js`): os exercícios
+        // são do shell, e a cerca só diz onde ela entra no tópico.
+        if (dentro.some((x) => x.trim())) erro(ctx, n(i), 'a cerca praticar fica vazia: os exercícios são do shell');
+        out.push({ t: 'praticar' });
       } else if (tipo === 'se') {
         if (se) erro(ctx, n(i), 'uma cerca se dentro de outra não é do formato');
         const cond = condicao(ctx, n(i), args.join(' '));

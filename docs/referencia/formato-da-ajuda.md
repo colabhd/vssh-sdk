@@ -52,7 +52,7 @@ existe quando o manifesto declara o campo dela.
 
 ## Os tópicos do ambiente
 
-Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 41 que existem:
+Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 42 que existem:
 
 | id | título |
 |---|---|
@@ -92,6 +92,7 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 41 q
 | `o-ambiente` | O que é o VSSH |
 | `pastas-de-rede` | Pastas de rede (Nextcloud, ownCloud, SharePoint) |
 | `portal-nao-responde` | O portal não está respondendo |
+| `praticar` | Praticar os gestos |
 | `renomear` | Mudar o nome de um arquivo |
 | `sessao-expirou` | Sua sessão expirou |
 | `tela-cheia` | Usar a tela inteira |

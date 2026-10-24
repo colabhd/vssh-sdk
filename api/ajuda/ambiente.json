@@ -145,6 +145,10 @@
       "titulo": "O portal não está respondendo"
     },
     {
+      "id": "praticar",
+      "titulo": "Praticar os gestos"
+    },
+    {
       "id": "renomear",
       "titulo": "Mudar o nome de um arquivo"
     },
