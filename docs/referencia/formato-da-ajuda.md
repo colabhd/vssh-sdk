@@ -9,8 +9,8 @@
 ## O frontmatter de um tópico
 
 As chaves que um tópico de app aceita, e nenhuma outra: `id`, `titulo`, `ordem`, `palavras`,
-`cobre`, `plataformas`, `requer`, `publico`, `revisado`. `plataformas` lista onde o tópico vale
-(`navegador`, `cliente-de-desktop`, `chromeos`, `celular`).
+`cobre`, `plataformas`, `sistemas`, `requer`, `publico`, `revisado`. `plataformas` lista onde o
+tópico vale (`navegador`, `cliente-de-desktop`, `chromeos`, `celular`).
 
 ## As ações de um passo
 

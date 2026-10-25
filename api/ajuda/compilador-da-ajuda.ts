@@ -73,11 +73,14 @@ export interface Figura {
 export type Figuras = Partial<Record<'larga' | 'estreita', Figura>>;
 
 /**
- * A condição de uma cerca `se`: as plataformas, os apps, e a tela. A tela é o arranjo do shell (a
- * estreita, abaixo de 600 px, tem a barra embaixo e cada janela na tela toda), e é ela que decide
- * onde um botão mora; a plataforma diz o aparelho, e um celular no navegador é as duas coisas.
+ * A condição de uma cerca `se`: as plataformas, os apps, a tela, o sistema e o navegador. A tela é
+ * o arranjo do shell (a estreita, abaixo de 600 px, tem a barra embaixo e cada janela na tela
+ * toda), e é ela que decide onde um botão mora; a plataforma diz o aparelho, e um celular no
+ * navegador é as duas coisas. O sistema e o navegador são os do aparelho de quem lê, e decidem o
+ * nome de uma tecla e o atalho que chega ao ambiente. Valores separados por vírgula valem um ou
+ * outro; condições diferentes valem todas juntas.
  */
-export interface Condicao { plataformas?: string[]; requer?: string[]; telas?: string[] }
+export interface Condicao { plataformas?: string[]; requer?: string[]; telas?: string[]; sistemas?: string[]; navegadores?: string[] }
 
 export type Bloco =
   | { t: 'p'; inl: Inline[] }
@@ -103,6 +106,8 @@ export interface Topico {
    */
   avisos: string[];
   plataformas: string[];
+  /** Os sistemas em que o tópico aparece, como "No cliente de desktop", que só cabe num computador. Sem a chave, todos. */
+  sistemas?: string[];
   requer: string[];
   publico: boolean;
   /** A impressão digital das figuras do tópico quando alguém as conferiu com o texto. */
@@ -164,6 +169,9 @@ export interface Termo {
 }
 
 export const PLATAFORMAS = ['navegador', 'cliente-de-desktop', 'chromeos', 'celular'];
+/** O sistema do aparelho de quem lê, e o navegador dele: o Chrome são os navegadores do Chromium que não são o Edge. */
+export const SISTEMAS = ['windows', 'macos', 'linux', 'chromeos', 'android', 'ios'];
+export const NAVEGADORES = ['chrome', 'edge', 'firefox', 'safari'];
 /**
  * Os verbos de uma ação de passo, que o palco e o Mostrar onde fica executam, com a forma de cada
  * um. A referência do `vssh-sdk` (`docs/referencia/ajuda.md`) sai desta tabela.
@@ -194,9 +202,9 @@ const JANELA = /^[A-Z][A-Za-z0-9]{1,63}$/;
 const TRAVESSAO = /—/;
 const SETA = /[←-⇿➡⟰-⟿⤀-⥿⬀-⬑]/;
 
-const TOPICO_CHAVES = new Set(['id', 'titulo', 'ordem', 'palavras', 'janela', 'avisos', 'plataformas', 'requer', 'publico', 'revisado']);
+const TOPICO_CHAVES = new Set(['id', 'titulo', 'ordem', 'palavras', 'janela', 'avisos', 'plataformas', 'sistemas', 'requer', 'publico', 'revisado']);
 // Um tópico de app não declara janela nem aviso, que são do shell, e declara o que cobre.
-export const CHAVES_DO_TOPICO_DE_APP = ['id', 'titulo', 'ordem', 'palavras', 'cobre', 'plataformas', 'requer', 'publico', 'revisado'];
+export const CHAVES_DO_TOPICO_DE_APP = ['id', 'titulo', 'ordem', 'palavras', 'cobre', 'plataformas', 'sistemas', 'requer', 'publico', 'revisado'];
 const TOPICO_DE_APP_CHAVES = new Set(CHAVES_DO_TOPICO_DE_APP);
 const REVISADO = /^[0-9a-f]{12}$/;
 const LIVRO_CHAVES = new Set(['nome', 'ordem', 'icone']);
@@ -297,12 +305,18 @@ interface Coletas {
 function condicao(ctx: Ctx, linha: number, s: string): Condicao | null {
   const cond: Condicao = {};
   for (const parte of s.trim().split(/\s+/).filter(Boolean)) {
-    const m = /^(plataforma|requer|tela)=([a-z0-9,-]+)$/.exec(parte);
-    if (!m) { erro(ctx, linha, `condição desconhecida: ${parte} (vale plataforma=..., requer=... e tela=...)`); return null; }
+    const m = /^(plataforma|requer|tela|sistema|navegador)=([a-z0-9,-]+)$/.exec(parte);
+    if (!m) { erro(ctx, linha, `condição desconhecida: ${parte} (vale plataforma=..., requer=..., tela=..., sistema=... e navegador=...)`); return null; }
     const valores = m[2].split(',').filter(Boolean);
     if (m[1] === 'plataforma') {
       for (const v of valores) if (!PLATAFORMAS.includes(v)) erro(ctx, linha, `plataforma desconhecida: ${v}`);
       cond.plataformas = valores;
+    } else if (m[1] === 'sistema') {
+      for (const v of valores) if (!SISTEMAS.includes(v)) erro(ctx, linha, `sistema desconhecido: ${v} (vale ${SISTEMAS.join(', ')})`);
+      cond.sistemas = valores;
+    } else if (m[1] === 'navegador') {
+      for (const v of valores) if (!NAVEGADORES.includes(v)) erro(ctx, linha, `navegador desconhecido: ${v} (vale ${NAVEGADORES.join(', ')})`);
+      cond.navegadores = valores;
     } else if (m[1] === 'tela') {
       for (const v of valores) if (!TELAS.includes(v)) erro(ctx, linha, `tela desconhecida: ${v} (vale ${TELAS.join(' e ')})`);
       cond.telas = valores;
@@ -311,7 +325,7 @@ function condicao(ctx: Ctx, linha: number, s: string): Condicao | null {
       cond.requer = valores;
     }
   }
-  if (!cond.plataformas && !cond.requer && !cond.telas) { erro(ctx, linha, 'a cerca se pede uma condição'); return null; }
+  if (!cond.plataformas && !cond.requer && !cond.telas && !cond.sistemas && !cond.navegadores) { erro(ctx, linha, 'a cerca se pede uma condição'); return null; }
   return cond;
 }
 
@@ -593,6 +607,8 @@ export function compilarAjuda(arquivos: ArquivoDaAjuda[], opcoes: { app?: Opcoes
     }
     const plataformas = lista(sep.campos.get('plataformas')?.valor || '');
     for (const p of plataformas) if (!PLATAFORMAS.includes(p)) erro(ctx, sep.campos.get('plataformas')!.linha, `plataforma desconhecida: ${p}`);
+    const sistemas = lista(sep.campos.get('sistemas')?.valor || '');
+    for (const x of sistemas) if (!SISTEMAS.includes(x)) erro(ctx, sep.campos.get('sistemas')!.linha, `sistema desconhecido: ${x}`);
     const requer = lista(sep.campos.get('requer')?.valor || '');
     for (const r of requer) if (!APP.test(r)) erro(ctx, sep.campos.get('requer')!.linha, `id de app fora da forma: ${r}`);
     const publicoCampo = sep.campos.get('publico');
@@ -613,6 +629,7 @@ export function compilarAjuda(arquivos: ArquivoDaAjuda[], opcoes: { app?: Opcoes
     const cobre = opcoes.app ? lista(sep.campos.get('cobre')?.valor || '') : null;
     topicos.push({
       id: nome, livro, titulo, ordem, palavras, janelas, avisos, plataformas, requer,
+      ...(sistemas.length ? { sistemas } : {}),
       publico: publicoCampo?.valor === 'true', revisado: revisadoCampo?.valor || '',
       ...(cobre ? { cobre } : {}), blocos: corpo,
     });
