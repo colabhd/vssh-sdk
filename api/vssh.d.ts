@@ -253,6 +253,13 @@ declare namespace vssh {
      */
     function escolherArquivo(titulo?: string, filtro?: string, pasta?: string, nome?: string): Promise<unknown>;
     /**
+     * O seletor de `escolherArquivo`, em que a pessoa marca um ou mais arquivos da mesma pasta
+     * (Ctrl e Shift com o clique), e a resposta é a lista dos caminhos escolhidos, ou `null` se ela
+     * cancelou. Cada caminho passa a estar concedido a este app. É o seletor de quem anexa vários
+     * arquivos de uma vez.
+     */
+    function escolherArquivos(titulo?: string, filtro?: string, pasta?: string): Promise<unknown>;
+    /**
      * Abre o seletor de "salvar como", com `nome` sugerido, e responde com o caminho onde gravar,
      * ou `null` se o usuário cancelou. O caminho escolhido fica concedido a este app.
      */

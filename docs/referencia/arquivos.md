@@ -24,6 +24,7 @@ Ler e escrever com o consentimento do usuário, escolher, vigiar, abrir, abrir c
 | [`vssh.arquivos.vigiar(caminho, vigia)`](#vigiar) | sim, em até 5 s |
 | [`vssh.arquivos.pararDeVigiar(vigia)`](#parardevigiar) | sim, em até 5 s |
 | [`vssh.arquivos.escolherArquivo(titulo, filtro, pasta, nome)`](#escolherarquivo) | sim, em até 10 min |
+| [`vssh.arquivos.escolherArquivos(titulo, filtro, pasta)`](#escolherarquivos) | sim, em até 10 min |
 | [`vssh.arquivos.escolherDestino(titulo, filtro, pasta, nome)`](#escolherdestino) | sim, em até 10 min |
 | [`vssh.arquivos.escolherPasta(titulo, pasta)`](#escolherpasta) | sim, em até 10 min |
 | [`vssh.arquivos.permissoes(caminho)`](#permissoes) | sim, em até 5 s |
@@ -273,6 +274,24 @@ No fio: `type: "pick", variant: "open"`.
 | `filtro` | `string` | sim | `filter` |
 | `pasta` | `string` | sim | `dir` |
 | `nome` | `string` | sim | `name` |
+
+### `escolherArquivos`
+
+`vssh.arquivos.escolherArquivos(titulo, filtro, pasta)`
+
+O seletor de `escolherArquivo`, em que a pessoa marca um ou mais arquivos da mesma pasta (Ctrl e
+Shift com o clique), e a resposta é a lista dos caminhos escolhidos, ou `null` se ela cancelou. Cada
+caminho passa a estar concedido a este app. É o seletor de quem anexa vários arquivos de uma vez.
+
+Responde: uma promessa, com prazo de 10 min (ritmo `humano`, a resposta depende de uma pessoa).
+Num hiperlink: vale.
+No fio: `type: "pick", variant: "openMany"`.
+
+| argumento | tipo | opcional | no fio |
+|---|---|---|---|
+| `titulo` | `string` | sim | `title` |
+| `filtro` | `string` | sim | `filter` |
+| `pasta` | `string` | sim | `dir` |
 
 ### `escolherDestino`
 

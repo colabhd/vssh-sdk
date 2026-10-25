@@ -741,6 +741,35 @@
           "ritmo": "humano",
           "descricao": "Abre o seletor de arquivo do sistema e responde com o caminho escolhido, ou `null` se o usuário cancelou. O `filtro` é uma lista de grupos no estilo do Qt: `Imagens (*.png *.jpg);;Tudo (*)`. Escolher é consentir: o caminho passa a estar concedido a este app, e a concessão sobrevive à janela e à sessão."
         },
+        "escolherArquivos": {
+          "fio": {
+            "type": "pick",
+            "variant": "openMany"
+          },
+          "campos": [
+            {
+              "nome": "titulo",
+              "fio": "title",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "filtro",
+              "fio": "filter",
+              "tipo": "string",
+              "opcional": true
+            },
+            {
+              "nome": "pasta",
+              "fio": "dir",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "humano",
+          "descricao": "O seletor de `escolherArquivo`, em que a pessoa marca um ou mais arquivos da mesma pasta (Ctrl e Shift com o clique), e a resposta é a lista dos caminhos escolhidos, ou `null` se ela cancelou. Cada caminho passa a estar concedido a este app. É o seletor de quem anexa vários arquivos de uma vez."
+        },
         "escolherDestino": {
           "fio": {
             "type": "pick",

@@ -252,6 +252,7 @@
     'dialogos.senha': (m) => window.prompt(m.message),
     'dialogos.menuDeContexto': () => null,
     'arquivos.escolherArquivo': () => null,
+    'arquivos.escolherArquivos': () => null,
     'arquivos.escolherDestino': () => null,
     'arquivos.escolherPasta': () => null,
     'arquivos.permissoes': (m) => (m.path ? null : []),
@@ -460,6 +461,8 @@
     pararDeVigiar: (vigia) => ponte.chamar('arquivos.pararDeVigiar', { type: 'fs', op: 'unwatch', watchId: vigia }, 5000),
     // Abre o seletor de arquivo do sistema e responde com o caminho escolhido, ou `null` se o usuário cancelou. O `filtro` é uma lista de grupos no estilo do Qt: `Imagens (*.png *.jpg);;Tudo (*)`. Escolher é consentir: o caminho passa a estar concedido a este app, e a concessão sobrevive à janela e à sessão.
     escolherArquivo: (titulo, filtro, pasta, nome) => ponte.chamar('arquivos.escolherArquivo', { type: 'pick', variant: 'open', title: titulo, filter: filtro, dir: pasta, name: nome }, 600000),
+    // O seletor de `escolherArquivo`, em que a pessoa marca um ou mais arquivos da mesma pasta (Ctrl e Shift com o clique), e a resposta é a lista dos caminhos escolhidos, ou `null` se ela cancelou. Cada caminho passa a estar concedido a este app. É o seletor de quem anexa vários arquivos de uma vez.
+    escolherArquivos: (titulo, filtro, pasta) => ponte.chamar('arquivos.escolherArquivos', { type: 'pick', variant: 'openMany', title: titulo, filter: filtro, dir: pasta }, 600000),
     // Abre o seletor de "salvar como", com `nome` sugerido, e responde com o caminho onde gravar, ou `null` se o usuário cancelou. O caminho escolhido fica concedido a este app.
     escolherDestino: (titulo, filtro, pasta, nome) => ponte.chamar('arquivos.escolherDestino', { type: 'pick', variant: 'save', title: titulo, filter: filtro, dir: pasta, name: nome }, 600000),
     // Abre o seletor de pasta e responde com o caminho escolhido, ou `null` se o usuário cancelou. A pasta inteira fica concedida a este app, e é assim que um app trabalha numa árvore sem pedir arquivo a arquivo.
