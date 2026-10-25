@@ -89,7 +89,7 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 55 q
 | `log-de-um-aplicativo` | As mensagens de um aplicativo (o log) |
 | `loja-de-apps` | Instalar um aplicativo pela Loja de apps |
 | `mandar-para-a-fila` | Mandar um trabalho pesado para a fila |
-| `mouse-e-teclado` | Clicar, arrastar e o clique direito |
+| `mouse-e-teclado` | Clicar, tocar e arrastar |
 | `navegador` | O Navegador do ambiente |
 | `no-celular` | No celular |
 | `no-chromebook` | No Chromebook |
