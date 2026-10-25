@@ -6,7 +6,7 @@
 ## A ponte, espaço a espaço
 
 A superfície que o SDK web (`_sdk/vssh.js`) expõe a um app com janela: `vssh.<espaco>.<verbo>()`
-para pedir, `vssh.<espaco>.ao('<evento>', cb)` para ouvir. 14 espaços, 89 verbos e 20 eventos.
+para pedir, `vssh.<espaco>.ao('<evento>', cb)` para ouvir. 14 espaços, 89 verbos e 21 eventos.
 
 | espaço | verbos | eventos | o que cobre |
 |---|---|---|---|
@@ -22,7 +22,7 @@ para pedir, `vssh.<espaco>.ao('<evento>', cb)` para ouvir. 14 espaços, 89 verbo
 | [`vssh.configuracoes`](configuracoes.md) | 3 | 0 | A seção que o app traz a Configurações do ambiente (`contributes.settings`). Um app que a declara opcional (`contributes.settingsOptIn`) a liga e desliga daqui, de dentro dele; a escolha é por usuário e acompanha a pessoa. |
 | [`vssh.midia`](midia.md) | 3 | 2 | O que o app está tocando, o transporte que ele sabe fazer e o volume que o usuário deixou para ele. |
 | [`vssh.impressao`](impressao.md) | 1 | 0 | Imprimir pela tela do sistema: o app pede, e quem escolhe a impressora e confirma é o usuário. |
-| [`vssh.ajuda`](ajuda.md) | 5 | 3 | A ajuda do app na Ajuda do ambiente. O app abre um tópico dele; o resto o SDK faz sozinho dentro do quadro: acha o controle que um passo aponta, avisa quando a pessoa faz o gesto do Passo a passo, e diz o que é o controle clicado no modo "O que é isto?". Quem desenha o holofote é o shell, sobre o retângulo que o quadro devolve. |
+| [`vssh.ajuda`](ajuda.md) | 5 | 4 | A ajuda do app na Ajuda do ambiente. O app abre um tópico dele; o resto o SDK faz sozinho dentro do quadro: acha o controle que um passo aponta, avisa quando a pessoa faz o gesto do Passo a passo, e diz o que é o controle clicado no modo "O que é isto?". Quem desenha o holofote é o shell, sobre o retângulo que o quadro devolve. |
 | [`vssh.gpu`](gpu.md) | 1 | 0 | O recurso que o sistema arbitra ao subir o app. O manifesto declara o que o app precisa em `recursos.gpu.modo`; quem decide, com o que o servidor tem, é o `vssh-app-run`, e o app pergunta o que recebeu sem conhecer `CUDA_VISIBLE_DEVICES` nem o inventário do servidor. |
 
 ## O manifesto e o ambiente

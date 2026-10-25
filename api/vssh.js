@@ -143,6 +143,7 @@
     if (m.type === 'appearance') tokensRecebidos = m.tokens && typeof m.tokens === 'object' ? m.tokens : null;
     if (m.type === 'ajuda-mostrar') ajudaMostrar(m);
     if (m.type === 'ajuda-gesto') ajudaGesto(m);
+    if (m.type === 'ajuda-fazer') ajudaFazer(m);
     if (m.type === 'ajuda-modo') ajudaModo(m);
     entregar(m);
   }
@@ -375,6 +376,8 @@
     mostrar: ['ajuda-mostrar', { pedido: 'pedido', alvo: 'alvo' }],
     // O shell pede o aviso do gesto de um passo no controle. Com `tipo` nulo, o pedido acaba. O SDK atende sozinho.
     gesto: ['ajuda-gesto', { pedido: 'pedido', alvo: 'alvo', tipo: 'tipo', tecla: 'tecla' }],
+    // O "Fazer por mim" de um passo pede ao quadro o gesto no controle: o clique (o direito, o duplo) ou o texto num campo. O SDK atende sozinho e responde com `feito`.
+    fazer: ['ajuda-fazer', { pedido: 'pedido', alvo: 'alvo', verbo: 'verbo', botao: 'botao', texto: 'texto' }],
     // O modo "O que é isto?" ligou ou desligou. O SDK atende sozinho.
     modo: ['ajuda-modo', { ligado: 'ligado' }],
   };
@@ -625,13 +628,13 @@
     abrir: (topico) => ponte.chamar('ajuda.abrir', { type: 'ajuda', op: 'abrir', topico: topico }, 5000),
     // O SDK chama este verbo sozinho: o retângulo, no quadro, do controle que o evento `mostrar` pediu, de novo a cada rolagem, e `null` quando ele some.
     achou: (pedido, retangulo) => ponte.disparar('ajuda.achou', { type: 'ajuda', op: 'achou', pedido: pedido, retangulo: retangulo }),
-    // O SDK chama este verbo sozinho quando a pessoa faz no controle o gesto que o evento `gesto` pediu, e o Passo a passo segue para o passo seguinte.
-    feito: (pedido) => ponte.disparar('ajuda.feito', { type: 'ajuda', op: 'feito', pedido: pedido }),
+    // O SDK chama este verbo sozinho quando a pessoa faz no controle o gesto que o evento `gesto` pediu, e o Passo a passo segue para o passo seguinte. Ele também responde assim ao evento `fazer`, com `ok` falso quando o controle não está no quadro.
+    feito: (pedido, ok) => ponte.disparar('ajuda.feito', { type: 'ajuda', op: 'feito', pedido: pedido, ok: ok }),
     // O SDK chama este verbo sozinho quando o modo "O que é isto?" liga: o quadro passa a receber o clique, que ele mesmo explica.
     ouvindo: () => ponte.disparar('ajuda.ouvindo', { type: 'ajuda', op: 'ouvindo' }),
     // O SDK chama este verbo sozinho com o controle que a pessoa clicou no modo "O que é isto?": o nome que ela lê, o `data-ajuda` do primeiro ancestral que o tem, e o retângulo. O clique não chega ao app.
     isto: (nome, ajuda, retangulo) => ponte.disparar('ajuda.isto', { type: 'ajuda', op: 'isto', nome: nome, ajuda: ajuda, retangulo: retangulo }),
-    // Assina um evento deste espaço (mostrar, gesto, modo) e devolve a função que cancela.
+    // Assina um evento deste espaço (mostrar, gesto, fazer, modo) e devolve a função que cancela.
     ao: (evento, cb) => ponte.escutar('ajuda', evento, cb),
   };
 
@@ -1562,6 +1565,28 @@
     };
     document.addEventListener(m.tipo, ouvinte, true);
     gestos.set(m.pedido, () => document.removeEventListener(m.tipo, ouvinte, true));
+  }
+
+  // O "Fazer por mim" de um passo: o shell não alcança o documento do quadro, e o gesto no
+  // controle acontece aqui. O clique vai pelo `click()` do elemento, como o shell faz com os dele.
+  function ajudaFazer(m) {
+    const el = acharNoQuadro(m.alvo);
+    const responder = (ok) => disparar('ajuda.feito', { type: 'ajuda', op: 'feito', pedido: m.pedido, ok });
+    if (!el) { responder(false); return; }
+    el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    if (m.verbo === 'digitar') {
+      el.focus();
+      if ('value' in el) el.value = String(m.texto ?? ''); else el.textContent = String(m.texto ?? '');
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    } else {
+      const r = retanguloDe(el);
+      const pos = { clientX: r.x + r.w / 2, clientY: r.y + r.h / 2, bubbles: true, cancelable: true };
+      if (m.botao === 'direito') el.dispatchEvent(new window.MouseEvent('contextmenu', { ...pos, button: 2, buttons: 2 }));
+      else if (m.botao === 'duplo') { el.click(); el.dispatchEvent(new window.MouseEvent('dblclick', { ...pos, detail: 2 })); }
+      else el.click();
+    }
+    responder(true);
   }
 
   // No modo ligado, o clique seguinte não chega ao app: ele vira a pergunta "o que é isto?".

@@ -2063,10 +2063,16 @@
               "nome": "pedido",
               "fio": "pedido",
               "tipo": "number"
+            },
+            {
+              "nome": "ok",
+              "fio": "ok",
+              "tipo": "boolean",
+              "opcional": true
             }
           ],
           "responde": false,
-          "descricao": "O SDK chama este verbo sozinho quando a pessoa faz no controle o gesto que o evento `gesto` pediu, e o Passo a passo segue para o passo seguinte."
+          "descricao": "O SDK chama este verbo sozinho quando a pessoa faz no controle o gesto que o evento `gesto` pediu, e o Passo a passo segue para o passo seguinte. Ele também responde assim ao evento `fazer`, com `ok` falso quando o controle não está no quadro."
         },
         "ouvindo": {
           "fio": {
@@ -2148,6 +2154,39 @@
             }
           ],
           "descricao": "O shell pede o aviso do gesto de um passo no controle. Com `tipo` nulo, o pedido acaba. O SDK atende sozinho."
+        },
+        "fazer": {
+          "fio": "ajuda-fazer",
+          "campos": [
+            {
+              "nome": "pedido",
+              "fio": "pedido",
+              "tipo": "number"
+            },
+            {
+              "nome": "alvo",
+              "fio": "alvo",
+              "tipo": "{ seletor?: string, nome?: string }"
+            },
+            {
+              "nome": "verbo",
+              "fio": "verbo",
+              "tipo": "'clicar' | 'digitar'"
+            },
+            {
+              "nome": "botao",
+              "fio": "botao",
+              "tipo": "'direito' | 'duplo'",
+              "opcional": true
+            },
+            {
+              "nome": "texto",
+              "fio": "texto",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "descricao": "O \"Fazer por mim\" de um passo pede ao quadro o gesto no controle: o clique (o direito, o duplo) ou o texto num campo. O SDK atende sozinho e responde com `feito`."
         },
         "modo": {
           "fio": "ajuda-modo",

@@ -750,9 +750,10 @@ declare namespace vssh {
     function achou(pedido: number, retangulo?: { x: number; y: number; w: number; h: number } | null): void;
     /**
      * O SDK chama este verbo sozinho quando a pessoa faz no controle o gesto que o evento `gesto`
-     * pediu, e o Passo a passo segue para o passo seguinte.
+     * pediu, e o Passo a passo segue para o passo seguinte. Ele também responde assim ao evento
+     * `fazer`, com `ok` falso quando o controle não está no quadro.
      */
-    function feito(pedido: number): void;
+    function feito(pedido: number, ok?: boolean): void;
     /**
      * O SDK chama este verbo sozinho quando o modo "O que é isto?" liga: o quadro passa a receber o
      * clique, que ele mesmo explica.
@@ -778,6 +779,11 @@ declare namespace vssh {
        * SDK atende sozinho.
        */
       gesto: { pedido: number; alvo: { seletor?: string; nome?: string } | null; tipo: 'click' | 'dblclick' | 'contextmenu' | 'keydown' | null; tecla?: string };
+      /**
+       * O "Fazer por mim" de um passo pede ao quadro o gesto no controle: o clique (o direito, o
+       * duplo) ou o texto num campo. O SDK atende sozinho e responde com `feito`.
+       */
+      fazer: { pedido: number; alvo: { seletor?: string; nome?: string }; verbo: 'clicar' | 'digitar'; botao?: 'direito' | 'duplo'; texto?: string };
       /** O modo "O que é isto?" ligou ou desligou. O SDK atende sozinho. */
       modo: { ligado: boolean };
     }

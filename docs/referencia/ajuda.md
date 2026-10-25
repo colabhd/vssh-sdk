@@ -14,7 +14,7 @@ retângulo que o quadro devolve.
 |---|---|
 | [`vssh.ajuda.abrir(topico)`](#abrir) | sim, em até 5 s |
 | [`vssh.ajuda.achou(pedido, retangulo)`](#achou) | não |
-| [`vssh.ajuda.feito(pedido)`](#feito) | não |
+| [`vssh.ajuda.feito(pedido, ok)`](#feito) | não |
 | [`vssh.ajuda.ouvindo()`](#ouvindo) | não |
 | [`vssh.ajuda.isto(nome, ajuda, retangulo)`](#isto) | não |
 
@@ -52,10 +52,11 @@ No fio: `type: "ajuda", op: "achou"`.
 
 ### `feito`
 
-`vssh.ajuda.feito(pedido)`
+`vssh.ajuda.feito(pedido, ok)`
 
 O SDK chama este verbo sozinho quando a pessoa faz no controle o gesto que o evento `gesto` pediu, e
-o Passo a passo segue para o passo seguinte.
+o Passo a passo segue para o passo seguinte. Ele também responde assim ao evento `fazer`, com `ok`
+falso quando o controle não está no quadro.
 
 Não responde: um disparo, sem retorno.
 Num hiperlink: vale.
@@ -64,6 +65,7 @@ No fio: `type: "ajuda", op: "feito"`.
 | argumento | tipo | opcional | no fio |
 |---|---|---|---|
 | `pedido` | `number` | não | `pedido` |
+| `ok` | `boolean` | sim | `ok` |
 
 ### `ouvindo`
 
@@ -129,6 +131,24 @@ sozinho.
 
 Num hiperlink: chega.
 No fio: `type: "ajuda-gesto"`.
+
+### `fazer`
+
+`vssh.ajuda.ao('fazer', cb)`
+
+O "Fazer por mim" de um passo pede ao quadro o gesto no controle: o clique (o direito, o duplo) ou o
+texto num campo. O SDK atende sozinho e responde com `feito`.
+
+| campo | tipo | opcional | no fio |
+|---|---|---|---|
+| `pedido` | `number` | não | `pedido` |
+| `alvo` | `{ seletor?: string, nome?: string }` | não | `alvo` |
+| `verbo` | `'clicar' \| 'digitar'` | não | `verbo` |
+| `botao` | `'direito' \| 'duplo'` | sim | `botao` |
+| `texto` | `string` | sim | `texto` |
+
+Num hiperlink: chega.
+No fio: `type: "ajuda-fazer"`.
 
 ### `modo`
 
