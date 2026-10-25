@@ -66,6 +66,8 @@ export interface Figura {
   alvos: { x: number; y: number; w: number; h: number; nome: string }[];
   raiz?: { x: number; y: number; w: number; h: number; barra: boolean };
   origem?: { x: number; y: number; w: number; h: number };
+  /** As bordas em que o recorte corta a janela no meio, e não na beirada dela. */
+  corte?: ('esquerda' | 'direita' | 'cima' | 'baixo')[];
 }
 /** As figuras de um passo ou de uma cerca `figura`, uma por tela: a larga e a estreita. */
 export type Figuras = Partial<Record<'larga' | 'estreita', Figura>>;
@@ -719,6 +721,7 @@ export interface CenaDoIndice {
   alvos: Figura['alvos'];
   raiz?: Figura['raiz'];
   origem?: Figura['origem'];
+  corte?: Figura['corte'];
   /** A classe da janela que a cena recorta, quando ela recorta uma. É o que conta como janela com cena na cobertura. */
   janela?: string | null;
 }
@@ -739,7 +742,7 @@ export function juntarFiguras(pacote: PacoteDaAjuda, cenas: Record<string, CenaD
     const f: Figuras = {};
     for (const [id, c] of porReceita.get(`${topico}#${receita}`) || []) {
       if (c.passo !== passo) continue;
-      f[c.tela] = { id, largura: c.largura, altura: c.altura, alvos: c.alvos, raiz: c.raiz, origem: c.origem };
+      f[c.tela] = { id, largura: c.largura, altura: c.altura, alvos: c.alvos, raiz: c.raiz, origem: c.origem, ...(c.corte?.length ? { corte: c.corte } : {}) };
     }
     return Object.keys(f).length ? f : undefined;
   };
