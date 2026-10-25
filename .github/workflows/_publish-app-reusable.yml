@@ -62,9 +62,9 @@ jobs:
   publish:
     name: Publish app no repositório de artefatos
     runs-on: ${{ inputs.runner }}
-    # Um publish leva menos de um minuto. O teto é para o que trava (um Worker que não responde, um
-    # upload que para no meio), que sem ele seguraria o runner por seis horas, e no scale set de
-    # uma organização o runner é de todos os repositórios dela.
+    # Um publish leva poucos minutos, com o Chrome e o palco do app. O teto é para o que trava (um
+    # Worker que não responde, um upload que para no meio), que sem ele seguraria o runner por seis
+    # horas, e no scale set de uma organização o runner é de todos os repositórios dela.
     timeout-minutes: 15
     steps:
       # O `vssh-app-publish` valida o manifesto com `python3`. O `ubuntu-latest` o traz de fábrica; a
@@ -93,6 +93,21 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: '24'
+
+      # O palco do app abre a janela num Chrome e tira as figuras da ajuda dos passos. O
+      # `ubuntu-latest` traz o Chrome; a imagem de um runner próprio não traz, e sem ele a ajuda sai
+      # sem figura nenhuma. O passo pode falhar sem derrubar a publicação, e sem Chrome o publish diz
+      # numa anotação que as figuras ficaram de fora.
+      - name: Chrome, para as figuras da ajuda
+        continue-on-error: true
+        run: |
+          for c in google-chrome google-chrome-stable chromium chromium-browser; do
+            command -v "$c" >/dev/null && exit 0
+          done
+          curl -fsSLo "$RUNNER_TEMP/chrome.deb" https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends "$RUNNER_TEMP/chrome.deb"
+          google-chrome --version
 
       - name: Checkout do app (repo chamador)
         uses: actions/checkout@v5

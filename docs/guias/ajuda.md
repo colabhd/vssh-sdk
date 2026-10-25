@@ -82,7 +82,10 @@ O nível da ajuda sai daí:
 Quem mede o 3 e o 4 é o palco do app ([`scripts/palco-do-app.mjs`](../../scripts/palco-do-app.mjs)),
 que o publish roda num Chrome. Ele sobe o backend do app, abre a janela num quadro do tamanho que o
 manifesto declara, com o SDK web, e executa cada cerca `passos` que aponta um alvo do seu
-`alvos.json`, numa carga nova da janela. De cada passo sai uma figura, e o palco confere que cada
+`alvos.json`, numa carga nova da janela. De cada passo sai uma figura: o pedaço da janela em volta
+do controle, do tamanho da coluna de texto da Ajuda (576 × 352 px, até 472 de altura), preso à
+beirada da janela mais perto dele, em 2x, com as bordas que cortam a janela esmaecidas na Ajuda. O
+palco confere que cada
 `[[rótulo]]` do passo apareceu na janela e que o controle apontado se chama por um deles. Um alvo
 que não aparece ou um rótulo que a janela não mostra vira uma linha no resumo do run, e o nível
 fica no 2. A janela abre vazia, como na primeira vez que alguém usa o app: um passo que precisa de

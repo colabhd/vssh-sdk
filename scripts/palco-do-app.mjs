@@ -249,8 +249,32 @@ async function tecla(pagina, combinacao) {
   await pagina.enviar('Input.dispatchKeyEvent', { type: 'keyUp', key: nome, windowsVirtualKeyCode: codigo, modifiers });
 }
 
-async function figura(pagina, saida, id, largura, altura) {
-  const r = await pagina.enviar('Page.captureScreenshot', { format: 'png', clip: { x: 0, y: 0, width: largura, height: altura, scale: 1 } });
+// A figura de um passo é o pedaço da janela em volta do alvo, do tamanho da coluna de texto da
+// Ajuda (576 × 352 px), preso à beirada da janela mais perto dele, como no palco do ambiente: a
+// janela inteira encolheria na coluna até a letra de dentro sumir. A altura cresce até 472 px
+// quando o alvo fica um pouco mais para baixo. As bordas que cortam a janela no meio vão em
+// `corte`, e a Ajuda as esmaece.
+const LARGURA_DA_FIGURA = 576;
+const ALTURA_DA_FIGURA = 352;
+
+function recorteDe(alvo, largura, altura) {
+  let x0 = 0, x1 = largura, y0 = 0, y1 = altura;
+  if (largura > LARGURA_DA_FIGURA && alvo.w <= LARGURA_DA_FIGURA - 48) {
+    if (alvo.x + alvo.w + 24 <= LARGURA_DA_FIGURA) x1 = LARGURA_DA_FIGURA;
+    else if (alvo.x - 24 >= largura - LARGURA_DA_FIGURA) x0 = largura - LARGURA_DA_FIGURA;
+    else { x0 = Math.round(alvo.x + alvo.w / 2 - LARGURA_DA_FIGURA / 2); x1 = x0 + LARGURA_DA_FIGURA; }
+  }
+  if (altura > ALTURA_DA_FIGURA + 120 && alvo.h <= ALTURA_DA_FIGURA + 72) {
+    if (alvo.y + alvo.h + 48 <= ALTURA_DA_FIGURA + 120) y1 = Math.max(ALTURA_DA_FIGURA, Math.ceil(alvo.y + alvo.h + 48));
+    else if (alvo.y - 48 >= altura - ALTURA_DA_FIGURA) y0 = altura - ALTURA_DA_FIGURA;
+    else { y0 = Math.round(alvo.y + alvo.h / 2 - ALTURA_DA_FIGURA / 2); y1 = y0 + ALTURA_DA_FIGURA; }
+  }
+  const corte = [[x0 > 0, 'esquerda'], [x1 < largura, 'direita'], [y0 > 0, 'cima'], [y1 < altura, 'baixo']].filter(([s]) => s).map(([, lado]) => lado);
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0, corte };
+}
+
+async function figura(pagina, saida, id, recorte) {
+  const r = await pagina.enviar('Page.captureScreenshot', { format: 'png', clip: { x: recorte.x, y: recorte.y, width: recorte.w, height: recorte.h, scale: 1 } });
   writeFileSync(join(saida, `${id}.png`), Buffer.from(r.data, 'base64'));
 }
 
@@ -289,10 +313,12 @@ async function executar(pagina, ajuda, receitas, saida, largura, altura, pasta) 
         if (await pelaPonte(pagina, ++pedido, alvo)) ponteRespondida++;
         if (ac === apontado) {
           const id = `${rc.topico}-${rc.receita}-${i}`;
-          await figura(pagina, saida, id, largura, altura);
+          const rec = recorteDe(r, largura, altura);
+          await figura(pagina, saida, id, rec);
           cenas[id] = {
-            topico: rc.topico, receita: rc.receita, passo: i, tela: 'larga', largura, altura,
-            alvos: [{ x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.w), h: Math.round(r.h), nome: r.nome }],
+            topico: rc.topico, receita: rc.receita, passo: i, tela: 'larga', largura: rec.w, altura: rec.h,
+            alvos: [{ x: Math.round(r.x - rec.x), y: Math.round(r.y - rec.y), w: Math.round(r.w), h: Math.round(r.h), nome: r.nome }],
+            ...(rec.corte.length ? { corte: rec.corte } : {}),
           };
           if (passo.rotulos.length && !alvo.rotulo && !passo.rotulos.includes(r.nome)) {
             faltas.push(`${onde}: o passo cita ${passo.rotulos.map((x) => `[[${x}]]`).join(', ')}, e o controle ${ac.alvo} se chama "${r.nome}" na janela`);
@@ -341,7 +367,9 @@ async function main() {
     frente = await subirFrente(backend.url, largura, altura);
     navegador = await abrirNavegador();
     const pagina = await navegador.novaPagina(`http://127.0.0.1:${frente.address().port}/`);
-    await pagina.enviar('Emulation.setDeviceMetricsOverride', { width: largura, height: altura, deviceScaleFactor: 1, mobile: false });
+    // Em 2x, como as figuras do ambiente: a figura sai na coluna em tamanho real, e numa tela de
+    // alta densidade a letra de dentro fica nítida.
+    await pagina.enviar('Emulation.setDeviceMetricsOverride', { width: largura, height: altura, deviceScaleFactor: 2, mobile: false });
     const r = await executar(pagina, ajuda, receitas, saida, largura, altura, manifesto.contributes.ajuda.pasta || 'ajuda');
     const figuras = Object.keys(r.cenas).length;
     const evidenciaFiguras = figuras > 0 && r.faltas.length === 0;
