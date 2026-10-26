@@ -51,6 +51,14 @@ Devolvem o caminho absoluto no servidor, ou `null` se a pessoa cancelou, e conce
 Com o caminho na mão, `vssh.arquivos.ler(caminho)` e `vssh.arquivos.escrever(caminho, texto)`
 passam pelo mesmo portão.
 
+No seletor de abrir arquivo, a pessoa também traz um arquivo do computador ou do celular dela
+("Arquivo local" no seletor de janela, "Neste aparelho" no do celular). O ambiente sobe esse
+arquivo para uma pasta temporária da conta, `~/.cache/vssh/locais/<id>/`, e o caminho que o app
+recebe é o dessa cópia. O agente apaga a cópia uma semana depois da última gravação nela. Um app
+que guarda caminhos para reabrir depois, como uma lista de recentes, trata a cópia que sumiu como
+qualquer arquivo que saiu do lugar, e um app que produz um resultado a partir dela oferece salvá-lo
+com `escolherDestino`.
+
 ## O `File` é preguiçoso
 
 `getFile()` devolve um `File` que só busca o conteúdo quando alguém pede. É o que torna viável
