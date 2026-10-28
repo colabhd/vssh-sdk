@@ -731,7 +731,9 @@
      linha, e `--tuff-tabela-recuo` (a distância da margem até ela) alinha as
      linhas seguintes com ela. A margem lateral das linhas é
      `--tuff-tabela-margem`, e quem usa a peça a ajusta por ela, e não pelo
-     `padding`, que a forma compacta precisa compor. */
+     `padding`, que a forma compacta precisa compor. Nessa forma, o molde
+     pode vir de `TuffTabela.colunas`, que põe uma alça de largura no
+     cabeçalho de cada coluna que se arrasta. */
 
   .tuff-tabela { font-size: var(--tuff-size-sm); color: var(--ds-text); }
   table.tuff-tabela { width: 100%; border-collapse: collapse; }
@@ -814,6 +816,43 @@
     white-space: nowrap;
   }
 
+  /* A alça de uma coluna de largura própria (`TuffTabela.colunas`), na borda de entrada do
+     cabeçalho dela, no meio do vão entre as duas colunas. A linha de 1 px marca a borda o tempo
+     todo, porque é ela que diz que a coluna se arrasta, e por isso tem a cor do contorno de campo,
+     que passa de 3:1 sobre o cabeçalho, e não a do fio. O passar por cima a clareia, e o arraste e
+     o foco do teclado levam o destaque, como na `.tuff-alca`. O rótulo de uma coluna apertada é
+     cortado na borda dela, e não invade a vizinha. */
+  div.tuff-tabela .tuff-tabela-th { position: relative; min-width: 0; }
+  div.tuff-tabela .tuff-tabela-ordem { overflow: hidden; }
+  .tuff-tabela-alca {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--ds-gap-md) / -2 - 4px);
+    width: 9px;
+    z-index: 1;
+    cursor: col-resize;
+    touch-action: none;
+  }
+  .tuff-tabela-alca::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 25%;
+    bottom: 25%;
+    width: 1px;
+    background: var(--ds-border-input);
+    transition: background var(--ds-dur-fast) var(--ds-ease);
+  }
+  .tuff-tabela-alca:hover::after { background: var(--ds-text-dim); }
+  .tuff-tabela-alca[data-arrastando]::after { top: 0; bottom: 0; background: var(--ds-accent); }
+  .tuff-tabela-alca:focus-visible { outline: 2px solid var(--ds-border-focus); outline-offset: -2px; border-radius: var(--ds-radius-sm); }
+  /* Sob o dedo, o alvo cresce para os lados; a linha continua no meio do vão. */
+  @media (pointer: coarse) {
+    .tuff-tabela-alca { left: calc(var(--ds-gap-md) / -2 - 11px); width: 23px; }
+    .tuff-tabela-alca::after { left: 11px; }
+  }
+
   /* Dentro do contêiner, os seletores levam o `div.tuff-tabela` da forma em grade: com a
      especificidade dela, e só assim, a forma compacta vence a grade na mesma camada. */
   @container tuff-tabela (max-width: 480px) {
@@ -843,6 +882,8 @@
     div.tuff-tabela .tuff-tabela-linha::after { content: ''; order: 1; flex-basis: 100%; margin-left: var(--tuff-tabela-recuo, 0px); }
     div.tuff-tabela .tuff-tabela-linha > :not(.tuff-tabela-essencial) { font-size: var(--tuff-size-xs); color: var(--ds-text-dim); }
     div.tuff-tabela .tuff-tabela-th.tuff-tabela-num .tuff-tabela-ordem { flex-direction: row; }
+    /* Sem colunas, sem larguras: na forma compacta as alças saem. */
+    div.tuff-tabela .tuff-tabela-alca { display: none; }
   }
 
   /* ── Alça de largura ────────────────────────────────────────────────────────

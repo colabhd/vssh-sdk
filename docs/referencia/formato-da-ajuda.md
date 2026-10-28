@@ -52,7 +52,7 @@ existe quando o manifesto declara o campo dela.
 
 ## Os tópicos do ambiente
 
-Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 55 que existem:
+Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 56 que existem:
 
 | id | título |
 |---|---|
@@ -110,6 +110,7 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 55 q
 | `um-app-pede-um-arquivo` | Quando um aplicativo pede um arquivo ou uma pasta |
 | `um-app-pede-uma-senha` | Quando um aplicativo pede uma senha |
 | `um-app-quer-usar-outro` | Quando um aplicativo quer usar outro |
+| `ver-em-lista` | Ver o tamanho e a data dos arquivos, e mudar a ordem |
 | `versao-nova` | Versão nova publicada |
 
 ## Os termos do glossário do ambiente

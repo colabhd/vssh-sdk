@@ -5,7 +5,7 @@
       "sha256": "a95930d7b4cc08a87f0764297b46a3cee89d879ee2c84d4705cbf59f23fc21c0"
     },
     "api/ajuda/ambiente.json": {
-      "sha256": "ec82597b12cf38e09dfd910f57f3df753547481d27cc53a5ece226bc468aee4b"
+      "sha256": "f2eeb955499cefd27384183e746b56076b7f47a2e480fcd40c4e5c2dafcebd6b"
     },
     "api/ajuda/compilador-da-ajuda.ts": {
       "sha256": "fd7b86baaf5d1f32adcea5ed8843fd94afe8b1505493ad7254c2688570b110aa"
@@ -23,7 +23,7 @@
       "sha256": "277a26cebbe502df5096d79353dba8e6769da4cf1342c2178355983a9d8170d6"
     },
     "api/tuff/docs/componentes.html": {
-      "sha256": "3010c5d1aef7a6a624cce33f963af02ab392fefbaf85a30a8ca4ff2e44f3157a"
+      "sha256": "6a79f5c5d81bcfa0d078f0e45ebe5d376f3009f091370d6e67be3e07c18381b3"
     },
     "api/tuff/fonts/OFL.txt": {
       "sha256": "bf4dc6d13a8cccd4807133c77a1ee9619a16b92cb23322258725ab6731c2f6e5"
@@ -53,10 +53,10 @@
       "sha256": "5c9db020edc138f1683e56d4251cd47b8ee5e3b971cd79938ec82cfcfa123182"
     },
     "api/tuff/tuff.css": {
-      "sha256": "80fe736ce15d709d8f1959fc05335a017a09b3e51f58956eb96167ddb427ca0d"
+      "sha256": "d68af7cf60fc31c8fbca2cf8bd5bdf4a9a2a117dbb974a10375af6f38887333d"
     },
     "api/tuff/tuff.js": {
-      "sha256": "72e90946067daa9d7831ced64c87f4875dca9fc14aa364ccad886a6cefcd11c4"
+      "sha256": "db964e31fd8394b34c88de773dec59b53eff9f27cb6ee8f0723111059952de98"
     },
     "api/tuff/vendor/geotiff-LICENCAS.txt": {
       "sha256": "48fe558bdf8ac64674a9104c2e679400368d529dd36de972419c9d0cfc9d4a40"
@@ -101,7 +101,7 @@
       "sha256": "8c9f5d8adc93dec5ae65fdc826f71c87bb7ea0cf259e0fb58ad5f7536d586f15"
     },
     "docs/referencia/formato-da-ajuda.md": {
-      "sha256": "57d8847436c1c3026147417079454f985be2696443c7d96811a4691a56eb630f"
+      "sha256": "7f7895692cc1bf0f9efd4299ab3a14a5543796089d0460ebaa8ea71c6dadd99b"
     },
     "docs/referencia/gpu.md": {
       "sha256": "aacc6e46d64664d676e55bb063e19437c3342f1b8082690613bcd33de2d170ed"

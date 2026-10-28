@@ -12,6 +12,7 @@
 //     TuffMenus.ligar(barra, opcoes)      a barra de menus: os rótulos abrem o menu do ambiente
 //     TuffTabela.marcar(cab, chave, cresc) a coluna ordenada da tabela, em `aria-sort`
 //     TuffTabela.ligar(cab, aoOrdenar)    o clique num cabeçalho ordenável
+//     TuffTabela.colunas(raiz, cab, op)   as larguras das colunas, e a alça que arrasta cada uma
 //     TuffApp.ligar(raiz, opcoes)         a moldura: a gaveta, o painel, o "Mais" e a forma
 //
 // E um comportamento sem chamada: o `.tuff-busca-limpar` esvazia a busca ao lado dele.
@@ -1228,7 +1229,146 @@
     });
   }
 
-  window.TuffTabela = { marcar, ligar };
+  // ─── As larguras ───────────────────────────────────────────────────────────────────────────────
+  //
+  // Na forma em grade, o cabeçalho e as linhas leem o mesmo molde (`--tuff-tabela-colunas`), e a
+  // peça o escreve na `raiz` a partir de `colunas`, uma entrada por coluna, na ordem do molde:
+  //
+  //     { largura: 20 }                          uma coluna fixa, sem alça (a do ícone)
+  //     { chave: 'nome', resto: 160 }            a que fica com o espaço que sobra, com o mínimo dela
+  //     { chave: 'tipo', largura: 130, min: 56 } uma coluna de largura própria, com alça
+  //
+  // Uma coluna de largura própria encolhe até o `min` quando a tabela aperta, e a do resto segura o
+  // mínimo dela. A alça mora no cabeçalho da coluna (o filho de `cab` na mesma posição), na borda
+  // de entrada, e arrastar a borda para a esquerda alarga a coluna, porque a coluna do resto fica
+  // antes dela e é quem cede o espaço. As setas andam `PASSO` px (Shift, quatro vezes isso), Home e
+  // End vão aos limites, e o duplo clique ajusta a coluna ao conteúdo: `medir(chave)` diz a largura
+  // dele, e sem ela a peça mede as células desenhadas. `aoMudar({ chave: largura })` chega no fim
+  // de cada gesto, e guardar as larguras é de quem chama.
+
+  const PASSO = 16;
+
+  function colunas(raiz, cab, { colunas: lista = [], aoMudar = null, medir = null } = {}) {
+    if (!raiz || !cab) return null;
+    const cols = lista.map((c) => ({ ...c }));
+    const resto = cols.findIndex((c) => c.resto != null);
+    const ajustavel = (c) => c.chave && c.largura != null && c.resto == null;
+    const minDe = (c) => Math.max(0, c.min ?? 48);
+
+    function molde() {
+      return cols.map((c) => {
+        if (c.resto != null) return `minmax(${c.resto}px, 1fr)`;
+        return ajustavel(c) ? `minmax(${minDe(c)}px, ${c.largura}px)` : `${c.largura}px`;
+      }).join(' ');
+    }
+    const aplicar = () => raiz.style.setProperty('--tuff-tabela-colunas', molde());
+    const larguras = () => Object.fromEntries(cols.filter(ajustavel).map((c) => [c.chave, c.largura]));
+    const avisar = () => { try { aoMudar?.(larguras()); } catch (e) { console.warn('[TuffTabela] aoMudar:', e); } };
+
+    // O que a coluna pode ganhar é o que a do resto tem acima do mínimo dela.
+    function limite(i) {
+      const atual = cab.children[i]?.offsetWidth || cols[i].largura;
+      const folga = resto >= 0 ? Math.max(0, (cab.children[resto]?.offsetWidth || 0) - cols[resto].resto) : Infinity;
+      return Math.max(minDe(cols[i]), Math.round(atual + folga));
+    }
+
+    function medirCelulas(i) {
+      let maior = cab.children[i]?.querySelector('.tuff-tabela-ordem')?.scrollWidth || 0;
+      for (const linha of raiz.querySelectorAll(':scope > .tuff-tabela-linha')) {
+        maior = Math.max(maior, linha.children[i]?.scrollWidth || 0);
+      }
+      return maior + 2;
+    }
+
+    const alcas = [];
+    cols.forEach((c, i) => {
+      const th = cab.children[i];
+      if (!ajustavel(c) || !th) return;
+      const alca = document.createElement('div');
+      alca.className = 'tuff-tabela-alca';
+      alca.tabIndex = 0;
+      alca.setAttribute('role', 'separator');
+      alca.setAttribute('aria-orientation', 'vertical');
+      alca.setAttribute('aria-label', `Largura da coluna ${c.rotulo || th.textContent.trim()}`);
+      th.prepend(alca);
+
+      const largura = (l) => {
+        const v = Math.min(limite(i), Math.max(minDe(c), Math.round(l)));
+        c.largura = v;
+        aplicar();
+        alca.setAttribute('aria-valuemin', String(minDe(c)));
+        alca.setAttribute('aria-valuemax', String(limite(i)));
+        alca.setAttribute('aria-valuenow', String(v));
+        return v;
+      };
+      const atual = () => th.offsetWidth || c.largura;
+      alca.setAttribute('aria-valuenow', String(c.largura));
+
+      let gesto = null;
+      const ouvintes = {
+        pointerdown(e) {
+          if (e.button !== 0) return;
+          e.preventDefault();
+          gesto = { x: e.clientX, base: atual(), id: e.pointerId };
+          alca.setPointerCapture?.(e.pointerId);
+          alca.dataset.arrastando = '';
+          document.documentElement.classList.add('tuff-alca-arrastando');
+        },
+        pointermove(e) {
+          if (!gesto || e.pointerId !== gesto.id) return;
+          largura(gesto.base - (e.clientX - gesto.x));
+        },
+        pointerup(e) {
+          if (!gesto || e.pointerId !== gesto.id) return;
+          gesto = null;
+          delete alca.dataset.arrastando;
+          document.documentElement.classList.remove('tuff-alca-arrastando');
+          avisar();
+        },
+        keydown(e) {
+          const passo = e.shiftKey ? PASSO * 4 : PASSO;
+          let v = null;
+          // A seta leva a borda para o lado dela: para a esquerda, a coluna alarga.
+          if (e.key === 'ArrowLeft') v = atual() + passo;
+          else if (e.key === 'ArrowRight') v = atual() - passo;
+          else if (e.key === 'Home') v = minDe(c);
+          else if (e.key === 'End') v = limite(i);
+          if (v === null) return;
+          e.preventDefault();
+          largura(v);
+          avisar();
+        },
+        dblclick(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const medida = medir ? medir(c.chave) : null;
+          largura(Number.isFinite(medida) && medida > 0 ? medida : medirCelulas(i));
+          avisar();
+        },
+        // Um clique na alça não é um clique no cabeçalho: nem ordena, nem chega a quem está atrás.
+        click(e) { e.stopPropagation(); },
+        focus() { largura(atual()); },
+      };
+      ouvintes.pointercancel = ouvintes.pointerup;
+      for (const [evento, fn] of Object.entries(ouvintes)) alca.addEventListener(evento, fn);
+      alcas.push({ alca, ouvintes, emGesto: () => !!gesto });
+    });
+
+    aplicar();
+    return {
+      larguras,
+      destruir() {
+        for (const { alca, ouvintes, emGesto } of alcas) {
+          for (const [evento, fn] of Object.entries(ouvintes)) alca.removeEventListener(evento, fn);
+          if (emGesto()) document.documentElement.classList.remove('tuff-alca-arrastando');
+          alca.remove();
+        }
+        alcas.length = 0;
+      },
+    };
+  }
+
+  window.TuffTabela = { marcar, ligar, colunas };
 })();
 
 // ─── A alça de largura ───────────────────────────────────────────────────────────────────────────

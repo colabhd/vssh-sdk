@@ -369,7 +369,7 @@
     <section class="tuff-painel" style="grid-column: 1 / -1">
       <div class="tuff-sec">
         <div class="tuff-sec-titulo">Tabela</div>
-        <div class="tuff-sec-desc">Colunas que se ordenam pelo clique ou pelo Enter no cabeçalho, com a ordem em <code>aria-sort</code>. A forma em grade mede a própria largura: abaixo de 480 px, as colunas que não são essenciais descem para a segunda linha do item.</div>
+        <div class="tuff-sec-desc">Colunas que se ordenam pelo clique ou pelo Enter no cabeçalho, com a ordem em <code>aria-sort</code>. A forma em grade mede a própria largura: abaixo de 480 px, as colunas que não são essenciais descem para a segunda linha do item. Com <code>TuffTabela.colunas</code>, a borda de entrada de cada coluna se arrasta: o nome fica com o que sobra, as setas andam 16 px, e o duplo clique ajusta a coluna ao conteúdo.</div>
       </div>
       <div class="amostra" style="align-items:flex-start; gap:var(--ds-gap-lg)">
         <div class="tabela-exemplo" style="flex:1 1 480px; min-width:0"></div>
@@ -837,7 +837,8 @@
       let chave = 'nome', crescente = true;
       caixa.className += ' tuff-tabela';
       caixa.setAttribute('role', 'table');
-      caixa.style.setProperty('--tuff-tabela-colunas', 'minmax(0, 1fr) 90px 80px 90px');
+      const larguras = { tipo: 90, tamanho: 80, mod: 90 };
+      let colunas = null;
       const desenhar = () => {
         const ordem = [...linhas].sort((a, b) => {
           const c = chave === 'tamanho' ? a.tamanho - b.tamanho : String(a[chave]).localeCompare(String(b[chave]), 'pt-BR');
@@ -853,6 +854,11 @@
             + `<div class="tuff-tabela-cel tuff-tabela-num" role="cell">${kb(l.tamanho)}</div>`
             + `<div class="tuff-tabela-cel tuff-tabela-num" role="cell">${l.mod}</div></div>`).join('');
         TuffTabela.marcar(caixa, chave, crescente);
+        colunas?.destruir();
+        colunas = TuffTabela.colunas(caixa, caixa.querySelector('.tuff-tabela-cab'), {
+          colunas: [{ chave: 'nome', resto: 120 }, ...Object.entries(larguras).map(([k, l]) => ({ chave: k, largura: l, min: 56 }))],
+          aoMudar: (novas) => Object.assign(larguras, novas),
+        });
       };
       TuffTabela.ligar(caixa, (k) => {
         crescente = k === chave ? !crescente : true;

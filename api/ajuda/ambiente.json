@@ -217,6 +217,10 @@
       "titulo": "Quando um aplicativo quer usar outro"
     },
     {
+      "id": "ver-em-lista",
+      "titulo": "Ver o tamanho e a data dos arquivos, e mudar a ordem"
+    },
+    {
       "id": "versao-nova",
       "titulo": "Versão nova publicada"
     }
