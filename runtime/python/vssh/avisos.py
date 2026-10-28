@@ -75,6 +75,21 @@ def _home(env):
     return None
 
 
+def _pasta_fechada(pasta):
+    """Cria a `~/.vssh-notifications` e a deixa só para a pessoa (0700).
+
+    O journal leva o corpo das notificações, e a atividade o que está em curso: a prévia de uma
+    mensagem, o nome de um arquivo. Com a permissão padrão, outra conta do servidor que atravesse
+    esta home os leria. A pasta fechada fecha o que está dentro, inclusive o que uma versão
+    anterior criou aberto, e o coletor lê como root. Fechar é o melhor que der: uma pasta que não
+    é da pessoa não impede a notificação."""
+    os.makedirs(pasta, exist_ok=True)
+    try:
+        os.chmod(pasta, 0o700)
+    except OSError:
+        pass
+
+
 def _escrever_atomico(arquivo, corpo):
     """Temporário e `rename`: o coletor nunca lê um arquivo pela metade. Sem isso, o corte
     aconteceria justamente no instante do poll, e o sintoma seria um ícone ou uma barra piscando
@@ -160,7 +175,7 @@ def notificar(corpo, titulo=None, nivel=None, chave=None, acoes=None, persistent
 
     try:
         with _tranca:
-            os.makedirs(os.path.dirname(arquivo), exist_ok=True)
+            _pasta_fechada(os.path.dirname(arquivo))
             # Uma linha, uma escrita, em append. O `json.dumps` escapa a quebra de linha do
             # corpo, e é isso que impede uma notificação de várias linhas de virar várias
             # entradas quebradas.
@@ -222,6 +237,7 @@ def atividade(chave, item, env=None):
     corpo = dict(item or {})
     corpo['at'] = int(time.time() * 1000)
     try:
+        _pasta_fechada(os.path.dirname(os.path.dirname(arquivo)))
         _escrever_atomico(arquivo, corpo)
         with _tranca:
             _vivas[chave] = item

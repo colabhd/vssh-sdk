@@ -57,6 +57,20 @@ function home(env) {
 }
 
 /**
+ * Cria a `~/.vssh-notifications` e a deixa só para a pessoa (0700).
+ *
+ * O journal leva o corpo das notificações, e a atividade o que está em curso: a prévia de uma
+ * mensagem, o nome de um arquivo. Com a permissão padrão, outra conta do servidor que atravesse
+ * esta home os leria. A pasta fechada fecha o que está dentro, inclusive o que uma versão anterior
+ * criou aberto, e o coletor lê como root. Fechar é o melhor que der: uma pasta que não é da pessoa
+ * não impede a notificação.
+ */
+function pastaFechada(pasta) {
+  fs.mkdirSync(pasta, { recursive: true });
+  try { fs.chmodSync(pasta, 0o700); } catch { /* não é dela */ }
+}
+
+/**
  * Temporário e `rename`: o coletor nunca lê um arquivo pela metade. Sem isso, o corte
  * aconteceria justamente no instante do poll, e o sintoma seria um ícone ou uma barra piscando
  * sob atualização frequente, que é quando eles importam.
@@ -128,7 +142,7 @@ function notificar(corpo, opcoes = {}) {
   if (opcoes.abrir) entrada.rota = String(opcoes.abrir).slice(0, 512);
 
   try {
-    fs.mkdirSync(path.dirname(arquivo), { recursive: true });
+    pastaFechada(path.dirname(arquivo));
     // Uma linha, uma escrita, em append. O `JSON.stringify` escapa a quebra de linha do corpo, e
     // é isso que impede uma notificação de várias linhas de virar várias entradas quebradas.
     fs.appendFileSync(arquivo, JSON.stringify(entrada) + '\n', 'utf8');
@@ -184,6 +198,7 @@ function atividade(chave, item, env = process.env) {
   const arquivo = caminhoDaAtividade(chave, env);
   if (!arquivo) return false;
   try {
+    pastaFechada(path.dirname(path.dirname(arquivo)));
     escreverAtomico(arquivo, { ...item, at: Date.now() });
     vivas.set(chave, item);
     return true;
