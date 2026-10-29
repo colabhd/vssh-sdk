@@ -9,8 +9,10 @@
 //   1. O SDK web. O sistema serve `_sdk/vssh.js` dentro do espaço de URL de todo app, e um app o
 //      alcança por esse caminho relativo à própria raiz. Por padrão a tag entra no `<head>` de
 //      todo index servido daqui; `tuff: true` acrescenta o ambiente visual (`_sdk/tuff/…`). Nada
-//      em `_sdk/` leva carimbo, porque os bytes são do portal, e nada em `_sdk/` é servido daqui,
-//      porque o portal responde antes de o pedido chegar ao backend.
+//      em `_sdk/` é servido daqui, porque o portal responde antes de o pedido chegar ao backend.
+//      O carimbo dessas tags também é do portal: ele manda a versão do SDK em todo pedido
+//      (`X-Vssh-Sdk`), e o index a põe no `?v=`, que deixa o portal guardar o arquivo em cache
+//      sem revalidar. Sem o cabeçalho, as tags saem sem carimbo.
 //   2. O carimbo de versão dos arquivos do próprio app. Um script injetado sai como
 //      `boot.js?v=<hash do conteúdo>` e é servido como imutável; conteúdo novo mora noutra URL, e
 //      nenhum cache no caminho (navegador, portal, CDN) consegue servir o velho no lugar do novo.
@@ -129,6 +131,17 @@ const IMUTAVEL = 'public, max-age=31536000, immutable';
 const HASH_DO_PACOTE = '.installed-hash';
 const FORA_DO_HASH = new Set(['node_modules', '.venv', '.git']);
 const VERSAO = /^[0-9a-f]{16,128}$/;
+
+// A versão do SDK web que o portal anuncia em cada pedido. Ela entra no HTML, e por isso só um
+// valor desta forma é aceito.
+const CABECALHO_DO_SDK = 'x-vssh-sdk';
+const VERSAO_DO_SDK = /^[0-9a-f]{8,40}$/;
+
+/** A versão do SDK que o pedido traz, ou `null`. */
+function versaoDoSdk(req) {
+  const v = req.headers[CABECALHO_DO_SDK];
+  return typeof v === 'string' && VERSAO_DO_SDK.test(v) ? v : null;
+}
 
 /**
  * A comparação fraca, que é a do `If-None-Match` (RFC 9110, 13.1.2): um `W/` posto no caminho por
@@ -324,16 +337,16 @@ function spa(raiz, opcoes = {}) {
     return path.join(base, caminho.replace(/^\/+/, ''));
   }
 
-  // O que é do sistema nunca leva carimbo: os bytes moram no portal, e um `?v=` aqui afirmaria
-  // um conteúdo que este processo não tem como conhecer.
-  const carimbo = (src) => (src.startsWith('_sdk/') ? null : carimboDe(arquivoDoSrc(src)));
+  // O que é do sistema leva o carimbo que o portal manda (`sdk`): os bytes moram lá, e um hash
+  // calculado aqui afirmaria um conteúdo que este processo não tem como conhecer.
+  const carimbo = (src, sdk) => (src.startsWith('_sdk/') ? sdk : carimboDe(arquivoDoSrc(src)));
 
-  function url(src) {
-    const v = carimbo(src);
+  function url(src, sdk) {
+    const v = carimbo(src, sdk);
     return (v ? `${src}${src.includes('?') ? '&' : '?'}v=${v}` : src).replace(/"/g, '&quot;');
   }
 
-  function tags() {
+  function tags(sdk) {
     // Sem `defer`: precisa executar antes dos scripts diferidos do bundle, que já esperam o parse.
     // As aspas duplas são escapadas porque interpolar em HTML sem escapar envelhece mal, mesmo com
     // o `src` vindo do app.
@@ -341,12 +354,12 @@ function spa(raiz, opcoes = {}) {
     // O `<link>` sai auto-fechado: a barra é ignorada em HTML (`link` é void) e obrigatória em
     // XML. Sem ela, um index XHTML morre com erro fatal de parse no lugar do app.
     return [
-      ...folhas.map((f) => `<link rel="stylesheet" href="${url(f)}"/>`),
-      ...scripts.map((s) => `<script src="${url(s)}"></script>`),
+      ...folhas.map((f) => `<link rel="stylesheet" href="${url(f, sdk)}"/>`),
+      ...scripts.map((s) => `<script src="${url(s, sdk)}"></script>`),
     ].join('\n');
   }
 
-  async function corpoDoIndex() {
+  async function corpoDoIndex(sdk) {
     const caminho = path.join(base, indice);
     const st = await fsp.stat(caminho);
     // Os carimbos entram na chave do cache, e não só no corpo: um script atualizado sem que o
@@ -354,11 +367,11 @@ function spa(raiz, opcoes = {}) {
     // a URL carimbada antiga até alguém tocar no index, e o carimbo teria virado enfeite
     // justamente no cenário que ele existe para cobrir. As folhas entram na chave pelo mesmo
     // motivo, e no caso delas uma cor velha parece decisão de design.
-    const carimbos = [...folhas, ...scripts].map((s) => `${s}=${carimbo(s) || ''}`).join('|');
+    const carimbos = [...folhas, ...scripts].map((s) => `${s}=${carimbo(s, sdk) || ''}`).join('|');
     if (cache && cache.mtimeMs === st.mtimeMs && cache.carimbos === carimbos) return cache.corpo;
     let html = await fsp.readFile(caminho, 'utf8');
     if (folhas.length || scripts.length) {
-      const marcas = tags();
+      const marcas = tags(sdk);
       html = html.includes('</head>') ? html.replace('</head>', `${marcas}\n</head>`) : marcas + html;
     }
     // As variantes com `<base>` são montadas sobre este corpo, e caem junto: um index recarregado
@@ -448,7 +461,7 @@ function spa(raiz, opcoes = {}) {
   async function mandarIndex(req, res, caminhoUrl) {
     let corpo;
     try {
-      corpo = await corpoDoIndex();
+      corpo = await corpoDoIndex(versaoDoSdk(req));
       if (caminhoUrl !== undefined) corpo = indexComBase(corpo, caminhoUrl);
     } catch (err) {
       avisar('index-ausente', { raiz: base, erro: err.message });
