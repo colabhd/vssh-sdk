@@ -27,6 +27,14 @@
 //
 //   return { ponte: { 'arquivos.escolherPasta': join(home, 'Projetos') } };
 //
+// Quando o mesmo verbo pede respostas diferentes, `ponte` é uma lista de regras, e a primeira cujo
+// `quando` bate com os campos do pedido responde:
+//
+//   return { ponte: [
+//     { verbo: 'arquivos.escolherPasta', quando: { titulo: 'A pasta de origem' }, valor: origem },
+//     { verbo: 'arquivos.escolherPasta', valor: destino },
+//   ] };
+//
 // O compilador da ajuda e o agente leem só os `.md` e o `alvos.json` da pasta, então o
 // `palco.mjs` não entra na ajuda. Com `--url` o backend é de quem o subiu, e a HOME também; a cena
 // ainda escreve na pasta dela e responde pela ponte.
@@ -196,17 +204,30 @@ async function subirFrente(backend, largura, altura, respostas) {
 
 // ─── A cena ──────────────────────────────────────────────────────────────────
 
-/** As respostas da cena no fio: `{ 'arquivos.escolherPasta': v }` vira `{ fio: { type: 'pick', … }, valor: v }`. */
+/**
+ * As respostas da cena no fio. `{ 'arquivos.escolherPasta': v }` vira
+ * `{ fio: { type: 'pick', variant: 'directory' }, valor: v }`; na forma de lista, cada regra
+ * `{ verbo, quando, valor }` acrescenta ao fio os campos de `quando`, pelo nome público deles, e a
+ * primeira regra que bate com o pedido responde.
+ */
 function respostasDaPonte(ponte, roteiro) {
   if (ponte === undefined || ponte === null) return [];
-  if (typeof ponte !== 'object' || Array.isArray(ponte)) throw new Error(`${roteiro}: \`ponte\` é um objeto, do nome do verbo ao valor`);
+  if (typeof ponte !== 'object') throw new Error(`${roteiro}: \`ponte\` é um objeto, do nome do verbo ao valor, ou uma lista de regras`);
+  const regras = Array.isArray(ponte) ? ponte : Object.entries(ponte).map(([verbo, valor]) => ({ verbo, valor }));
   const { espacos } = JSON.parse(readFileSync(join(API, 'abi.json'), 'utf8'));
-  return Object.entries(ponte).map(([nome, valor]) => {
+  return regras.map((regra) => {
+    const nome = String(regra?.verbo || '');
     const ponto = nome.indexOf('.');
-    const verbo = espacos[nome.slice(0, ponto)]?.verbos?.[nome.slice(ponto + 1)];
-    if (ponto < 0 || !verbo) throw new Error(`${roteiro} responde ${nome}, e a ponte não tem esse verbo`);
+    const verbo = ponto > 0 ? espacos[nome.slice(0, ponto)]?.verbos?.[nome.slice(ponto + 1)] : null;
+    if (!verbo) throw new Error(`${roteiro} responde ${nome || '(sem verbo)'}, e a ponte não tem esse verbo`);
     if (!verbo.responde) throw new Error(`${roteiro} responde ${nome}, e esse verbo não espera resposta`);
-    return { fio: verbo.fio, valor: valor === undefined ? null : valor };
+    const fio = { ...verbo.fio };
+    for (const [campo, v] of Object.entries(regra.quando || {})) {
+      const c = (verbo.campos || []).find((x) => x.nome === campo);
+      if (!c) throw new Error(`${roteiro} pergunta pelo campo ${campo} de ${nome}, e o verbo não tem esse campo`);
+      fio[c.fio] = v;
+    }
+    return { fio, valor: regra.valor === undefined ? null : regra.valor };
   });
 }
 

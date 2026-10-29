@@ -117,7 +117,20 @@ encontra, e o palco apaga as duas no fim.
 O `ponte` diz o que o palco responde quando a janela pede um verbo ao ambiente. A chave é o nome
 público do verbo, como na [referência da ponte](../referencia/README.md), e o valor é o que o shell
 manda de volta no fio. Um verbo fora da lista recebe a recusa de um shell que não o atende, e um
-nome que a ponte não tem interrompe o palco, com o nome na mensagem. Todas as receitas rodam sobre o mesmo
+nome que a ponte não tem interrompe o palco, com o nome na mensagem.
+
+Quando a janela pede o mesmo verbo duas vezes e cada pedido quer outra resposta (a pasta de origem
+e a de destino de uma importação), `ponte` vira uma lista de regras. `quando` compara os campos do
+pedido pelo nome público deles, e a primeira regra que bate responde:
+
+```js
+return {
+  ponte: [
+    { verbo: 'arquivos.escolherPasta', quando: { titulo: 'A pasta de origem' }, valor: origem },
+    { verbo: 'arquivos.escolherPasta', valor: destino },
+  ],
+};
+``` Todas as receitas rodam sobre o mesmo
 backend, na ordem dos tópicos, então o que uma receita grava a seguinte encontra.
 
 O compilador da ajuda e o ambiente leem só os `.md` e o `alvos.json` da pasta, e o `palco.mjs`

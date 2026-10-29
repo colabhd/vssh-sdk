@@ -232,6 +232,21 @@ test('sem a cena, a ponte recusa a pasta e o passo diz o nome que faltou', { ski
   assert.ok(r.valores('FALTA').some((f) => f.includes('[[Bancada da cena]]')), r.saida);
 });
 
+test('uma regra da cena responde só o pedido cujos campos batem com o quando dela', { skip: pular }, async () => {
+  const regras = `[
+    { verbo: 'arquivos.escolherPasta', quando: { titulo: 'Outro título' }, valor: join(home, 'Outra') },
+    { verbo: 'arquivos.escolherPasta', quando: { titulo: 'A pasta do projeto' }, valor: pasta },
+  ]`;
+  const app = appDaCena(CENA.replace("{ 'arquivos.escolherPasta': pasta }", regras));
+  const r = await rodar(PALCO, [app, '--saida', pasta('vssh-palco-')]);
+  assert.equal(r.code, 0, r.saida);
+  assert.deepEqual(r.valores('FALTA'), [], r.saida);
+
+  const fora = appDaCena(CENA.replace("{ 'arquivos.escolherPasta': pasta }", regras.replace("'A pasta do projeto'", "'Mais um título'")));
+  const f = await rodar(PALCO, [fora, '--saida', pasta('vssh-palco-')]);
+  assert.ok(f.valores('FALTA').some((x) => x.includes('[[Projetos de exemplo]]')), f.saida);
+});
+
 test('uma cena que responde um verbo que a ponte não tem interrompe o palco com o nome dele', { skip: pular }, async () => {
   const app = appDaCena(CENA.replace("'arquivos.escolherPasta'", "'arquivos.escolherPastinha'"));
   const r = await rodar(PALCO, [app, '--saida', pasta('vssh-palco-')]);
