@@ -68,7 +68,9 @@ Quem usa declara a capacidade em `requires`:
 ```
 
 O portal confere a declaração na instalação, contra o `provides` dos apps instalados no servidor, e
-recusa instalar um app cuja capacidade ninguém oferece, dizendo qual falta. A página chama:
+recusa instalar um app cuja capacidade ninguém oferece, dizendo qual falta. Um app que funciona sem
+a capacidade a declara em `usa`, e instala mesmo onde ninguém a oferece; o guia
+[Mandar para as notas](mandar-para-as-notas.md) é um exemplo. A página chama:
 
 ```js
 const r = await vssh.apps.pedir('bibliography/v1', `buscar?q=${encodeURIComponent(texto)}&limite=20`);
@@ -93,7 +95,7 @@ O pedido sai do shell, e não da página. No cliente de desktop cada app mora nu
 um `fetch` de dentro da página para a URL de proxy de outro app cairia no backend do próprio app.
 Pela ponte, o shell faz, nesta ordem:
 
-1. confere que o seu app declara a capacidade em `requires`;
+1. confere que o seu app declara a capacidade em `requires` ou em `usa`;
 2. acha o app que a oferece com um prefixo em `capacidades`;
 3. resolve o caminho contra o prefixo e recusa o que sai dele, com `..` e `%2e%2e` já resolvidos;
 4. pergunta à pessoa, na primeira vez, se o seu app pode usar a capacidade;
@@ -103,10 +105,10 @@ A resposta da pessoa vale até ela a revogar, em Configurações, em Permissões
 Por isso a promessa de `pedir` tem prazo de 10 minutos: o primeiro pedido espera alguém responder.
 Um app parado sobe antes do pedido, e o shell repete por até 20 s enquanto ele fica de pé.
 
-O caminho fora do prefixo, a capacidade ausente de `requires` e a recusa da pessoa rejeitam a
-promessa sem pedido nenhum. Trate a rejeição como "a biblioteca não está disponível agora" e deixe
-o resto do app funcionando: no Prelo, sem a biblioteca, o texto e as citações que o documento já
-guardou continuam lá.
+O caminho fora do prefixo, a capacidade que não está em `requires` nem em `usa` e a recusa da
+pessoa rejeitam a promessa sem pedido nenhum. Trate a rejeição como "a biblioteca não está
+disponível agora" e deixe o resto do app funcionando: no Prelo, sem a biblioteca, o texto e as
+citações que o documento já guardou continuam lá.
 
 ## Guardar o que veio do outro app
 
