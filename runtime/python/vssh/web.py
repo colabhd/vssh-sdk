@@ -7,8 +7,10 @@ tropeça nas mesmas cinco coisas ao fazer isso à mão. Este módulo as resolve 
   1. O SDK web. O sistema serve `_sdk/vssh.js` dentro do espaço de URL de todo app, e um app o
      alcança por esse caminho relativo à própria raiz. Por padrão a tag entra no `<head>` de
      todo index servido daqui; `tuff=True` acrescenta o ambiente visual (`_sdk/tuff/…`). Nada
-     em `_sdk/` leva carimbo, porque os bytes são do portal, e nada em `_sdk/` é servido
-     daqui, porque o portal responde antes de o pedido chegar ao backend.
+     em `_sdk/` é servido daqui, porque o portal responde antes de o pedido chegar ao backend.
+     O carimbo dessas tags também é do portal: ele manda a versão do SDK em todo pedido
+     (`X-Vssh-Sdk`), e o index a põe no `?v=`, que deixa o portal guardar o arquivo em cache
+     sem revalidar. Sem o cabeçalho, as tags saem sem carimbo.
   2. O carimbo de versão dos arquivos do próprio app. Um script injetado sai como
      `boot.js?v=<hash do conteúdo>` e é servido como imutável; conteúdo novo mora noutra URL, e
      nenhum cache no caminho (navegador, portal, CDN) consegue servir o velho no lugar do novo.
@@ -129,6 +131,17 @@ _IMUTAVEL = 'public, max-age=31536000, immutable'
 _HASH_DO_PACOTE = '.installed-hash'
 _FORA_DO_HASH = frozenset(('node_modules', '.venv', '.git'))
 _VERSAO = re.compile(r'^[0-9a-f]{16,128}$')
+
+# A versão do SDK web que o portal anuncia em cada pedido. Ela entra no HTML, e por isso só um
+# valor desta forma é aceito.
+_CABECALHO_DO_SDK = 'X-Vssh-Sdk'
+_VERSAO_DO_SDK = re.compile(r'^[0-9a-f]{8,40}$')
+
+
+def _versao_do_sdk(pedido):
+    """A versão do SDK que o pedido traz, ou `None`."""
+    v = pedido.headers.get(_CABECALHO_DO_SDK)
+    return v if v and _VERSAO_DO_SDK.match(v) else None
 
 
 def tipo_de_conteudo(caminho):
@@ -344,30 +357,30 @@ def spa(raiz, indice='index.html', scripts=None, folhas=None, montagens=None, ap
                 return os.path.join(base, caminho[len(prefixo):])
         return os.path.join(raiz, caminho.lstrip('/'))
 
-    def carimbo(src):
-        # O que é do sistema nunca leva carimbo: os bytes moram no portal, e um `?v=` aqui
-        # afirmaria um conteúdo que este processo não tem como conhecer.
+    def carimbo(src, sdk):
+        # O que é do sistema leva o carimbo que o portal manda (`sdk`): os bytes moram lá, e um
+        # hash calculado aqui afirmaria um conteúdo que este processo não tem como conhecer.
         if src.startswith('_sdk/'):
-            return None
+            return sdk
         return carimbador.de(arquivo_do_src(src))
 
-    def url(src):
-        v = carimbo(src)
+    def url(src, sdk):
+        v = carimbo(src, sdk)
         sep = '&' if '?' in src else '?'
         return ('%s%sv=%s' % (src, sep, v) if v else src).replace('"', '&quot;')
 
-    def tags():
+    def tags(sdk):
         # Sem `defer`: precisa executar antes dos scripts diferidos do bundle, que já esperam o
         # parse. As aspas duplas são escapadas porque interpolar em HTML sem escapar envelhece
         # mal, mesmo com o `src` vindo do app.
         #
         # O `<link>` sai auto-fechado: a barra é ignorada em HTML (`link` é void) e obrigatória
         # em XML. Sem ela, um index XHTML morre com erro fatal de parse no lugar do app.
-        saida = ['<link rel="stylesheet" href="%s"/>' % url(f) for f in todas_as_folhas]
-        saida += ['<script src="%s"></script>' % url(s) for s in todos_os_scripts]
+        saida = ['<link rel="stylesheet" href="%s"/>' % url(f, sdk) for f in todas_as_folhas]
+        saida += ['<script src="%s"></script>' % url(s, sdk) for s in todos_os_scripts]
         return '\n'.join(saida)
 
-    def corpo_do_index():
+    def corpo_do_index(sdk):
         caminho = os.path.join(raiz, indice)
         st = os.stat(caminho)
         # Os carimbos entram na chave do cache, e não só no corpo: um script atualizado sem que
@@ -375,14 +388,14 @@ def spa(raiz, indice='index.html', scripts=None, folhas=None, montagens=None, ap
         # servindo a URL carimbada antiga até alguém tocar no index, e o carimbo teria virado
         # enfeite justamente no cenário que ele existe para cobrir. As folhas entram na chave
         # pelo mesmo motivo, e no caso delas uma cor velha parece decisão de design.
-        chave = (st.st_mtime_ns, tuple((s, carimbo(s)) for s in todas_as_folhas + todos_os_scripts))
+        chave = (st.st_mtime_ns, tuple((s, carimbo(s, sdk)) for s in todas_as_folhas + todos_os_scripts))
         with tranca:
             if cache['chave'] == chave:
                 return cache['corpo']
         with open(caminho, 'r', encoding='utf-8') as fh:
             html = fh.read()
         if todas_as_folhas or todos_os_scripts:
-            marcas = tags()
+            marcas = tags(sdk)
             if '</head>' in html:
                 html = html.replace('</head>', marcas + '\n</head>', 1)
             else:
@@ -488,7 +501,7 @@ def spa(raiz, indice='index.html', scripts=None, folhas=None, montagens=None, ap
         """Serve o index; com `caminho_url`, com o `<base>` da profundidade dele. Só o caminho
         das rotas profundas passa o argumento: na raiz o relativo já resolve certo."""
         try:
-            corpo = corpo_do_index()
+            corpo = corpo_do_index(_versao_do_sdk(pedido))
             if caminho_url is not None:
                 corpo = index_com_base(corpo, caminho_url)
         except OSError as err:

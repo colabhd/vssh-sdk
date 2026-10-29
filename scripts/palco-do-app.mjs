@@ -12,7 +12,32 @@
 // `_sdk/vssh.js` e `_sdk/tuff/` de `api/`, como o sistema faz. A raiz desse HTTP é um quadro de
 // bancada no papel do shell: a janela do app num iframe do tamanho que o manifesto declara, na
 // mesma origem, de modo que o SDK web dentro dele se sabe no ambiente e conversa com o pai.
-// Todo pedido que o app faz ao shell recebe uma recusa, como um verbo que o shell não atende.
+// Todo pedido que o app faz ao shell recebe uma recusa, como um verbo que o shell não atende,
+// menos os que a cena responde.
+//
+// ─── A cena ──────────────────────────────────────────────────────────────────
+//
+// Uma janela que nasce vazia (um cofre a escolher, uma conta a ligar) não tem o que mostrar nos
+// passos. O app traz então `palco.mjs` na pasta da ajuda, com
+// `export async function preparar({ home, dados, app, manifesto })`, que o palco chama uma vez,
+// antes de subir o backend. `home` é uma pasta descartável, que o backend recebe como HOME (com as
+// pastas XDG embaixo dela), e `dados` é o diretório de dados do app; a função escreve ali o que a
+// janela vai mostrar. Ela devolve o que a ponte responde, pelo nome público do verbo na tabela da
+// ponte e com o valor como o shell o manda no fio:
+//
+//   return { ponte: { 'arquivos.escolherPasta': join(home, 'Projetos') } };
+//
+// Quando o mesmo verbo pede respostas diferentes, `ponte` é uma lista de regras, e a primeira cujo
+// `quando` bate com os campos do pedido responde:
+//
+//   return { ponte: [
+//     { verbo: 'arquivos.escolherPasta', quando: { titulo: 'A pasta de origem' }, valor: origem },
+//     { verbo: 'arquivos.escolherPasta', valor: destino },
+//   ] };
+//
+// O compilador da ajuda e o agente leem só os `.md` e o `alvos.json` da pasta, então o
+// `palco.mjs` não entra na ajuda. Com `--url` o backend é de quem o subiu, e a HOME também; a cena
+// ainda escreve na pasta dela e responde pela ponte.
 //
 // ─── O que ele mede ──────────────────────────────────────────────────────────
 //
@@ -88,22 +113,24 @@ async function compilar(dir, manifesto) {
 // ─── O backend e a frente ────────────────────────────────────────────────────
 
 /** Sobe o backend numa porta livre e lê a porta da linha que o `servidor.escutar` anuncia. */
-async function subirBackend(dir, manifesto, dados) {
+async function subirBackend(dir, manifesto, dados, home) {
   const b = manifesto.backend || {};
   const python = (b.runtime || '').startsWith('python');
   const exe = python ? 'python3' : process.execPath;
   const runtime = join(RAIZ_DO_SDK, 'runtime', python ? 'python' : 'node');
   const caminho = python ? 'PYTHONPATH' : 'NODE_PATH';
-  const proc = spawn(exe, [b.entrypoint, '--tcp', '127.0.0.1:0'], {
-    cwd: dir,
-    env: {
-      ...process.env,
-      // O runtime deste checkout vai no fim: um `vssh` que quem desenvolve já pôs no caminho vence.
-      [caminho]: [process.env[caminho], existsSync(runtime) ? runtime : ''].filter(Boolean).join(delimiter),
-      VSSH_APP_ID: manifesto.id, VSSH_APP_DATA_DIR: dados,
-    },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  const env = {
+    ...process.env,
+    // O runtime deste checkout vai no fim: um `vssh` que quem desenvolve já pôs no caminho vence.
+    [caminho]: [process.env[caminho], existsSync(runtime) ? runtime : ''].filter(Boolean).join(delimiter),
+    VSSH_APP_ID: manifesto.id, VSSH_APP_DATA_DIR: dados,
+  };
+  if (home) {
+    // As pastas XDG de quem roda o palco apontariam para fora da HOME da cena.
+    for (const k of ['XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'XDG_STATE_HOME', 'XDG_CACHE_HOME']) delete env[k];
+    Object.assign(env, { HOME: home, USERPROFILE: home });
+  }
+  const proc = spawn(exe, [b.entrypoint, '--tcp', '127.0.0.1:0'], { cwd: dir, env, stdio: ['ignore', 'pipe', 'pipe'] });
   let saida = '';
   proc.stdout.on('data', (d) => { saida += d; });
   proc.stderr.on('data', (d) => { saida += d; });
@@ -119,12 +146,17 @@ async function subirBackend(dir, manifesto, dados) {
   }
 }
 
-/** O quadro de bancada: a janela do app num iframe, e um ouvinte no lugar do shell. */
-const QUADRO = (largura, altura) => `<!doctype html><meta charset="utf-8"><title>palco</title>
+/**
+ * O quadro de bancada: a janela do app num iframe, e um ouvinte no lugar do shell. `respostas` é a
+ * lista de `{ fio, valor }` da cena: um pedido cujos campos batem com o `fio` de uma delas recebe o
+ * valor.
+ */
+const QUADRO = (largura, altura, respostas) => `<!doctype html><meta charset="utf-8"><title>palco</title>
 <style>html,body{margin:0;background:#fff}iframe{position:absolute;left:0;top:0;border:0;width:${largura}px;height:${altura}px}</style>
 <iframe id="app"></iframe>
 <script>
   window.palco = { achados: {}, pedidos: [] };
+  const RESPOSTAS = ${JSON.stringify(respostas).replace(/</g, '\\u003c')};
   const quadro = document.getElementById('app');
   addEventListener('message', (e) => {
     const m = e.data;
@@ -132,7 +164,10 @@ const QUADRO = (largura, altura) => `<!doctype html><meta charset="utf-8"><title
     if (m.type === 'ajuda' && m.op === 'achou') { palco.achados[m.pedido] = m.retangulo || null; return; }
     if (m.requestId !== undefined) {
       palco.pedidos.push(m.type + (m.op ? '.' + m.op : ''));
-      quadro.contentWindow.postMessage({ vsshApp: true, type: 'result', requestId: m.requestId, ok: false, value: 'o palco não atende este verbo' }, location.origin);
+      const r = RESPOSTAS.find((x) => Object.entries(x.fio).every(([k, v]) => m[k] === v));
+      quadro.contentWindow.postMessage(r
+        ? { vsshApp: true, type: 'result', requestId: m.requestId, ok: true, value: r.valor }
+        : { vsshApp: true, type: 'result', requestId: m.requestId, ok: false, value: 'o palco não atende este verbo' }, location.origin);
     }
   });
   window.carregar = () => new Promise((ok) => { quadro.onload = () => ok(true); quadro.src = '/app/?palco=' + Date.now(); });
@@ -148,11 +183,11 @@ function servirSdk(rel, res) {
   createReadStream(arquivo).pipe(res);
 }
 
-async function subirFrente(backend, largura, altura) {
+async function subirFrente(backend, largura, altura, respostas) {
   const alvo = new URL(backend);
   const frente = http.createServer((req, res) => {
     const u = new URL(req.url, 'http://palco');
-    if (u.pathname === '/') { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end(QUADRO(largura, altura)); return; }
+    if (u.pathname === '/') { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end(QUADRO(largura, altura, respostas)); return; }
     if (!u.pathname.startsWith('/app/')) { res.writeHead(404); res.end(); return; }
     const resto = u.pathname.slice('/app'.length);
     if (resto.startsWith('/_sdk/')) { servirSdk(resto.slice('/_sdk/'.length), res); return; }
@@ -165,6 +200,43 @@ async function subirFrente(backend, largura, altura) {
   });
   await new Promise((ok) => frente.listen(0, '127.0.0.1', ok));
   return frente;
+}
+
+// ─── A cena ──────────────────────────────────────────────────────────────────
+
+/**
+ * As respostas da cena no fio. `{ 'arquivos.escolherPasta': v }` vira
+ * `{ fio: { type: 'pick', variant: 'directory' }, valor: v }`; na forma de lista, cada regra
+ * `{ verbo, quando, valor }` acrescenta ao fio os campos de `quando`, pelo nome público deles, e a
+ * primeira regra que bate com o pedido responde.
+ */
+function respostasDaPonte(ponte, roteiro) {
+  if (ponte === undefined || ponte === null) return [];
+  if (typeof ponte !== 'object') throw new Error(`${roteiro}: \`ponte\` é um objeto, do nome do verbo ao valor, ou uma lista de regras`);
+  const regras = Array.isArray(ponte) ? ponte : Object.entries(ponte).map(([verbo, valor]) => ({ verbo, valor }));
+  const { espacos } = JSON.parse(readFileSync(join(API, 'abi.json'), 'utf8'));
+  return regras.map((regra) => {
+    const nome = String(regra?.verbo || '');
+    const ponto = nome.indexOf('.');
+    const verbo = ponto > 0 ? espacos[nome.slice(0, ponto)]?.verbos?.[nome.slice(ponto + 1)] : null;
+    if (!verbo) throw new Error(`${roteiro} responde ${nome || '(sem verbo)'}, e a ponte não tem esse verbo`);
+    if (!verbo.responde) throw new Error(`${roteiro} responde ${nome}, e esse verbo não espera resposta`);
+    const fio = { ...verbo.fio };
+    for (const [campo, v] of Object.entries(regra.quando || {})) {
+      const c = (verbo.campos || []).find((x) => x.nome === campo);
+      if (!c) throw new Error(`${roteiro} pergunta pelo campo ${campo} de ${nome}, e o verbo não tem esse campo`);
+      fio[c.fio] = v;
+    }
+    return { fio, valor: regra.valor === undefined ? null : regra.valor };
+  });
+}
+
+/** Chama o `preparar` do `palco.mjs` do app, quando ele existe, e devolve as respostas da ponte. */
+async function prepararCena(roteiro, nome, contexto) {
+  const modulo = await import(pathToFileURL(roteiro).href);
+  if (typeof modulo.preparar !== 'function') throw new Error(`${nome} não exporta a função preparar`);
+  const cena = (await modulo.preparar(contexto)) || {};
+  return respostasDaPonte(cena.ponte, nome);
 }
 
 // ─── Dentro da janela ────────────────────────────────────────────────────────
@@ -353,24 +425,30 @@ async function main() {
   const largura = Math.round(manifesto.window?.width || 900);
   const altura = Math.round(manifesto.window?.height || 640);
 
+  const pasta = manifesto.contributes.ajuda.pasta || 'ajuda';
+  const roteiro = join(dir, pasta, 'palco.mjs');
   const dados = mkdtempSync(join(tmpdir(), 'vssh-palco-'));
+  const home = existsSync(roteiro) ? mkdtempSync(join(tmpdir(), 'vssh-palco-home-')) : null;
   let backend = null;
   let frente = null;
   let navegador = null;
   try {
+    const respostas = home
+      ? await prepararCena(roteiro, `${pasta}/palco.mjs`, { home, dados, app: resolve(dir), manifesto })
+      : [];
     try {
-      backend = url ? { proc: null, url } : await subirBackend(resolve(dir), manifesto, dados);
+      backend = url ? { proc: null, url } : await subirBackend(resolve(dir), manifesto, dados, home);
     } catch (err) {
       if (err.semPalco) { linha('SEM_PALCO', err.message); return 3; }
       throw err;
     }
-    frente = await subirFrente(backend.url, largura, altura);
+    frente = await subirFrente(backend.url, largura, altura, respostas);
     navegador = await abrirNavegador();
     const pagina = await navegador.novaPagina(`http://127.0.0.1:${frente.address().port}/`);
     // Em 2x, como as figuras do ambiente: a figura sai na coluna em tamanho real, e numa tela de
     // alta densidade a letra de dentro fica nítida.
     await pagina.enviar('Emulation.setDeviceMetricsOverride', { width: largura, height: altura, deviceScaleFactor: 2, mobile: false });
-    const r = await executar(pagina, ajuda, receitas, saida, largura, altura, manifesto.contributes.ajuda.pasta || 'ajuda');
+    const r = await executar(pagina, ajuda, receitas, saida, largura, altura, pasta);
     const figuras = Object.keys(r.cenas).length;
     const evidenciaFiguras = figuras > 0 && r.faltas.length === 0;
     writeFileSync(join(saida, 'indice.json'), `${JSON.stringify({ cenas: r.cenas }, null, 2)}\n`);
@@ -386,6 +464,7 @@ async function main() {
     if (frente) await new Promise((ok) => frente.close(ok));
     if (backend?.proc) { backend.proc.kill(); await new Promise((ok) => { backend.proc.once('exit', ok); setTimeout(ok, 3000).unref?.(); }); }
     rmSync(dados, { recursive: true, force: true });
+    if (home) rmSync(home, { recursive: true, force: true });
   }
 }
 

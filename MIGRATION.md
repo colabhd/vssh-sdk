@@ -116,9 +116,10 @@ O marcador `.vssh-lib-version` da era da cópia à mão. O `vssh-app-publish` de
 de recusar um pacote por ele; quem ainda tem um `vendor/vssh/` no repositório do app o apaga por
 higiene, e por mais nada.
 
-A tag com carimbo (`_vssh/vssh-app-shim.js?v=<hash>`). O `?v=` só sai para um arquivo que está no
-disco do app, e `_sdk/vssh.js` não está: o sistema o serve com `no-cache` e ETag, e o navegador
-revalida a cada abertura da janela.
+A tag com o carimbo do conteúdo (`_vssh/vssh-app-shim.js?v=<hash>`). O app escreve `_sdk/vssh.js`
+sem carimbo. Quem serve o index pelo `web.spa` recebe nas tags de `_sdk/` o `?v=` com a versão do
+SDK que o sistema manda em cada pedido, e com ela o navegador guarda o SDK e o Tuff uma vez para
+todos os apps; uma tag escrita à mão, sem a versão, revalida a cada abertura da janela.
 
 ### O que entra
 

@@ -108,9 +108,10 @@ O que cada peça faz:
 - `web.spa(raiz, tuff=True)` serve o `frontend/` sob o prefixo do proxy e injeta no `<head>` do
   index a tag do SDK web (`_sdk/vssh.js`) e as do Tuff (`_sdk/tuff/…`). Quem responde esses
   caminhos é o sistema, de dentro do espaço de URL do app; o backend não os serve, e um pedido a
-  `_sdk/` recebe `False` como qualquer rota que não é da SPA. Cada script do próprio app injetado
-  por `scripts=[...]` sai com o hash do conteúdo na URL, para uma reinstalação nunca servir a
-  versão velha de nenhum cache do caminho.
+  `_sdk/` recebe `False` como qualquer rota que não é da SPA. As tags de `_sdk/` levam no `?v=` a
+  versão do SDK que o sistema manda em cada pedido, e o navegador guarda esses arquivos uma vez
+  para todos os apps. Cada script do próprio app injetado por `scripts=[...]` sai com o hash do
+  conteúdo na URL, para uma reinstalação nunca servir a versão velha de nenhum cache do caminho.
 
 O frontend usa `fetch()` com URL relativa (`fetch('api/ping')`, sem a barra inicial), para
 funcionar sob `/proxy/app/<id>/` sem alteração. Só recorra a `VSSH_APP_BASE_PATH` se o backend

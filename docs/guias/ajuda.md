@@ -89,7 +89,52 @@ palco confere que cada
 `[[rótulo]]` do passo apareceu na janela e que o controle apontado se chama por um deles. Um alvo
 que não aparece ou um rótulo que a janela não mostra vira uma linha no resumo do run, e o nível
 fica no 2. A janela abre vazia, como na primeira vez que alguém usa o app: um passo que precisa de
-um documento aberto começa pelos passos que chegam até ele.
+um documento aberto começa pelos passos que chegam até ele, ou o app traz uma cena.
+
+## A cena do palco
+
+Uma janela que só mostra alguma coisa depois de uma pasta escolhida ou de um arquivo na HOME tira
+figuras vazias, e um passo que cita o que estaria ali não confere. O app resolve isso com um
+`palco.mjs` na pasta da ajuda:
+
+```js
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+export async function preparar({ home, dados, app, manifesto }) {
+  const projetos = join(home, 'Projetos');
+  mkdirSync(projetos, { recursive: true });
+  writeFileSync(join(projetos, 'leia-me.md'), '# Projetos de exemplo\n');
+  return { ponte: { 'arquivos.escolherPasta': projetos } };
+}
+```
+
+O palco chama `preparar` uma vez, antes de subir o backend. `home` é uma pasta descartável, que o
+backend recebe como HOME, com as pastas XDG embaixo dela; `dados` é o diretório de dados do app
+(`VSSH_APP_DATA_DIR`), e `app` a pasta do pacote. O que a função escreve nas duas é o que a janela
+encontra, e o palco apaga as duas no fim.
+
+O `ponte` diz o que o palco responde quando a janela pede um verbo ao ambiente. A chave é o nome
+público do verbo, como na [referência da ponte](../referencia/README.md), e o valor é o que o shell
+manda de volta no fio. Um verbo fora da lista recebe a recusa de um shell que não o atende, e um
+nome que a ponte não tem interrompe o palco, com o nome na mensagem. Todas as receitas rodam sobre o
+mesmo backend, na ordem dos tópicos, então o que uma receita grava a seguinte encontra.
+
+Quando a janela pede o mesmo verbo duas vezes e cada pedido quer outra resposta (a pasta de origem
+e a de destino de uma importação), `ponte` vira uma lista de regras. `quando` compara os campos do
+pedido pelo nome público deles, e a primeira regra que bate responde:
+
+```js
+return {
+  ponte: [
+    { verbo: 'arquivos.escolherPasta', quando: { titulo: 'A pasta de origem' }, valor: origem },
+    { verbo: 'arquivos.escolherPasta', valor: destino },
+  ],
+};
+```
+
+O compilador da ajuda e o ambiente leem só os `.md` e o `alvos.json` da pasta, e o `palco.mjs`
+fica de fora da ajuda publicada.
 
 ## Os passos que apontam a sua janela
 

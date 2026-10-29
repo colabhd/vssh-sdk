@@ -116,6 +116,144 @@ test('sem o SDK respondendo pela ponte, as figuras continuam e o nível para no 
   assert.deepEqual(c.valores('NIVEL'), ['3'], c.saida);
 });
 
+// ─── A cena ───────────────────────────────────────────────────────────────────
+//
+// Um app cuja janela depende de uma pasta escolhida pela ponte e de um arquivo na HOME. O
+// `palco.mjs` dele escreve a pasta na HOME descartável, o título no diretório de dados, e responde
+// o `arquivos.escolherPasta` com a pasta. O backend só lê um caminho de dentro da HOME que ele
+// recebeu, então o nome da pasta só aparece na janela quando a HOME da cena chegou até ele.
+
+const CENA = `import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+export async function preparar({ home, dados }) {
+  const pasta = join(home, 'Projetos');
+  mkdirSync(pasta, { recursive: true });
+  writeFileSync(join(pasta, 'nome.txt'), 'Projetos de exemplo');
+  writeFileSync(join(dados, 'titulo.txt'), 'Bancada da cena');
+  return { ponte: { 'arquivos.escolherPasta': pasta } };
+}
+`;
+
+/** O app de bancada da cena, com `palco` no lugar do `palco.mjs` (nenhum quando `null`). */
+function appDaCena(palco = CENA) {
+  const dir = path.join(pasta('vssh-palco-cena-'), 'app');
+  const escrever = (rel, texto) => {
+    fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+    fs.writeFileSync(path.join(dir, rel), texto);
+  };
+  escrever('vssh-app.json', JSON.stringify({
+    id: 'palco-cena', name: 'Cena', version: '1.0.0', description: 'O app de bancada da cena do palco.',
+    contributes: { ajuda: { pasta: 'ajuda', inicio: 'comecar' } },
+    minShellVersion: '5.0.0',
+    backend: { runtime: 'node', transport: 'socket', entrypoint: 'backend/server.js', healthcheckPath: '/saude' },
+    window: { title: 'Cena', width: 640, height: 480 },
+  }));
+  escrever('backend/server.js', `'use strict';
+const fs = require('node:fs');
+const http = require('node:http');
+const os = require('node:os');
+const path = require('node:path');
+const { servidor, web, app } = require('vssh');
+
+const spa = web.spa(path.join(__dirname, '..', 'frontend'));
+const ler = (p) => { try { return fs.readFileSync(p, 'utf8').trim(); } catch { return ''; } };
+const json = (res, obj) => { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify(obj)); };
+
+servidor.escutar(http.createServer(servidor.portao(async (req, res) => {
+  const url = new URL(req.url, 'http://app');
+  if (url.pathname === '/api/titulo') return json(res, { titulo: ler(path.join(app.dados(), 'titulo.txt')) || 'Sem título' });
+  if (url.pathname === '/api/pasta') {
+    const pasta = path.resolve(url.searchParams.get('caminho') || '');
+    const nome = pasta.startsWith(os.homedir() + path.sep) ? ler(path.join(pasta, 'nome.txt')) : '';
+    return json(res, { nome: nome || 'fora da HOME' });
+  }
+  if (await spa(req, res, url)) return;
+  res.writeHead(404); res.end();
+})));
+`);
+  escrever('frontend/index.html', `<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Cena</title></head>
+<body>
+<h1 id="titulo"></h1>
+<button id="escolher">Escolher a pasta</button>
+<p id="nome"></p>
+<script>
+  fetch('api/titulo').then((r) => r.json()).then((j) => { document.getElementById('titulo').textContent = j.titulo; });
+  document.getElementById('escolher').addEventListener('click', async () => {
+    let texto;
+    try {
+      const pasta = await vssh.arquivos.escolherPasta('A pasta do projeto');
+      texto = (await (await fetch('api/pasta?caminho=' + encodeURIComponent(pasta))).json()).nome;
+    } catch (err) {
+      texto = 'recusado: ' + err.message;
+    }
+    document.getElementById('nome').textContent = texto;
+  });
+</script>
+</body></html>
+`);
+  escrever('ajuda/alvos.json', JSON.stringify({ escolher: { nome: 'Escolher a pasta' } }));
+  escrever('ajuda/comecar.md', `---
+id: comecar
+titulo: A pasta do projeto
+cobre: [janela]
+---
+
+A janela mostra o nome da pasta de projeto que você escolher.
+
+\`\`\`passos
+- A janela abre em [[Bancada da cena]]. {{Clique}} em [[Escolher a pasta]], e o nome dela aparece: [[Projetos de exemplo]].
+  > clicar escolher
+\`\`\`
+`);
+  if (palco) escrever('ajuda/palco.mjs', palco);
+  return dir;
+}
+
+test('a cena do app prepara a HOME e os dados, e a ponte responde o que ela diz', { skip: pular }, async () => {
+  const app = appDaCena();
+  const saida = pasta('vssh-palco-');
+  const r = await rodar(PALCO, [app, '--saida', saida]);
+  assert.equal(r.code, 0, r.saida);
+  assert.deepEqual(r.valores('FALTA'), [], r.saida);
+  assert.deepEqual(r.valores('EVIDENCIA_FIGURAS'), ['1']);
+  assert.deepEqual(r.valores('PONTE'), ['1']);
+
+  const c = await rodar(COMPILAR, [app, '--palco', saida]);
+  assert.deepEqual(c.valores('NIVEL'), ['4'], c.saida);
+});
+
+test('sem a cena, a ponte recusa a pasta e o passo diz o nome que faltou', { skip: pular }, async () => {
+  const r = await rodar(PALCO, [appDaCena(null), '--saida', pasta('vssh-palco-')]);
+  assert.equal(r.code, 0, r.saida);
+  assert.deepEqual(r.valores('EVIDENCIA_FIGURAS'), ['0']);
+  assert.ok(r.valores('FALTA').some((f) => f.includes('[[Projetos de exemplo]]')), r.saida);
+  assert.ok(r.valores('FALTA').some((f) => f.includes('[[Bancada da cena]]')), r.saida);
+});
+
+test('uma regra da cena responde só o pedido cujos campos batem com o quando dela', { skip: pular }, async () => {
+  const regras = `[
+    { verbo: 'arquivos.escolherPasta', quando: { titulo: 'Outro título' }, valor: join(home, 'Outra') },
+    { verbo: 'arquivos.escolherPasta', quando: { titulo: 'A pasta do projeto' }, valor: pasta },
+  ]`;
+  const app = appDaCena(CENA.replace("{ 'arquivos.escolherPasta': pasta }", regras));
+  const r = await rodar(PALCO, [app, '--saida', pasta('vssh-palco-')]);
+  assert.equal(r.code, 0, r.saida);
+  assert.deepEqual(r.valores('FALTA'), [], r.saida);
+
+  const fora = appDaCena(CENA.replace("{ 'arquivos.escolherPasta': pasta }", regras.replace("'A pasta do projeto'", "'Mais um título'")));
+  const f = await rodar(PALCO, [fora, '--saida', pasta('vssh-palco-')]);
+  assert.ok(f.valores('FALTA').some((x) => x.includes('[[Projetos de exemplo]]')), f.saida);
+});
+
+test('uma cena que responde um verbo que a ponte não tem interrompe o palco com o nome dele', { skip: pular }, async () => {
+  const app = appDaCena(CENA.replace("'arquivos.escolherPasta'", "'arquivos.escolherPastinha'"));
+  const r = await rodar(PALCO, [app, '--saida', pasta('vssh-palco-')]);
+  assert.equal(r.code, 1, r.saida);
+  assert.match(r.saida, /ajuda\/palco\.mjs responde arquivos\.escolherPastinha/);
+});
+
 // ─── O publish inteiro ───────────────────────────────────────────────────────
 
 function tem(cmd) {
