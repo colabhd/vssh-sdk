@@ -5,6 +5,8 @@
 //
 //     TuffGaveta.ligar(raiz)              devolve { abrir, fechar, destruir }
 //     TuffNome.desenhar(el, nome, op)     escreve o nome quebrando nos separadores
+//     TuffNome.medirAgora(raiz)           refaz o corte dos nomes de uma caixa que mudou de largura
+//     TuffNome.cortou(el)                 se o corte escondeu parte do nome
 //     TuffArquivo.svg(tipo, opcoes)       desenha o ícone de um arquivo, de um tipo que um app cria,
 //                                         de uma pasta ou da lixeira
 //     TuffAbas.ligar(tira, opcoes)        a tira de abas: o clique, o teclado e a aba ativa
@@ -179,6 +181,11 @@
   // A medida é de `measureText` sobre a fonte calculada do elemento, num lote por quadro: uma
   // grade de duzentos nomes custa uma leitura de layout, e não uma por nome. O lote espera a fonte
   // do ambiente carregar, porque medir com a fonte de reserva cortaria no lugar errado.
+  //
+  // Um nome só é medido de novo quando a caixa dele muda de largura. Quem muda a caixa sem
+  // redesenhar o nome (a coluna de uma lista que se arrasta, a janela que alarga) chama
+  // `medirAgora(raiz)`, e os nomes de dentro dela voltam ao lote; sem `raiz`, o lote pendente se
+  // mede na hora, para quem acabou de desenhar linhas e não quer o corte um quadro depois.
 
   const QUEBRA_DEPOIS = new Set(['-', '_', ' ', '…']);
   const pendentes = new Set();
@@ -269,17 +276,26 @@
 
     // Primeiro todas as leituras, depois todas as escritas: misturar as duas força um layout por
     // elemento.
+    // Numa linha só, o `clientWidth` arredondado pode passar da caixa por uma fração, e o
+    // `text-overflow` da célula poria a segunda reticência no fim: a medida fica 1 px aquém.
     const medidas = lote.map((el) => {
       const cs = getComputedStyle(el);
-      const w = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      const w = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - (el._tuffNomeLinhas === 1 ? 1 : 0);
       return { el, w, fonte: cs.font };
     });
     for (const { el, w, fonte } of medidas) {
       const nome = el._tuffNome;
       if (!nome || w <= 0) continue;
+      const chave = `${w}|${fonte}|${el._tuffNomeLinhas}`;
+      if (el._tuffNomeMedida === chave && el._tuffNomeVisto != null) continue;
+      el._tuffNomeMedida = chave;
       pena.font = fonte;
       const cabe = (texto) => linhasDe(texto, fonte, w) <= el._tuffNomeLinhas;
-      if (!cabe(nome)) el.replaceChildren(fragmento(cortado(nome, cabe)));
+      const alvo = cabe(nome) ? nome : cortado(nome, cabe);
+      if (alvo !== el._tuffNomeVisto) {
+        el.replaceChildren(fragmento(alvo));
+        el._tuffNomeVisto = alvo;
+      }
     }
   }
 
@@ -300,12 +316,26 @@
     if (el._tuffNome === nome && el._tuffNomeLinhas === linhas && el.firstChild) return;
     el._tuffNome = nome;
     el._tuffNomeLinhas = linhas;
+    el._tuffNomeVisto = nome;
+    el._tuffNomeMedida = null;
+    el.dataset.tuffNome = '';
     el.replaceChildren(fragmento(nome));
     pendentes.add(el);
     agendar();
   }
 
-  window.TuffNome = { desenhar };
+  /** Mede já o lote pendente e, com `raiz`, de novo os nomes desenhados dentro dela. */
+  function medirAgora(raiz) {
+    if (raiz) for (const el of raiz.querySelectorAll('[data-tuff-nome]')) pendentes.add(el);
+    if (!pendentes.size) return;
+    if (quadro) { cancelAnimationFrame(quadro); quadro = 0; }
+    processar();
+  }
+
+  /** Se o corte escondeu parte do nome, que então cabe ao `title` de quem chama. */
+  const cortou = (el) => !!el && el._tuffNome != null && el._tuffNomeVisto !== el._tuffNome;
+
+  window.TuffNome = { desenhar, medirAgora, cortou };
 })();
 
 // ─── O ícone de arquivo ──────────────────────────────────────────────────────────────────────────
