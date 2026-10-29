@@ -1,37 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"
-     role="img" aria-label="Palco">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Palco">
   <title>Palco</title>
   <!--
-    A RIBALTA — a fileira de luzes na beira do palco, que ilumina de baixo.
+    A ribalta, a fileira de luzes na beira do palco, que ilumina de baixo. O ladrilho é o da
+    família, o do Cavalete: #15171c sangrado até a borda, sem raio próprio, porque quem arredonda os
+    cantos é o shell, e a luz radial do alto à esquerda.
 
-    Três decisões, e as três saíram de olhar o ícone no tamanho em que ele é desenhado:
+    O shell desenha isto a 22px no menu iniciar (`.sm-app-icon`, raio de 5px) e a 48px no Launchpad
+    (`.launchpad-app-icon`, raio de 10px). As formas são duas, o triângulo e a barra, porque a 22px
+    um terceiro elemento vira sujeira. As lâmpadas moram dentro da barra e somem nela nos tamanhos
+    pequenos.
 
-    1. SANGRADO até a borda, sem raio próprio. Quem arredonda os cantos é o shell
-       (`.sm-app-icon` 5px a 22px, `.launchpad-app-icon` 10px a 48px). Um raio desenhado aqui
-       apareceria por dentro do raio de lá, como uma moldura que ninguém pediu.
-    2. DUAS FORMAS e nada mais. O ambiente desenha isto a 22px no menu iniciar, e é ali que a
-       escolha se faz: qualquer terceiro elemento vira sujeira nesse tamanho.
-    3. A luz vem DE BAIXO. É o que distingue este ícone de todo player que existe — a barra
-       quente dá base ao triângulo, e por isso ele não precisa de moldura, arco nem cortina para
-       deixar de flutuar no ladrilho.
+    A luz da cena vem de baixo, e é o que separa este ícone de todo player: a barra quente dá base
+    ao triângulo, que por isso dispensa moldura, arco e cortina. A ponta de baixo do triângulo
+    esquenta com ela, e a quina da esquerda pega a luz do alto. O branco é quente (#f5f2ea), porque
+    sobre o brilho âmbar o branco puro faz uma borda fria que lê como recorte mal feito.
 
-    O triângulo é branco QUENTE (#f5f2ea) e não puro: sobre o brilho âmbar, o branco puro cria
-    uma borda fria que lê como recorte mal feito.
+    O triângulo ocupa uns 42% da largura, e o centro dele fica abaixo do centro do ladrilho: a área
+    útil termina em y=55, onde começa a ribalta, e um glifo centrado na caixa inteira boiaria acima
+    da luz em vez de ficar em pé sobre ela.
+
+    Os ids levam o prefixo `palco-`. O shell carrega o ícone por <img>, e cada documento tem os ids
+    dele; quem puser dois ícones da família inline na mesma página não vê o gradiente de um pintar o
+    outro.
   -->
   <defs>
-    <linearGradient id="ribalta" x1="0" y1="1" x2="0" y2="0">
-      <stop offset="0%" stop-color="#ffbe3d" stop-opacity=".95"/>
-      <stop offset="100%" stop-color="#ffbe3d" stop-opacity="0"/>
-    </linearGradient>
+    <radialGradient id="palco-luz" cx="0.3" cy="0.2" r="0.85"><stop offset="0" stop-color="#2a2e38"/><stop offset="1" stop-color="#15171c" stop-opacity="0"/></radialGradient>
+    <linearGradient id="palco-ribalta" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ffbe3d" stop-opacity=".95"/><stop offset="1" stop-color="#ffbe3d" stop-opacity="0"/></linearGradient>
+    <linearGradient id="palco-triangulo" gradientUnits="userSpaceOnUse" x1="23" y1="14" x2="23" y2="46"><stop offset="0" stop-color="#fffcf5"/><stop offset=".55" stop-color="#f5f2ea"/><stop offset="1" stop-color="#ffdf9c"/></linearGradient>
+    <linearGradient id="palco-barra" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd36e"/><stop offset="1" stop-color="#ef9d1f"/></linearGradient>
+    <radialGradient id="palco-lampada"><stop offset="0" stop-color="#fffbe8"/><stop offset=".45" stop-color="#ffe7a3" stop-opacity=".85"/><stop offset="1" stop-color="#ffbe3d" stop-opacity="0"/></radialGradient>
   </defs>
-
   <rect width="64" height="64" fill="#15171c"/>
-  <rect y="30" width="64" height="34" fill="url(#ribalta)" opacity=".5"/>
-  <!--
-    O triângulo ocupa ~42% da largura, e o centro dele fica ABAIXO do centro do ladrilho: a área
-    útil termina em y=55, onde começa a ribalta, e um glifo centrado na caixa inteira pareceria
-    boiando acima da luz em vez de estar em pé sobre ela.
-  -->
-  <path d="M23 14v32l27-16z" fill="#f5f2ea"/>
-  <rect y="55" width="64" height="9" fill="#ffbe3d"/>
+  <rect width="64" height="64" fill="url(#palco-luz)"/>
+  <rect y="30" width="64" height="34" fill="url(#palco-ribalta)" opacity=".5"/>
+  <path d="M23 14v32l27-16z" fill="url(#palco-triangulo)"/>
+  <path d="M24.6 17v26" stroke="#fff" stroke-opacity=".6" stroke-width="1.4" stroke-linecap="round"/>
+  <rect y="55" width="64" height="9" fill="url(#palco-barra)"/>
+  <rect y="55" width="64" height="1" fill="#fff" fill-opacity=".45"/>
+  <circle cx="8" cy="59.5" r="4.5" fill="url(#palco-lampada)"/>
+  <circle cx="24" cy="59.5" r="4.5" fill="url(#palco-lampada)"/>
+  <circle cx="40" cy="59.5" r="4.5" fill="url(#palco-lampada)"/>
+  <circle cx="56" cy="59.5" r="4.5" fill="url(#palco-lampada)"/>
 </svg>

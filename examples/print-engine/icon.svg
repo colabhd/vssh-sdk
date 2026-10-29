@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Motor de Impressão">
+  <title>Motor de Impressão</title>
+  <!--
+    A impressora, com a folha que entra em cima e a que sai embaixo. O ladrilho é o da família, o do
+    Cavalete: #15171c sangrado até a borda, sem raio próprio, porque quem arredonda os cantos é o
+    shell, e a luz radial do alto à esquerda.
+
+    O corpo escurece para baixo, longe da luz, e um fio claro marca a quina de cima. A folha que sai
+    leva as duas linhas vermelhas de um PDF, e a luz verde diz que o motor está de pé.
+
+    Os ids levam o prefixo `impressao-`. O shell carrega o ícone por <img>, e cada documento tem os
+    ids dele; quem puser dois ícones da família inline na mesma página não vê o gradiente de um
+    pintar o outro.
+  -->
+  <defs>
+    <radialGradient id="impressao-luz" cx="0.3" cy="0.2" r="0.85"><stop offset="0" stop-color="#2a2e38"/><stop offset="1" stop-color="#15171c" stop-opacity="0"/></radialGradient>
+    <linearGradient id="impressao-corpo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aaeb8"/><stop offset="1" stop-color="#5f7782"/></linearGradient>
+    <linearGradient id="impressao-entrada" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef2f3"/><stop offset="1" stop-color="#c3ccd0"/></linearGradient>
+    <linearGradient id="impressao-folha" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e6eaec"/></linearGradient>
+  </defs>
+  <rect width="64" height="64" fill="#15171c"/>
+  <rect width="64" height="64" fill="url(#impressao-luz)"/>
+  <rect x="21" y="11" width="22" height="16" rx="1.5" fill="url(#impressao-entrada)"/>
+  <rect x="11" y="24" width="42" height="19" rx="4.5" fill="url(#impressao-corpo)"/>
+  <path d="M15 25.2h34" stroke="#fff" stroke-opacity=".4" stroke-width="1.2" stroke-linecap="round"/>
+  <circle cx="45.5" cy="30.5" r="2.2" fill="#a5d6a7"/>
+  <rect x="17" y="36" width="30" height="3.4" rx="1.7" fill="#37474f"/>
+  <rect x="20" y="37.5" width="24" height="16" rx="1.5" fill="url(#impressao-folha)"/>
+  <path d="M24.5 43.2h15M24.5 48.2h9" fill="none" stroke="#e53935" stroke-width="2.6" stroke-linecap="round"/>
+</svg>
