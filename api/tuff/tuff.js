@@ -1275,11 +1275,18 @@
   // End vão aos limites, e o duplo clique ajusta a coluna ao conteúdo: `medir(chave)` diz a largura
   // dele, e sem ela a peça mede as células desenhadas. `aoMudar({ chave: largura })` chega no fim
   // de cada gesto, e guardar as larguras é de quem chama.
+  //
+  // Na forma `<table>`, `raiz` é a tabela e `cab` a linha do cabeçalho. A peça põe a tabela em
+  // `table-layout: fixed` (`.tuff-tabela--larguras`), a largura no `th` de cada coluna de largura
+  // própria, e `auto` no da coluna do resto, que fica com o que sobra: no layout automático, uma
+  // coluna de `width: 100%` espremeria as outras até o texto delas. As linhas podem morar num
+  // `tbody` ou noutro elemento dentro de `raiz`; a peça as procura em `raiz` toda.
 
   const PASSO = 16;
 
   function colunas(raiz, cab, { colunas: lista = [], aoMudar = null, medir = null } = {}) {
     if (!raiz || !cab) return null;
+    const emTabela = raiz.tagName === 'TABLE';
     const cols = lista.map((c) => ({ ...c }));
     const resto = cols.findIndex((c) => c.resto != null);
     const ajustavel = (c) => c.chave && c.largura != null && c.resto == null;
@@ -1291,7 +1298,16 @@
         return ajustavel(c) ? `minmax(${minDe(c)}px, ${c.largura}px)` : `${c.largura}px`;
       }).join(' ');
     }
-    const aplicar = () => raiz.style.setProperty('--tuff-tabela-colunas', molde());
+    function aplicar() {
+      if (!emTabela) { raiz.style.setProperty('--tuff-tabela-colunas', molde()); return; }
+      raiz.classList.add('tuff-tabela--larguras');
+      cols.forEach((c, i) => {
+        const th = cab.children[i];
+        if (!th) return;
+        if (ajustavel(c) || (c.largura != null && c.resto == null)) th.style.width = `${c.largura}px`;
+        else if (c.resto != null) th.style.width = 'auto';
+      });
+    }
     const larguras = () => Object.fromEntries(cols.filter(ajustavel).map((c) => [c.chave, c.largura]));
     const avisar = () => { try { aoMudar?.(larguras()); } catch (e) { console.warn('[TuffTabela] aoMudar:', e); } };
 
@@ -1302,12 +1318,38 @@
       return Math.max(minDe(cols[i]), Math.round(atual + folga));
     }
 
-    function medirCelulas(i) {
-      let maior = cab.children[i]?.querySelector('.tuff-tabela-ordem')?.scrollWidth || 0;
-      for (const linha of raiz.querySelectorAll(':scope > .tuff-tabela-linha')) {
-        maior = Math.max(maior, linha.children[i]?.scrollWidth || 0);
+    // A largura do texto de uma célula com o recuo dela. Numa grade, o `scrollWidth` da célula
+    // cortada já é o texto inteiro; numa tabela a célula tem a largura da coluna, e quem diz o texto
+    // são os retângulos dos nós de texto, sem o que estiver posto por cima (a barra de um número).
+    function conteudo(cel) {
+      if (!cel) return 0;
+      if (!emTabela) return cel.scrollWidth;
+      let esq = Infinity;
+      let dir = -Infinity;
+      const nos = document.createTreeWalker(cel, window.NodeFilter.SHOW_TEXT);
+      const r = document.createRange();
+      for (let n = nos.nextNode(); n; n = nos.nextNode()) {
+        if (!n.textContent.trim()) continue;
+        r.selectNodeContents(n);
+        const ret = r.getBoundingClientRect();
+        esq = Math.min(esq, ret.left);
+        dir = Math.max(dir, ret.right);
       }
-      return maior + 2;
+      if (dir < esq) return 0;
+      const cs = getComputedStyle(cel);
+      return dir - esq + parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    }
+
+    function medirCelulas(i) {
+      const th = cab.children[i];
+      // O rótulo, com a seta da ordem ao lado dele.
+      let maior = emTabela ? conteudo(th) + (th?.querySelector('.tuff-tabela-ordem') ? 12 : 0)
+        : th?.querySelector('.tuff-tabela-ordem')?.scrollWidth || 0;
+      for (const linha of raiz.querySelectorAll('.tuff-tabela-linha')) {
+        if (linha.parentElement === cab) continue;
+        maior = Math.max(maior, conteudo(linha.children[i]));
+      }
+      return Math.ceil(maior) + 2;
     }
 
     const alcas = [];

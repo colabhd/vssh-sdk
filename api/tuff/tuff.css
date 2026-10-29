@@ -755,7 +755,7 @@
     background: var(--ds-bg2);
     border-bottom: 1px solid var(--ds-border);
   }
-  table.tuff-tabela .tuff-tabela-th { height: max(26px, var(--ds-alvo)); padding: 0 var(--ds-gap-md); }
+  table.tuff-tabela .tuff-tabela-th { height: max(26px, var(--ds-alvo)); padding: 0 var(--ds-gap-md); box-sizing: border-box; }
   .tuff-tabela-th[aria-sort="ascending"],
   .tuff-tabela-th[aria-sort="descending"] { color: var(--ds-text); }
 
@@ -847,10 +847,16 @@
   .tuff-tabela-alca:hover::after { background: var(--ds-text-dim); }
   .tuff-tabela-alca[data-arrastando]::after { top: 0; bottom: 0; background: var(--ds-accent); }
   .tuff-tabela-alca:focus-visible { outline: 2px solid var(--ds-border-focus); outline-offset: -2px; border-radius: var(--ds-radius-sm); }
+  /* Numa tabela as células se encostam, e a borda é a da própria célula. Com as larguras da peça,
+     a tabela é de layout fixo, e o texto que não cabe na coluna é cortado nela. */
+  table.tuff-tabela .tuff-tabela-alca { left: -5px; }
+  table.tuff-tabela--larguras { table-layout: fixed; }
+  table.tuff-tabela--larguras > * > tr > td { overflow: hidden; text-overflow: ellipsis; }
   /* Sob o dedo, o alvo cresce para os lados; a linha continua no meio do vão. */
   @media (pointer: coarse) {
     .tuff-tabela-alca { left: calc(var(--ds-gap-md) / -2 - 11px); width: 23px; }
     .tuff-tabela-alca::after { left: 11px; }
+    table.tuff-tabela .tuff-tabela-alca { left: -12px; }
   }
 
   /* Dentro do contêiner, os seletores levam o `div.tuff-tabela` da forma em grade: com a
