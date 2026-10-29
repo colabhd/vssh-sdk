@@ -240,8 +240,12 @@ function lista(valor: string): string[] {
 
 // ─── Texto ───────────────────────────────────────────────────────────────────
 
-/** Recusa o que a régua da prosa não aceita, e o que o formato não conhece. */
-function conferirTexto(ctx: Ctx, linha: number, s: string) {
+/**
+ * Recusa o que a régua da prosa não aceita, e o que o formato não conhece. O código inline fica de
+ * fora: ali o texto é o que a pessoa digita, e um tópico que ensina Markdown mostra `**negrito**`.
+ */
+function conferirTexto(ctx: Ctx, linha: number, texto: string) {
+  const s = texto.replace(/`[^`]+`/g, '');
   if (TRAVESSAO.test(s)) erro(ctx, linha, 'travessão no texto: use vírgula, ponto, dois-pontos ou parênteses');
   if (SETA.test(s)) erro(ctx, linha, 'seta unicode no texto: diga o caminho em palavras');
   if (/\*\*|__/.test(s)) erro(ctx, linha, 'negrito não é do formato: o nome da tela vai entre [[ ]]');
