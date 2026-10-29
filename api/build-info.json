@@ -23,7 +23,7 @@
       "sha256": "6bce1dcb1052e28bbc220803bc6002fccd239a2bb28671fc400a3a18fa5baa34"
     },
     "api/tuff/docs/componentes.html": {
-      "sha256": "6a79f5c5d81bcfa0d078f0e45ebe5d376f3009f091370d6e67be3e07c18381b3"
+      "sha256": "04f4b1fa76c12e2415e530e457a42e875b05fdafdf91049c5929b43708ad8e1a"
     },
     "api/tuff/fonts/OFL.txt": {
       "sha256": "bf4dc6d13a8cccd4807133c77a1ee9619a16b92cb23322258725ab6731c2f6e5"
@@ -38,7 +38,7 @@
       "sha256": "9024ff287cba3f11e6b10a27ee75d9fc5d3e51e14a464fde82e68c2fdbd80c20"
     },
     "api/tuff/tuff-icones.js": {
-      "sha256": "f7522612e32e77f2d76e53ffc62530b7d1b3c95c65115813b491c379855ab99e"
+      "sha256": "54becef0a0c4767de899e7a59e4a5abd040643c7c6a845667fc68bb9d682486b"
     },
     "api/tuff/tuff-imagem.js": {
       "sha256": "b2e38a3d56a7b86638464d81b04bcbffb674923da4d8dc1e896b9d7977fe7557"
@@ -53,10 +53,10 @@
       "sha256": "5c9db020edc138f1683e56d4251cd47b8ee5e3b971cd79938ec82cfcfa123182"
     },
     "api/tuff/tuff.css": {
-      "sha256": "1e90b881feb894ee9b6e832e12107334b1356811355f7c18f813fe41ba4e58b0"
+      "sha256": "e70cd9e393b5a4abe148ab47601136e843afe3e0d3218ead9b76dcbb098732f6"
     },
     "api/tuff/tuff.js": {
-      "sha256": "7757422e3b8465ca28813300c51e8d3eae76a77a792442127612fe01025a5e93"
+      "sha256": "3acacacde6df69bba0cd4c2c0886d8295ddc89aa22f77df38e87454c1617066b"
     },
     "api/tuff/vendor/geotiff-LICENCAS.txt": {
       "sha256": "48fe558bdf8ac64674a9104c2e679400368d529dd36de972419c9d0cfc9d4a40"

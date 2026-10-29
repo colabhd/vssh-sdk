@@ -345,6 +345,12 @@
     '<symbol id="ico-cloud-off" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 12.5h6.65a2.75 2.75 0 0 0 .45-5.46A3.75 3.75 0 0 0 4.5 6.55 3 3 0 0 0 4.6 12.5z"/><path d="M2.5 2.5l11 11"/></symbol>',
   'pages':
     '<symbol id="ico-pages" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="1.75" width="8" height="10.5" rx="1"/><path d="M3.5 4.5v8.75a1 1 0 0 0 1 1H10"/></symbol>',
+
+  // ── Notas ligadas ─────────────────────────────────────────────────────────
+  //
+  // O grafo das notas de um cofre, que o Lapis abre: quatro nós e as ligações entre eles.
+  'grafo':
+    '<symbol id="ico-grafo" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="3.5" cy="4" r="1.5"/><circle cx="12" cy="3.5" r="1.5"/><circle cx="5" cy="12.5" r="1.5"/><circle cx="12.5" cy="11.5" r="1.5"/><path d="M5 3.9l5.5-.3M4 5.5l.6 5.5M6.5 12.3l4.5-.6M11.9 5l.4 5M6.2 11.3l4.8-6.6"/></symbol>',
   };
 
   const ID_DO_SPRITE = 'tuff-sprite';

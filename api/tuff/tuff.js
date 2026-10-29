@@ -1,7 +1,7 @@
 'use strict';
 
 // Tuff: o comportamento do núcleo. A gaveta de navegação, o nome e o ícone de arquivo, as abas, a
-// trilha, a barra de menus, a tabela e a moldura de app.
+// trilha, a barra de menus, a tabela, a moldura de app, a lista longa e a árvore.
 //
 //     TuffGaveta.ligar(raiz)              devolve { abrir, fechar, destruir }
 //     TuffNome.desenhar(el, nome, op)     escreve o nome quebrando nos separadores
@@ -16,6 +16,8 @@
 //     TuffTabela.ligar(cab, aoOrdenar)    o clique num cabeçalho ordenável
 //     TuffTabela.colunas(raiz, cab, op)   as larguras das colunas, e a alça que arrasta cada uma
 //     TuffApp.ligar(raiz, opcoes)         a moldura: a gaveta, o painel, o "Mais" e a forma
+//     TuffLista.ligar(recipiente, op)     a lista longa, com só as linhas à vista no DOM
+//     TuffArvore.ligar(recipiente, op)    pastas e itens sobre a lista longa, com o teclado
 //
 // E um comportamento sem chamada: o `.tuff-busca-limpar` esvazia a busca ao lado dele.
 //
@@ -1566,6 +1568,396 @@
   }
 
   window.TuffAlca = { ligar };
+})();
+
+// ─── A lista longa ───────────────────────────────────────────────────────────────────────────────
+//
+// Uma lista de linhas de altura fixa que mantém no DOM só as linhas à vista, mais uma margem, e
+// reaproveita os nós quando a pessoa rola. A altura inteira é um espaçador (`.tuff-lista-espaco`),
+// e cada linha desenhada fica no lugar dela por `translateY`. Num aparelho fraco, criar dez mil
+// elementos custa segundos e cada rolagem refaria o layout de todos; aqui o custo de rolar é o da
+// tela.
+//
+//     const lista = TuffLista.ligar(recipiente, {
+//       desenhar(el, item, i) { el.textContent = item.nome; },   escreve uma linha
+//       criar() { … },              o nó de uma linha; sem ele, um `.tuff-item` com papel `listitem`
+//       altura: 26,                 a altura da linha; sem ela, `--tuff-lista-linha` do recipiente
+//       margem: 8,                  linhas desenhadas além das que aparecem, em cima e embaixo
+//     });
+//     lista.definir(itens, { manter })  troca os itens; `manter: false` volta ao topo
+//     lista.mostrar(i)                  rola até a linha `i` aparecer, sem mexer se ela já aparece
+//     lista.elementoDe(i)               o nó da linha `i`, se ela está desenhada
+//     lista.indiceDe(el)                a linha de um nó, ou -1
+//     lista.redesenhar()                escreve de novo as linhas desenhadas
+//     lista.destruir()
+//
+// O recipiente é quem rola: um `.tuff-lista`, que a peça marca com `.tuff-lista--virtual`. Cada
+// linha leva `aria-setsize` e `aria-posinset`, porque o leitor de tela não vê as linhas que não
+// estão no DOM e contaria só as desenhadas. A peça escuta a rolagem e o tamanho do recipiente, e
+// nada mais: sem rolar e sem mudar de tamanho, ela não faz trabalho nenhum.
+
+(function () {
+
+  function ligar(recipiente, { desenhar, criar = null, altura = null, margem = 8 } = {}) {
+    if (!recipiente) return null;
+    recipiente.classList.add('tuff-lista', 'tuff-lista--virtual');
+    const espaco = document.createElement('div');
+    espaco.className = 'tuff-lista-espaco';
+    recipiente.append(espaco);
+    const novo = criar || (() => {
+      const el = document.createElement('div');
+      el.className = 'tuff-item';
+      el.setAttribute('role', 'listitem');
+      return el;
+    });
+    const alturaDaLinha = () => altura || parseFloat(getComputedStyle(recipiente).getPropertyValue('--tuff-lista-linha')) || 26;
+    let h = alturaDaLinha();
+    let itens = [];
+    const vivas = new Map();
+    const livres = [];
+    let inicio = -1;
+    let fim = -1;
+    let agendado = false;
+
+    function pintar(forcar) {
+      const topo = recipiente.scrollTop;
+      const visivel = recipiente.clientHeight || 600;
+      const de = Math.max(0, Math.floor(topo / h) - margem);
+      const ate = Math.min(itens.length, Math.ceil((topo + visivel) / h) + margem);
+      if (!forcar && de === inicio && ate === fim) return;
+      for (const [i, el] of vivas) {
+        if (forcar || i < de || i >= ate) {
+          vivas.delete(i);
+          livres.push(el);
+        }
+      }
+      for (let i = de; i < ate; i++) {
+        if (vivas.has(i)) continue;
+        const el = livres.pop() || novo();
+        el.style.transform = `translateY(${i * h}px)`;
+        el.dataset.indice = String(i);
+        el.setAttribute('aria-setsize', String(itens.length));
+        el.setAttribute('aria-posinset', String(i + 1));
+        desenhar(el, itens[i], i);
+        if (!el.parentNode) espaco.append(el);
+        el.hidden = false;
+        vivas.set(i, el);
+      }
+      for (const el of livres) el.hidden = true;
+      inicio = de;
+      fim = ate;
+    }
+
+    function agendar() {
+      if (agendado) return;
+      agendado = true;
+      requestAnimationFrame(() => {
+        agendado = false;
+        pintar(false);
+      });
+    }
+
+    recipiente.addEventListener('scroll', agendar, { passive: true });
+    const vigia = new ResizeObserver(agendar);
+    vigia.observe(recipiente);
+
+    return {
+      get itens() { return itens; },
+      get altura() { return h; },
+      definir(novos, { manter = true } = {}) {
+        itens = novos;
+        h = alturaDaLinha();
+        espaco.style.height = `${itens.length * h}px`;
+        if (!manter) recipiente.scrollTop = 0;
+        pintar(true);
+      },
+      redesenhar() { pintar(true); },
+      mostrar(i) {
+        const topo = i * h;
+        if (topo < recipiente.scrollTop) recipiente.scrollTop = topo;
+        else if (topo + h > recipiente.scrollTop + recipiente.clientHeight) recipiente.scrollTop = topo + h - recipiente.clientHeight;
+        pintar(false);
+      },
+      elementoDe(i) { return vivas.get(i) || null; },
+      indiceDe(el) {
+        const linha = el?.closest?.('[data-indice]');
+        return linha && espaco.contains(linha) ? Number(linha.dataset.indice) : -1;
+      },
+      destruir() {
+        recipiente.removeEventListener('scroll', agendar);
+        vigia.disconnect();
+        espaco.remove();
+        recipiente.classList.remove('tuff-lista--virtual');
+      },
+    };
+  }
+
+  window.TuffLista = { ligar };
+})();
+
+// ─── A árvore ────────────────────────────────────────────────────────────────────────────────────
+//
+// Pastas e itens sobre a lista longa. A árvore inteira vira um vetor das linhas que aparecem (as
+// raízes, e o que há dentro das pastas abertas), e a lista desenha só as que cabem: abrir uma pasta
+// com três mil itens é refazer o vetor, e não criar três mil elementos.
+//
+//     const arvore = TuffArvore.ligar(recipiente, {
+//       rotulo: 'Notas do cofre',     o nome da árvore para o leitor de tela
+//       abertas: ['Projetos'],        os ids das pastas que começam abertas
+//       icone(no, aberta) { … },      o `#ico-…` de um nó; sem ele, pasta, pasta aberta e arquivo
+//       desenhar(el, linha) { … },    o que a linha leva além do recuo, da seta, do ícone e do nome
+//       aoAtivar(no, { novaAba }),    Enter ou clique num item; numa pasta, a peça abre e fecha
+//       aoMenu(no, x, y),             o menu de contexto, pelo clique direito, pela tecla de menu ou
+//                                     por Shift+F10; `no` é `null` no vazio da árvore
+//       aoArrastar(evento, no),       quando existe, as linhas ficam arrastáveis
+//       aoAlternar(abertas),          o conjunto de pastas abertas mudou (para guardar)
+//     });
+//     arvore.definir(raizes)          troca os nós
+//     arvore.revelar(id, { rolar })   marca o nó como o aberto, abrindo as pastas acima dele
+//     arvore.alternar(id, abrir)      abre ou fecha uma pasta
+//     arvore.recolherTudo()
+//     arvore.linhas                   o vetor das linhas que aparecem, `{ no, nivel, aberta }`
+//     arvore.destruir()
+//
+// Um nó é `{ id, nome, filhos?, titulo? }`, e ter `filhos` (mesmo vazio) faz dele uma pasta. As
+// linhas são `treeitem` com `aria-level`, `aria-expanded` nas pastas e `aria-setsize` e
+// `aria-posinset` contados entre os irmãos. O foco do teclado é um só ponto de parada, na árvore,
+// e a linha dele é a `aria-activedescendant`: as setas andam e abrem, Home e End vão às pontas, e
+// uma letra salta para a próxima linha que começa com ela.
+
+(function () {
+
+  let serie = 0;
+  const dobrar = (s) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
+
+  function ligar(recipiente, opcoes = {}) {
+    if (!recipiente) return null;
+    const { rotulo = '', icone = null, desenhar = null, aoAtivar = () => {}, aoMenu = null, aoArrastar = null, aoAlternar = null } = opcoes;
+    const base = `tuff-arvore-${++serie}`;
+    const abertas = new Set(opcoes.abertas || []);
+    const paiDe = new Map();
+    const noDe = new Map();
+    let raizes = [];
+    let linhas = [];
+    let foco = 0;
+    let selecionado = null;
+    let digitado = '';
+    let relogio = 0;
+
+    recipiente.classList.add('tuff-arvore');
+    recipiente.setAttribute('role', 'tree');
+    if (rotulo) recipiente.setAttribute('aria-label', rotulo);
+    recipiente.tabIndex = 0;
+
+    const iconeDe = (no, aberta) => (icone ? icone(no, aberta) : no.filhos ? (aberta ? '#ico-folder-open' : '#ico-folder') : '#ico-file');
+    const lista = TuffLista.ligar(recipiente, {
+      criar() {
+        const el = document.createElement('div');
+        el.className = 'tuff-item tuff-arvore-linha';
+        el.setAttribute('role', 'treeitem');
+        el.innerHTML = '<span class="tuff-arvore-recuo"></span>'
+          + '<svg class="tuff-ico tuff-ico--sm tuff-arvore-seta" aria-hidden="true" focusable="false"><use href="#ico-chevron-down"></use></svg>'
+          + '<svg class="tuff-ico tuff-ico--sm" aria-hidden="true" focusable="false"><use href=""></use></svg>'
+          + '<span class="tuff-arvore-nome"></span>';
+        if (aoArrastar) el.draggable = true;
+        return el;
+      },
+      desenhar(el, linha, i) {
+        const { no, nivel, aberta } = linha;
+        el.id = `${base}-${i}`;
+        el.style.setProperty('--tuff-arvore-nivel', String(nivel));
+        el.children[2].firstChild.setAttribute('href', iconeDe(no, aberta));
+        el.children[3].textContent = no.nome;
+        el.title = no.titulo || '';
+        if (no.filhos) el.setAttribute('aria-expanded', String(aberta));
+        else el.removeAttribute('aria-expanded');
+        el.setAttribute('aria-level', String(nivel + 1));
+        el.setAttribute('aria-setsize', String(linha.irmaos));
+        el.setAttribute('aria-posinset', String(linha.posicao));
+        el.setAttribute('aria-selected', String(no.id === selecionado));
+        el.classList.toggle('tuff-item--foco', i === foco);
+        desenhar?.(el, linha);
+      },
+    });
+
+    function achatar() {
+      const antes = linhas[foco]?.no;
+      const saida = [];
+      const andar = (nos, nivel) => {
+        nos.forEach((no, k) => {
+          const aberta = !!no.filhos && abertas.has(no.id);
+          saida.push({ no, nivel, aberta, irmaos: nos.length, posicao: k + 1 });
+          if (aberta) andar(no.filhos, nivel + 1);
+        });
+      };
+      andar(raizes, 0);
+      linhas = saida;
+      // o foco fica no mesmo nó quando ele continua à vista
+      const j = antes ? linhas.findIndex((l) => l.no === antes) : -1;
+      foco = j >= 0 ? j : Math.min(foco, Math.max(0, linhas.length - 1));
+      lista.definir(linhas);
+      marcarFoco();
+    }
+
+    function marcarFoco() {
+      if (linhas.length) recipiente.setAttribute('aria-activedescendant', `${base}-${foco}`);
+      else recipiente.removeAttribute('aria-activedescendant');
+    }
+
+    function moverFoco(i) {
+      foco = Math.max(0, Math.min(linhas.length - 1, i));
+      lista.mostrar(foco);
+      lista.redesenhar();
+      marcarFoco();
+    }
+
+    function alternar(id, abrir) {
+      const aberta = abertas.has(id);
+      if (abrir === undefined ? aberta : !abrir) abertas.delete(id); else abertas.add(id);
+      if (aberta === abertas.has(id)) return;
+      aoAlternar?.(new Set(abertas));
+      achatar();
+    }
+
+    function ativar(linha, novaAba) {
+      if (!linha) return;
+      if (linha.no.filhos) alternar(linha.no.id);
+      else aoAtivar(linha.no, { novaAba });
+    }
+
+    // A busca por digitação: as letras de quem digita em menos de 700 ms formam o começo de um
+    // nome, e a mesma letra de novo anda entre os nomes que começam com ela.
+    function saltar(letra) {
+      clearTimeout(relogio);
+      relogio = setTimeout(() => { digitado = ''; }, 700);
+      const anterior = digitado;
+      const repetida = anterior.length === 1 && dobrar(letra) === anterior;
+      digitado = repetida ? anterior : anterior + dobrar(letra);
+      const n = linhas.length;
+      const de = repetida || !anterior ? foco + 1 : foco;
+      for (let k = 0; k < n; k++) {
+        const j = (de + k) % n;
+        if (dobrar(linhas[j].no.nome).startsWith(digitado)) return j;
+      }
+      return -1;
+    }
+
+    const aoClicar = (e) => {
+      const i = lista.indiceDe(e.target);
+      if (i < 0) return;
+      foco = i;
+      marcarFoco();
+      ativar(linhas[i], e.ctrlKey || e.metaKey);
+      lista.redesenhar();
+    };
+    const aoClicarNoMeio = (e) => {
+      const i = lista.indiceDe(e.target);
+      if (i >= 0 && e.button === 1 && !linhas[i].no.filhos) aoAtivar(linhas[i].no, { novaAba: true });
+    };
+    const aoMenuDeContexto = (e) => {
+      if (!aoMenu) return;
+      e.preventDefault();
+      const i = lista.indiceDe(e.target);
+      aoMenu(i >= 0 ? linhas[i].no : null, e.clientX, e.clientY);
+    };
+    const aoComecarArraste = (e) => {
+      const i = lista.indiceDe(e.target);
+      if (i >= 0) aoArrastar?.(e, linhas[i].no);
+    };
+    const aoTeclar = (e) => {
+      const linha = linhas[foco];
+      switch (e.key) {
+        case 'ArrowDown': moverFoco(foco + 1); break;
+        case 'ArrowUp': moverFoco(foco - 1); break;
+        case 'Home': moverFoco(0); break;
+        case 'End': moverFoco(linhas.length - 1); break;
+        case 'ArrowRight':
+          if (linha?.no.filhos && !linha.aberta) alternar(linha.no.id, true);
+          else if (linha?.aberta) moverFoco(foco + 1);
+          break;
+        case 'ArrowLeft': {
+          if (linha?.aberta) { alternar(linha.no.id, false); break; }
+          const pai = linha ? paiDe.get(linha.no.id) : null;
+          if (pai) moverFoco(linhas.findIndex((l) => l.no === pai));
+          break;
+        }
+        case 'Enter': ativar(linha, e.ctrlKey || e.metaKey); break;
+        case 'ContextMenu':
+        case 'F10': {
+          if (e.key === 'F10' && !e.shiftKey) return;
+          if (!aoMenu || !linha) return;
+          const r = lista.elementoDe(foco)?.getBoundingClientRect();
+          aoMenu(linha.no, r ? r.left + 24 : 0, r ? r.bottom : 0);
+          break;
+        }
+        default: {
+          if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
+          const j = saltar(e.key);
+          if (j < 0) return;
+          moverFoco(j);
+        }
+      }
+      e.preventDefault();
+    };
+    recipiente.addEventListener('click', aoClicar);
+    recipiente.addEventListener('auxclick', aoClicarNoMeio);
+    recipiente.addEventListener('contextmenu', aoMenuDeContexto);
+    recipiente.addEventListener('dragstart', aoComecarArraste);
+    recipiente.addEventListener('keydown', aoTeclar);
+
+    return {
+      get linhas() { return linhas; },
+      lista,
+      definir(nos) {
+        raizes = nos;
+        paiDe.clear();
+        noDe.clear();
+        const indexar = (filhos, pai) => {
+          for (const no of filhos) {
+            noDe.set(no.id, no);
+            if (pai) paiDe.set(no.id, pai);
+            if (no.filhos) indexar(no.filhos, no);
+          }
+        };
+        indexar(raizes, null);
+        achatar();
+      },
+      revelar(id, { rolar = true } = {}) {
+        selecionado = id;
+        let mudou = false;
+        for (let p = paiDe.get(id); p; p = paiDe.get(p.id)) {
+          if (!abertas.has(p.id)) { abertas.add(p.id); mudou = true; }
+        }
+        if (mudou) { aoAlternar?.(new Set(abertas)); achatar(); }
+        const i = id == null ? -1 : linhas.findIndex((l) => l.no.id === id);
+        if (i >= 0) {
+          foco = i;
+          marcarFoco();
+          if (rolar) lista.mostrar(i);
+        }
+        lista.redesenhar();
+      },
+      alternar,
+      recolherTudo() {
+        if (!abertas.size) return;
+        abertas.clear();
+        aoAlternar?.(new Set(abertas));
+        achatar();
+      },
+      destruir() {
+        recipiente.removeEventListener('click', aoClicar);
+        recipiente.removeEventListener('auxclick', aoClicarNoMeio);
+        recipiente.removeEventListener('contextmenu', aoMenuDeContexto);
+        recipiente.removeEventListener('dragstart', aoComecarArraste);
+        recipiente.removeEventListener('keydown', aoTeclar);
+        clearTimeout(relogio);
+        lista.destruir();
+        recipiente.classList.remove('tuff-arvore');
+      },
+    };
+  }
+
+  window.TuffArvore = { ligar };
 })();
 
 // ─── O limpar da busca ───────────────────────────────────────────────────────────────────────────

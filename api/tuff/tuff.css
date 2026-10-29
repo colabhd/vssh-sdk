@@ -698,6 +698,41 @@
     color: var(--ds-text-dim);
   }
 
+  /* ── A lista longa e a árvore ───────────────────────────────────────────────
+     `TuffLista.ligar` desenha só as linhas à vista: a altura inteira é o
+     `.tuff-lista-espaco`, e cada linha fica no lugar dela por `translateY`. A
+     altura da linha é `--tuff-lista-linha`, que a peça lê do recipiente para
+     fazer as contas e a folha usa para desenhar; as duas leem o mesmo número.
+     Ela vale o alvo do ponteiro (`--ds-alvo`): 26 px sob o mouse, 44 px sob o
+     dedo. A linha que a peça guarda para reaproveitar fica `hidden`.
+
+     A árvore (`TuffArvore.ligar`) é uma lista longa de `.tuff-arvore-linha`. O
+     recuo vem do nível, em `--tuff-arvore-nivel`; a seta gira com o
+     `aria-expanded` da linha e some num item que não é pasta, e o leitor de
+     tela lê o mesmo atributo. A árvore é uma parada só de Tab: a linha do foco
+     do teclado leva `.tuff-item--foco`, com o contorno de foco só quando o
+     foco chegou pelo teclado. */
+  .tuff-lista--virtual { --tuff-lista-linha: var(--ds-alvo); }
+  .tuff-lista-espaco { position: relative; flex: none; }
+  .tuff-lista-espaco > * {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--tuff-lista-linha);
+  }
+  .tuff-lista-espaco > [hidden] { display: none; }
+
+  .tuff-arvore:focus-visible { outline: none; }
+  .tuff-arvore:focus-visible .tuff-item--foco { outline: 2px solid var(--ds-border-focus); outline-offset: -2px; }
+  .tuff-arvore-linha { gap: var(--ds-gap-sm); padding-block: 0; }
+  .tuff-arvore-recuo { flex: none; width: calc(var(--tuff-arvore-nivel, 0) * var(--ds-gap-lg)); }
+  .tuff-arvore-seta { flex: none; color: var(--ds-text-dim); transition: transform 80ms; }
+  .tuff-arvore-linha[aria-expanded="false"] .tuff-arvore-seta { transform: rotate(-90deg); }
+  .tuff-arvore-linha:not([aria-expanded]) .tuff-arvore-seta { visibility: hidden; }
+  .tuff-arvore-nome { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  @media (prefers-reduced-motion: reduce) { .tuff-arvore-seta { transition: none; } }
+
   /* Tabela chave/valor: o par de leitura, com a hierarquia obrigatória. A
      coluna do valor é monoespaçada quando o conteúdo é dado (caminho, id,
      hash): texto proporcional embaralha a leitura de coisa que se compara

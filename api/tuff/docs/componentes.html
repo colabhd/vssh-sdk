@@ -58,6 +58,9 @@
   /* As duas regiões do exemplo da alça: o conteúdo delas é de app. */
   .alca-caixa { display: flex; height: 180px; border: 1px solid var(--ds-border); border-radius: var(--ds-radius-lg); overflow: hidden; }
   .alca-caixa > div { padding: var(--ds-gap-md); color: var(--ds-text-dim); font-size: var(--tuff-size-sm); }
+  /* As duas caixas da lista e da árvore longas: a altura fixa é o que faz delas quem rola. */
+  .longas { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--ds-gap-md); }
+  .longas > div { height: 260px; border: 1px solid var(--ds-border); border-radius: var(--ds-radius-lg); }
   .alca-lista { flex: 1; min-width: 0; }
   .alca-painel { width: 200px; background: var(--ds-bg2); }
 </style>
@@ -259,6 +262,17 @@
         <dt>caminho</dt><dd>/home/pesquisador/dados</dd>
         <dt>socket</dt><dd>/run/user/1000/vssh-app.sock</dd>
       </dl>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Lista e árvore longas</div>
+        <div class="tuff-sec-desc">TuffLista e TuffArvore, com 10 mil itens cada. O DOM tem só as linhas à vista e uma margem, e rolar reaproveita os nós. Na árvore: setas, Home, End, Enter e a primeira letra de um nome.</div>
+      </div>
+      <div class="longas">
+        <div id="lista-longa" role="list" aria-label="Arquivos da coleta"></div>
+        <div id="arvore-longa"></div>
+      </div>
     </section>
 
     <section class="tuff-painel">
@@ -780,6 +794,30 @@
     });
   }
 
+  function montarLongas() {
+    const nomes = ['relatorio', 'medicoes', 'notas', 'figura', 'tabela', 'rascunho', 'entrevista', 'mapa'];
+    const exts = ['pdf', 'parquet', 'md', 'png', 'csv', 'docx', 'm4a', 'tif'];
+    const arquivo = (i) => `${nomes[i % 8]}-${String(i + 1).padStart(5, '0')}.${exts[(i * 3) % 8]}`;
+    const itens = Array.from({ length: 10000 }, (_, i) => arquivo(i));
+    TuffLista.ligar(document.getElementById('lista-longa'), { desenhar: (el, nome) => { el.textContent = nome; } }).definir(itens);
+    // Cem coletas de cem arquivos, e em cada uma os dez últimos numa pasta de brutos.
+    const raizes = Array.from({ length: 100 }, (_, p) => {
+      const arq = (i) => ({ id: `${p}/${i}`, nome: arquivo(p * 100 + i) });
+      return {
+        id: String(p),
+        nome: `Coleta ${String(p + 1).padStart(3, '0')}`,
+        filhos: [{ id: `${p}/brutos`, nome: 'Brutos', filhos: Array.from({ length: 10 }, (_, i) => arq(90 + i)) },
+          ...Array.from({ length: 90 }, (_, i) => arq(i))],
+      };
+    });
+    const arvore = TuffArvore.ligar(document.getElementById('arvore-longa'), {
+      rotulo: 'Coletas',
+      abertas: ['0'],
+      aoAtivar: (no) => arvore.revelar(no.id, { rolar: false }),
+    });
+    arvore.definir(raizes);
+  }
+
   function montarMoldura() {
     const raiz = document.getElementById('moldura-exemplo');
     const pastas = ['Campo 2026', 'Viagem a Franca', 'Microscopia', 'PDFs digitalizados'];
@@ -930,6 +968,7 @@
       alvo: document.getElementById('alca-painel'), lado: 'fim', min: 140, max: 420, padrao: 200,
     });
     montarMoldura();
+    montarLongas();
     montarIconesDeArquivo();
 
     // A galeria de ícones sai da própria lista da biblioteca: uma lista escrita à mão seria uma
