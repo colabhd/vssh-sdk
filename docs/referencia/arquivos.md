@@ -30,7 +30,7 @@ Ler e escrever com o consentimento do usuário, escolher, vigiar, abrir, abrir c
 | [`vssh.arquivos.permissoes(caminho)`](#permissoes) | sim, em até 5 s |
 | [`vssh.arquivos.areaDeTransferencia()`](#areadetransferencia) | sim, em até 5 s |
 | [`vssh.arquivos.copiarParaAreaDeTransferencia(caminhos)`](#copiarparaareadetransferencia) | sim, em até 5 s |
-| [`vssh.arquivos.abrir(caminho)`](#abrir) | não |
+| [`vssh.arquivos.abrir(caminho, pagina)`](#abrir) | não |
 | [`vssh.arquivos.abrirPasta(caminho)`](#abrirpasta) | não |
 | [`vssh.arquivos.abrirCom(caminho)`](#abrircom) | sim, em até 10 min |
 | [`vssh.arquivos.abrirLink(url, destino)`](#abrirlink) | sim, em até 5 s |
@@ -377,10 +377,11 @@ No fio: `type: "clipboard", op: "setFiles"`.
 
 ### `abrir`
 
-`vssh.arquivos.abrir(caminho)`
+`vssh.arquivos.abrir(caminho, pagina)`
 
 Abre um arquivo no visualizador do ambiente que a extensão pede: PDF, vídeo, editor de texto,
-planilha. O app manda o caminho e não precisa saber em que servidor está.
+planilha. O app manda o caminho e não precisa saber em que servidor está. `pagina` abre um PDF nela,
+no Navegador do ambiente ou no app que abre PDF, que a recebe no evento `abertura`.
 
 Não responde: um disparo, sem retorno.
 Num hiperlink: vale só para o que o seletor de arquivos concedeu (`caminho`).
@@ -389,6 +390,7 @@ No fio: `type: "open-file"`.
 | argumento | tipo | opcional | no fio |
 |---|---|---|---|
 | `caminho` | `string` | não | `path` |
+| `pagina` | `number` | sim | `page` |
 
 ### `abrirPasta`
 

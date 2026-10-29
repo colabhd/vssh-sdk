@@ -71,11 +71,12 @@ declare namespace vssh {
        * O contexto com que o app foi aberto ("abrir aqui", "abrir com", um item da jump list).
        * Chega depois do load, e de novo quando uma ação alcança uma janela que já está aberta.
        * `item` é o `id` do item de `contributes.contextMenu` que a pessoa clicou, e é por ele que
-       * um app com mais de um item no mesmo arquivo sabe qual foi. Com `tipo: 'arquivo'`, o arquivo
-       * chega já concedido ao app, como se a pessoa o tivesse escolhido no seletor: o app lê e
-       * grava nele pelos verbos de `arquivos`. Uma pasta não é concedida.
+       * um app com mais de um item no mesmo arquivo sabe qual foi. `pagina` é a página em que outro
+       * app pediu o arquivo (`arquivos.abrir`), num PDF. Com `tipo: 'arquivo'`, o arquivo chega já
+       * concedido ao app, como se a pessoa o tivesse escolhido no seletor: o app lê e grava nele
+       * pelos verbos de `arquivos`. Uma pasta não é concedida.
        */
-      abertura: { caminho?: string; url?: string; tipo?: 'arquivo' | 'pasta' | 'url'; rota?: string; item?: string };
+      abertura: { caminho?: string; url?: string; tipo?: 'arquivo' | 'pasta' | 'url'; rota?: string; item?: string; pagina?: number };
     }
     /** Assina um evento deste espaço e devolve a função que cancela a assinatura. */
     function ao<E extends keyof Eventos>(evento: E, cb: (dados: Eventos[E]) => void): () => void;
@@ -291,9 +292,10 @@ declare namespace vssh {
     function copiarParaAreaDeTransferencia(caminhos: string[]): Promise<unknown>;
     /**
      * Abre um arquivo no visualizador do ambiente que a extensão pede: PDF, vídeo, editor de texto,
-     * planilha. O app manda o caminho e não precisa saber em que servidor está.
+     * planilha. O app manda o caminho e não precisa saber em que servidor está. `pagina` abre um
+     * PDF nela, no Navegador do ambiente ou no app que abre PDF, que a recebe no evento `abertura`.
      */
-    function abrir(caminho: string): void;
+    function abrir(caminho: string, pagina?: number): void;
     /** Abre uma pasta no gerenciador de arquivos. */
     function abrirPasta(caminho: string): void;
     /**

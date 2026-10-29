@@ -316,8 +316,8 @@
   EVENTOS.app = {
     // Os tokens de destaque do ambiente, quando a pessoa troca a cor. Chega a quem não alcança o documento do shell, que é a página de outra origem.
     aparencia: ['appearance', { tokens: 'tokens' }],
-    // O contexto com que o app foi aberto ("abrir aqui", "abrir com", um item da jump list). Chega depois do load, e de novo quando uma ação alcança uma janela que já está aberta. `item` é o `id` do item de `contributes.contextMenu` que a pessoa clicou, e é por ele que um app com mais de um item no mesmo arquivo sabe qual foi. Com `tipo: 'arquivo'`, o arquivo chega já concedido ao app, como se a pessoa o tivesse escolhido no seletor: o app lê e grava nele pelos verbos de `arquivos`. Uma pasta não é concedida.
-    abertura: ['open-context', { caminho: 'path', url: 'url', tipo: 'tipo', rota: 'rota', item: 'item' }],
+    // O contexto com que o app foi aberto ("abrir aqui", "abrir com", um item da jump list). Chega depois do load, e de novo quando uma ação alcança uma janela que já está aberta. `item` é o `id` do item de `contributes.contextMenu` que a pessoa clicou, e é por ele que um app com mais de um item no mesmo arquivo sabe qual foi. `pagina` é a página em que outro app pediu o arquivo (`arquivos.abrir`), num PDF. Com `tipo: 'arquivo'`, o arquivo chega já concedido ao app, como se a pessoa o tivesse escolhido no seletor: o app lê e grava nele pelos verbos de `arquivos`. Uma pasta não é concedida.
+    abertura: ['open-context', { caminho: 'path', url: 'url', tipo: 'tipo', rota: 'rota', item: 'item', pagina: 'page' }],
   };
   EVENTOS.janela = {
     // As abas que a sessão anterior deixou salvas, mandadas uma vez, no load do iframe de um app com `richChrome`. Chega mesmo sem nada salvo (`abas: null`), para o app nunca decidir sozinho se cria uma aba inicial.
@@ -476,8 +476,8 @@
     areaDeTransferencia: () => ponte.chamar('arquivos.areaDeTransferencia', { type: 'clipboard', op: 'files' }, 5000),
     // Põe caminhos na área de transferência de arquivos, como se o usuário os tivesse copiado no gerenciador, e responde com quantos entraram. Sempre copiar: recortar moveria um arquivo do usuário na próxima colagem a partir de uma mensagem de iframe, e fica com o gerenciador, onde a pessoa vê o que faz.
     copiarParaAreaDeTransferencia: (caminhos) => ponte.chamar('arquivos.copiarParaAreaDeTransferencia', { type: 'clipboard', op: 'setFiles', paths: caminhos }, 5000),
-    // Abre um arquivo no visualizador do ambiente que a extensão pede: PDF, vídeo, editor de texto, planilha. O app manda o caminho e não precisa saber em que servidor está.
-    abrir: (caminho) => ponte.disparar('arquivos.abrir', { type: 'open-file', path: caminho }),
+    // Abre um arquivo no visualizador do ambiente que a extensão pede: PDF, vídeo, editor de texto, planilha. O app manda o caminho e não precisa saber em que servidor está. `pagina` abre um PDF nela, no Navegador do ambiente ou no app que abre PDF, que a recebe no evento `abertura`.
+    abrir: (caminho, pagina) => ponte.disparar('arquivos.abrir', { type: 'open-file', path: caminho, page: pagina }),
     // Abre uma pasta no gerenciador de arquivos.
     abrirPasta: (caminho) => ponte.disparar('arquivos.abrirPasta', { type: 'open-folder', path: caminho }),
     // Mostra ao usuário os aplicativos que abrem o arquivo, a mesma lista do menu de contexto do gerenciador, e abre no escolhido. Responde com o nome do aplicativo, ou `null` se o usuário cancelou. Sem X11 a lista tem só vssh-apps.

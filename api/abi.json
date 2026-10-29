@@ -149,9 +149,15 @@
               "fio": "item",
               "tipo": "string",
               "opcional": true
+            },
+            {
+              "nome": "pagina",
+              "fio": "page",
+              "tipo": "number",
+              "opcional": true
             }
           ],
-          "descricao": "O contexto com que o app foi aberto (\"abrir aqui\", \"abrir com\", um item da jump list). Chega depois do load, e de novo quando uma ação alcança uma janela que já está aberta. `item` é o `id` do item de `contributes.contextMenu` que a pessoa clicou, e é por ele que um app com mais de um item no mesmo arquivo sabe qual foi. Com `tipo: 'arquivo'`, o arquivo chega já concedido ao app, como se a pessoa o tivesse escolhido no seletor: o app lê e grava nele pelos verbos de `arquivos`. Uma pasta não é concedida."
+          "descricao": "O contexto com que o app foi aberto (\"abrir aqui\", \"abrir com\", um item da jump list). Chega depois do load, e de novo quando uma ação alcança uma janela que já está aberta. `item` é o `id` do item de `contributes.contextMenu` que a pessoa clicou, e é por ele que um app com mais de um item no mesmo arquivo sabe qual foi. `pagina` é a página em que outro app pediu o arquivo (`arquivos.abrir`), num PDF. Com `tipo: 'arquivo'`, o arquivo chega já concedido ao app, como se a pessoa o tivesse escolhido no seletor: o app lê e grava nele pelos verbos de `arquivos`. Uma pasta não é concedida."
         }
       }
     },
@@ -890,10 +896,16 @@
               "nome": "caminho",
               "fio": "path",
               "tipo": "string"
+            },
+            {
+              "nome": "pagina",
+              "fio": "page",
+              "tipo": "number",
+              "opcional": true
             }
           ],
           "responde": false,
-          "descricao": "Abre um arquivo no visualizador do ambiente que a extensão pede: PDF, vídeo, editor de texto, planilha. O app manda o caminho e não precisa saber em que servidor está."
+          "descricao": "Abre um arquivo no visualizador do ambiente que a extensão pede: PDF, vídeo, editor de texto, planilha. O app manda o caminho e não precisa saber em que servidor está. `pagina` abre um PDF nela, no Navegador do ambiente ou no app que abre PDF, que a recebe no evento `abertura`."
         },
         "abrirPasta": {
           "hiperlink": {

@@ -2,7 +2,7 @@
   "shellVersion": "5.0.0-rc0",
   "artifacts": {
     "api/abi.json": {
-      "sha256": "a95930d7b4cc08a87f0764297b46a3cee89d879ee2c84d4705cbf59f23fc21c0"
+      "sha256": "cb50c586c46bcf533d4875adc2690bcb5d6fccae8ada09086ec4ecaa992cc158"
     },
     "api/ajuda/ambiente.json": {
       "sha256": "f2eeb955499cefd27384183e746b56076b7f47a2e480fcd40c4e5c2dafcebd6b"
@@ -68,10 +68,10 @@
       "sha256": "be5538b8fdaf19bb4095db08a3622db5c9423dac8cf50fd4afad5b26bc22ed58"
     },
     "api/vssh.d.ts": {
-      "sha256": "b31bbe8e8e05bb05099df6f092ac88135367fb662752974eeb9aa514ec1abdd7"
+      "sha256": "87d1745d968ecfb7ee17d5306f65013719fd9495d2678343c9eef7bb70ec3e50"
     },
     "api/vssh.js": {
-      "sha256": "7824daf171fa331b1a2e9778c2733842d8d52f1764c7fe4f7f405ae428748f98"
+      "sha256": "f173d2e9920f2391a9c1912061a4e0d78d063d58521ff38d2307e9ca2f1869f2"
     },
     "docs/referencia/README.md": {
       "sha256": "10f843d32c170739a790ac0a9a5a880bfab47eb61e3c52ca8e557e34781e45de"
@@ -83,13 +83,13 @@
       "sha256": "80e837c926040cea8cb4d43136cfde641222aab76144af1549172f18428de387"
     },
     "docs/referencia/app.md": {
-      "sha256": "b4764479b8a40100f98137517e71afdbb58b12643c56ad51919448b625b955e8"
+      "sha256": "47b36c371226d75c5db557e2add36a16e0b266fed2df79e66e3c2863c17bddf0"
     },
     "docs/referencia/apps.md": {
       "sha256": "56838875e7cd1a8f692baec73fc5485aa7468735c05e95d98b57a52832d1fbec"
     },
     "docs/referencia/arquivos.md": {
-      "sha256": "5993b34e6971a6141f5ac5f6c38d03d5f55dacb30c0df759757e49c36a4b265c"
+      "sha256": "34d49f29380c8d2ac1ca079fc0c0ad9e97fd941329d33ef5fd6004e9d3264293"
     },
     "docs/referencia/avisos.md": {
       "sha256": "6b8835ecd4510fac63a90491858d16b5657ca832d77f6e32e2421c3d6d922e4f"
