@@ -1,8 +1,8 @@
 # Listas e navegação
 
-As peças com que um app organiza o que mostra: a lista e o par chave e valor, a barra de
-ferramentas, a gaveta de navegação, a busca, o detalhe e o tooltip. Todas em `tuff.css`; a gaveta
-é a única que precisa de `tuff.js`.
+As peças com que um app organiza o que mostra: a lista, a lista longa e a árvore, o par chave e
+valor, a barra de ferramentas, a gaveta de navegação, a busca, o detalhe e o tooltip. Todas em
+`tuff.css`; a lista longa, a árvore e a gaveta precisam também de `tuff.js`.
 
 ## Lista
 
@@ -23,6 +23,59 @@ quebrar a linha.
 
 `.tuff-item` é linha de lista. Um rótulo solto ao lado de um ícone, fora de uma lista, é um
 `span` comum; usar a linha para isso ensinaria o contrário.
+
+## A lista longa e a árvore
+
+Uma lista de milhares de linhas não cabe no DOM de um aparelho fraco: criar dez mil elementos custa
+segundos, e cada rolagem refaria o layout de todos. `TuffLista`, de `tuff.js`, desenha só as linhas
+à vista e uma margem, e reaproveita os nós quando a pessoa rola.
+
+```js
+const lista = TuffLista.ligar(document.querySelector('#resultados'), {
+  desenhar(el, item) { el.textContent = item.titulo; },
+});
+lista.definir(resultados);   // troca os itens; com { manter: false }, volta ao topo
+lista.mostrar(42);           // rola até a linha 42 aparecer, sem mexer se ela já aparece
+```
+
+O recipiente é quem rola: um `.tuff-lista` com altura, que a peça marca com `.tuff-lista--virtual`.
+As linhas têm a altura de `--tuff-lista-linha`, que vale o alvo do ponteiro (`--ds-alvo`): 26px
+sob o mouse e 44px sob o dedo. Cada linha é um `.tuff-item` com `role="listitem"`, ou o nó que
+`criar()` devolver, e leva `aria-setsize` e `aria-posinset`, porque o leitor de tela não vê as
+linhas que estão fora do DOM e contaria só as desenhadas. A peça escuta a rolagem e o tamanho do
+recipiente, e parada não faz trabalho nenhum.
+
+`TuffArvore` põe pastas e itens sobre a lista longa. Abrir uma pasta com três mil itens refaz o
+vetor das linhas à vista, e não cria três mil elementos. Um nó com `filhos`, mesmo vazio, é uma
+pasta.
+
+```js
+const arvore = TuffArvore.ligar(document.querySelector('#notas'), {
+  rotulo: 'Notas',
+  abertas: ['Projetos'],
+  aoAtivar(no, { novaAba }) { abrir(no.id, novaAba); },
+  aoMenu(no, x, y) { /* o menu do ambiente, pela ponte; `no` é null no vazio da árvore */ },
+  aoAlternar(abertas) { guardar([...abertas]); },
+});
+arvore.definir([
+  { id: 'Projetos', nome: 'Projetos', filhos: [{ id: 'Projetos/tese.md', nome: 'tese.md' }] },
+  { id: 'leia-me.md', nome: 'leia-me.md' },
+]);
+arvore.revelar('Projetos/tese.md');   // marca o item aberto, abrindo as pastas acima dele
+```
+
+A árvore é uma parada só de Tab. A linha do foco é a `aria-activedescendant` da árvore: as setas
+andam, abrem e fecham, Home e End vão às pontas, Enter ativa, e uma letra salta para o próximo nome
+que começa com ela. O menu de contexto vem do clique direito, da tecla de menu e de Shift+F10, e
+as linhas ficam arrastáveis quando `aoArrastar(evento, no)` existe.
+
+| classe ou atributo | papel |
+|---|---|
+| `.tuff-arvore` | a árvore, com `role="tree"` e o `aria-label` do `rotulo` |
+| `.tuff-arvore-linha` | a linha: `treeitem`, com `aria-level`, a posição contada entre os irmãos e `aria-selected` no item que `revelar` marcou |
+| `aria-expanded` | só nas pastas; a `.tuff-arvore-seta` gira com ele e some num item que não é pasta |
+| `.tuff-arvore-recuo` | o recuo, `--tuff-arvore-nivel` vezes o degrau `--ds-gap-lg` |
+| `.tuff-item--foco` | a linha do foco do teclado, com o contorno só quando o foco chegou pelo teclado |
 
 ## Chave e valor
 
