@@ -343,7 +343,7 @@
 // ─── O ícone de arquivo ──────────────────────────────────────────────────────────────────────────
 //
 //     TuffArquivo.svg(tipo, { ext, glifo, cheia })   devolve o <svg> como texto
-//     TuffArquivo.svg('app', { cor, icone, selo })   o tipo que um app cria, com o ícone dele
+//     TuffArquivo.svg('app', { cor, icone, selo, previa })   o tipo que um app cria, com o ícone dele
 //
 // Um arquivo é conteúdo da pessoa, e o ícone dele tem cor: a folha clara, o glifo do tipo na cor
 // dele no meio, e a extensão num selo colorido no canto (o `DESIGN.md`, "Ícones de arquivo"). Os
@@ -457,11 +457,20 @@
   // O tipo que um app cria (`opens.proprios` no manifesto): a mesma folha, o ícone do app no lugar
   // do glifo, num quadrado de 38% do quadro, e o selo na cor do app com o texto curto dele. Sem
   // texto não há selo, e o ícone identifica o arquivo sozinho. O ícone é uma URL da mesma origem;
-  // num `data:` o navegador não a carrega, e fica a folha com o selo.
-  function doApp({ cor, icone, selo: texto } = {}) {
+  // num `data:` o navegador não a carrega, e fica a folha com o selo. Com `previa`, a miniatura que
+  // o arquivo guarda ocupa o quadro no lugar da folha, e o selo fica por cima dela; quem desenha
+  // escuta o `error` da `<image>` e volta à folha.
+  function doApp({ cor, icone, selo: texto, previa } = {}) {
     const c = /^#[0-9a-f]{6}$/i.test(String(cor || '')) ? cor : TIPOS.outro.selo;
     const href = /^\/[^\s"<>]*$/.test(String(icone || '')) ? icone.replace(/&/g, '&amp;') : '';
+    const foto = /^\/[^\s"<>]*$/.test(String(previa || '')) ? previa.replace(/&/g, '&amp;') : '';
     const t = /^[A-Z0-9]{1,5}$/.test(String(texto || '')) ? texto : '';
+    if (foto) {
+      return `<svg class="tuff-arquivo tuff-arquivo--previa" ${NS}>` +
+        `<image class="tuff-arquivo-previa" href="${foto}" x="4" y="4" width="40" height="40" preserveAspectRatio="xMidYMid meet"/>` +
+        (t ? selo(t, c) : '') +
+        '</svg>';
+    }
     return `<svg class="tuff-arquivo" ${NS}>` +
       `<path d="M12.5 4H29l9 9v28.5a2.5 2.5 0 0 1-2.5 2.5h-23a2.5 2.5 0 0 1-2.5-2.5v-35A2.5 2.5 0 0 1 12.5 4Z" fill="${FOLHA}"/>` +
       `<path d="M29 4v6.5a2.5 2.5 0 0 0 2.5 2.5H38Z" fill="${DOBRA}"/>` +

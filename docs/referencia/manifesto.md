@@ -772,6 +772,15 @@ app.
 O texto curto do selo, até 5 letras maiúsculas ou números: `PRELO`. Sem ele, a folha fica sem selo,
 e o ícone do app identifica o arquivo sozinho.
 
+#### `opens.proprios[].previa`
+
+`string`, opcional.
+
+Onde o arquivo guarda a miniatura dele, para Arquivos e a área de trabalho a mostrarem no lugar da
+folha, com o selo por cima: `png` é o primeiro PNG nos primeiros 64 KB do arquivo, e `zip:<entrada>`
+é uma entrada de um arquivo ZIP (`zip:Thumbnails/thumbnail.png`, a do OpenRaster). A imagem tem até
+2 MB, em PNG, JPEG ou WebP. Um arquivo sem ela fica com a folha.
+
 ### `opens.urls`
 
 `array` de `string`, opcional.

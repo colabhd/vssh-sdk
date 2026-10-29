@@ -20,7 +20,7 @@
       "sha256": "0bf07c92217fe6ef27c9653a262e2476ae97bcb40a519f31c574652e974ef593"
     },
     "api/tuff/DESIGN.md": {
-      "sha256": "6bce1dcb1052e28bbc220803bc6002fccd239a2bb28671fc400a3a18fa5baa34"
+      "sha256": "c3f7eeeb34706790b5f2252a45678a82fe062efc0df1bfb5d11d9a68ca7975f6"
     },
     "api/tuff/docs/componentes.html": {
       "sha256": "04f4b1fa76c12e2415e530e457a42e875b05fdafdf91049c5929b43708ad8e1a"
@@ -56,7 +56,7 @@
       "sha256": "e70cd9e393b5a4abe148ab47601136e843afe3e0d3218ead9b76dcbb098732f6"
     },
     "api/tuff/tuff.js": {
-      "sha256": "3acacacde6df69bba0cd4c2c0886d8295ddc89aa22f77df38e87454c1617066b"
+      "sha256": "78961629acfdb1a19d2e4b0eadcab1b33c1fe4e22c2b6aa3ba6fb7e13be51f35"
     },
     "api/tuff/vendor/geotiff-LICENCAS.txt": {
       "sha256": "48fe558bdf8ac64674a9104c2e679400368d529dd36de972419c9d0cfc9d4a40"
@@ -65,7 +65,7 @@
       "sha256": "43e440ec551e92f28376acdecdf1b285362a85f5b4afddfb028fef2213929862"
     },
     "api/vssh-app.schema.json": {
-      "sha256": "9fb3b350a9240f49d87a55001b2683022977a1e09952e4d0319988a6e67b7082"
+      "sha256": "f71aa6e1a993b34676ff4aa1cd8cf42dff0beb0d562b478a067cbdcabe4e51c2"
     },
     "api/vssh.d.ts": {
       "sha256": "87d1745d968ecfb7ee17d5306f65013719fd9495d2678343c9eef7bb70ec3e50"
@@ -116,7 +116,7 @@
       "sha256": "c8fd408df22c5bd6905108720bd27db3b5cb26a53f152ffbcb8957f41da66682"
     },
     "docs/referencia/manifesto.md": {
-      "sha256": "04f3071d9702071d5a7629804ddbacf18cb9682af13e56b41360f8dafed88125"
+      "sha256": "8241cdbf768e2f9bcf8174357e87317e9bc68d5a307ef023f9ceb2946ed9bb04"
     },
     "docs/referencia/midia.md": {
       "sha256": "97c1bd04f2b70355c93d668872c2547395b4450df48bb5352ea99a1183d3f6d9"

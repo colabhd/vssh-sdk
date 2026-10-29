@@ -152,14 +152,16 @@ fundo com 85%, misturados com branco), e passa de 3,7:1 sobre a página com qual
 cores. As pastas da pessoa (Documentos, Downloads, Música, Imagens, Vídeos) levam o glifo gravado
 na frente, um tom abaixo dela.
 
-Um app declara no manifesto (`opens.proprios`) os tipos de arquivo que ele cria: a extensão, o
-nome, a cor e, se quiser, um ícone e um selo de até cinco letras (VSSH-380). O ícone ocupa o meio da
-folha e o selo leva a cor do app, como `capitulo-3.prelo` com o ícone do Prelo. Sem ícone do tipo
-entra o do app, e sem selo o ícone identifica o arquivo sozinho. O branco do selo passa de 4,5:1
-sobre a cor, e a instalação recusa a cor que não passa. A extensão que o ambiente já desenha (imagem, vídeo, áudio,
-PDF, documento de escritório, comprimido, código e texto) fica com o ícone do ambiente. Com dois
-apps declarando a mesma extensão vale o que abre o arquivo no duplo-clique, e sem um eleito o
-arquivo fica com a folha genérica.
+Um app declara no manifesto (`opens.proprios`) os tipos de arquivo que ele cria: a extensão, o nome,
+a cor e, se quiser, um ícone e um selo de até cinco letras (VSSH-380). O ícone ocupa o meio da folha
+e o selo leva a cor do app, como `capitulo-3.prelo` com o ícone do Prelo. Sem ícone do tipo entra o
+do app, e sem selo o ícone identifica o arquivo sozinho. O branco do selo passa de 4,5:1 sobre a
+cor, e a instalação recusa a cor que não passa. Um tipo que guarda miniatura dentro do arquivo
+(`previa`) a mostra no lugar da folha, com o selo por cima, na grade de Arquivos e na área de
+trabalho. A lista, que desenha o ícone a 16 px, fica com a folha, e o arquivo sem miniatura também.
+A extensão que o ambiente já desenha (imagem, vídeo, áudio, PDF, documento de escritório,
+comprimido, código e texto) fica com o ícone do ambiente. Com dois apps declarando a mesma extensão
+vale o que abre o arquivo no duplo-clique, e sem um eleito o arquivo fica com a folha genérica.
 
 A lixeira da área de trabalho é da mesma família: o quadro de 48 × 48 nos cinzas da folha, com a
 tampa, a alça e três sulcos gravados no corpo, e a cheia com uma folha e uma bola de papel acima da
