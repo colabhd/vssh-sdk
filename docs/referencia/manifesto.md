@@ -708,6 +708,16 @@ Com ou sem ponto; normalizado pelo portal.
 
 `array` de `string`, opcional.
 
+### `opens.dentroDe`
+
+`array` de `string`, opcional, itens no máximo 8.
+
+Nomes de pasta que marcam a raiz de um conjunto de arquivos do app, como `.obsidian` e `.lapis` num
+cofre de notas. Um arquivo de `extensions` com uma pasta dessas num ancestral abre no app pelo
+duplo-clique, inclusive num tipo que o ambiente abre no editor (texto e código); fora delas, o
+arquivo segue para onde sempre foi. A escolha da pessoa em Configurações \> Tipos de arquivo vence
+nos dois sentidos.
+
 ### `opens.default`
 
 `boolean`, opcional.
