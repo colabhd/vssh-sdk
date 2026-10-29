@@ -366,6 +366,15 @@ function montarLupa() {
     if (minha !== vista || P.tarefa !== tarefa) return;
     P.doc = doc;
     P.item = item;
+    // A página em que outro app pediu o arquivo (`vssh.arquivos.abrir(caminho, pagina)`) vale
+    // quando as páginas existem, depois da escala do `pagesinit`.
+    if (item.pagina > 1) {
+      const irNaPagina = () => {
+        P.eventBus.off('pagesinit', irNaPagina);
+        if (P.item === item) irPaginaPdf(item.pagina);
+      };
+      P.eventBus.on('pagesinit', irNaPagina);
+    }
     P.viewer.setDocument(doc);
     P.link.setDocument(doc, null);
     P.viewer.pagesRotation = 0;
@@ -693,9 +702,9 @@ function montarLupa() {
 
   // ── Abrir ───────────────────────────────────────────────────────────────
 
-  async function abrir(caminho) {
+  async function abrir(caminho, { pagina } = {}) {
     const minha = ++geracao;
-    const item = { nome: nomeDe(caminho), caminho };
+    const item = { nome: nomeDe(caminho), caminho, pagina };
     // Até a pasta chegar, a lista é o próprio arquivo: ele já aparece, e o "próximo" espera.
     fila = [item];
     indice = 0;
@@ -1238,11 +1247,12 @@ function montarLupa() {
 
   // ── A porta de entrada ──────────────────────────────────────────────────
 
-  // Uma pasta aberta na Lupa (o "Abrir com" de uma pasta) começa pela grade.
+  // Uma pasta aberta na Lupa (o "Abrir com" de uma pasta) começa pela grade. Um PDF pedido numa
+  // página abre nela.
   vssh.app.ao('abertura', (ctx) => {
     if (!ctx || !ctx.caminho) return;
     if (ctx.tipo === 'pasta') abrirPasta(ctx.caminho);
-    else abrir(ctx.caminho);
+    else abrir(ctx.caminho, { pagina: ctx.pagina });
   });
 
   sincronizarInfo();
