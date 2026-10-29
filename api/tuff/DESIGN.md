@@ -209,7 +209,8 @@ VSSH-378, VSSH-381):
 
 ## Geometria e densidade
 
-- O raio é de 4 px em controle e de 6 px em painel. Pílula só para o estado.
+- O raio é de 4 px em controle e de 6 px em painel. Pílula só para o estado e para a legenda da
+  imagem do dia na área de trabalho.
 - A densidade é a de uma ferramenta: controle com 26 px de altura sob ponteiro fino, e 44 px de
   alvo sob ponteiro grosso (`--ds-alvo`). Quem decide é o ponteiro, e não a largura.
 - O espaçamento segue a escala de 2, 4, 8, 12, 20 e 32 px (`--ds-gap-*`).
@@ -248,7 +249,8 @@ texto o mostra. A pergunta do modo claro volta com o cliente Android.
   destaque que engrossa para baixo), curvas de nível (linhas finas de mapa gravadas, com a mestra a
   cada cinco), brilho (o brilho radial no destaque, sem o segundo brilho roxo, que o anti-slop
   lista como orbes e esquema roxo e preto) e a imagem do dia do Bing, que o portal busca uma vez
-  por dia e serve da própria origem, com o crédito ao lado da escolha. Quem pula as boas-vindas
+  por dia e serve da própria origem, com o crédito ao lado da escolha e, na área de trabalho, numa
+  pílula escura no canto de cima à direita, quando nenhum ícone está lá. Quem pula as boas-vindas
   fica com os estratos. Os três fundos do ambiente são escuros o bastante para o nome de um ícone
   passar de 7:1; sobre a foto, o nome ganha uma placa escura.
 
