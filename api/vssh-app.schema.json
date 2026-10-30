@@ -376,6 +376,48 @@
         }
       }
     },
+    "desempenho": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "O que a janela do app pede do aparelho de quem usa e o que ela mede nele, na língua das classes da Aferição: `acima`, `referencia`, `abaixo` e `fora`, contra um Celeron dual-core de 4 GB de referência. A ficha da Loja diz, pelo `pede`, como o app fica no aparelho de quem a abre, e o portal só aceita as medidas que `medidas` declara. A janela lê o aparelho por `vssh.aparelho.perfil()`.",
+      "properties": {
+        "pede": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "A classe que o app pede do aparelho em cada experiência que usa. `minimo` é a classe abaixo da qual o app não funciona bem, e `recomendado` é a classe em que ele funciona como o autor quer. O Cavalete declara `\"desenhar\": { \"minimo\": \"abaixo\", \"recomendado\": \"referencia\" }`.",
+          "properties": {
+            "ambiente": { "description": "Mexer no ambiente: a CPU da página e o layout de uma lista comprida.", "type": "object", "additionalProperties": false, "properties": { "minimo": { "enum": ["acima", "referencia", "abaixo", "fora"] }, "recomendado": { "enum": ["acima", "referencia", "abaixo", "fora"] } } },
+            "desenhar": { "description": "Desenhar: a CPU e a composição de camadas em Canvas 2D e em WebGL2.", "type": "object", "additionalProperties": false, "properties": { "minimo": { "enum": ["acima", "referencia", "abaixo", "fora"] }, "recomendado": { "enum": ["acima", "referencia", "abaixo", "fora"] } } },
+            "ler": { "description": "Ler e rolar: o layout e a frequência da tela.", "type": "object", "additionalProperties": false, "properties": { "minimo": { "enum": ["acima", "referencia", "abaixo", "fora"] }, "recomendado": { "enum": ["acima", "referencia", "abaixo", "fora"] } } },
+            "video": { "description": "Vídeo: a decodificação em 1080p a 30 quadros por segundo.", "type": "object", "additionalProperties": false, "properties": { "minimo": { "enum": ["acima", "referencia", "abaixo", "fora"] }, "recomendado": { "enum": ["acima", "referencia", "abaixo", "fora"] } } }
+          }
+        },
+        "medidas": {
+          "type": "object",
+          "description": "O que a janela mede no aparelho de quem usa, por nome: `vssh.desempenho.medir(nome)` cronometra até a função que ele devolve ser chamada, e `vssh.desempenho.registrar(nome, valor)` registra um valor já medido. O shell junta as medidas em lotes, e o portal as publica por app, medida e classe do aparelho, sem quem. Um nome que não está aqui é recusado. Até 20 medidas.",
+          "propertyNames": { "pattern": "^[a-z][a-z0-9-]{0,39}$" },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["experiencia", "unidade"],
+            "properties": {
+              "experiencia": { "enum": ["ambiente", "desenhar", "ler", "video", "abrir"], "description": "A experiência que a medida conta: as quatro do `pede`, e `abrir`, o tempo até o app ficar pronto." },
+              "unidade": { "enum": ["ms", "razao"], "description": "`ms` para um tempo em milissegundos, `razao` para uma fração de 0 a 1 (os quadros perdidos de um gesto)." },
+              "promessa": {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "O que o autor promete em cada classe, na unidade da medida, como `{ \"referencia\": { \"p95\": 16.7 } }`: em 95% das vezes, a medida fica abaixo de 16,7 ms num aparelho da referência.",
+                "properties": {
+                  "acima": { "type": "object", "additionalProperties": false, "properties": { "p50": { "type": "number", "minimum": 0 }, "p95": { "type": "number", "minimum": 0 } } },
+                  "referencia": { "type": "object", "additionalProperties": false, "properties": { "p50": { "type": "number", "minimum": 0 }, "p95": { "type": "number", "minimum": 0 } } },
+                  "abaixo": { "type": "object", "additionalProperties": false, "properties": { "p50": { "type": "number", "minimum": 0 }, "p95": { "type": "number", "minimum": 0 } } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "gpu": {
       "type": "boolean",
       "default": false,

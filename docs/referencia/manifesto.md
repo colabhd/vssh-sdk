@@ -38,6 +38,7 @@ do campo na mensagem. Obrigatórios: `id`, `version`, `backend`.
 | [`instalacao`](#instalacao) | `array` de `string` | não |
 | [`resources`](#resources) | `object` | não |
 | [`recursos`](#recursos) | `object` | não |
+| [`desempenho`](#desempenho) | `object` | não |
 | [`gpu`](#gpu) | `boolean` | não |
 | [`secrets`](#secrets) | `array` de `object` | não |
 | [`icon`](#icon) | `string` | não |
@@ -566,6 +567,145 @@ do evento e até cinco rótulos que o app escolhe. Um rótulo diz de que tipo é
 língua, onde rodou), e nunca quem o causou: o portal recusa o que passa de 300 séries por app. Sem
 esta declaração o app não recebe o par, e `vssh.metricas.disponivel()` diz por quê; publicar sem o
 par não faz nada.
+
+## `desempenho`
+
+`object`, opcional, sem campo além dos listados.
+
+O que a janela do app pede do aparelho de quem usa e o que ela mede nele, na língua das classes da
+Aferição: `acima`, `referencia`, `abaixo` e `fora`, contra um Celeron dual-core de 4 GB de
+referência. A ficha da Loja diz, pelo `pede`, como o app fica no aparelho de quem a abre, e o portal
+só aceita as medidas que `medidas` declara. A janela lê o aparelho por `vssh.aparelho.perfil()`.
+
+### `desempenho.pede`
+
+`object`, opcional, sem campo além dos listados.
+
+A classe que o app pede do aparelho em cada experiência que usa. `minimo` é a classe abaixo da qual
+o app não funciona bem, e `recomendado` é a classe em que ele funciona como o autor quer. O Cavalete
+declara `"desenhar": { "minimo": "abaixo", "recomendado": "referencia" }`.
+
+#### `desempenho.pede.ambiente`
+
+`object`, opcional, sem campo além dos listados.
+
+Mexer no ambiente: a CPU da página e o layout de uma lista comprida.
+
+##### `desempenho.pede.ambiente.minimo`
+
+um dos valores listados, opcional, valores `"acima"`, `"referencia"`, `"abaixo"`, `"fora"`.
+
+##### `desempenho.pede.ambiente.recomendado`
+
+um dos valores listados, opcional, valores `"acima"`, `"referencia"`, `"abaixo"`, `"fora"`.
+
+#### `desempenho.pede.desenhar`
+
+`object`, opcional, sem campo além dos listados.
+
+Desenhar: a CPU e a composição de camadas em Canvas 2D e em WebGL2.
+
+##### `desempenho.pede.desenhar.minimo`
+
+um dos valores listados, opcional, valores `"acima"`, `"referencia"`, `"abaixo"`, `"fora"`.
+
+##### `desempenho.pede.desenhar.recomendado`
+
+um dos valores listados, opcional, valores `"acima"`, `"referencia"`, `"abaixo"`, `"fora"`.
+
+#### `desempenho.pede.ler`
+
+`object`, opcional, sem campo além dos listados.
+
+Ler e rolar: o layout e a frequência da tela.
+
+##### `desempenho.pede.ler.minimo`
+
+um dos valores listados, opcional, valores `"acima"`, `"referencia"`, `"abaixo"`, `"fora"`.
+
+##### `desempenho.pede.ler.recomendado`
+
+um dos valores listados, opcional, valores `"acima"`, `"referencia"`, `"abaixo"`, `"fora"`.
+
+#### `desempenho.pede.video`
+
+`object`, opcional, sem campo além dos listados.
+
+Vídeo: a decodificação em 1080p a 30 quadros por segundo.
+
+##### `desempenho.pede.video.minimo`
+
+um dos valores listados, opcional, valores `"acima"`, `"referencia"`, `"abaixo"`, `"fora"`.
+
+##### `desempenho.pede.video.recomendado`
+
+um dos valores listados, opcional, valores `"acima"`, `"referencia"`, `"abaixo"`, `"fora"`.
+
+### `desempenho.medidas`
+
+`object`, opcional.
+
+O que a janela mede no aparelho de quem usa, por nome: `vssh.desempenho.medir(nome)` cronometra até
+a função que ele devolve ser chamada, e `vssh.desempenho.registrar(nome, valor)` registra um valor
+já medido. O shell junta as medidas em lotes, e o portal as publica por app, medida e classe do
+aparelho, sem quem. Um nome que não está aqui é recusado. Até 20 medidas.
+
+#### `desempenho.medidas.<chave>.experiencia`
+
+um dos valores listados, obrigatório, valores `"ambiente"`, `"desenhar"`, `"ler"`, `"video"`, `"abrir"`.
+
+A experiência que a medida conta: as quatro do `pede`, e `abrir`, o tempo até o app ficar pronto.
+
+#### `desempenho.medidas.<chave>.unidade`
+
+um dos valores listados, obrigatório, valores `"ms"`, `"razao"`.
+
+`ms` para um tempo em milissegundos, `razao` para uma fração de 0 a 1 (os quadros perdidos de um
+gesto).
+
+#### `desempenho.medidas.<chave>.promessa`
+
+`object`, opcional, sem campo além dos listados.
+
+O que o autor promete em cada classe, na unidade da medida, como
+`{ "referencia": { "p95": 16.7 } }`: em 95% das vezes, a medida fica abaixo de 16,7 ms num aparelho
+da referência.
+
+##### `desempenho.medidas.<chave>.promessa.acima`
+
+`object`, opcional, sem campo além dos listados.
+
+###### `desempenho.medidas.<chave>.promessa.acima.p50`
+
+`number`, opcional, mínimo 0.
+
+###### `desempenho.medidas.<chave>.promessa.acima.p95`
+
+`number`, opcional, mínimo 0.
+
+##### `desempenho.medidas.<chave>.promessa.referencia`
+
+`object`, opcional, sem campo além dos listados.
+
+###### `desempenho.medidas.<chave>.promessa.referencia.p50`
+
+`number`, opcional, mínimo 0.
+
+###### `desempenho.medidas.<chave>.promessa.referencia.p95`
+
+`number`, opcional, mínimo 0.
+
+##### `desempenho.medidas.<chave>.promessa.abaixo`
+
+`object`, opcional, sem campo além dos listados.
+
+###### `desempenho.medidas.<chave>.promessa.abaixo.p50`
+
+`number`, opcional, mínimo 0.
+
+###### `desempenho.medidas.<chave>.promessa.abaixo.p95`
+
+`number`, opcional, mínimo 0.
 
 ## `gpu`
 

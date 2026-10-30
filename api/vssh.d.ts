@@ -824,8 +824,9 @@ declare namespace vssh {
 
   /**
    * O que o app mede no aparelho de quem usa, entregue à equipe que cuida do VSSH, para a página
-   * Desempenho do painel admin. A medida só sai com a confirmação da pessoa, num diálogo que o
-   * shell abre.
+   * Desempenho do painel admin. As medidas do dia a dia (`registrar`) vão com o campo do ambiente,
+   * contadas por classe do aparelho; o resultado de uma bancada (`mandarMedida`) só sai com a
+   * confirmação da pessoa, num diálogo que o shell abre.
    */
   namespace desempenho {
     /**
@@ -837,6 +838,15 @@ declare namespace vssh {
      * portal a guarda sem quem mandou.
      */
     function mandarMedida(medida: Record<string, unknown>): Promise<unknown>;
+    /**
+     * Registra uma vez de uma medida que o manifesto declara em `desempenho.medidas`: o tempo em
+     * ms, ou a fração de 0 a 1 numa medida de unidade `razao`. O shell junta as vezes com o campo
+     * do ambiente e as manda ao portal a cada minuto, com a classe do aparelho e sem quem usa; o
+     * portal aceita só o nome que o manifesto instalado declara. Um nome que o manifesto não
+     * declara, ou um valor fora da unidade, fica no console do shell. `vssh.desempenho.medir(nome)`
+     * devolve a função que encerra a medida e a registra.
+     */
+    function registrar(nome: string, valor: number): void;
 
     /** Este espaço não declara eventos: `ao` não aceita nome nenhum. */
     interface Eventos {}
@@ -943,6 +953,14 @@ declare namespace vssh {
      * cliente de desktop, que entrega a palavra errada ao shell. Responde como `menuDeContexto`.
      */
     function menuDoEvento(evento: MouseEvent, itens: object[]): Promise<unknown>;
+  }
+
+  namespace desempenho {
+    /**
+     * Começa a medida de tempo `nome` e devolve a função que a encerra e a registra por
+     * `registrar`, em ms. Chamar a função de novo não registra outra vez.
+     */
+    function medir(nome: string): () => void;
   }
 
   namespace midia {

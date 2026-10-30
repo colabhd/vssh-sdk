@@ -652,10 +652,12 @@
     ao: (evento, cb) => ponte.escutar('aparelho', evento, cb),
   };
 
-  // ── desempenho: O que o app mede no aparelho de quem usa, entregue à equipe que cuida do VSSH, para a página Desempenho do painel admin. A medida só sai com a confirmação da pessoa, num diálogo que o shell abre.
+  // ── desempenho: O que o app mede no aparelho de quem usa, entregue à equipe que cuida do VSSH, para a página Desempenho do painel admin. As medidas do dia a dia (`registrar`) vão com o campo do ambiente, contadas por classe do aparelho; o resultado de uma bancada (`mandarMedida`) só sai com a confirmação da pessoa, num diálogo que o shell abre.
   vssh.desempenho = {
     // Manda o resultado de uma bancada do app, como o "Medir este aparelho" dele, ao portal, junto da descrição deste aparelho e da classe de cada experiência que o shell tem. O shell pergunta antes, num diálogo com o nome do app, e a resposta é `{ mandado: true }`, ou `{ mandado: false }` quando a pessoa não quis. A medida é um objeto de até 2000 campos, com nomes de letras, números e `_`, oito níveis no máximo e o corpo inteiro abaixo de 96 KB; o portal a guarda sem quem mandou.
     mandarMedida: (medida) => ponte.chamar('desempenho.mandarMedida', { type: 'desempenho', op: 'mandar', medida: medida }, 600000),
+    // Registra uma vez de uma medida que o manifesto declara em `desempenho.medidas`: o tempo em ms, ou a fração de 0 a 1 numa medida de unidade `razao`. O shell junta as vezes com o campo do ambiente e as manda ao portal a cada minuto, com a classe do aparelho e sem quem usa; o portal aceita só o nome que o manifesto instalado declara. Um nome que o manifesto não declara, ou um valor fora da unidade, fica no console do shell. `vssh.desempenho.medir(nome)` devolve a função que encerra a medida e a registra.
+    registrar: (nome, valor) => ponte.disparar('desempenho.registrar', { type: 'desempenho', op: 'registrar', nome: nome, valor: valor }),
     // Este espaço não declara eventos: qualquer nome aqui é recusado.
     ao: (evento, cb) => ponte.escutar('desempenho', evento, cb),
   };
@@ -1209,6 +1211,23 @@
       e.preventDefault();
     });
   });
+
+  // ── A medida de um app ────────────────────────────────────────────────────────────────────
+
+  /**
+   * Começa uma medida de tempo e devolve a função que a encerra e a registra pelo
+   * `desempenho.registrar`, com o nome que o manifesto declara. Chamar a função de novo não
+   * registra outra vez, e por isso ela pode ir no `finally` e no caminho feliz ao mesmo tempo.
+   */
+  vssh.desempenho.medir = (nome) => {
+    const inicio = performance.now();
+    let feita = false;
+    return () => {
+      if (feita) return;
+      feita = true;
+      vssh.desempenho.registrar(nome, performance.now() - inicio);
+    };
+  };
 
   // ── As salas de edição: o provedor do Yjs ─────────────────────────────────────────────────
   //
