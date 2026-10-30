@@ -794,6 +794,35 @@ declare namespace vssh {
   }
 
   /**
+   * O aparelho em que a pessoa usa o ambiente, na língua das classes da Aferição: o que ele faz bem
+   * em cada experiência, contra um computador de referência, e a memória que o app pode usar nele.
+   * O app escolhe o que fazer por isso, sem medir o aparelho sozinho.
+   */
+  namespace aparelho {
+    /**
+     * O perfil deste aparelho: `{ versao, classes, elos, memoriaParaOApp }`. `classes` traz
+     * `ambiente`, `desenhar`, `ler` e `video`, cada uma `acima`, `referencia`, `abaixo`, `fora` ou
+     * `nao-medido`, contra o Celeron dual-core de 4 GB de referência. `elos` traz o índice de
+     * `cpu`, `layout`, `canvas2d` e `webgl2` (`{ valor, estado }`, 100 é o Celeron, maior é melhor)
+     * e a `placa` (`{ familia, software, estado }`). `memoriaParaOApp` são os MB que o app pode
+     * ocupar neste aparelho. Antes da primeira medida, as classes e os elos saem `nao-medido`, e o
+     * evento `mudou` avisa quando a medida chega.
+     */
+    function perfil(): Promise<unknown>;
+
+    /** Os eventos deste espaço, e o que cada um entrega ao `cb` de `ao`. */
+    interface Eventos {
+      /**
+       * O perfil novo, na forma de `perfil()`, a cada medida completa do aparelho: a que o ambiente
+       * faz sozinho depois de abrir e a de "Medir este aparelho".
+       */
+      mudou: { perfil: Record<string, unknown> };
+    }
+    /** Assina um evento deste espaço e devolve a função que cancela a assinatura. */
+    function ao<E extends keyof Eventos>(evento: E, cb: (dados: Eventos[E]) => void): () => void;
+  }
+
+  /**
    * O que o app mede no aparelho de quem usa, entregue à equipe que cuida do VSSH, para a página
    * Desempenho do painel admin. A medida só sai com a confirmação da pessoa, num diálogo que o
    * shell abre.

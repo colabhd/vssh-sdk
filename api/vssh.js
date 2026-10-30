@@ -381,6 +381,10 @@
     // O modo "O que é isto?" ligou ou desligou. O SDK atende sozinho.
     modo: ['ajuda-modo', { ligado: 'ligado' }],
   };
+  EVENTOS.aparelho = {
+    // O perfil novo, na forma de `perfil()`, a cada medida completa do aparelho: a que o ambiente faz sozinho depois de abrir e a de "Medir este aparelho".
+    mudou: ['aparelho-mudou', { perfil: 'perfil' }],
+  };
   EVENTOS.desempenho = {
   };
   EVENTOS.gpu = {
@@ -638,6 +642,14 @@
     isto: (nome, ajuda, retangulo) => ponte.disparar('ajuda.isto', { type: 'ajuda', op: 'isto', nome: nome, ajuda: ajuda, retangulo: retangulo }),
     // Assina um evento deste espaço (mostrar, gesto, fazer, modo) e devolve a função que cancela.
     ao: (evento, cb) => ponte.escutar('ajuda', evento, cb),
+  };
+
+  // ── aparelho: O aparelho em que a pessoa usa o ambiente, na língua das classes da Aferição: o que ele faz bem em cada experiência, contra um computador de referência, e a memória que o app pode usar nele. O app escolhe o que fazer por isso, sem medir o aparelho sozinho.
+  vssh.aparelho = {
+    // O perfil deste aparelho: `{ versao, classes, elos, memoriaParaOApp }`. `classes` traz `ambiente`, `desenhar`, `ler` e `video`, cada uma `acima`, `referencia`, `abaixo`, `fora` ou `nao-medido`, contra o Celeron dual-core de 4 GB de referência. `elos` traz o índice de `cpu`, `layout`, `canvas2d` e `webgl2` (`{ valor, estado }`, 100 é o Celeron, maior é melhor) e a `placa` (`{ familia, software, estado }`). `memoriaParaOApp` são os MB que o app pode ocupar neste aparelho. Antes da primeira medida, as classes e os elos saem `nao-medido`, e o evento `mudou` avisa quando a medida chega.
+    perfil: () => ponte.chamar('aparelho.perfil', { type: 'aparelho', op: 'perfil' }, 5000),
+    // Assina um evento deste espaço (mudou) e devolve a função que cancela.
+    ao: (evento, cb) => ponte.escutar('aparelho', evento, cb),
   };
 
   // ── desempenho: O que o app mede no aparelho de quem usa, entregue à equipe que cuida do VSSH, para a página Desempenho do painel admin. A medida só sai com a confirmação da pessoa, num diálogo que o shell abre.
