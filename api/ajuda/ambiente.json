@@ -93,6 +93,10 @@
       "titulo": "Levar arquivos do seu computador para o servidor"
     },
     {
+      "id": "este-aparelho",
+      "titulo": "Ver o aparelho em que você está e medir o que ele faz"
+    },
+    {
       "id": "excluir-e-lixeira",
       "titulo": "Excluir e a Lixeira"
     },

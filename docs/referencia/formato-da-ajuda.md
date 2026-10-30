@@ -52,7 +52,7 @@ existe quando o manifesto declara o campo dela.
 
 ## Os tópicos do ambiente
 
-Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 56 que existem:
+Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 57 que existem:
 
 | id | título |
 |---|---|
@@ -79,6 +79,7 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 56 q
 | `editor-de-texto` | O Editor de texto |
 | `entrar-e-sair` | Entrar, trocar de servidor e sair |
 | `enviar-arquivos` | Levar arquivos do seu computador para o servidor |
+| `este-aparelho` | Ver o aparelho em que você está e medir o que ele faz |
 | `excluir-e-lixeira` | Excluir e a Lixeira |
 | `fundo-e-cor` | Trocar o fundo da tela e a cor de destaque |
 | `gerenciador-de-tarefas` | Ver o que está rodando e encerrar um programa travado |
