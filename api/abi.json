@@ -2213,6 +2213,29 @@
         }
       }
     },
+    "desempenho": {
+      "hiperlink": "A medida vai com a descrição do aparelho, e só um vssh-app a manda.",
+      "descricao": "O que o app mede no aparelho de quem usa, entregue à equipe que cuida do VSSH, para a página Desempenho do painel admin. A medida só sai com a confirmação da pessoa, num diálogo que o shell abre.",
+      "verbos": {
+        "mandarMedida": {
+          "fio": {
+            "type": "desempenho",
+            "op": "mandar"
+          },
+          "campos": [
+            {
+              "nome": "medida",
+              "fio": "medida",
+              "tipo": "Record<string, unknown>"
+            }
+          ],
+          "responde": true,
+          "ritmo": "humano",
+          "descricao": "Manda o resultado de uma bancada do app, como o \"Medir este aparelho\" dele, ao portal, junto da descrição deste aparelho e da classe de cada experiência que o shell tem. O shell pergunta antes, num diálogo com o nome do app, e a resposta é `{ mandado: true }`, ou `{ mandado: false }` quando a pessoa não quis. A medida é um objeto de até 2000 campos, com nomes de letras, números e `_`, oito níveis no máximo e o corpo inteiro abaixo de 96 KB; o portal a guarda sem quem mandou."
+        }
+      },
+      "eventos": {}
+    },
     "gpu": {
       "hiperlink": "A GPU é da estação, e um hiperlink não roda nela.",
       "descricao": "O recurso que o sistema arbitra ao subir o app. O manifesto declara o que o app precisa em `recursos.gpu.modo`; quem decide, com o que o servidor tem, é o `vssh-app-run`, e o app pergunta o que recebeu sem conhecer `CUDA_VISIBLE_DEVICES` nem o inventário do servidor.",

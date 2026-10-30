@@ -381,6 +381,8 @@
     // O modo "O que é isto?" ligou ou desligou. O SDK atende sozinho.
     modo: ['ajuda-modo', { ligado: 'ligado' }],
   };
+  EVENTOS.desempenho = {
+  };
   EVENTOS.gpu = {
   };
 
@@ -636,6 +638,14 @@
     isto: (nome, ajuda, retangulo) => ponte.disparar('ajuda.isto', { type: 'ajuda', op: 'isto', nome: nome, ajuda: ajuda, retangulo: retangulo }),
     // Assina um evento deste espaço (mostrar, gesto, fazer, modo) e devolve a função que cancela.
     ao: (evento, cb) => ponte.escutar('ajuda', evento, cb),
+  };
+
+  // ── desempenho: O que o app mede no aparelho de quem usa, entregue à equipe que cuida do VSSH, para a página Desempenho do painel admin. A medida só sai com a confirmação da pessoa, num diálogo que o shell abre.
+  vssh.desempenho = {
+    // Manda o resultado de uma bancada do app, como o "Medir este aparelho" dele, ao portal, junto da descrição deste aparelho e da classe de cada experiência que o shell tem. O shell pergunta antes, num diálogo com o nome do app, e a resposta é `{ mandado: true }`, ou `{ mandado: false }` quando a pessoa não quis. A medida é um objeto de até 2000 campos, com nomes de letras, números e `_`, oito níveis no máximo e o corpo inteiro abaixo de 96 KB; o portal a guarda sem quem mandou.
+    mandarMedida: (medida) => ponte.chamar('desempenho.mandarMedida', { type: 'desempenho', op: 'mandar', medida: medida }, 600000),
+    // Este espaço não declara eventos: qualquer nome aqui é recusado.
+    ao: (evento, cb) => ponte.escutar('desempenho', evento, cb),
   };
 
   // ── gpu: O recurso que o sistema arbitra ao subir o app. O manifesto declara o que o app precisa em `recursos.gpu.modo`; quem decide, com o que o servidor tem, é o `vssh-app-run`, e o app pergunta o que recebeu sem conhecer `CUDA_VISIBLE_DEVICES` nem o inventário do servidor.

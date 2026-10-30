@@ -794,6 +794,27 @@ declare namespace vssh {
   }
 
   /**
+   * O que o app mede no aparelho de quem usa, entregue à equipe que cuida do VSSH, para a página
+   * Desempenho do painel admin. A medida só sai com a confirmação da pessoa, num diálogo que o
+   * shell abre.
+   */
+  namespace desempenho {
+    /**
+     * Manda o resultado de uma bancada do app, como o "Medir este aparelho" dele, ao portal, junto
+     * da descrição deste aparelho e da classe de cada experiência que o shell tem. O shell pergunta
+     * antes, num diálogo com o nome do app, e a resposta é `{ mandado: true }`, ou
+     * `{ mandado: false }` quando a pessoa não quis. A medida é um objeto de até 2000 campos, com
+     * nomes de letras, números e `_`, oito níveis no máximo e o corpo inteiro abaixo de 96 KB; o
+     * portal a guarda sem quem mandou.
+     */
+    function mandarMedida(medida: Record<string, unknown>): Promise<unknown>;
+
+    /** Este espaço não declara eventos: `ao` não aceita nome nenhum. */
+    interface Eventos {}
+    function ao<E extends keyof Eventos>(evento: E, cb: (dados: Eventos[E]) => void): () => void;
+  }
+
+  /**
    * O recurso que o sistema arbitra ao subir o app. O manifesto declara o que o app precisa em
    * `recursos.gpu.modo`; quem decide, com o que o servidor tem, é o `vssh-app-run`, e o app
    * pergunta o que recebeu sem conhecer `CUDA_VISIBLE_DEVICES` nem o inventário do servidor.
