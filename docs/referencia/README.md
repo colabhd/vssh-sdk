@@ -6,7 +6,7 @@
 ## A ponte, espaço a espaço
 
 A superfície que o SDK web (`_sdk/vssh.js`) expõe a um app com janela: `vssh.<espaco>.<verbo>()`
-para pedir, `vssh.<espaco>.ao('<evento>', cb)` para ouvir. 16 espaços, 92 verbos e 22 eventos.
+para pedir, `vssh.<espaco>.ao('<evento>', cb)` para ouvir. 16 espaços, 93 verbos e 22 eventos.
 
 | espaço | verbos | eventos | o que cobre |
 |---|---|---|---|
@@ -18,7 +18,7 @@ para pedir, `vssh.<espaco>.ao('<evento>', cb)` para ouvir. 16 espaços, 92 verbo
 | [`vssh.segredos`](segredos.md) | 3 | 0 | O cofre: o app pede uma credencial pelo nome, o shell mostra o campo e grava, e o valor nunca passa pelo app. A pessoa confere, troca e apaga o que guardou no Chaveiro, a janela do ambiente que lista as credenciais de todo app. |
 | [`vssh.salas`](salas.md) | 11 | 1 | As salas de edição: várias pessoas no mesmo documento Yjs, com o portal de relé. Toda sala é de um app, e daqui o app só alcança as dele. Quem conecta o documento é `vssh.salas.entrar(id, { Y, awarenessProtocol })`, o provedor do SDK, que pede um `bilhete` a cada conexão; os verbos abaixo são a lista, a criação, quem entra, os avisos e o bilhete. |
 | [`vssh.apps`](apps.md) | 2 | 0 | Um app usando outro. Quem oferece declara a capacidade em `provides` e o prefixo das rotas dela em `capacidades`; quem usa a declara em `requires`, quando não funciona sem ela, ou em `usa`, quando funciona. O shell faz o pedido como a mesma pessoa, depois de ela permitir, e o backend que responde recebe `X-Vssh-Chamador` com o id de quem chamou. |
-| [`vssh.pessoas`](pessoas.md) | 2 | 0 | As pessoas do ambiente, para compartilhar uma sala. Cada pessoa é `{ usuario, nome, login, iniciais }`, e o `usuario` é o que os verbos de `vssh.salas` recebem. O e-mail de ninguém sai daqui. |
+| [`vssh.pessoas`](pessoas.md) | 3 | 0 | As pessoas do ambiente, para compartilhar uma sala. Cada pessoa é `{ usuario, nome, login, iniciais }`, e o `usuario` é o que os verbos de `vssh.salas` recebem. O e-mail de ninguém sai daqui. |
 | [`vssh.configuracoes`](configuracoes.md) | 3 | 0 | A seção que o app traz a Configurações do ambiente (`contributes.settings`). Um app que a declara opcional (`contributes.settingsOptIn`) a liga e desliga daqui, de dentro dele; a escolha é por usuário e acompanha a pessoa. |
 | [`vssh.midia`](midia.md) | 3 | 2 | O que o app está tocando, o transporte que ele sabe fazer e o volume que o usuário deixou para ele. |
 | [`vssh.impressao`](impressao.md) | 1 | 0 | Imprimir pela tela do sistema: o app pede, e quem escolhe a impressora e confirma é o usuário. |

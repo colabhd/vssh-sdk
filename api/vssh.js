@@ -592,6 +592,8 @@
     eu: () => ponte.chamar('pessoas.eu', { type: 'pessoas', op: 'me' }, 5000),
     // Até 20 pessoas cujo nome ou login contém cada palavra de `texto`, sem olhar acento, em `pessoas`, e os grupos da própria pessoa que casam com `texto`, em `grupos`, cada um `{ grupo, pessoas }`.
     buscar: (texto) => ponte.chamar('pessoas.buscar', { type: 'pessoas', op: 'search', texto: texto }, 5000),
+    // A pessoa dona de cada uma de até 200 `contas` do sistema no servidor do app, pela conta com que o ambiente entra nele, em `pessoas`, cada uma `{ conta, usuario, nome, login, iniciais }`. Uma conta que nenhuma pessoa tem fica de fora. Serve ao app que dá acesso a quem está num grupo do sistema: num servidor com nomes próprios, o `login` não é a conta.
+    daConta: (contas) => ponte.chamar('pessoas.daConta', { type: 'pessoas', op: 'accounts', contas: contas }, 5000),
     // Este espaço não declara eventos: qualquer nome aqui é recusado.
     ao: (evento, cb) => ponte.escutar('pessoas', evento, cb),
   };

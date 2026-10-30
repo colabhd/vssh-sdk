@@ -643,6 +643,14 @@ declare namespace vssh {
      * `{ grupo, pessoas }`.
      */
     function buscar(texto: string): Promise<unknown>;
+    /**
+     * A pessoa dona de cada uma de até 200 `contas` do sistema no servidor do app, pela conta com
+     * que o ambiente entra nele, em `pessoas`, cada uma
+     * `{ conta, usuario, nome, login, iniciais }`. Uma conta que nenhuma pessoa tem fica de fora.
+     * Serve ao app que dá acesso a quem está num grupo do sistema: num servidor com nomes próprios,
+     * o `login` não é a conta.
+     */
+    function daConta(contas: string[]): Promise<unknown>;
 
     /** Este espaço não declara eventos: `ao` não aceita nome nenhum. */
     interface Eventos {}
