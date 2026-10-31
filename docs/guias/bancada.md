@@ -82,8 +82,11 @@ node ../vssh-sdk/scripts/vssh-bancada.mjs calibrar
 a lado, cada uma com a própria HOME e os próprios dados, e alterna as rodadas na ordem base,
 cabeça, cabeça, base: numa máquina compartilhada a mesma build varia mais de uma rodada para outra
 do que a maior parte das mudanças, e o que a máquina fizer durante a medida cai nos dois lados.
-Uma medida piora quando a cabeça passa a base em mais de 15% e da folga; na comparação pela
-mediana, ela também precisa ficar acima da pior rodada da base. O código de saída é 1 com piora.
+Uma medida piora quando a cabeça passa a base em mais de 15% e da folga. Na comparação pela
+mediana, ela também precisa ficar acima da pior rodada da base. Na das amostras, a mediana dos p95
+de cada rodada também precisa passar a da base: uma rodada em que a página perdeu a vez para a
+máquina sobe o p95 juntado sozinha, e uma piora de verdade move as duas. O código de saída é 1 com
+piora.
 
 `aa` compara a pasta com ela mesma e publica o ruído de cada medida: a diferença entre os dois
 lados e o espalhamento das rodadas. Um A/A que reprova é uma medida que a regra não sabe julgar

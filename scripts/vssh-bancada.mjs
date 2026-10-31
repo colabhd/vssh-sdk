@@ -35,10 +35,13 @@
 // Uma medida que a cena devolve como número se compara pela mediana das rodadas: ela piora quando
 // a mediana da cabeça passa a da base em mais de `--tolerancia` e em mais da folga, e fica acima da
 // pior rodada da base. Uma medida que a cena devolve como lista de amostras se compara pelo p95 das
-// amostras de todas as rodadas juntas: o p95 de uma rodada só é praticamente a amostra mais lenta
-// dela. A folga é a que a medida declara, ou meio milissegundo num tempo. Uma medida `informa` só
-// aparece na tabela. Toda unidade é "maior é pior": um tempo, uma fração de quadros perdidos, uma
-// contagem de quadros perdidos.
+// amostras de todas as rodadas juntas, porque o p95 de uma rodada só é praticamente a amostra mais
+// lenta dela; e a piora pede também a mediana dos p95 de cada rodada passando a da base, pela mesma
+// régua. Uma rodada em que a página perdeu a vez para a máquina põe muitas amostras na cauda e sobe
+// o p95 juntado sozinha, e a mediana das rodadas não se mexe por uma em quatro; uma piora de verdade
+// move as duas. A folga é a que a medida declara, ou meio milissegundo num tempo. Uma medida
+// `informa` só aparece na tabela. Toda unidade é "maior é pior": um tempo, uma fração de quadros
+// perdidos, uma contagem de quadros perdidos.
 //
 // `aa` compara a pasta com ela mesma, em dois lados, e mede o ruído de cada medida: a diferença
 // entre os dois lados, e o espalhamento das rodadas. Um A/A que reprova é uma medida que a régua
@@ -64,6 +67,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSyn
 import http from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { API, subirBackend, subirFrente, prepararCena } from './janela-de-bancada.mjs';
 
 const require = createRequire(import.meta.url);
@@ -152,17 +156,21 @@ async function calibrar(navegador) {
 
 // ─── Os lados ────────────────────────────────────────────────────────────────
 
-const temporaria = mkdtempSync(join(tmpdir(), 'vssh-bancada-'));
+let temporaria = null;
 const aLimpar = [];
 let limpo = false;
 function limpar() {
   if (limpo) return;
   limpo = true;
   for (const fn of aLimpar.reverse()) { try { fn(); } catch { /* já saiu */ } }
-  rmSync(temporaria, { recursive: true, force: true });
+  if (temporaria) rmSync(temporaria, { recursive: true, force: true });
 }
-process.on('exit', limpar);
-for (const s of ['SIGINT', 'SIGTERM']) process.on(s, () => process.exit(130));
+/** A pasta das HOMEs, dos dados e dos worktrees desta execução, e quem a apaga na saída. */
+function prepararTemporaria() {
+  temporaria = mkdtempSync(join(tmpdir(), 'vssh-bancada-'));
+  process.on('exit', limpar);
+  for (const s of ['SIGINT', 'SIGTERM']) process.on(s, () => process.exit(130));
+}
 
 /** A pasta do app num ref: um worktree do repositório dele, no caminho do app dentro do repositório. */
 function versao(app, ref, nome) {
@@ -263,7 +271,11 @@ function series(lado) {
 /** O espalhamento de uma lista de números em torno da mediana dela, como fração. */
 const espalhamento = (xs) => { const md = mediana(xs); return md > 0 ? (Math.max(...xs) - Math.min(...xs)) / md : 0; };
 
-function julgar(base, cabeca, tolerancia) {
+/**
+ * Cada medida das duas pontas, com o veredito. `base` e `cabeca` são `{ rodadas }`, com o que
+ * `rodarCenas` devolveu em cada rodada.
+ */
+export function julgar(base, cabeca, tolerancia) {
   const a = series(base);
   const b = series(cabeca);
   const linhas = [];
@@ -280,7 +292,8 @@ function julgar(base, cabeca, tolerancia) {
     if (!ra.length || !rb.length) continue;
     const ma = juntas ? p95(sa.amostras.flat()) : mediana(ra);
     const mb = juntas ? p95(sb.amostras.flat()) : mediana(rb);
-    const piorou = !def.informa && mb > ma * (1 + tolerancia) && mb - ma > folga && (juntas || mb > Math.max(...ra));
+    const passou = (a, b) => b > a * (1 + tolerancia) && b - a > folga;
+    const piorou = !def.informa && passou(ma, mb) && (juntas ? passou(mediana(ra), mediana(rb)) : mb > Math.max(...ra));
     linhas.push({
       cena: k.split('/')[0], medida: sb.chave, rotulo, unidade: def.unidade, informa: !!def.informa, juntas: !!juntas,
       base: ra, cabeca: rb, medianaBase: ma, medianaCabeca: mb, piorou,
@@ -330,6 +343,7 @@ async function placaDa(pagina) {
 
 async function main() {
   const op = argumentos(process.argv.slice(2));
+  prepararTemporaria();
   if (!caminhoDoNavegador()) throw new Error('nenhum Chrome nesta máquina (VSSH_TEST_CHROME aponta um)');
   const navegador = await abrirNavegador({ placa: op.placa });
   try {
@@ -395,8 +409,10 @@ async function medir(op, navegador) {
   return pioras.length ? 1 : 0;
 }
 
-main().then((codigo) => { limpar(); process.exit(codigo); }, (err) => {
-  console.error(err.message);
-  limpar();
-  process.exit(2);
-});
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().then((codigo) => { limpar(); process.exit(codigo); }, (err) => {
+    console.error(err.message);
+    limpar();
+    process.exit(2);
+  });
+}
