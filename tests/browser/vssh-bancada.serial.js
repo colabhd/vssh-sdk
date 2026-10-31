@@ -6,8 +6,9 @@
 // máquina, e o teste muda o custo na cabeça:
 // a piora aparece na medida de amostras (o p95 de todas as rodadas juntas) e na de um número por
 // rodada (a mediana), e a medida que só informa não reprova. O A/A, a pasta contra ela mesma, não
-// reprova e diz o ruído; a base sem cenas não tem o que comparar. A calibração leva a CPU da
-// página a perto de 100, o Celeron de referência.
+// reprova e diz o ruído; a base sem cenas não tem o que comparar. Uma cabeça que mexe na tela
+// parada reprova pela janela parada. A calibração leva a CPU da página a perto de 100, o Celeron
+// de referência.
 //
 // O arquivo é `*.serial.js`, e o `npm test` o roda sozinho, depois do resto: a bancada mede tempo,
 // e com outros arquivos em paralelo a página perde a vez no meio de uma rodada.
@@ -54,7 +55,7 @@ function repositorio(nome) {
 
 function bancada(...args) {
   const saida = join(pasta, `saida-${Math.random().toString(36).slice(2)}.json`);
-  const r = spawnSync(process.execPath, [BANCADA, ...args, '--cpu', '1', '--ciclos', '1', '--saida', saida], {
+  const r = spawnSync(process.execPath, [BANCADA, ...args, '--cpu', '1', '--ciclos', '1', '--parada', '2', '--saida', saida], {
     encoding: 'utf8', env: { ...process.env, VSSH_SDK_API: API, GITHUB_STEP_SUMMARY: '' }, timeout: 180000,
   });
   return { codigo: r.status, stdout: r.stdout, stderr: r.stderr, json: existsSync(saida) ? JSON.parse(readFileSync(saida, 'utf8')) : null };
@@ -73,10 +74,12 @@ test('o A/A, a pasta contra ela mesma, não reprova e diz o ruído de cada medid
   const r = bancada('aa', app);
   assert.equal(r.codigo, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /ruído entre os lados/);
-  assert.deepEqual(r.json.linhas.map((l) => [l.medida, l.piorou]), [['conta', false], ['soma', false], ['maior', false]]);
+  assert.deepEqual(r.json.linhas.map((l) => [l.cena, l.medida, l.piorou]),
+    [['conta', 'conta', false], ['conta', 'soma', false], ['conta', 'maior', false], ['_parada', 'layouts', false], ['_parada', 'cpu', false]]);
+  assert.deepEqual(r.json.linhas.find((l) => l.medida === 'layouts').cabeca, [0, 0]);
   // Os dois lados rodam as mesmas rodadas, e a diferença entre eles é zero; as rodadas de um lado
   // diferem pelo acréscimo da rodada.
-  for (const l of r.json.linhas) {
+  for (const l of r.json.linhas.filter((x) => x.cena === 'conta')) {
     assert.equal(l.ruido.entreLados, 0, `${l.medida}: ${JSON.stringify(l.ruido)}`);
     assert.ok(l.ruido.rodadas > 0 && l.ruido.rodadas < 0.05, `${l.medida}: ${JSON.stringify(l.ruido)}`);
   }
@@ -101,6 +104,22 @@ test('a cabeça mais lenta reprova pelas amostras e pela mediana, e a medida que
   assert.match(r.stdout, /::error::Uma conta de custo conhecido: conta a cada quadro \(p95\)/);
   // A base saiu de um worktree, e ele não fica para trás.
   assert.equal(git(app, 'worktree', 'list').trim().split('\n').length, 1);
+});
+
+test('a cabeça que mexe na tela parada reprova pela janela parada', { skip: falta }, () => {
+  const app = repositorio('parada');
+  // Um passo de meio segundo, como um relógio na barra: cada um muda a largura de um elemento, e o
+  // navegador refaz o layout no quadro seguinte.
+  const arq = join(app, 'frontend', 'cenas.js');
+  writeFileSync(arq, `${readFileSync(arq, 'utf8')}\nsetInterval(() => { document.body.style.paddingLeft = document.body.style.paddingLeft === '1px' ? '0px' : '1px'; }, 500);\n`);
+  const r = bancada('comparar', app, '--base', 'HEAD');
+  assert.equal(r.codigo, 1, r.stdout + r.stderr);
+  const layouts = r.json.linhas.find((l) => l.medida === 'layouts');
+  assert.deepEqual(layouts.base, [0, 0]);
+  assert.ok(layouts.cabeca.every((x) => x > 0), JSON.stringify(layouts));
+  assert.equal(layouts.piorou, true);
+  assert.equal(r.json.linhas.find((l) => l.medida === 'conta').piorou, false);
+  assert.match(r.stdout, /::error::A janela parada: layouts em 2 s/);
 });
 
 test('a cabeça igual à base não reprova', { skip: falta }, () => {

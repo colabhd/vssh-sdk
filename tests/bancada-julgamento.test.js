@@ -29,3 +29,10 @@ test('uma piora abaixo da folga não reprova, mesmo em todas as rodadas', () => 
   assert.ok(l.medianaCabeca > l.medianaBase * 1.15, JSON.stringify(l));
   assert.equal(l.piorou, false);
 });
+
+test('a janela parada reprova com um layout em qualquer rodada da cabeça, mesmo com a base igual', () => {
+  const parada = (...layouts) => ({ rodadas: layouts.map((valor) => ({ cenas: [{ id: '_parada', nome: 'A janela parada', medidas: { layouts: { unidade: 'contagem', zero: true, valor } } }] })) });
+  assert.equal(julgar(parada(0, 0, 0, 0), parada(0, 0, 0, 0), 0.15)[0].piorou, false);
+  assert.equal(julgar(parada(0, 0, 0, 0), parada(0, 0, 3, 0), 0.15)[0].piorou, true);
+  assert.equal(julgar(parada(2, 2, 2, 2), parada(2, 2, 2, 2), 0.15)[0].piorou, true);
+});

@@ -88,6 +88,13 @@ de cada rodada também precisa passar a da base: uma rodada em que a página per
 máquina sobe o p95 juntado sozinha, e uma piora de verdade move as duas. O código de saída é 1 com
 piora.
 
+Depois das cenas, a bancada deixa a janela parada e conta pelo CDP os layouts e o tempo de CPU da
+página em 10 s (`--parada <s>` muda a janela, e `--parada 0` a desliga). Antes de contar, ela
+espera metade desse tempo, para o que a última cena agendou terminar. Uma janela parada não faz
+layout: sem tecla, rolagem ou evento, nada se anima sozinho e nada redesenha a tela. Por isso
+qualquer layout numa rodada da cabeça reprova, mesmo que a base também o tenha. O tempo de CPU só
+informa, porque o protocolo do CDP e o coletor de lixo também caem nele.
+
 `aa` compara a pasta com ela mesma e publica o ruído de cada medida: a diferença entre os dois
 lados e o espalhamento das rodadas. Um A/A que reprova é uma medida que a regra não sabe julgar
 naquela máquina, e a saída é dar folga a ela ou fazer a cena medir mais vezes.

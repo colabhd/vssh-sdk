@@ -12,6 +12,7 @@
 //   --placa <perfil>    `software` (SwiftShader, o padrão, a placa de um runner) ou `padrao`
 //   --tolerancia <x>    a fração que a cabeça pode passar da base; o padrão é 0,15
 //   --prazo <min>       o teto de uma rodada, em minutos; o padrão é 20
+//   --parada <s>        a janela parada depois das cenas, medida pelo CDP; o padrão é 10, e 0 a desliga
 //   --saida <arquivo>   o JSON com as rodadas cruas e o julgamento
 //
 // ─── As cenas ────────────────────────────────────────────────────────────────
@@ -42,6 +43,12 @@
 // move as duas. A folga é a que a medida declara, ou meio milissegundo num tempo. Uma medida
 // `informa` só aparece na tabela. Toda unidade é "maior é pior": um tempo, uma fração de quadros
 // perdidos, uma contagem de quadros perdidos.
+//
+// Depois das cenas, a janela fica parada: metade de `--parada` para o que a última cena agendou
+// terminar, e então `--parada` segundos em que o CDP conta os layouts e o tempo de CPU da página.
+// A janela parada não faz layout (sem tecla, rolagem ou evento, nada se anima sozinho), e por isso
+// essa medida reprova quando qualquer rodada da cabeça tem um layout, mesmo que a base também
+// tenha. O tempo de CPU só informa: o protocolo do CDP e o coletor de lixo também caem nele.
 //
 // `aa` compara a pasta com ela mesma, em dois lados, e mede o ruído de cada medida: a diferença
 // entre os dois lados, e o espalhamento das rodadas. Um A/A que reprova é uma medida que a régua
@@ -78,7 +85,7 @@ const avisar = (texto) => process.stderr.write(`${texto}\n`);
 
 function argumentos(argv) {
   const [modo, ...resto] = argv;
-  const r = { modo, app: null, base: null, cabeca: null, ciclos: 2, cpu: 'calibrar', placa: 'software', tolerancia: 0.15, prazo: 20, saida: null };
+  const r = { modo, app: null, base: null, cabeca: null, ciclos: 2, cpu: 'calibrar', placa: 'software', tolerancia: 0.15, prazo: 20, parada: 10, saida: null };
   const valor = (i) => { if (resto[i + 1] === undefined) throw new Error(`${resto[i]} pede um valor`); return resto[i + 1]; };
   for (let i = 0; i < resto.length; i++) {
     const a = resto[i];
@@ -89,6 +96,7 @@ function argumentos(argv) {
     else if (a === '--placa') r.placa = valor(i++);
     else if (a === '--tolerancia') r.tolerancia = Number(valor(i++));
     else if (a === '--prazo') r.prazo = Number(valor(i++));
+    else if (a === '--parada') r.parada = Number(valor(i++));
     else if (a === '--saida') r.saida = valor(i++);
     else if (!a.startsWith('--') && !r.app) r.app = a;
     else throw new Error(`argumento inesperado: ${a}`);
@@ -98,6 +106,7 @@ function argumentos(argv) {
   if (modo === 'comparar' && !r.base) throw new Error('comparar pede --base <ref>');
   if (!(r.ciclos >= 1)) throw new Error('--ciclos é um inteiro de 1 para cima');
   if (r.cpu !== 'calibrar' && !(Number(r.cpu) >= 1)) throw new Error('--cpu é calibrar ou um multiplicador de 1 para cima');
+  if (!(r.parada >= 0)) throw new Error('--parada é um número de segundos, de 0 para cima');
   return r;
 }
 
@@ -205,9 +214,11 @@ async function prepararLado(nome, raiz) {
 
 /**
  * Carrega a janela de um lado e pede as cenas a ela. A janela registra as cenas quando o código
- * dela roda, e um pedido que chega antes volta sem nenhuma: o pedido se repete por até 30 s.
+ * dela roda, e um pedido que chega antes volta sem nenhuma: o pedido se repete por até 30 s. Com
+ * as cenas feitas, a janela fica parada `paradaS` segundos, e a contagem entra no resultado como
+ * mais uma cena.
  */
-async function rodada(pagina, lado, cpu, prazoMin) {
+async function rodada(pagina, lado, cpu, prazoMin, paradaS) {
   await pagina.enviar('Page.navigate', { url: lado.url });
   const fimDaCarga = Date.now() + 30000;
   while (!(await pagina.avaliar("typeof carregar === 'function' && typeof pedirCenas === 'function'").catch(() => false))) {
@@ -234,12 +245,34 @@ async function rodada(pagina, lado, cpu, prazoMin) {
         await dormir(250);
       }
       if (b.erro) throw new Error(`as cenas de ${lado.nome} falharam: ${b.erro}`);
+      if (b.resultado.cenas.length && paradaS > 0) b.resultado.cenas.push(await parada(pagina, paradaS));
       if (b.resultado.cenas.length || Date.now() > fimDoRegistro) return b.resultado;
       await dormir(300);
     }
   } finally {
     await pagina.enviar('Emulation.setCPUThrottlingRate', { rate: 1 });
   }
+}
+
+/**
+ * A janela parada, na forma de uma cena. O id começa por um sublinhado, que o SDK recusa num id de
+ * cena: nenhuma cena do app tem o mesmo. `zero` diz ao julgamento que qualquer valor na cabeça
+ * reprova.
+ */
+async function parada(pagina, segundos) {
+  const metricas = async () => Object.fromEntries((await pagina.enviar('Performance.getMetrics')).metrics.map((m) => [m.name, m.value]));
+  await dormir(segundos * 500);
+  const antes = await metricas();
+  await dormir(segundos * 1000);
+  const depois = await metricas();
+  return {
+    id: '_parada',
+    nome: 'A janela parada',
+    medidas: {
+      layouts: { rotulo: `layouts em ${segundos} s`, unidade: 'contagem', zero: true, valor: depois.LayoutCount - antes.LayoutCount },
+      cpu: { rotulo: `CPU em ${segundos} s`, unidade: 'ms', informa: true, valor: (depois.TaskDuration - antes.TaskDuration) * 1000 },
+    },
+  };
 }
 
 // ─── O julgamento ────────────────────────────────────────────────────────────
@@ -293,7 +326,8 @@ export function julgar(base, cabeca, tolerancia) {
     const ma = juntas ? p95(sa.amostras.flat()) : mediana(ra);
     const mb = juntas ? p95(sb.amostras.flat()) : mediana(rb);
     const passou = (a, b) => b > a * (1 + tolerancia) && b - a > folga;
-    const piorou = !def.informa && passou(ma, mb) && (juntas ? passou(mediana(ra), mediana(rb)) : mb > Math.max(...ra));
+    const piorou = def.zero ? rb.some((x) => x > 0)
+      : !def.informa && passou(ma, mb) && (juntas ? passou(mediana(ra), mediana(rb)) : mb > Math.max(...ra));
     linhas.push({
       cena: k.split('/')[0], medida: sb.chave, rotulo, unidade: def.unidade, informa: !!def.informa, juntas: !!juntas,
       base: ra, cabeca: rb, medianaBase: ma, medianaCabeca: mb, piorou,
@@ -369,6 +403,7 @@ async function medir(op, navegador) {
 
   const pagina = await navegador.novaPagina('about:blank');
   await pagina.enviar('Page.enable');
+  await pagina.enviar('Performance.enable');
   await pagina.enviar('Page.bringToFront');
   const placa = await placaDa(pagina);
   let n = 0;
@@ -377,7 +412,7 @@ async function medir(op, navegador) {
     for (const lado of [base, cabeca, cabeca, base]) {
       n++;
       avisar(`rodada ${n} de ${total}: ${lado.nome}`);
-      const r = await rodada(pagina, lado, cpu.multiplicador, op.prazo);
+      const r = await rodada(pagina, lado, cpu.multiplicador, op.prazo, op.parada);
       if (!r.cenas.length) {
         if (lado === cabeca) throw new Error('a janela da cabeça não registrou nenhuma cena (vssh.desempenho.cenas)');
         resumir('Bancada do aparelho fraco', `A base \`${op.base}\` não registra cenas; não há o que comparar.\n`);
