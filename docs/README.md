@@ -55,6 +55,7 @@ seguinte.
 | [Métricas e erros](guias/metricas-e-erros.md) | Contar e medir o que o backend faz, mandar exceções ao log do ambiente por `vssh.metricas` com `recursos.metricas`, o erro da janela que o SDK web já relata sozinho, e o que um rótulo pode carregar. |
 | [Um motor fora do pacote](guias/motor.md) | Entregar ao servidor o que o app usa e não cabe no pacote (um ambiente com PyTorch, os pesos de um modelo), baixado uma vez por servidor e achado por `VSSH_MOTOR_<NOME>`. |
 | [A ajuda do seu app](guias/ajuda.md) | Um livro do app na Ajuda do ambiente: a pasta de tópicos, o que o `cobre` declara e o nível que sai dele, os passos que apontam a sua janela, `vssh.ajuda.abrir`, e o que o publish confere. |
+| [A bancada do seu app](guias/bancada.md) | As cenas que medem a janela no aparelho fraco, o "Medir este aparelho" que roda as mesmas cenas, e a comparação de cada PR com a base no CI, com a CPU calibrada no Celeron de referência. |
 | [Publicar](guias/publicar.md) | Empacotar, publicar no repositório de artefatos e instalar num servidor, por CI ou à mão. |
 
 ## Aparência

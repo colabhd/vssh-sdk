@@ -1,0 +1,133 @@
+name: Bancada de um app (reusable)
+
+# Workflow reutilizável que o CI de um repositório de app chama para medir a janela no aparelho
+# fraco (`scripts/vssh-bancada.mjs`): a base e a cabeça lado a lado, com a CPU da página
+# calibrada no Celeron de referência, e a tabela no resumo do run. Este repositório é público, e o
+# checkout dele sai no `github.token` do chamador, sem PAT.
+#
+#   on:
+#     pull_request:
+#     push:
+#       branches: [main]
+#   jobs:
+#     bancada:
+#       uses: colabhd/vssh-sdk/.github/workflows/_bancada-app-reusable.yml@main
+#       with:
+#         runner: colabhd-franca
+#
+# A base é o ramo de destino num PR e o commit anterior num push; `base` escolhe outra. `modo: aa`
+# mede a cabeça contra ela mesma e publica o ruído de cada medida. A janela registra as cenas dela
+# (`vssh.desempenho.cenas`), e um app com dados a preparar traz `bancada/preparar.mjs`; ver
+# `docs/guias/bancada.md`.
+#
+# A base roda o que está commitado nela, sem build e sem `npm install`, como o pacote publicado
+# roda no servidor: o `dist/` vai commitado.
+
+on:
+  workflow_call:
+    inputs:
+      app_dir:
+        description: 'Diretório do app dentro do repo chamador'
+        type: string
+        default: '.'
+      modo:
+        description: 'comparar (a base contra a cabeça) ou aa (a cabeça contra ela mesma, com o ruído)'
+        type: string
+        default: 'comparar'
+      base:
+        description: 'O ref da base; vazio é o ramo de destino num PR e o commit anterior num push'
+        type: string
+        default: ''
+      ciclos:
+        description: 'Ciclos de quatro rodadas (base, cabeça, cabeça, base)'
+        type: number
+        default: 2
+      cpu:
+        description: 'calibrar (a CPU da página em 100, o Celeron) ou um multiplicador fixo'
+        type: string
+        default: 'calibrar'
+      placa:
+        description: 'software (SwiftShader) ou padrao (a placa da máquina, quando há)'
+        type: string
+        default: 'software'
+      tools_ref:
+        description: 'Ref deste repositório de onde puxar a bancada'
+        type: string
+        default: 'main'
+      # O runner do job, como no publish: o padrão é o da nuvem, e um app de uma organização sem
+      # orçamento de Actions passa o scale set dela (`colabhd-franca`, no colabhd).
+      runner:
+        description: 'O runner do job (runs-on): o padrão é o da nuvem; ex.: colabhd-franca'
+        type: string
+        default: 'ubuntu-latest'
+
+jobs:
+  bancada:
+    name: Bancada do aparelho fraco
+    runs-on: ${{ inputs.runner }}
+    # Uma comparação de dois ciclos leva de cinco a quinze minutos. O teto é para a rodada que
+    # trava, que sem ele seguraria o runner por seis horas.
+    timeout-minutes: 45
+    steps:
+      - name: Checkout do app (repo chamador), com o histórico para a base
+        uses: actions/checkout@v5
+        with:
+          path: app
+          fetch-depth: 0
+
+      - name: Checkout da bancada do vssh-sdk (scripts, api, runtime)
+        uses: actions/checkout@v5
+        with:
+          repository: colabhd/vssh-sdk
+          ref: ${{ inputs.tools_ref }}
+          sparse-checkout: |
+            scripts
+            api
+            runtime
+          path: _tools
+
+      - name: Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      # A imagem de um runner próprio não traz o Chrome; o `ubuntu-latest` traz.
+      - name: Chrome
+        run: |
+          for c in google-chrome google-chrome-stable chromium chromium-browser; do
+            command -v "$c" >/dev/null && exit 0
+          done
+          curl -fsSLo "$RUNNER_TEMP/chrome.deb" https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends "$RUNNER_TEMP/chrome.deb"
+          google-chrome --version
+
+      - name: A bancada
+        working-directory: app
+        env:
+          MODO: ${{ inputs.modo }}
+          APP_DIR: ${{ inputs.app_dir }}
+          CICLOS: ${{ inputs.ciclos }}
+          CPU: ${{ inputs.cpu }}
+          PLACA: ${{ inputs.placa }}
+          BASE_PEDIDA: ${{ inputs.base }}
+          EVENTO: ${{ github.event_name }}
+          DESTINO: ${{ github.base_ref }}
+          ANTERIOR: ${{ github.event.before }}
+        run: |
+          if [ "$MODO" = aa ]; then
+            node ../_tools/scripts/vssh-bancada.mjs aa "$APP_DIR" --ciclos "$CICLOS" --cpu "$CPU" --placa "$PLACA" --saida "$RUNNER_TEMP/bancada.json"
+            exit $?
+          fi
+          BASE="$BASE_PEDIDA"
+          if [ -z "$BASE" ] && [ "$EVENTO" = pull_request ]; then BASE="origin/$DESTINO"; fi
+          if [ -z "$BASE" ] && [ "$EVENTO" = push ]; then BASE="$ANTERIOR"; fi
+          if [ -z "$BASE" ] || [ "$BASE" = 0000000000000000000000000000000000000000 ]; then BASE=origin/main; fi
+          node ../_tools/scripts/vssh-bancada.mjs comparar "$APP_DIR" --base "$BASE" --ciclos "$CICLOS" --cpu "$CPU" --placa "$PLACA" --saida "$RUNNER_TEMP/bancada.json"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bancada-${{ inputs.modo }}
+          path: ${{ runner.temp }}/bancada.json
+          if-no-files-found: ignore

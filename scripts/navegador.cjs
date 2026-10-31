@@ -174,6 +174,15 @@ const ARGS = [
   '--remote-debugging-port=0',       // porta efêmera: duas suítes em paralelo não brigam
 ];
 
+// O perfil da placa de vídeo, que a bancada de um app escolhe (`scripts/vssh-bancada.mjs`). Sem
+// perfil o Chrome sobe sem placa, como sempre. `software` liga o SwiftShader, a placa por software
+// de um runner sem GPU, com o WebGL que um app de desenho mede; `padrao` deixa o Chrome usar a
+// placa da máquina, quando ela tem uma.
+const PLACAS = {
+  software: (args) => [...args, '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+  padrao: (args) => args.filter((a) => a !== '--disable-gpu'),
+};
+
 class Navegador {
   constructor(proc, dirTemp, wsUrl) {
     this._proc = proc;
@@ -253,12 +262,14 @@ async function apagarPerfil(dir) {
  * aperta é a que menos se controla: num runner compartilhado, com os arquivos de teste rodando em
  * paralelo, um Chrome frio pode levar mais que os 20 s que este número já foi.
  */
-async function abrirNavegador({ timeoutMs = Number(process.env.VSSH_TEST_CHROME_TIMEOUT) || 45000 } = {}) {
+async function abrirNavegador({ timeoutMs = Number(process.env.VSSH_TEST_CHROME_TIMEOUT) || 45000, placa = null } = {}) {
   const exe = caminhoDoNavegador();
   if (!exe) throw new Error(motivoDoSkip());
+  if (placa && !PLACAS[placa]) throw new Error(`placa desconhecida: ${placa} (software ou padrao)`);
+  const args = placa ? PLACAS[placa](ARGS) : ARGS;
 
   const dirTemp = fs.mkdtempSync(path.join(os.tmpdir(), 'vssh-cdp-'));
-  const proc = spawn(exe, [...ARGS, `--user-data-dir=${dirTemp}`, 'about:blank'], {
+  const proc = spawn(exe, [...args, `--user-data-dir=${dirTemp}`, 'about:blank'], {
     stdio: ['ignore', 'ignore', 'pipe'],
   });
 

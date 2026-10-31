@@ -1,0 +1,9 @@
+{
+  "id": "bancada-de-teste",
+  "name": "Bancada de teste",
+  "version": "1.0.0",
+  "category": "Utility",
+  "description": "O app de tests/browser/vssh-bancada.test.js: uma janela que registra uma cena de custo conhecido.",
+  "backend": { "runtime": "node", "transport": "socket", "entrypoint": "backend/server.js", "healthcheckPath": "/saude" },
+  "window": { "title": "Bancada de teste", "width": 400, "height": 300 }
+}
