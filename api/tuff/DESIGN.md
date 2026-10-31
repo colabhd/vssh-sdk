@@ -214,9 +214,26 @@ confunda no menu:
 | Supervisor de Apps, Motor de Impressão | aço, #9aaeb8 a #5f7782 | o manômetro, a impressora |
 
 A janela de um embutido mostra o ícone do app na barra e no cabeçalho, o mesmo do menu iniciar, e
-um app fixado na barra também. Um app que declara só `icon`, um arquivo pronto, aparece como ele é,
-com o arredondamento por CSS de cada superfície. O guia "O ícone do app" do vssh-sdk mostra a grade, a luz e como exportar as
+um app fixado na barra também. Uma janela que pertence a um app sem ser a principal dele (o
+Navegador sem motor escolhido, o seletor de arquivos no celular) declara `app` e mostra o mesmo
+ícone. Um app que declara só `icon`, um arquivo pronto, aparece como ele é, com o arredondamento por
+CSS de cada superfície. O guia "O ícone do app" do vssh-sdk mostra a grade, a luz e como exportar as
 camadas.
+
+As janelas do ambiente que não são app dividem a barra e o Alt+Tab com os apps, e têm ícone da
+mesma família: o glifo em `vssh-client/icones/<nome>/glifo.svg`, montado pelo portal com o mesmo
+compositor, e a janela o declara pelo nome (`icone: { ambiente: '<nome>' }`). Elas ficam fora do
+menu, e por isso podem repetir o matiz de um app quando o sentido pede: o âmbar do aviso no Log, o
+azul da marca nas Boas-vindas.
+
+| janela | matiz | glifo |
+|---|---|---|
+| Configurações | aço, #8a9ba6 a #4f626d, com o branco quente | três controles deslizantes |
+| Gerenciador de tarefas | lima, #d4f07a a #6fa82a | as três barras de uso |
+| Log | âmbar, #ffcf6b a #d98c1c, com o branco quente | a hora e a mensagem de três registros |
+| Comprimido | pardo, #d9a06a a #8f5a30, com o branco quente | a caixa com o zíper |
+| Propriedades | areia, #f7ead0 a #c9ab76 | a etiqueta com o furo |
+| Boas-vindas | azul, #2f80ea, com o branco quente | a marca do VSSH, o v com o cursor |
 
 ## Diálogos e notificações
 
