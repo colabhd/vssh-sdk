@@ -22,11 +22,17 @@
     "api/electron.js": {
       "sha256": "802402efad47701fd6b50d90404fd04aae3b477820a720224ddd8ed3fa148269"
     },
+    "api/icone/composicao-de-icone.ts": {
+      "sha256": "26235f106c705a38b15b8c3b64aef29149e86029b408aca5998f6f2c7d282c5e"
+    },
+    "api/icone/package.json": {
+      "sha256": "5a065fe7d8eab2a582f428e11c2ea63aaf70607a54f69cfd5c711b5c53d91b32"
+    },
     "api/tauri.js": {
       "sha256": "0bf07c92217fe6ef27c9653a262e2476ae97bcb40a519f31c574652e974ef593"
     },
     "api/tuff/DESIGN.md": {
-      "sha256": "c3f7eeeb34706790b5f2252a45678a82fe062efc0df1bfb5d11d9a68ca7975f6"
+      "sha256": "d72243607c6e436bb0e8265bd05eec662c50d10d3e36c24716dc0cc0b216e384"
     },
     "api/tuff/docs/componentes.html": {
       "sha256": "04f4b1fa76c12e2415e530e457a42e875b05fdafdf91049c5929b43708ad8e1a"
@@ -71,7 +77,7 @@
       "sha256": "43e440ec551e92f28376acdecdf1b285362a85f5b4afddfb028fef2213929862"
     },
     "api/vssh-app.schema.json": {
-      "sha256": "daf7ee56a1645e0e9e90a9075c5bffa961d5c874eef99abb5bdde8cea2ac75fe"
+      "sha256": "8eacb3852f8819552c0c9883a82c859c3d9f925a8a26fffd1419e238a8ac07c4"
     },
     "api/vssh.d.ts": {
       "sha256": "739acc75b37b5e485f720091eac46592edb3d4c15d33b28ae8ddaf1172b219a6"
@@ -128,7 +134,7 @@
       "sha256": "c8fd408df22c5bd6905108720bd27db3b5cb26a53f152ffbcb8957f41da66682"
     },
     "docs/referencia/manifesto.md": {
-      "sha256": "09b413236d62fad11fc08e33b62ea1eeb4d2b8415695a6c0cd2cd736affff6db"
+      "sha256": "599351916cf1d72487ead22f68c90013bb3e3deefb4c43d9943686d7c858ba0e"
     },
     "docs/referencia/midia.md": {
       "sha256": "97c1bd04f2b70355c93d668872c2547395b4450df48bb5352ea99a1183d3f6d9"

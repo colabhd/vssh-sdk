@@ -42,6 +42,7 @@ do campo na mensagem. Obrigatórios: `id`, `version`, `backend`.
 | [`gpu`](#gpu) | `boolean` | não |
 | [`secrets`](#secrets) | `array` de `object` | não |
 | [`icon`](#icon) | `string` | não |
+| [`icone`](#icone) | `object` | não |
 | [`category`](#category) | `string` | não |
 | [`description`](#description) | `string` | não |
 | [`developer`](#developer) | `object` | não |
@@ -752,7 +753,42 @@ quem sabe degradar é o app.
 
 `string`, opcional.
 
-Caminho relativo à raiz do pacote (.svg/.png/.jpg).
+O ícone pronto, um arquivo só: caminho relativo à raiz do pacote (.svg/.png/.jpg). Com `icone`
+declarado, o ambiente monta as camadas e este arquivo fica para um portal anterior a elas; o
+`vssh-app-publish` o gera montado quando o app não traz um.
+
+## `icone`
+
+`object`, opcional, sem campo além dos listados.
+
+O ícone em camadas, que o ambiente monta: o app entrega o glifo e, se quiser, um fundo, e o sistema
+põe a máscara (o quadrado de raio 14 no quadro de 64) e o acabamento (o fio de 1 px por dentro da
+borda), iguais em todo app. Sem `fundo`, entra o da família: o #15171c com a luz radial do alto à
+esquerda. O quadro é de 64 × 64, e o glifo mora na área viva de 46 × 46, centrada: o círculo pede Ø
+46, o quadrado 40 × 40, e a forma deitada ou em pé 46 × 36. A grade, a luz e a paleta estão no guia
+"O ícone do app" do vssh-sdk.
+
+### `icone.glifo`
+
+`string`, obrigatório.
+
+A camada de cima, com o fundo transparente: caminho relativo à raiz do pacote de um SVG ou PNG de 64
+× 64. Ela leva a luz do alto à esquerda e o reflexo curvo daquele lado; a sombra, a borda e o
+arredondamento são do sistema.
+
+### `icone.fundo`
+
+`string`, opcional.
+
+A camada de baixo: um arquivo de 64 × 64 relativo à raiz do pacote, que pode sangrar até a borda, ou
+uma cor `#rrggbb`. Sem ele, o fundo da família.
+
+### `icone.monocromatico`
+
+`string`, opcional.
+
+Reservado: o glifo numa cor só, para uma superfície que ainda não existe. O ambiente aceita o campo
+e não o lê.
 
 ## `category`
 

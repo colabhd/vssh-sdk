@@ -168,6 +168,55 @@ tampa, a alça e três sulcos gravados no corpo, e a cheia com uma folha e uma b
 tampa. Ela não leva a cor de destaque. Na lateral de Arquivos ela é o glifo de traço, porque ali é
 interface.
 
+## Ícones de app
+
+O ícone de um app é a terceira família, ao lado dos glifos de traço e dos ícones de arquivo. Ele diz
+que app é aquele no menu iniciar, no Launchpad, na barra, na Loja e no Alt+Tab, e por isso tem cor e
+volume. O ambiente o monta em camadas (`icone` no manifesto, `src/utils/composicao-de-icone.ts`): o
+app entrega o glifo e, se quiser, um fundo, e o sistema põe a máscara e o acabamento. É a parte do
+sistema que deixa todos com a mesma forma, em todo tamanho e em toda superfície.
+
+| camada | de quem | o que é |
+|---|---|---|
+| fundo | do app, ou da família | sem declaração, o #15171c com a luz radial do alto à esquerda (#2a2e38 no centro dela); um app pode trazer um arquivo, que sangra até a borda, ou uma cor |
+| glifo | do app | o desenho, com o fundo transparente |
+| máscara | do sistema | o quadrado de raio 14 no quadro de 64, 22% do lado |
+| acabamento | do sistema | um fio de 1 px por dentro da borda, branco a 16% em cima e preto a 30% embaixo |
+
+O quadro é de 64 × 64. O glifo mora na área viva de 46 × 46, centrada, e cada forma tem a keyline
+dela, porque um círculo e um quadrado da mesma largura não parecem do mesmo tamanho: o círculo pede
+Ø 46, o quadrado 40 × 40, e a forma deitada ou em pé 46 × 36. Um disco cheio fica abaixo da keyline,
+como o globo do Navegador, de Ø 42, porque pesa mais que um anel.
+
+A luz vem do alto à esquerda, a mesma do fundo. Cada forma clareia para lá e leva o reflexo curvo
+daquele lado, um traço branco entre 55% e 75%. O branco quente (#f5f2ea) é o material comum: o pingo
+do Cavalete, o aro da Lupa, a alça da Loja. Um glifo tem duas formas, no máximo três, porque a 22 px
+uma quarta vira sujeira. A sombra, a borda e o arredondamento ficam com o sistema, e um glifo que os
+desenha sai com dois de cada.
+
+Cada app tem um matiz, e os matizes se espalham pelo círculo das cores para que nenhum par se
+confunda no menu:
+
+| app | matiz | glifo |
+|---|---|---|
+| Cavalete | vermelhão, #f26c43 | o traço do pincel e o pingo |
+| Ajuda | vermelho, #e2453f, com o branco quente | a boia |
+| Arquivos | ocre, #f0a432 | a pasta com a folha |
+| Palco | âmbar, #ffd166 a #e5801a | o triângulo num gesto só e o pingo |
+| Terminal | verde do fósforo, #3ddc84, com o branco quente | o prompt e o cursor, com o ladrilho de tela |
+| Loja de apps | verde-azulado, #2bb89c | a sacola |
+| Lupa | ciano, #3fc1d0, com o branco quente | a lente |
+| Agente do sistema | céu, #4fb8e8 | a engrenagem |
+| Navegador | azul, #2f80ea | o globo |
+| Lápis | ultramarino, #2a45c9 a #7d98ff, com a pirita | o l cursivo |
+| Editor de texto | violeta, #8f63ec, com o branco quente | as chaves e o cursor |
+| Chaveiro | rosa, #e0508a | a chave |
+| Supervisor de Apps, Motor de Impressão | aço, #9aaeb8 a #5f7782 | o manômetro, a impressora |
+
+Um app que declara só `icon`, um arquivo pronto, aparece como ele é, com o arredondamento por CSS de
+cada superfície. O guia "O ícone do app" do vssh-sdk mostra a grade, a luz e como exportar as
+camadas.
+
 ## Diálogos e notificações
 
 As pranchetas Diálogos, Avisos, A central e Som do protótipo desenham estas regras (VSSH-377,
@@ -264,7 +313,9 @@ a resposta já está dada:
 - ícones de traço fino de uma família só, na interface: ficam, pelo motivo da identidade acima. Os
   ícones de arquivo são cheios e coloridos, e a seção deles diz por quê;
 - escuro por padrão: fica, pelo motivo da seção Escuro;
-- fio colorido à esquerda: fica só na dica, onde ele carrega a severidade.
+- fio colorido à esquerda: fica só na dica, onde ele carrega a severidade;
+- degradê nos ícones de app: fica, porque é a luz do alto à esquerda que todo glifo e o fundo da
+  família dividem, e é ela que faz a suíte parecer uma família.
 
 ## Para quem escreve um app
 
