@@ -245,6 +245,40 @@
   .tuff-ico--sm { width: 14px; height: 14px; }
   .tuff-ico--lg { width: 20px; height: 20px; }
 
+  /* As animações de um ícone. Cada uma responde a um gesto ou a um estado que
+     mudou, e dura o tempo de dizer o que mudou. As de uma vez entram pelo
+     `TuffIcones.animar`, que tira a classe no fim; o giro e a meia volta seguem
+     um atributo do botão (`aria-busy`, `aria-expanded`, `open`).
+
+       --volta     uma volta, no clique do Atualizar
+       --gira      gira enquanto o botão está `aria-busy`
+       --abre      meia volta da seta quando a seção abre
+       --desenha   o visto se desenha do canto ao fim do traço
+       --cai       a seta do download desce até a bandeja, que fica parada
+       --balanca   o sino balança quando chega um aviso
+
+     As durações saem dos tokens multiplicadas, e valem zero com o movimento
+     reduzido e com o ajuste "Animações e sombras" desligado. */
+  .tuff-ico--volta { animation: tuff-volta calc(var(--tuff-dur) * 3) var(--tuff-ease-out); }
+  .tuff-ico--girando,
+  [aria-busy="true"] > .tuff-ico--gira { animation: tuff-girar .9s linear infinite; }
+  .tuff-ico--abre { transition: transform var(--tuff-dur) var(--tuff-ease); }
+  [aria-expanded="true"] > .tuff-ico--abre,
+  [open] > summary > .tuff-ico--abre { transform: rotate(180deg); }
+  .tuff-ico--desenha { stroke-dasharray: 1; animation: tuff-desenhar calc(var(--tuff-dur) * 2) var(--tuff-ease-out) both; }
+  .tuff-ico-seta { animation: var(--tuff-ico-seta, none) calc(var(--tuff-dur) * 2.5) var(--tuff-ease-out) both; }
+  .tuff-ico--cai { --tuff-ico-seta: tuff-cair; }
+  .tuff-ico--balanca { transform-origin: 50% 12%; animation: tuff-balancar calc(var(--tuff-dur) * 4) var(--tuff-ease-out); }
+  @keyframes tuff-volta { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+  @keyframes tuff-desenhar { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+  @keyframes tuff-cair { 0% { transform: translateY(-5px); opacity: 0; } 60% { opacity: 1; } 100% { transform: translateY(0); } }
+  @keyframes tuff-balancar { 20% { transform: rotate(14deg); } 45% { transform: rotate(-10deg); } 70% { transform: rotate(5deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .tuff-ico--girando, [aria-busy="true"] > .tuff-ico--gira { animation: none; }
+  }
+  :root.sem-animacoes .tuff-ico--girando,
+  :root.sem-animacoes [aria-busy="true"] > .tuff-ico--gira { animation: none; }
+
   /* ── Campos ─────────────────────────────────────────────────────────────────
      Nunca controle nativo. O custo de ignorar isso é um `<input type="date">`
      abrindo um calendário branco no meio de uma janela escura. */

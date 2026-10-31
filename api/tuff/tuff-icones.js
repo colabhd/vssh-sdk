@@ -47,7 +47,7 @@
   'folder-plus':
     '<symbol id="ico-folder-plus" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 8V7.5a1 1 0 0 0-1-1H7.5L6 5H3a1 1 0 0 0-1 1v6.5a1 1 0 0 0 1 1h5.5"/><path d="M12 10v4M10 12h4"/></symbol>',
   'drive':
-    '<symbol id="ico-drive" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="5" width="12.5" height="7" rx="1.5"/><path d="M1.75 8.5h7"/><circle cx="11.5" cy="8.5" r="0.75" fill="currentColor" stroke="none"/></symbol>',
+    '<symbol id="ico-drive" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="3.25" width="12.5" height="9.5" rx="1.5"/><path d="M1.75 9h12.5"/><path d="M4.5 11h.01M6.75 11h.01"/></symbol>',
   'server':
     '<symbol id="ico-server" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="4.5" rx="1"/><rect x="2" y="9" width="12" height="4.5" rx="1"/><path d="M4.5 4.75h.01M4.5 11.25h.01"/></symbol>',
   'folder-open':
@@ -71,7 +71,7 @@
   'search':
     '<symbol id="ico-search" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4.5"/><path d="M11 11L14.5 14.5"/></symbol>',
   'refresh':
-    '<symbol id="ico-refresh" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 7A6 6 0 1 1 10.5 2.5"/><path d="M10.5 1V4H14"/></symbol>',
+    '<symbol id="ico-refresh" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8a5.5 5.5 0 1 1-1.61-3.89"/><path d="M12.4 1.4v3.2H9.2"/></symbol>',
   'cut':
     '<symbol id="ico-cut" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="4.5" cy="11.5" r="2"/><circle cx="11.5" cy="11.5" r="2"/><path d="M6 10 12.5 2.5M10 10 3.5 2.5"/></symbol>',
   'copy':
@@ -89,7 +89,7 @@
   'close':
     '<symbol id="ico-close" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 3L13 13M13 3L3 13"/></symbol>',
   'pin':
-    '<symbol id="ico-pin" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 1.5L14.5 7l-2.5 2.5-1.5-1.5L5 13H3v-2L7.5 6.5 6 5 9 1.5z"/><path d="M2 14L5.5 10.5"/></symbol>',
+    '<symbol id="ico-pin" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5.25 1.75h5.5"/><path d="M6.25 1.75v3.5L4.25 8.5h7.5l-2-3.25v-3.5"/><path d="M8 8.5v5.75"/></symbol>',
   'plus':
     '<symbol id="ico-plus" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 2.5V13.5M2.5 8H13.5"/></symbol>',
 
@@ -97,7 +97,7 @@
   'minus':
     '<symbol id="ico-minus" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 8H13.5"/></symbol>',
   'check':
-    '<symbol id="ico-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5L5.5 12 14 4.5"/></symbol>',
+    '<symbol id="ico-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2 8.5L5.5 12 14 4.5"/></symbol>',
   'print':
     '<symbol id="ico-print" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.2V2.2h7v4"/><path d="M4.5 12H3.1a1.3 1.3 0 0 1-1.3-1.3V7.5a1.3 1.3 0 0 1 1.3-1.3h9.8a1.3 1.3 0 0 1 1.3 1.3v3.2a1.3 1.3 0 0 1-1.3 1.3h-1.4"/><path d="M4.5 9.9h7v3.9h-7z"/></symbol>',
 
@@ -109,7 +109,7 @@
   'warning':
     '<symbol id="ico-warning" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5L14.5 13.5H1.5L8 1.5z"/><path d="M8 6.5V9.5M8 11V12"/></symbol>',
   'download':
-    '<symbol id="ico-download" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2V11M5 8l3 3 3-3"/><path d="M2.5 13.5h11"/></symbol>',
+    '<symbol id="ico-download" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g class="tuff-ico-seta"><path d="M8 2V11M5 8l3 3 3-3"/></g><path d="M2.5 13.5h11"/></symbol>',
   'home':
     '<symbol id="ico-home" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7L8 2l5.5 5V14H10v-4H6v4H2.5V7z"/></symbol>',
   'arrow-left':
@@ -131,11 +131,11 @@
   'audio':
     '<symbol id="ico-audio" viewBox="0 0 16 16" fill="currentColor"><circle cx="4.5" cy="11.5" r="2" opacity=".9"/><circle cx="11.5" cy="9.5" r="2" opacity=".9"/><path d="M6.5 11.5V4.5l7-1.5v5.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>',
   'archive':
-    '<symbol id="ico-archive" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="12" height="9" rx="1.5"/><path d="M1.5 5h13M6 8h4"/><rect x="5.5" y="1.5" width="5" height="3.5" rx="1"/></symbol>',
+    '<symbol id="ico-archive" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="2.25" width="12.5" height="3.5" rx="1"/><path d="M2.75 5.75v6.5a1.5 1.5 0 0 0 1.5 1.5h7.5a1.5 1.5 0 0 0 1.5-1.5v-6.5"/><path d="M6.5 8.75h3"/></symbol>',
   'pdf':
     '<symbol id="ico-pdf" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2h7l3 3v9H4V2z"/><path d="M11 2v3h3"/><path d="M6.5 10h1c.6 0 1-.4 1-1s-.4-1-1-1H6v3M10 9v2M10 11h1.5" stroke-linecap="round"/></symbol>',
   'palette':
-    '<symbol id="ico-palette" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><circle cx="5.5" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="8" cy="4.5" r="1" fill="currentColor" stroke="none"/><circle cx="10.5" cy="6" r="1" fill="currentColor" stroke="none"/><path d="M5.5 10a2.5 2.5 0 0 0 5 0c0-1.5-1-2-2.5-2s-2.5.5-2.5 2z" fill="currentColor" stroke="none" opacity=".5"/></symbol>',
+    '<symbol id="ico-palette" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.75a6.25 6.25 0 0 0 0 12.5c.9 0 1.5-.6 1.5-1.4 0-.45-.2-.75-.4-1.05-.2-.3-.35-.55-.35-.95 0-.85.65-1.5 1.5-1.5h1.4a2.6 2.6 0 0 0 2.6-2.6c0-2.75-2.8-5-6.25-5z"/><circle cx="4.9" cy="7.6" r=".95" fill="currentColor" stroke="none"/><circle cx="6.6" cy="4.7" r=".95" fill="currentColor" stroke="none"/><circle cx="9.9" cy="4.8" r=".95" fill="currentColor" stroke="none"/></symbol>',
   'globe':
     '<symbol id="ico-globe" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 2C6.7 3.8 6 5.8 6 8s.7 4.2 2 6"/><path d="M8 2c1.3 1.8 2 3.8 2 6s-.7 4.2-2 6"/><path d="M2.5 5.5h11M2.5 10.5h11"/></symbol>',
   'volume-off':
@@ -215,7 +215,8 @@
   //
   // A central de mídia do shell e o player de um app mostram o mesmo controle com o mesmo glifo.
   // `skip-*` é "outra faixa"; `voltar-10` e `avancar-10` são "dez segundos", outro gesto e o mais
-  // repetido ao rever um trecho, e o número desenhado dentro é o que os distingue do vizinho.
+  // repetido ao rever um trecho, e o número embaixo da seta é o que os distingue do vizinho. Ele
+  // tem seis pixels de altura, o mínimo para ler o 10 a 16 px.
   'play':
     '<symbol id="ico-play" viewBox="0 0 16 16" fill="currentColor"><path d="M5.5 3.4v9.2l7.6-4.6z"/></symbol>',
   'pause':
@@ -227,9 +228,9 @@
   'skip-forward':
     '<symbol id="ico-skip-forward" viewBox="0 0 16 16" fill="currentColor"><path d="M3.8 3.5v9L10.4 8zM10.9 3.5h1.6v9h-1.6z"/></symbol>',
   'voltar-10':
-    '<symbol id="ico-voltar-10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3.1 7.4a5 5 0 1 0 1.7-3.3"/><path d="M2.3 2.6l.2 2.9 2.9-.2"/><path d="M6.4 8.1l.8-.6v4"/><rect x="8.9" y="7.5" width="2.6" height="4" rx="1.3"/></symbol>',
+    '<symbol id="ico-voltar-10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5.5A5.5 5.5 0 0 0 3.6 3.6"/><path d="M3.25 1.25v2.6h2.6"/><path d="M4.25 8.75l1.25-.75v6"/><rect x="8.5" y="8" width="3.5" height="6" rx="1.75"/></symbol>',
   'avancar-10':
-    '<symbol id="ico-avancar-10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12.9 7.4a5 5 0 1 1-1.7-3.3"/><path d="M13.7 2.6l-.2 2.9-2.9-.2"/><path d="M6.4 8.1l.8-.6v4"/><rect x="8.9" y="7.5" width="2.6" height="4" rx="1.3"/></symbol>',
+    '<symbol id="ico-avancar-10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5a5.5 5.5 0 0 1 9.4-1.9"/><path d="M12.75 1.25v2.6h-2.6"/><path d="M4.25 8.75l1.25-.75v6"/><rect x="8.5" y="8" width="3.5" height="6" rx="1.75"/></symbol>',
 
   // ── O que um player completo e um visualizador de imagens pedem ───────────
   //
@@ -242,7 +243,7 @@
   'subtitles':
     '<symbol id="ico-subtitles" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="3.2" width="12.4" height="9.6" rx="1"/><path d="M4.4 7.3h7.2M4.4 9.9h4.4"/></symbol>',
   'speed':
-    '<symbol id="ico-speed" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.2 11.8a5.8 5.8 0 0 1 11.6 0"/><path d="M8 11.8l3-3.6"/></symbol>',
+    '<symbol id="ico-speed" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.25 12.25a5.75 5.75 0 1 1 11.5 0"/><path d="M8 12.25l3-3.5"/><path d="M4.1 8.2l.9.6M8 6.5v1M11.9 8.2l-.9.6"/><circle cx="8" cy="12.25" r="1" fill="currentColor" stroke="none"/></symbol>',
   'repeat':
     '<symbol id="ico-repeat" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 9.4V6.6a2 2 0 0 1 2-2h7.2"/><path d="M10.6 2.4l2.2 2.2-2.2 2.2"/><path d="M12.6 6.6v2.8a2 2 0 0 1-2 2H3.4"/><path d="M5.4 13.6l-2.2-2.2 2.2-2.2"/></symbol>',
   'repeat-one':
@@ -260,7 +261,7 @@
   'texto-maior':
     '<symbol id="ico-texto-maior" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.75 13 5.5 3.5 9.25 13M3.1 9.6h4.8"/><path d="M11 6h3.5M12.75 4.25v3.5"/></symbol>',
   'fit':
-    '<symbol id="ico-fit" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="3.2" width="12.4" height="9.6" rx="1"/><path d="M5.2 6.2h5.6v3.6H5.2z"/></symbol>',
+    '<symbol id="ico-fit" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.75 5V3.25a1.5 1.5 0 0 1 1.5-1.5H5M11 1.75h1.75a1.5 1.5 0 0 1 1.5 1.5V5M14.25 11v1.75a1.5 1.5 0 0 1-1.5 1.5H11M5 14.25H3.25a1.5 1.5 0 0 1-1.5-1.5V11"/><rect x="5" y="5.5" width="6" height="5" rx="1"/></symbol>',
   'rotate-left':
     '<symbol id="ico-rotate-left" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 8a5.4 5.4 0 1 0 1.7-3.9"/><path d="M2.2 3.2v3.3h3.3"/></symbol>',
   'rotate-right':
@@ -344,13 +345,13 @@
   'cloud-off':
     '<symbol id="ico-cloud-off" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 12.5h6.65a2.75 2.75 0 0 0 .45-5.46A3.75 3.75 0 0 0 4.5 6.55 3 3 0 0 0 4.6 12.5z"/><path d="M2.5 2.5l11 11"/></symbol>',
   'pages':
-    '<symbol id="ico-pages" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="1.75" width="8" height="10.5" rx="1"/><path d="M3.5 4.5v8.75a1 1 0 0 0 1 1H10"/></symbol>',
+    '<symbol id="ico-pages" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.25 1.75h4L13 4.5v7.25a1 1 0 0 1-1 1H6.25a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z"/><path d="M10.25 1.75V4.5H13"/><path d="M3 4.75v8.5a1 1 0 0 0 1 1h6.25"/></symbol>',
 
   // ── Notas ligadas ─────────────────────────────────────────────────────────
   //
-  // O grafo das notas de um cofre, que o Lapis abre: quatro nós e as ligações entre eles.
+  // O grafo das notas de um cofre, que o Lapis abre: três notas e as ligações, sem fio cruzando fio.
   'grafo':
-    '<symbol id="ico-grafo" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="3.5" cy="4" r="1.5"/><circle cx="12" cy="3.5" r="1.5"/><circle cx="5" cy="12.5" r="1.5"/><circle cx="12.5" cy="11.5" r="1.5"/><path d="M5 3.9l5.5-.3M4 5.5l.6 5.5M6.5 12.3l4.5-.6M11.9 5l.4 5M6.2 11.3l4.8-6.6"/></symbol>',
+    '<symbol id="ico-grafo" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="3.75" cy="4.5" r="1.75"/><circle cx="12.25" cy="3.75" r="1.75"/><circle cx="9" cy="12.25" r="1.75"/><path d="M5.5 4.35l5-.45M4.75 6l3.25 4.8M11.75 5.45l-2.2 5.1"/></symbol>',
   };
 
   const ID_DO_SPRITE = 'tuff-sprite';
@@ -400,7 +401,68 @@
   const tem = (nome) => Object.prototype.hasOwnProperty.call(SIMBOLOS, nome);
   const nomes = () => Object.keys(SIMBOLOS);
 
-  window.TuffIcones = { instalar, svg, tem, nomes };
+  // ─── As animações ─────────────────────────────────────────────────────────
+  //
+  // As formas ficam no `tuff.css`, como classes da peça `.tuff-ico`: `--volta`, `--gira`,
+  // `--abre`, `--desenha`, `--cai` e `--balanca`. Uma animação de uma vez precisa sair da classe
+  // quando acaba, senão o clique seguinte põe a mesma classe e nada roda; `animar` faz as duas
+  // coisas. O visto e a seta do download têm a marca no próprio símbolo (o `pathLength` e o grupo
+  // `tuff-ico-seta`), porque o CSS da página não alcança uma peça dentro de um `<use>`, e a
+  // animação entra lá por uma variável herdada.
+
+  /** O ícone de `el`: ele mesmo, quando é o `<svg>`, ou o primeiro `.tuff-ico`/`.ico` de dentro. */
+  function _icone(el) {
+    if (!el) return null;
+    if (el.matches?.('svg')) return el;
+    return el.querySelector?.('svg.tuff-ico, svg.ico') || null;
+  }
+
+  /**
+   * Roda uma animação de uma vez no ícone de `el` (`volta`, `desenha`, `cai`, `balanca`). Com o
+   * movimento reduzido as durações valem zero, e o `animationend` chega na hora; o relógio de
+   * reserva tira a classe de um navegador que não o mande.
+   */
+  function animar(el, nome) {
+    const ico = _icone(el);
+    if (!ico) return;
+    const classe = `tuff-ico--${nome}`;
+    ico.classList.remove(classe);
+    void ico.getBoundingClientRect();
+    ico.classList.add(classe);
+    let feito = false;
+    const fim = () => {
+      if (feito) return;
+      feito = true;
+      ico.classList.remove(classe);
+      ico.removeEventListener('animationend', fim);
+    };
+    ico.addEventListener('animationend', fim);
+    setTimeout(fim, 1000);
+  }
+
+  /**
+   * Marca `botao` como ocupado enquanto `promessa` não se resolve: o ícone com `tuff-ico--gira`
+   * gira sob o `aria-busy`. A marca só entra depois de um instante, e um carregamento curto fica só
+   * com a volta do clique. Devolve a própria promessa.
+   */
+  function ocupado(botao, promessa) {
+    if (!botao || !promessa || typeof promessa.then !== 'function') return promessa;
+    const relogio = setTimeout(() => botao.setAttribute('aria-busy', 'true'), 250);
+    const soltar = () => { clearTimeout(relogio); botao.removeAttribute('aria-busy'); };
+    promessa.then(soltar, soltar);
+    return promessa;
+  }
+
+  window.TuffIcones = { instalar, svg, tem, nomes, animar, ocupado };
+
+  // Um botão declara a animação do clique dele: `data-tuff-anima="volta"` no Atualizar,
+  // `data-tuff-anima="cai"` no Baixar. Um ouvinte só, no documento, em vez de um por botão.
+  if (typeof document !== 'undefined' && document && document.addEventListener) {
+    document.addEventListener('click', (e) => {
+      const alvo = e.target?.closest?.('[data-tuff-anima]');
+      if (alvo && !alvo.disabled) animar(alvo, alvo.dataset.tuffAnima);
+    }, true);
+  }
 
   // Instala sozinho: quem carrega este arquivo quer os ícones, e obrigar a chamar `instalar()`
   // só cria uma chance de esquecer, cujo sintoma é a página inteira sem ícone nenhum. Dentro do

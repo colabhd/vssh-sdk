@@ -299,6 +299,23 @@ Transição só onde ela diz o que mudou: o hover e o pressionar (80 ms), abrir 
 ou um painel (150 ms). Nenhuma entrada animada, nenhum elemento que se mexe sozinho. Com
 `prefers-reduced-motion`, as transições caem e a barra indeterminada fica parada.
 
+Os ícones de traço têm cinco movimentos, cada um preso a um gesto ou a um estado que mudou, e todos
+no `tuff.css` como classes da peça `.tuff-ico`:
+
+| movimento | quando | duração |
+|---|---|---|
+| uma volta (`--volta`) | o clique no Atualizar, com `data-tuff-anima="volta"` no botão | 450 ms |
+| o giro (`--gira`) | enquanto o botão está `aria-busy`, que `TuffIcones.ocupado` põe depois de 250 ms | o carregamento |
+| a meia volta da seta (`--abre`) | a seção ou o menu abre e fecha | 150 ms |
+| o visto que se desenha (`--desenha`) | uma ação acaba sem resultado à vista: o passo do Praticar, o "Copiado" | 300 ms |
+| a seta que cai (`--cai`) | o download começa, com `data-tuff-anima="cai"`; a bandeja fica parada | 375 ms |
+| o sino que balança (`--balanca`) | chega um aviso, fora do Não perturbe | 600 ms |
+
+O sino é a exceção à regra de nada se mexer sozinho: ele balança uma vez, quando o aviso chega, e
+o ponto na cor de destaque continua sendo o que fica. As durações saem do `--tuff-dur`, então o
+movimento reduzido e o ajuste "Animações e sombras" desligado deixam o ícone no estado final, sem
+movimento.
+
 ## Escuro
 
 O ambiente é escuro por padrão e só escuro, por decisão (VSSH-358). Ele emoldura terminal, editor
