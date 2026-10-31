@@ -2,7 +2,8 @@
 // um processo, um repositório git de verdade com o app de `tests/fixtures/app-de-bancada`, o
 // backend dele, a janela no quadro de bancada num Chrome e as cenas pelo SDK web de `api/`.
 //
-// A cena do app faz uma conta de custo conhecido a cada quadro, e o teste muda o custo na cabeça:
+// A cena do app devolve uma conta de custo conhecido a cada quadro, com números que não dependem da
+// máquina, e o teste muda o custo na cabeça:
 // a piora aparece na medida de amostras (o p95 de todas as rodadas juntas) e na de um número por
 // rodada (a mediana), e a medida que só informa não reprova. O A/A, a pasta contra ela mesma, não
 // reprova e diz o ruído; a base sem cenas não tem o que comparar. A calibração leva a CPU da
@@ -73,8 +74,11 @@ test('o A/A, a pasta contra ela mesma, não reprova e diz o ruído de cada medid
   assert.equal(r.codigo, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /ruído entre os lados/);
   assert.deepEqual(r.json.linhas.map((l) => [l.medida, l.piorou]), [['conta', false], ['soma', false], ['maior', false]]);
+  // Os dois lados rodam as mesmas rodadas, e a diferença entre eles é zero; as rodadas de um lado
+  // diferem pelo acréscimo da rodada.
   for (const l of r.json.linhas) {
-    assert.ok(l.ruido.entreLados < 0.15 && Number.isFinite(l.ruido.rodadas), `${l.medida}: ${JSON.stringify(l.ruido)}`);
+    assert.equal(l.ruido.entreLados, 0, `${l.medida}: ${JSON.stringify(l.ruido)}`);
+    assert.ok(l.ruido.rodadas > 0 && l.ruido.rodadas < 0.05, `${l.medida}: ${JSON.stringify(l.ruido)}`);
   }
 });
 
