@@ -213,8 +213,9 @@ confunda no menu:
 | Chaveiro | rosa, #e0508a | a chave |
 | Supervisor de Apps, Motor de Impressão | aço, #9aaeb8 a #5f7782 | o manômetro, a impressora |
 
-Um app que declara só `icon`, um arquivo pronto, aparece como ele é, com o arredondamento por CSS de
-cada superfície. O guia "O ícone do app" do vssh-sdk mostra a grade, a luz e como exportar as
+A janela de um embutido mostra o ícone do app na barra e no cabeçalho, o mesmo do menu iniciar, e
+um app fixado na barra também. Um app que declara só `icon`, um arquivo pronto, aparece como ele é,
+com o arredondamento por CSS de cada superfície. O guia "O ícone do app" do vssh-sdk mostra a grade, a luz e como exportar as
 camadas.
 
 ## Diálogos e notificações
