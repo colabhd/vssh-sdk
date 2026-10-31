@@ -969,6 +969,41 @@ declare namespace vssh {
      * `registrar`, em ms. Chamar a função de novo não registra outra vez.
      */
     function medir(nome: string): () => void;
+
+    /** Uma medida que uma cena da bancada declara. */
+    interface MedidaDeCena {
+      /** O nome na tabela do laboratório. */
+      rotulo?: string;
+      unidade: 'ms' | 'razao' | 'contagem';
+      /** Só aparece na tabela, e o laboratório não reprova por ela. */
+      informa?: boolean;
+      /** A diferença, na unidade da medida, abaixo da qual uma piora não conta. */
+      folga?: number;
+    }
+    /** Uma cena da bancada do app (`bancada/cenas.mjs`). */
+    interface Cena {
+      id: string;
+      nome: string;
+      medidas: Record<string, MedidaDeCena>;
+      /**
+       * Monta o que mede, faz o gesto pelo código da janela e devolve um número por medida, ou
+       * uma lista de amostras; `{ pulada }` quando a cena não cabe neste aparelho.
+       */
+      rodar(ctx: { sinal: AbortSignal | null; quadro(): Promise<number> }):
+        Promise<Record<string, number | number[]> | { pulada: string }>;
+    }
+    /** Registra as cenas do app, para o "Medir este aparelho" dele e para o laboratório. */
+    function cenas(lista: Cena[]): void;
+    /** Roda as cenas registradas, todas ou as de `ids`, e devolve o resultado de cada uma. */
+    function rodarCenas(opcoes?: {
+      ids?: string[] | null;
+      aoProgredir?: ((p: { feitas: number; total: number; cena: string | null }) => void) | null;
+      sinal?: AbortSignal | null;
+    }): Promise<{
+      versao: 1;
+      cenas: Array<{ id: string; nome: string; pulada?: string;
+        medidas?: Record<string, MedidaDeCena & { valor?: number; amostras?: number[]; faltou?: true }> }>;
+    }>;
   }
 
   namespace midia {

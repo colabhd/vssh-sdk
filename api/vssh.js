@@ -145,6 +145,7 @@
     if (m.type === 'ajuda-gesto') ajudaGesto(m);
     if (m.type === 'ajuda-fazer') ajudaFazer(m);
     if (m.type === 'ajuda-modo') ajudaModo(m);
+    if (m.type === 'bancada-rodar') bancadaRodar(m);
     entregar(m);
   }
 
@@ -1230,6 +1231,83 @@
       vssh.desempenho.registrar(nome, performance.now() - inicio);
     };
   };
+
+  // ── As cenas da bancada de um app ─────────────────────────────────────────────────────────
+  //
+  // Uma cena é código do app (`bancada/cenas.mjs`): monta o que mede, faz o gesto pelo próprio
+  // código da janela e devolve os números. A janela registra a lista uma vez, e a mesma lista roda
+  // em três lugares, que por isso dão o mesmo número: no "Medir este aparelho" do app
+  // (`rodarCenas`), no laboratório do vssh-sdk (`vssh-bancada`), que a pede pelo quadro de bancada
+  // com a mensagem `bancada-rodar`, e no aparelho de referência a cada versão.
+  //
+  // Uma medida devolve um número por rodada (o laboratório compara a mediana das rodadas) ou uma
+  // lista de amostras (ele compara o p95 das amostras de todas as rodadas juntas). A cena que não
+  // cabe no aparelho devolve `{ pulada: '<motivo>' }`.
+  const ID_DE_CENA = /^[a-z0-9][a-z0-9-]{0,39}$/;
+  const UNIDADES_DE_CENA = ['ms', 'razao', 'contagem'];
+  let cenasDoApp = [];
+
+  function conferirCena(c, vistos) {
+    const onde = `vssh.desempenho.cenas: a cena ${c && c.id ? `'${c.id}'` : 'sem id'}`;
+    if (!c || typeof c !== 'object' || !ID_DE_CENA.test(String(c.id))) throw new Error(`${onde} precisa de um id de letras minúsculas, números e '-'`);
+    if (vistos.has(c.id)) throw new Error(`${onde} aparece duas vezes`);
+    vistos.add(c.id);
+    if (typeof c.nome !== 'string' || !c.nome.trim()) throw new Error(`${onde} precisa de um nome`);
+    if (typeof c.rodar !== 'function') throw new Error(`${onde} precisa da função rodar`);
+    if (!c.medidas || typeof c.medidas !== 'object' || !Object.keys(c.medidas).length) throw new Error(`${onde} não declara medidas`);
+    for (const [chave, m] of Object.entries(c.medidas)) {
+      if (!m || !UNIDADES_DE_CENA.includes(m.unidade)) throw new Error(`${onde}: a medida '${chave}' tem unidade ${UNIDADES_DE_CENA.join(', ')}`);
+    }
+  }
+
+  /** Registra as cenas do app; a lista nova substitui a anterior. */
+  vssh.desempenho.cenas = (lista) => {
+    if (!Array.isArray(lista)) throw new Error('vssh.desempenho.cenas recebe uma lista de cenas');
+    const vistos = new Set();
+    for (const c of lista) conferirCena(c, vistos);
+    cenasDoApp = lista.slice();
+  };
+
+  const valorDaMedida = (v) => {
+    if (Array.isArray(v)) return v.length && v.every(Number.isFinite) ? { amostras: v } : null;
+    return Number.isFinite(v) ? { valor: v } : null;
+  };
+
+  /**
+   * Roda as cenas registradas, na ordem da lista, ou só as de `ids`. `aoProgredir` recebe
+   * `{ feitas, total, cena }` antes de cada uma, e `sinal` interrompe entre uma e outra. Devolve
+   * `{ versao: 1, cenas: [{ id, nome, medidas }] }`, com cada medida como foi declarada e o `valor`
+   * ou as `amostras` da rodada; a que a cena não devolveu sai com `faltou: true`.
+   */
+  vssh.desempenho.rodarCenas = async ({ ids = null, aoProgredir = null, sinal = null } = {}) => {
+    const escolhidas = Array.isArray(ids) ? cenasDoApp.filter((c) => ids.includes(c.id)) : cenasDoApp;
+    const quadro = () => new Promise((ok) => requestAnimationFrame(ok));
+    const cenas = [];
+    for (const [i, c] of escolhidas.entries()) {
+      if (sinal && sinal.aborted) throw new Error('as cenas foram interrompidas');
+      if (aoProgredir) aoProgredir({ feitas: i, total: escolhidas.length, cena: c.id });
+      const r = (await c.rodar({ sinal, quadro })) || {};
+      if (typeof r.pulada === 'string') { cenas.push({ id: c.id, nome: c.nome, pulada: r.pulada }); continue; }
+      const medidas = {};
+      for (const [chave, m] of Object.entries(c.medidas)) medidas[chave] = { ...m, ...(valorDaMedida(r[chave]) || { faltou: true }) };
+      cenas.push({ id: c.id, nome: c.nome, medidas });
+    }
+    if (aoProgredir) aoProgredir({ feitas: escolhidas.length, total: escolhidas.length, cena: null });
+    return { versao: 1, cenas };
+  };
+
+  // O laboratório pede as cenas pelo quadro de bancada, no papel do shell, e recebe o progresso e
+  // o resultado pelo mesmo caminho.
+  function bancadaRodar(m) {
+    const responder = (extra) => aoShell({ vsshApp: true, type: 'bancada', pedido: m.pedido, ...extra });
+    vssh.desempenho.rodarCenas({
+      ids: Array.isArray(m.ids) ? m.ids : null,
+      aoProgredir: (p) => responder({ op: 'progresso', ...p }),
+    }).then(
+      (resultado) => responder({ op: 'resultado', resultado }),
+      (err) => responder({ op: 'resultado', erro: String((err && err.message) || err) }),
+    );
+  }
 
   // ── As salas de edição: o provedor do Yjs ─────────────────────────────────────────────────
   //

@@ -1,0 +1,21 @@
+{
+  "versao": 1,
+  "ancora": {
+    "cpu": 1190,
+    "layout": 39.1,
+    "canvas2d": 51.9,
+    "webgl2": 11.1,
+    "gravar4mb": 123.1,
+    "ler4mb": 19.1,
+    "tela": 60
+  },
+  "limiares": {
+    "acima": 200,
+    "referencia": 60,
+    "abaixo": 30
+  },
+  "maiorEMelhor": [
+    "cpu",
+    "tela"
+  ]
+}

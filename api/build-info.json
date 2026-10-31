@@ -4,6 +4,12 @@
     "api/abi.json": {
       "sha256": "c59970114c8832387581d02014838c892dbf13f460f85f624f650e7c76a1feaf"
     },
+    "api/afericao/ancora.json": {
+      "sha256": "b1ad85acb8a1bc75ae2022539be87ab960d8290ea5a56166068d7d0c64b56b3e"
+    },
+    "api/afericao/sonda.js": {
+      "sha256": "9015df0750b5d66e348c1f6289f6e4dd9c37a5ded6822dc29e25abf633c5af0f"
+    },
     "api/ajuda/ambiente.json": {
       "sha256": "eb8726455e6fbdc3e6079937aeee696345ad42aec7d2b82db29ddfff769d26a2"
     },
@@ -68,10 +74,10 @@
       "sha256": "daf7ee56a1645e0e9e90a9075c5bffa961d5c874eef99abb5bdde8cea2ac75fe"
     },
     "api/vssh.d.ts": {
-      "sha256": "00dcf9a9c9ce92245a1af2d6d0030f624021df74e7a912cc0eb62b5d850abb16"
+      "sha256": "739acc75b37b5e485f720091eac46592edb3d4c15d33b28ae8ddaf1172b219a6"
     },
     "api/vssh.js": {
-      "sha256": "7ef034824b4ca3b1c63532b86d58ed947b79baccd8e11e7a5d338780aab33d3c"
+      "sha256": "428aea8f9c238f1680ae506a3bdd4d578da27a1ce4e11d4123dcc11e2d1be4d0"
     },
     "docs/referencia/README.md": {
       "sha256": "46def3f91a7e8a31f5825c4e04e9ed58af7a34a98c0683eb33609eb3501d6621"
