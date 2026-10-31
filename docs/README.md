@@ -44,6 +44,7 @@ seguinte.
 | [O primeiro app em Node](guias/o-primeiro-app-node.md) | O mesmo app, em Node. |
 | [O ambiente de desenvolvimento](guias/ambiente-de-desenvolvimento.md) | Rodar e testar o backend de um app fora do servidor: o runtime no caminho, a porta de bancada, o token e o `/saude`, o SDK web sem o shell, e o mesmo arranjo no CI. |
 | [Uma janela](guias/uma-janela.md) | Título, tamanho, controles, várias janelas sobre um backend, restauração de sessão e a barra de título desenhada pelo app. |
+| [O ícone do app](guias/icone.md) | As camadas que o ambiente monta, o glifo na grade de 64, a luz do alto à esquerda, o fundo próprio, como exportar do Figma e do Inkscape, e o que o publish confere. |
 | [Arquivos com consentimento](guias/arquivos-com-consentimento.md) | Ler e gravar na home do usuário pela File System Access API, reabrir o que já foi concedido, vigiar mudanças e arrastar arquivos nas duas direções. |
 | [Avisos e atividades](guias/avisos-e-atividades.md) | Escolher entre notificação, aviso efêmero e atividade, e emitir cada um com janela aberta ou de um backend sem janela. |
 | [GPU](guias/gpu.md) | O que `recursos.gpu.modo` declara, o que o lançador faz com isso, e como o backend e a janela perguntam o que receberam por `vssh.gpu`. |

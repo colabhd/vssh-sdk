@@ -3,6 +3,7 @@
   "name": "Motor de Impressão",
   "version": "5.0.0",
   "icon": "icon.svg",
+  "icone": { "glifo": "icone/glifo.svg" },
   "type": "engine",
   "kind": "service",
   "category": "Engine",

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Motor de Impressão">
+  <title>Motor de Impressão</title>
+  <!--
+    A impressora, com a folha que entra em cima e a que sai embaixo. O corpo escurece para baixo,
+    longe da luz, e um fio claro marca a quina de cima. A folha que sai leva as duas linhas vermelhas
+    de um PDF, e a luz verde diz que o motor está de pé.
+
+    Este arquivo é o glifo do ícone em camadas (`icone` no vssh-app.json): o fundo, a máscara e o
+    fio da borda são do ambiente, e o glifo traz só o desenho, com o fundo transparente. A grade, a
+    luz e a paleta estão em docs/guias/icone.md. O `icon.svg` que o manifesto também declara sai
+    montado pelo `vssh-app-publish`, para um portal anterior às camadas.
+
+    Os ids levam o prefixo `impressao-`. Quem puser dois glifos inline na mesma página não vê o degradê
+    de um pintar o outro.
+  -->
+  <defs>
+    <linearGradient id="impressao-corpo" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aaeb8"/><stop offset="1" stop-color="#5f7782"/></linearGradient>
+    <linearGradient id="impressao-entrada" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef2f3"/><stop offset="1" stop-color="#c3ccd0"/></linearGradient>
+    <linearGradient id="impressao-folha" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e6eaec"/></linearGradient>
+  </defs>
+  <rect x="21" y="11" width="22" height="16" rx="1.5" fill="url(#impressao-entrada)"/>
+  <rect x="11" y="24" width="42" height="19" rx="4.5" fill="url(#impressao-corpo)"/>
+  <path d="M15 25.2h34" stroke="#fff" stroke-opacity=".4" stroke-width="1.2" stroke-linecap="round"/>
+  <circle cx="45.5" cy="30.5" r="2.2" fill="#a5d6a7"/>
+  <rect x="17" y="36" width="30" height="3.4" rx="1.7" fill="#37474f"/>
+  <rect x="20" y="37.5" width="24" height="16" rx="1.5" fill="url(#impressao-folha)"/>
+  <path d="M24.5 43.2h15M24.5 48.2h9" fill="none" stroke="#e53935" stroke-width="2.6" stroke-linecap="round"/>
+</svg>

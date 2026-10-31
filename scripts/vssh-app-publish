@@ -5,10 +5,12 @@
 #
 # Lê VSSH_REPO_API e VSSH_REPO_PUBLISH_TOKEN do ambiente (ou das flags). Valida o vssh-app.json
 # contra `api/vssh-app.schema.json` deste repositório, empacota, confere o sha256 e faz
-# POST /v1/publish/app (e o ícone, se houver). Com `contributes.ajuda` no manifesto, compila a
-# pasta de ajuda (`compilar-ajuda.mjs`, com o Node), recusa a que não compila, escreve o nível no
-# resumo do run e manda o `ajuda.json` ao repositório depois do pacote. Roda no CI do repositório do
-# app, pelo `_publish-app-reusable.yml`, e na máquina de quem desenvolve.
+# POST /v1/publish/app (e o ícone, se houver). Com `icone` no manifesto, monta o ícone em camadas
+# (`montar-icone.mjs`) e o põe no lugar do `icon` que o pacote não traz. Com `contributes.ajuda` no
+# manifesto, compila a pasta de ajuda (`compilar-ajuda.mjs`, com o Node), recusa a que não
+# compila, escreve o nível no resumo do run e manda o `ajuda.json` ao repositório depois do pacote.
+# Roda no CI do repositório do app, pelo `_publish-app-reusable.yml`, e na máquina de quem
+# desenvolve.
 #
 # As notas de versão (`--notes`, `--notes-file`, ou VSSH_RELEASE_NOTES no ambiente) são o que
 # mudou NESTA versão, em markdown, e vão para a ficha do app na loja. Um changelog inteiro não é
@@ -365,16 +367,18 @@ print("AJUDA=" + ('1' if isinstance(contrib, dict) and isinstance(contrib.get('a
 print(f"ID={app_id}")
 print(f"VERSION={version}")
 print("ICON=" + (m.get('icon') or ''))
+print("CAMADAS=" + ('1' if isinstance(m.get('icone'), dict) else ''))
 PYEOF
 )"
 
-APP_ID="" VERSION="" ICON="" ERR="" WARN="" DEVELOPER="" AJUDA=""
+APP_ID="" VERSION="" ICON="" ERR="" WARN="" DEVELOPER="" AJUDA="" CAMADAS=""
 TRAVESSOES=()
 INFO="${INFO//$'\r'/}"   # robustez: python em Windows emite \r\n; header do curl não pode ter \r
 while IFS='=' read -r k v; do
   case "${k}" in
     ERROR) ERR="${v}";; ID) APP_ID="${v}";; VERSION) VERSION="${v}";; ICON) ICON="${v}";; WARN) WARN="${v}";;
     DEVELOPER) DEVELOPER="${v}";; AJUDA) AJUDA="${v}";; TRAVESSAO) TRAVESSOES+=("${v}");;
+    CAMADAS) CAMADAS="${v}";;
   esac
 done <<< "${INFO}"
 [ -z "${WARN}" ] || anotar warning "validação parcial" "${WARN}"
@@ -561,6 +565,44 @@ if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
   } >> "${GITHUB_STEP_SUMMARY}"
 fi
 
+# ── 2d. O ícone em camadas ─────────────────────────────────────────────────────
+#
+# Um manifesto com `icone` entrega o glifo e, se quiser, o fundo, e o portal monta as camadas com a
+# máscara e o acabamento. `montar-icone.mjs` monta o mesmo SVG com o compositor do portal
+# (`api/icone/`, gerado pelo sistema) e o põe no lugar do `icon` (um `.svg`) quando o pacote não
+# traz o arquivo: o Worker mostra esse arquivo na Loja antes da instalação, e um portal anterior às
+# camadas lê o `icon`. Sem `icon` no manifesto, o montado vai só ao Worker. Uma camada que não está
+# no pacote recusa a publicação. O glifo é medido num Chrome, quando há um, e um glifo fora da área
+# viva vira aviso no resumo do run, com a caixa medida.
+ICONE_MONTADO=""
+if [ -n "${CAMADAS}" ] && ! command -v node >/dev/null 2>&1; then
+  anotar warning "ícone não montado" \
+    "O vssh-app.json declara icone, e este runner não tem node 22.18 ou mais novo. O portal monta as camadas; a Loja fica sem o ícone de antes da instalação."
+elif [ -n "${CAMADAS}" ]; then
+  set +e
+  SAIDA_DO_ICONE="$(node "$(cd "$(dirname "$0")" && pwd)/montar-icone.mjs" "${PKG}" --saida "${WORKDIR}/icon-montado.svg")"
+  CODIGO_DO_ICONE=$?
+  set -e
+  while IFS='=' read -r k v; do
+    case "${k}" in
+      ERRO)           echo "ERRO: icone: ${v}" >&2 ;;
+      SEM_COMPOSITOR) anotar warning "ícone não montado" "${v}. O portal monta as camadas; a Loja fica sem o ícone de antes da instalação." ;;
+      FORA_DA_GRADE)  anotar warning "ícone fora da grade" "${v}. A grade está em docs/guias/icone.md do vssh-sdk." ;;
+      MONTADO)        ICONE_MONTADO="${v}" ;;
+    esac
+  done <<< "${SAIDA_DO_ICONE//$'\r'/}"
+  [ "${CODIGO_DO_ICONE}" -ne 1 ] || exit 1
+  case "${ICON}" in
+    ""|/*|*..*) ;;
+    *.svg)
+      if [ -n "${ICONE_MONTADO}" ] && [ ! -f "${PKG}/${ICON}" ]; then
+        mkdir -p "$(dirname "${PKG}/${ICON}")"
+        cp "${ICONE_MONTADO}" "${PKG}/${ICON}"
+        echo "Ícone montado das camadas em ${ICON}"
+      fi ;;
+  esac
+fi
+
 # ── 3. Empacota (só o que está versionado, quando é repo git) ──────────────────
 TARBALL="${WORKDIR}/app.tar.gz"
 # `--version` reescreveu o vssh-app.json no PKG acima; para o `git archive` levar essa versão (e
@@ -651,6 +693,7 @@ fi
 ICON_PATH=""
 [ -n "${ICON_OVERRIDE}" ] && ICON_PATH="${ICON_OVERRIDE}"
 [ -z "${ICON_PATH}" ] && [ -n "${ICON}" ] && [ -f "${PKG}/${ICON}" ] && ICON_PATH="${PKG}/${ICON}"
+[ -z "${ICON_PATH}" ] && [ -n "${ICONE_MONTADO}" ] && ICON_PATH="${ICONE_MONTADO}"
 if [ -n "${ICON_PATH}" ] && [ -f "${ICON_PATH}" ]; then
   case "${ICON_PATH,,}" in
     *.png) CT=image/png ;; *.svg) CT=image/svg+xml ;; *.ico) CT=image/x-icon ;;

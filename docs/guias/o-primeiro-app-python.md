@@ -14,7 +14,8 @@ o SDK servido pelo sistema expõe.
 ```
 meu-app/
   vssh-app.json
-  icon.svg
+  icone/
+    glifo.svg           o desenho do ícone; o ambiente põe o fundo e a borda
   frontend/
     index.html          o backend serve isto em GET /
   backend/
@@ -41,6 +42,7 @@ O mínimo que um app Python declara:
   "name": "Meu App",
   "version": "1.0.0",
   "icon": "icon.svg",
+  "icone": { "glifo": "icone/glifo.svg" },
   "category": "Utility",
   "backend": {
     "runtime": "python3",
@@ -50,6 +52,10 @@ O mínimo que um app Python declara:
   "window": { "title": "Meu App", "width": 900, "height": 640 }
 }
 ```
+
+O ícone é o glifo em `icone/glifo.svg`, um bloco de tufo no template. O ambiente põe o fundo, a
+máscara e a borda, e o publish monta o `icon.svg` para um portal anterior às camadas. Troque o
+bloco pelo desenho do seu app; [O ícone do app](icone.md) tem a grade, a luz e a exportação.
 
 Duas decisões estão nesse bloco:
 

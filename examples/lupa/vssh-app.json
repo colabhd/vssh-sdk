@@ -3,6 +3,7 @@
   "name": "Lupa",
   "version": "5.1.0",
   "icon": "icon.svg",
+  "icone": { "glifo": "icone/glifo.svg" },
   "category": "Graphics",
   "developer": {
     "name": "colabhd",

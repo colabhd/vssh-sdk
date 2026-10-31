@@ -40,8 +40,8 @@ class TestOQueOAmbienteVaiMandar(unittest.TestCase):
         # E um SVG sem `viewBox` não escala: o ambiente o desenha a 22px, 42px e 48px, e sem a
         # caixa ele sai cortado em dois dos três lugares. Sem `<text>`, porque a fonte depende da
         # máquina que renderiza.
-        rel = MANIFESTO.get("icon")
-        self.assertTrue(rel, "o manifesto não declara ícone")
+        rel = (MANIFESTO.get("icone") or {}).get("glifo")
+        self.assertTrue(rel, "o manifesto não declara o glifo do ícone")
         alvo = os.path.join(_AQUI, "..", rel)
         self.assertTrue(os.path.isfile(alvo), rel)
         with open(alvo, encoding="utf-8") as fh:

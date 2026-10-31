@@ -3,6 +3,7 @@
   "name": "Hello World (Python)",
   "version": "5.0.0",
   "icon": "icon.svg",
+  "icone": { "glifo": "icone/glifo.svg" },
   "category": "Utility",
   "developer": { "name": "colabhd", "url": "https://github.com/colabhd" },
   "license": "MIT",

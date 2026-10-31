@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Palco">
+  <title>Palco</title>
+  <!--
+    O triângulo do play escrito num gesto só: o traço começa embaixo à esquerda, sobe, faz a ponta e
+    volta sobre o próprio começo, como o l do Lápis e o C do Cavalete. O pingo branco quente no meio é
+    a luz do palco, e é o que separa este glifo do botão de play de todo player. O âmbar clareia no
+    sentido do traço, de baixo à esquerda para cima à direita.
+
+    Este arquivo é o glifo do ícone em camadas (`icone` no vssh-app.json): o fundo, a máscara e o
+    fio da borda são do ambiente, e o glifo traz só o desenho, com o fundo transparente. A grade, a
+    luz e a paleta estão em docs/guias/icone.md. O `icon.svg` que o manifesto também declara sai
+    montado pelo `vssh-app-publish`, para um portal anterior às camadas.
+
+    Os ids levam o prefixo `palco-`. Quem puser dois glifos inline na mesma página não vê o degradê
+    de um pintar o outro.
+  -->
+  <defs>
+    <linearGradient id="palco-traco" gradientUnits="userSpaceOnUse" x1="18" y1="50" x2="48" y2="14"><stop offset="0" stop-color="#e5801a"/><stop offset="1" stop-color="#ffd166"/></linearGradient>
+  </defs>
+  <path d="M19 50c1.5-9 2-19 1.6-30.5-.1-3.4 2.9-5.3 5.8-3.6l20.4 12c2.8 1.6 2.8 5.6 0 7.2L22.5 49.2" fill="none" stroke="url(#palco-traco)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="31.5" cy="32" r="3.2" fill="#f5f2ea"/>
+</svg>

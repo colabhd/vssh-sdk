@@ -35,8 +35,8 @@ class TestOQueOAmbienteVaiMandar(unittest.TestCase):
     def test_o_icone_existe_e_ESCALA(self):
         # O ambiente desenha o ícone a 22px, 42px e 48px, e um SVG sem `viewBox` sai cortado em
         # dois desses lugares. Sem `<text>`, porque a fonte depende da máquina que renderiza.
-        rel = MANIFESTO.get("icon")
-        self.assertTrue(rel, "o manifesto não declara ícone")
+        rel = (MANIFESTO.get("icone") or {}).get("glifo")
+        self.assertTrue(rel, "o manifesto não declara o glifo do ícone")
         alvo = os.path.join(_AQUI, "..", rel)
         self.assertTrue(os.path.isfile(alvo), rel)
         raiz = ElementTree.parse(alvo).getroot()

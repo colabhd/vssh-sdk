@@ -3,6 +3,7 @@
   "name": "Palco",
   "version": "5.1.0",
   "icon": "icon.svg",
+  "icone": { "glifo": "icone/glifo.svg" },
   "category": "AudioVideo",
   "developer": { "name": "colabhd", "url": "https://github.com/colabhd" },
   "license": "MIT",
