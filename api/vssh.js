@@ -397,7 +397,7 @@
     ola: () => ponte.chamar('app.ola', { type: 'vssh-ola' }, 5000),
     // O bilhete com que uma plataforma aberta como hiperlink reconhece a pessoa: `{ bilhete, expira }`, um JWT RS256 de 60 s que o portal assina para a origem da plataforma. O backend dela o confere pela chave em `/.well-known/jwks.json` do portal (`typ` `vssh-bilhete+jwt`, `aud` na origem dela, o `jti` guardado até o `exp`) e abre a sessão própria. Antes de emitir, o portal confere a política da aplicação da plataforma no Authentik. Só a janela de um hiperlink recebe o bilhete; um vssh-app roda na estação, como a pessoa.
     identidade: () => ponte.chamar('app.identidade', { type: 'identity' }, 5000),
-    // O ambiente em que o app está: o nome do host, o que ele sabe fazer, a versão do shell e a lista de verbos e eventos desta tabela. Com a lista, o app decide sozinho se o shell em que caiu tem o que ele precisa.
+    // O ambiente em que o app está: o cliente que serve o shell (`host`: `navegador`, `cliente-de-desktop` ou `chromeos`; `none` fora do ambiente), a versão do shell e a lista de verbos e eventos desta tabela. Com a lista, o app decide sozinho se o shell em que caiu tem o que ele precisa.
     capacidades: () => ponte.chamar('app.capacidades', { type: 'capabilities' }, 5000),
     // O título que a janela mostra na barra de título, na barra de tarefas e no Alt+Tab. O app o reporta sempre que o dele muda; o shell corta em 200 caracteres.
     titulo: (titulo) => ponte.disparar('app.titulo', { type: 'title', title: titulo }),

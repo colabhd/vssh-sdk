@@ -34,9 +34,10 @@ declare namespace vssh {
      */
     function identidade(): Promise<unknown>;
     /**
-     * O ambiente em que o app está: o nome do host, o que ele sabe fazer, a versão do shell e a
-     * lista de verbos e eventos desta tabela. Com a lista, o app decide sozinho se o shell em que
-     * caiu tem o que ele precisa.
+     * O ambiente em que o app está: o cliente que serve o shell (`host`: `navegador`,
+     * `cliente-de-desktop` ou `chromeos`; `none` fora do ambiente), a versão do shell e a lista de
+     * verbos e eventos desta tabela. Com a lista, o app decide sozinho se o shell em que caiu tem o
+     * que ele precisa.
      */
     function capacidades(): Promise<unknown>;
     /**
