@@ -371,6 +371,7 @@ export function julgar(base, cabeca, tolerancia, folgas = {}) {
     linhas.push({
       cena: k.split('/')[0], medida: sb.chave, rotulo, unidade: def.unidade, informa: !!def.informa, juntas: !!juntas,
       base: ra, cabeca: rb, medianaBase: ma, medianaCabeca: mb, piorou, folga, folgaDeclarada, folgaDoHistorico: doHistorico,
+      campo: typeof def.campo === 'string' ? def.campo : null,
       ruido: { entreLados: ma > 0 ? Math.abs(mb - ma) / ma : 0, rodadas: espalhamento([...ra, ...rb]) },
     });
   }

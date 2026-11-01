@@ -237,6 +237,22 @@ jobs:
       bancada_token: ${{ secrets.VSSH_BANCADA_TOKEN }}
 ```
 
+Uma medida de cena que mede o mesmo gesto que uma medida do campo declara o nome dela em `campo`,
+o mesmo de `desempenho.medidas` no manifesto (ou `_tecla`, `_clique` e `_tarefa`, as que o SDK toma
+de todo app):
+
+```js
+tecla: { rotulo: 'tecla (p95)', unidade: 'ms', folga: 4, campo: 'tecla' },
+```
+
+Com isso, a página Desempenho põe os dois lados de cada versão publicada lado a lado: a bancada do
+commit que gerou a versão e o campo dela no aparelho de referência, com a razão entre os dois. A
+razão diz quanto o laboratório erra naquele gesto: o Worker sem estrangular, a placa por software,
+o documento da cena no lugar do da pessoa. Uma razão que fica parada de versão em versão traduz o
+número de um PR para o aparelho de verdade; uma que salta diz que a cena deixou de medir o que a
+pessoa sente. Declare `campo` só quando o gesto é o mesmo: a tecla da cena e a tecla da pessoa,
+e não a abertura de um documento vazio da cena e a abertura de um documento de verdade.
+
 O A/A julga sempre pela folga declarada, porque é ele que mede o ruído. Sem o token, com o portal
 fora do ar ou com uma resposta que não é a esperada, a bancada julga pela folga declarada e diz
 isso num aviso. O histórico não reprova um run. Na linha de comando, `--portal <url>` e

@@ -194,6 +194,8 @@ test('com o portal, a folga sai do ruído guardado, e o run chega com o token', 
     assert.deepEqual([run.app, run.versao, run.modo, run.runner, run.perfil, run.repositorio, run.commit, run.evento, run.ref],
       ['bancada-de-teste', '1.0.0', 'comparar', 'runner-de-teste', 'software', 'colabhd/app-de-teste', 'abc1234', 'push', 'refs/heads/main']);
     assert.deepEqual(run.linhas.map((l) => `${l.cena}/${l.medida}`), r.json.linhas.map((l) => `${l.cena}/${l.medida}`));
+    // A medida que a cena declara medir o mesmo gesto do campo leva o nome dele, e só ela.
+    assert.deepEqual(run.linhas.filter((l) => l.campo).map((l) => [l.medida, l.campo]), [['conta', 'conta']]);
     assert.equal(run.cpu.multiplicador, 1);
 
     // Um A/A julga pela folga declarada e só manda o run: é ele que mede o ruído.

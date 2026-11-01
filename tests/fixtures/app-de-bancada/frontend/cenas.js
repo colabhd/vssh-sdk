@@ -15,7 +15,7 @@ addEventListener('load', () => setTimeout(() => vssh.desempenho.cenas([{
   id: 'conta',
   nome: 'Uma conta de custo conhecido',
   medidas: {
-    conta: { rotulo: 'conta a cada quadro (p95)', unidade: 'ms' },
+    conta: { rotulo: 'conta a cada quadro (p95)', unidade: 'ms', campo: 'conta' },
     soma: { rotulo: 'soma das contas', unidade: 'ms', folga: 5 },
     maior: { rotulo: 'a conta mais lenta', unidade: 'ms', informa: true },
   },
