@@ -1086,7 +1086,12 @@
       });
       try { mo.observe(raiz, { attributes: true, attributeFilter: ['style', 'data-theme'] }); }
       catch { return () => {}; }
-      return () => mo.disconnect();
+      // O `<html>` do shell segura os observers registrados nele, e o observer segura a função e,
+      // por ela, o documento inteiro deste quadro. Sem o desligamento na saída, cada janela do app
+      // que fecha deixa o documento dela na memória do shell até a pessoa recarregar a página.
+      const soltar = () => mo.disconnect();
+      window.addEventListener('pagehide', soltar, { once: true });
+      return () => { window.removeEventListener('pagehide', soltar); mo.disconnect(); };
     },
   };
 
