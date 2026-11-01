@@ -1,6 +1,47 @@
 {
-  "versaoDasCenas": null,
-  "medidoEm": null,
-  "medidas": 0,
-  "cenas": {}
+  "versaoDasCenas": 3,
+  "medidoEm": "2026-10-31",
+  "medidas": 3,
+  "cenas": {
+    "vidro": {
+      "cabem": 24,
+      "teto": false
+    },
+    "sombra": {
+      "cabem": 20,
+      "teto": false
+    },
+    "compositor": {
+      "cabem": 32,
+      "teto": false
+    },
+    "layout": {
+      "cabem": 128,
+      "teto": false
+    },
+    "lista": {
+      "cabem": 256,
+      "teto": false
+    },
+    "texto": {
+      "cabem": 256,
+      "teto": false
+    },
+    "traco": {
+      "cabem": 3072,
+      "teto": false
+    },
+    "particulas": {
+      "cabem": 327680,
+      "teto": false
+    },
+    "foto": {
+      "cabem": 5,
+      "teto": false
+    },
+    "video": {
+      "cabem": 16,
+      "teto": false
+    }
+  }
 }
