@@ -50,6 +50,12 @@ tabela sem reprovar. A função devolve, para cada medida:
 - ou uma lista de amostras, que ele compara pelo p95 das amostras de todas as rodadas juntas. O p95
   de uma rodada só é praticamente a amostra mais lenta dela.
 
+Amostras servem quando cada rodada traz dezenas delas, como as teclas de uma frase. Uma medida com
+poucas amostras pesadas por rodada (seis ciclos de uma prévia, três aberturas de um documento) vai
+ao p95 de vinte e poucas, que é praticamente a pior, e o ruído de uma rodada passa da folga sozinho.
+Devolva a mediana da rodada como número: a régua compara a mediana das rodadas, que aguenta uma
+rodada ruim. O A/A diz qual é o caso, pelo ruído entre os lados.
+
 A cena que não cabe no aparelho (uma folha maior que a memória dele) devolve
 `{ pulada: '<motivo>' }`. O `sinal` interrompe entre uma cena e outra, e `quadro()` resolve no
 `requestAnimationFrame` seguinte.
