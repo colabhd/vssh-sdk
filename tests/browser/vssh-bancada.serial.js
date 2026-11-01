@@ -7,8 +7,9 @@
 // a piora aparece na medida de amostras (o p95 de todas as rodadas juntas) e na de um número por
 // rodada (a mediana), e a medida que só informa não reprova. O A/A, a pasta contra ela mesma, não
 // reprova e diz o ruído; a base sem cenas não tem o que comparar. Uma cabeça que mexe na tela
-// parada reprova pela janela parada. A calibração leva a CPU da página a perto de 100, o Celeron
-// de referência.
+// parada reprova pela janela parada. Com o portal, a mesma piora passa quando o ruído guardado
+// pede uma folga maior, e o run chega ao portal com o token. A calibração leva a CPU da página a
+// perto de 100, o Celeron de referência.
 //
 // O arquivo é `*.serial.js`, e o `npm test` o roda sozinho, depois do resto: a bancada mede tempo,
 // e com outros arquivos em paralelo a página perde a vez no meio de uma rodada.
@@ -18,8 +19,9 @@
 
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -54,11 +56,23 @@ function repositorio(nome) {
 }
 
 function bancada(...args) {
+  const env = typeof args[args.length - 1] === 'object' ? args.pop() : {};
   const saida = join(pasta, `saida-${Math.random().toString(36).slice(2)}.json`);
-  const r = spawnSync(process.execPath, [BANCADA, ...args, '--cpu', '1', '--ciclos', '1', '--parada', '2', '--saida', saida], {
-    encoding: 'utf8', env: { ...process.env, VSSH_SDK_API: API, GITHUB_STEP_SUMMARY: '' }, timeout: 180000,
+  // Um processo filho síncrono prenderia o portal de mentira, que mora neste processo.
+  return new Promise((ok) => {
+    const filho = spawn(process.execPath, [BANCADA, ...args, '--cpu', '1', '--ciclos', '1', '--parada', '2', '--saida', saida], {
+      env: { ...process.env, VSSH_SDK_API: API, GITHUB_STEP_SUMMARY: '', VSSH_BANCADA_PORTAL: '', ...env },
+    });
+    let stdout = '';
+    let stderr = '';
+    filho.stdout.on('data', (d) => { stdout += d; });
+    filho.stderr.on('data', (d) => { stderr += d; });
+    const prazo = setTimeout(() => filho.kill(), 180000);
+    filho.on('close', (codigo) => {
+      clearTimeout(prazo);
+      ok({ codigo, stdout, stderr, json: existsSync(saida) ? JSON.parse(readFileSync(saida, 'utf8')) : null });
+    });
   });
-  return { codigo: r.status, stdout: r.stdout, stderr: r.stderr, json: existsSync(saida) ? JSON.parse(readFileSync(saida, 'utf8')) : null };
 }
 
 const custo = (dir, ms) => {
@@ -69,9 +83,9 @@ const custo = (dir, ms) => {
 before(() => { pasta = mkdtempSync(join(tmpdir(), 'vssh-bancada-teste-')); });
 after(() => { if (pasta) rmSync(pasta, { recursive: true, force: true }); });
 
-test('o A/A, a pasta contra ela mesma, não reprova e diz o ruído de cada medida', { skip: falta }, () => {
+test('o A/A, a pasta contra ela mesma, não reprova e diz o ruído de cada medida', { skip: falta }, async () => {
   const app = repositorio('aa');
-  const r = bancada('aa', app);
+  const r = await bancada('aa', app);
   assert.equal(r.codigo, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /ruído entre os lados/);
   assert.deepEqual(r.json.linhas.map((l) => [l.cena, l.medida, l.piorou]),
@@ -85,10 +99,10 @@ test('o A/A, a pasta contra ela mesma, não reprova e diz o ruído de cada medid
   }
 });
 
-test('a cabeça mais lenta reprova pelas amostras e pela mediana, e a medida que informa não', { skip: falta }, () => {
+test('a cabeça mais lenta reprova pelas amostras e pela mediana, e a medida que informa não', { skip: falta }, async () => {
   const app = repositorio('comparar');
   custo(app, 12);
-  const r = bancada('comparar', app, '--base', 'HEAD');
+  const r = await bancada('comparar', app, '--base', 'HEAD');
   assert.equal(r.codigo, 1, r.stdout + r.stderr);
   const porMedida = Object.fromEntries(r.json.linhas.map((l) => [l.medida, l]));
   assert.equal(porMedida.conta.juntas, true);
@@ -106,13 +120,13 @@ test('a cabeça mais lenta reprova pelas amostras e pela mediana, e a medida que
   assert.equal(git(app, 'worktree', 'list').trim().split('\n').length, 1);
 });
 
-test('a cabeça que mexe na tela parada reprova pela janela parada', { skip: falta }, () => {
+test('a cabeça que mexe na tela parada reprova pela janela parada', { skip: falta }, async () => {
   const app = repositorio('parada');
   // Um passo de meio segundo, como um relógio na barra: cada um muda a largura de um elemento, e o
   // navegador refaz o layout no quadro seguinte.
   const arq = join(app, 'frontend', 'cenas.js');
   writeFileSync(arq, `${readFileSync(arq, 'utf8')}\nsetInterval(() => { document.body.style.paddingLeft = document.body.style.paddingLeft === '1px' ? '0px' : '1px'; }, 500);\n`);
-  const r = bancada('comparar', app, '--base', 'HEAD');
+  const r = await bancada('comparar', app, '--base', 'HEAD');
   assert.equal(r.codigo, 1, r.stdout + r.stderr);
   const layouts = r.json.linhas.find((l) => l.medida === 'layouts');
   assert.deepEqual(layouts.base, [0, 0]);
@@ -122,13 +136,13 @@ test('a cabeça que mexe na tela parada reprova pela janela parada', { skip: fal
   assert.match(r.stdout, /::error::A janela parada: layouts em 2 s/);
 });
 
-test('a cabeça que deixa o que as cenas montaram preso na memória reprova pelos nós', { skip: falta }, () => {
+test('a cabeça que deixa o que as cenas montaram preso na memória reprova pelos nós', { skip: falta }, async () => {
   const app = repositorio('vaza');
   // Cada rodada guarda três mil elementos fora da página, como um documento fechado que uma closure
   // ainda segura.
   const arq = join(app, 'frontend', 'cenas.js');
   writeFileSync(arq, readFileSync(arq, 'utf8').replace('const amostras = [];', "const amostras = []; (window.__presos = window.__presos || []).push(...Array.from({ length: 3000 }, () => document.createElement('div')));"));
-  const r = bancada('comparar', app, '--base', 'HEAD');
+  const r = await bancada('comparar', app, '--base', 'HEAD');
   assert.equal(r.codigo, 1, r.stdout + r.stderr);
   const nos = r.json.linhas.find((l) => l.medida === 'nos');
   assert.equal(nos.piorou, true, JSON.stringify(nos));
@@ -136,19 +150,79 @@ test('a cabeça que deixa o que as cenas montaram preso na memória reprova pelo
   assert.equal(r.json.linhas.find((l) => l.medida === 'layouts').piorou, false);
 });
 
-test('a cabeça igual à base não reprova', { skip: falta }, () => {
+test('com o portal, a folga sai do ruído guardado, e o run chega com o token', { skip: falta }, async () => {
+  const pedidos = [];
+  const portal = createServer((req, res) => {
+    let corpo = '';
+    req.on('data', (d) => { corpo += d; });
+    req.on('end', () => {
+      pedidos.push({ metodo: req.method, url: req.url, token: req.headers.authorization, corpo: corpo && JSON.parse(corpo) });
+      if (req.method === 'GET') {
+        res.setHeader('content-type', 'application/json');
+        // O ruído desta máquina pede 10 ms na conta a cada quadro e 200 ms na soma: a piora de
+        // 4 para 12 ms por conta fica dentro dele.
+        return res.end(JSON.stringify({ runs: 5, medidas: {
+          'conta/conta': { folgaSugerida: 10 }, 'conta/soma': { folgaSugerida: 200 }, 'conta/maior': { folgaSugerida: null },
+        } }));
+      }
+      res.statusCode = 204;
+      res.end();
+    });
+  });
+  await new Promise((ok) => portal.listen(0, '127.0.0.1', ok));
+  try {
+    const app = repositorio('historico');
+    custo(app, 12);
+    const r = await bancada('comparar', app, '--base', 'HEAD', '--runner', 'runner-de-teste', {
+      VSSH_BANCADA_PORTAL: `http://127.0.0.1:${portal.address().port}`, VSSH_BANCADA_TOKEN: 'vssh_cs_de-teste',
+      GITHUB_REPOSITORY: 'colabhd/app-de-teste', GITHUB_SHA: 'abc1234', GITHUB_EVENT_NAME: 'push', GITHUB_REF: 'refs/heads/main',
+    });
+    assert.equal(r.codigo, 0, r.stdout + r.stderr);
+    const porMedida = Object.fromEntries(r.json.linhas.map((l) => [l.medida, l]));
+    assert.equal(porMedida.conta.piorou, false);
+    assert.deepEqual([porMedida.conta.folga, porMedida.conta.folgaDeclarada, porMedida.conta.folgaDoHistorico], [10, 0.5, true]);
+    assert.deepEqual([porMedida.soma.folga, porMedida.soma.folgaDoHistorico], [200, true]);
+    assert.match(r.stdout, /do ruído de 5 A\/A guardados deste runner \(runner-de-teste\)/);
+
+    const [ruido, guardado] = pedidos;
+    assert.equal(ruido.metodo, 'GET');
+    assert.equal(ruido.url, '/api/afericao/bancada/ruido?app=bancada-de-teste&runner=runner-de-teste&perfil=software');
+    assert.equal(guardado.metodo, 'POST');
+    assert.equal(guardado.url, '/api/afericao/bancada');
+    assert.equal(guardado.token, 'Bearer vssh_cs_de-teste');
+    const run = guardado.corpo;
+    assert.deepEqual([run.app, run.versao, run.modo, run.runner, run.perfil, run.repositorio, run.commit, run.evento, run.ref],
+      ['bancada-de-teste', '1.0.0', 'comparar', 'runner-de-teste', 'software', 'colabhd/app-de-teste', 'abc1234', 'push', 'refs/heads/main']);
+    assert.deepEqual(run.linhas.map((l) => `${l.cena}/${l.medida}`), r.json.linhas.map((l) => `${l.cena}/${l.medida}`));
+    assert.equal(run.cpu.multiplicador, 1);
+
+    // Um A/A julga pela folga declarada e só manda o run: é ele que mede o ruído.
+    pedidos.length = 0;
+    const aa = await bancada('aa', app, '--runner', 'runner-de-teste', {
+      VSSH_BANCADA_PORTAL: `http://127.0.0.1:${portal.address().port}`, VSSH_BANCADA_TOKEN: 'vssh_cs_de-teste',
+    });
+    assert.equal(aa.codigo, 0, aa.stdout + aa.stderr);
+    assert.deepEqual(pedidos.map((p) => p.metodo), ['POST']);
+    assert.equal(pedidos[0].corpo.modo, 'aa');
+    assert.ok(aa.json.linhas.every((l) => !l.folgaDoHistorico));
+  } finally {
+    portal.close();
+  }
+});
+
+test('a cabeça igual à base não reprova', { skip: falta }, async () => {
   const app = repositorio('igual');
-  const r = bancada('comparar', app, '--base', 'HEAD');
+  const r = await bancada('comparar', app, '--base', 'HEAD');
   assert.equal(r.codigo, 0, r.stdout + r.stderr);
   assert.ok(r.json.linhas.every((l) => !l.piorou));
 });
 
-test('a base que não registra cenas não tem o que comparar', { skip: falta }, () => {
+test('a base que não registra cenas não tem o que comparar', { skip: falta }, async () => {
   const app = repositorio('sem-cenas');
   git(app, 'rm', '-q', 'frontend/cenas.js');
   git(app, 'commit', '-qm', 'sem as cenas');
   git(app, 'revert', '--no-edit', 'HEAD');
-  const r = bancada('comparar', app, '--base', 'HEAD~1');
+  const r = await bancada('comparar', app, '--base', 'HEAD~1');
   assert.equal(r.codigo, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /não registra cenas; não há o que comparar/);
 });

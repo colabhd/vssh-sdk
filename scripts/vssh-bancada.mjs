@@ -14,6 +14,8 @@
 //   --prazo <min>       o teto de uma rodada, em minutos; o padrão é 20
 //   --parada <s>        a janela parada depois das cenas, medida pelo CDP; o padrão é 10, e 0 a desliga
 //   --saida <arquivo>   o JSON com as rodadas cruas e o julgamento
+//   --portal <url>      o portal que guarda os runs e devolve o ruído (ou `VSSH_BANCADA_PORTAL`)
+//   --runner <nome>     o nome da máquina no histórico (ou `VSSH_BANCADA_RUNNER`); o padrão é `local`
 //
 // ─── As cenas ────────────────────────────────────────────────────────────────
 //
@@ -72,6 +74,18 @@
 // gasta, e deixa só informando a latência que espera por um Worker; a medida dela num aparelho de
 // verdade é a do campo, por `vssh.desempenho.registrar`.
 //
+// ─── O histórico ─────────────────────────────────────────────────────────────
+//
+// Com `--portal` e o token de uma conta de serviço em `VSSH_BANCADA_TOKEN`, o run vai inteiro ao
+// portal no fim (`POST /api/afericao/bancada`), com o app, a versão, o commit, o runner e cada
+// medida com as rodadas dos dois lados. Antes de julgar uma comparação, a bancada pergunta ao
+// portal o ruído dos A/A guardados daquele app, runner e perfil de placa
+// (`GET /api/afericao/bancada/ruido`), e a folga de cada medida passa a ser a maior entre a que a
+// cena declara e o p95 da diferença entre os lados nos A/A: a que o ruído desta máquina pede. O
+// portal só sugere uma folga com três A/A ou mais. Um A/A julga sempre pela folga declarada, porque
+// é ele que mede o ruído. Sem portal, sem token ou com o portal fora, a bancada julga pela folga
+// declarada e diz isso num aviso: o histórico nunca reprova um run.
+//
 // ─── A saída ─────────────────────────────────────────────────────────────────
 //
 // A tabela em Markdown no stdout e no resumo do run (`GITHUB_STEP_SUMMARY`). O código é 0 sem
@@ -94,7 +108,10 @@ const avisar = (texto) => process.stderr.write(`${texto}\n`);
 
 function argumentos(argv) {
   const [modo, ...resto] = argv;
-  const r = { modo, app: null, base: null, cabeca: null, ciclos: 2, cpu: 'calibrar', placa: 'software', tolerancia: 0.15, prazo: 20, parada: 10, saida: null };
+  const r = {
+    modo, app: null, base: null, cabeca: null, ciclos: 2, cpu: 'calibrar', placa: 'software', tolerancia: 0.15, prazo: 20, parada: 10, saida: null,
+    portal: process.env.VSSH_BANCADA_PORTAL || null, runner: process.env.VSSH_BANCADA_RUNNER || 'local',
+  };
   const valor = (i) => { if (resto[i + 1] === undefined) throw new Error(`${resto[i]} pede um valor`); return resto[i + 1]; };
   for (let i = 0; i < resto.length; i++) {
     const a = resto[i];
@@ -107,6 +124,8 @@ function argumentos(argv) {
     else if (a === '--prazo') r.prazo = Number(valor(i++));
     else if (a === '--parada') r.parada = Number(valor(i++));
     else if (a === '--saida') r.saida = valor(i++);
+    else if (a === '--portal') r.portal = valor(i++);
+    else if (a === '--runner') r.runner = valor(i++);
     else if (!a.startsWith('--') && !r.app) r.app = a;
     else throw new Error(`argumento inesperado: ${a}`);
   }
@@ -324,9 +343,10 @@ const espalhamento = (xs) => { const md = mediana(xs); return md > 0 ? (Math.max
 
 /**
  * Cada medida das duas pontas, com o veredito. `base` e `cabeca` são `{ rodadas }`, com o que
- * `rodarCenas` devolveu em cada rodada.
+ * `rodarCenas` devolveu em cada rodada. `folgas` traz, por `<cena>/<medida>`, a folga que o ruído
+ * dos A/A guardados pede, e ela vale quando passa da declarada.
  */
-export function julgar(base, cabeca, tolerancia) {
+export function julgar(base, cabeca, tolerancia, folgas = {}) {
   const a = series(base);
   const b = series(cabeca);
   const linhas = [];
@@ -335,7 +355,9 @@ export function julgar(base, cabeca, tolerancia) {
     if (!sa) continue;
     const { def } = sb;
     const rotulo = `${sb.cena}: ${def.rotulo || sb.chave}`;
-    const folga = Number.isFinite(def.folga) ? def.folga : FOLGA_PADRAO[def.unidade] ?? 0;
+    const folgaDeclarada = Number.isFinite(def.folga) ? def.folga : FOLGA_PADRAO[def.unidade] ?? 0;
+    const doHistorico = Number.isFinite(folgas[k]) && folgas[k] > folgaDeclarada;
+    const folga = doHistorico ? folgas[k] : folgaDeclarada;
     const juntas = sa.amostras.length && sb.amostras.length && !sa.valores.length && !sb.valores.length;
     const porRodada = (s) => (juntas ? s.amostras.map(p95) : s.valores);
     const ra = porRodada(sa);
@@ -348,7 +370,7 @@ export function julgar(base, cabeca, tolerancia) {
       : !def.informa && passou(ma, mb) && (juntas ? passou(mediana(ra), mediana(rb)) : mb > Math.max(...ra));
     linhas.push({
       cena: k.split('/')[0], medida: sb.chave, rotulo, unidade: def.unidade, informa: !!def.informa, juntas: !!juntas,
-      base: ra, cabeca: rb, medianaBase: ma, medianaCabeca: mb, piorou,
+      base: ra, cabeca: rb, medianaBase: ma, medianaCabeca: mb, piorou, folga, folgaDeclarada, folgaDoHistorico: doHistorico,
       ruido: { entreLados: ma > 0 ? Math.abs(mb - ma) / ma : 0, rodadas: espalhamento([...ra, ...rb]) },
     });
   }
@@ -365,14 +387,14 @@ const porcento = (x) => `${Math.round(x * 100)}%`;
 function tabela(linhas, aa) {
   const t = aa
     ? ['| medida | lado A | lado B | ruído entre os lados | espalhamento das rodadas | |', '|---|---|---|---|---|---|']
-    : ['| medida | base | cabeça | |', '|---|---|---|---|'];
+    : ['| medida | base | cabeça | folga | |', '|---|---|---|---|---|'];
   for (const l of linhas) {
     const f = FORMATOS[l.unidade] || String;
     const faixa = (xs, m) => `${f(m)} (${xs.map(f).join(', ')})`;
     const marca = l.piorou ? 'piorou' : l.informa ? 'informa' : '';
     t.push(aa
       ? `| ${l.rotulo} | ${faixa(l.base, l.medianaBase)} | ${faixa(l.cabeca, l.medianaCabeca)} | ${porcento(l.ruido.entreLados)} | ${porcento(l.ruido.rodadas)} | ${marca} |`
-      : `| ${l.rotulo} | ${faixa(l.base, l.medianaBase)} | ${faixa(l.cabeca, l.medianaCabeca)} | ${marca} |`);
+      : `| ${l.rotulo} | ${faixa(l.base, l.medianaBase)} | ${faixa(l.cabeca, l.medianaCabeca)} | ${l.informa ? '' : `${f(l.folga)}${l.folgaDoHistorico ? ' (A/A)' : ''}`} | ${marca} |`);
   }
   return t.join('\n');
 }
@@ -380,6 +402,51 @@ function tabela(linhas, aa) {
 function resumir(titulo, texto) {
   console.log(texto);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## ${titulo}\n\n${texto}\n`);
+}
+
+// ─── O histórico ─────────────────────────────────────────────────────────────
+
+/** O portal e o token, ou `null` com um aviso que diz o que falta. */
+function historico(op) {
+  if (!op.portal) return null;
+  const token = process.env.VSSH_BANCADA_TOKEN;
+  if (!token) {
+    avisar(`sem VSSH_BANCADA_TOKEN: o run não vai a ${op.portal}, e a folga é a declarada`);
+    return null;
+  }
+  return { url: op.portal.replace(/\/+$/, ''), token };
+}
+
+/** A folga sugerida de cada medida pelos A/A guardados, ou `{}` quando o portal não diz. */
+async function folgasDoHistorico(h, app, op) {
+  if (!h) return { folgas: {}, runs: 0 };
+  const q = new URLSearchParams({ app, runner: op.runner, perfil: op.placa });
+  try {
+    const r = await fetch(`${h.url}/api/afericao/bancada/ruido?${q}`, { headers: { authorization: `Bearer ${h.token}` }, signal: AbortSignal.timeout(15000) });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const { runs, medidas } = await r.json();
+    const folgas = {};
+    for (const [k, m] of Object.entries(medidas || {})) if (Number.isFinite(m?.folgaSugerida)) folgas[k] = m.folgaSugerida;
+    return { folgas, runs: Number(runs) || 0 };
+  } catch (e) {
+    avisar(`o ruído guardado não veio de ${h.url} (${e.message}); a folga é a declarada`);
+    return { folgas: {}, runs: 0 };
+  }
+}
+
+/** Manda o run ao portal. Uma falha só avisa: o histórico nunca reprova um run. */
+async function guardarRun(h, run) {
+  if (!h) return;
+  try {
+    const r = await fetch(`${h.url}/api/afericao/bancada`, {
+      method: 'POST', body: JSON.stringify(run), signal: AbortSignal.timeout(15000),
+      headers: { authorization: `Bearer ${h.token}`, 'content-type': 'application/json' },
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status} ${(await r.text()).slice(0, 200)}`);
+    avisar(`o run foi guardado em ${h.url}`);
+  } catch (e) {
+    avisar(`o run não foi guardado em ${h.url} (${e.message})`);
+  }
 }
 
 // ─── O comando ───────────────────────────────────────────────────────────────
@@ -440,7 +507,10 @@ async function medir(op, navegador) {
     }
   }
 
-  const linhas = julgar(base, cabeca, op.tolerancia);
+  const manifesto = JSON.parse(readFileSync(join(raizDaCabeca, 'vssh-app.json'), 'utf8'));
+  const h = historico(op);
+  const { folgas, runs: runsDoRuido } = aa ? { folgas: {}, runs: 0 } : await folgasDoHistorico(h, manifesto.id, op);
+  const linhas = julgar(base, cabeca, op.tolerancia, folgas);
   const cpuTexto = op.cpu === 'calibrar'
     ? `a CPU da página estrangulada ${cpu.multiplicador} vezes, que a leva de ${cpu.indiceSemEstrangular} a ${cpu.indice} (o Celeron de referência é 100)`
     : `a CPU da página estrangulada ${cpu.multiplicador} vezes`;
@@ -453,13 +523,24 @@ async function medir(op, navegador) {
   const worker = cpu.indiceSemEstrangular
     ? ` Um Web Worker não é estrangulado: ele roda na velocidade desta máquina, ${cpu.indiceSemEstrangular} contra os 100 do Celeron, e uma medida que espera por ele sai otimista.`
     : ' Um Web Worker não é estrangulado: ele roda na velocidade desta máquina, e uma medida que espera por ele sai otimista.';
-  const nota = `Cada célula é a mediana das rodadas, ou o p95 das amostras de todas as rodadas juntas quando a cena devolve amostras; entre parênteses, cada rodada.${worker}`;
+  const doHistorico = linhas.filter((l) => l.folgaDoHistorico).length;
+  const folgaTexto = aa ? '' : doHistorico
+    ? ` A folga de ${doHistorico} ${doHistorico === 1 ? 'medida' : 'medidas'} saiu do ruído de ${runsDoRuido} A/A guardados deste runner (${op.runner}), com a marca (A/A); a das outras é a que a cena declara.`
+    : ' A folga é a que cada cena declara.';
+  const nota = `Cada célula é a mediana das rodadas, ou o p95 das amostras de todas as rodadas juntas quando a cena devolve amostras; entre parênteses, cada rodada.${folgaTexto}${worker}`;
   resumir(aa ? 'Bancada do aparelho fraco, A/A' : 'Bancada do aparelho fraco', `${cabecalho} ${nota}\n\n${tabela(linhas, aa)}\n`);
   if (op.saida) {
     mkdirSync(dirname(resolve(op.saida)), { recursive: true });
     writeFileSync(op.saida, `${JSON.stringify({ modo: op.modo, base: aa ? null : op.base, cpu, placa, tolerancia: op.tolerancia, linhas,
       rodadas: { base: base.rodadas, cabeca: cabeca.rodadas } }, null, 1)}\n`);
   }
+  await guardarRun(h, {
+    app: manifesto.id, versao: manifesto.version ?? null,
+    repositorio: process.env.GITHUB_REPOSITORY || null, commit: process.env.GITHUB_SHA || null,
+    ref: process.env.GITHUB_REF || null, evento: process.env.GITHUB_EVENT_NAME || null,
+    modo: op.modo, base: aa ? null : op.base, runner: op.runner, perfil: op.placa, placa, cpu,
+    ciclos: op.ciclos, tolerancia: op.tolerancia, linhas,
+  });
   const pioras = linhas.filter((l) => l.piorou);
   for (const l of pioras) {
     const f = FORMATOS[l.unidade] || String;

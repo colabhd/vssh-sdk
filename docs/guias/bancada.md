@@ -200,7 +200,45 @@ jobs:
     uses: colabhd/vssh-sdk/.github/workflows/_bancada-app-reusable.yml@main
     with:
       runner: colabhd-franca
+    secrets:
+      bancada_token: ${{ secrets.VSSH_BANCADA_TOKEN }}
 ```
 
 A base é o ramo de destino num PR e o commit anterior num push. A tabela sai no resumo do run, e as
 rodadas cruas num artefato. `modo: aa` mede o ruído, e vale rodar uma vez quando as cenas mudam.
+
+### O histórico no portal
+
+Com `bancada_token`, o token de uma conta de serviço do portal, cada run vai ao histórico dele: o
+app e a versão, o commit, o runner, a calibração da CPU, e cada medida com as rodadas dos dois
+lados. Um run sozinho compara dois lados no mesmo intervalo de tempo; guardados, eles dizem quanto
+cada medida varia com o mesmo código dos dois lados naquele runner, e por onde ela andou na `main`.
+A página Desempenho do painel admin do VSSH mostra as duas coisas por app.
+
+Antes de comparar, a bancada pergunta ao portal o ruído dos A/A guardados do app, naquele runner e
+perfil de placa. A folga de cada medida passa a ser a maior entre a que a cena declara e o p95 da
+diferença entre os lados nesses A/A, e a coluna folga da tabela marca com (A/A) a que veio do
+ruído. O portal só sugere uma folga a partir de três A/A, e por isso um app novo começa pela folga
+declarada e passa a ser julgado pelo ruído medido à medida que os A/A se acumulam. Um A/A no mesmo
+workflow, num agendamento semanal, alimenta o histórico sem ninguém lembrar:
+
+```yaml
+on:
+  schedule:
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+jobs:
+  aa:
+    uses: colabhd/vssh-sdk/.github/workflows/_bancada-app-reusable.yml@main
+    with:
+      modo: aa
+      runner: colabhd-franca
+    secrets:
+      bancada_token: ${{ secrets.VSSH_BANCADA_TOKEN }}
+```
+
+O A/A julga sempre pela folga declarada, porque é ele que mede o ruído. Sem o token, com o portal
+fora do ar ou com uma resposta que não é a esperada, a bancada julga pela folga declarada e diz
+isso num aviso. O histórico não reprova um run. Na linha de comando, `--portal <url>` e
+`VSSH_BANCADA_TOKEN` fazem o mesmo, e `--runner <nome>` dá o nome da máquina, que no CI é o do
+`runner` do workflow.

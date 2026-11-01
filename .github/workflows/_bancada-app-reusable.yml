@@ -14,6 +14,8 @@ name: Bancada de um app (reusable)
 #       uses: colabhd/vssh-sdk/.github/workflows/_bancada-app-reusable.yml@main
 #       with:
 #         runner: colabhd-franca
+#       secrets:
+#         bancada_token: ${{ secrets.VSSH_BANCADA_TOKEN }}
 #
 # A base é o ramo de destino num PR e o commit anterior num push; `base` escolhe outra. `modo: aa`
 # mede a cabeça contra ela mesma e publica o ruído de cada medida. A janela registra as cenas dela
@@ -22,6 +24,10 @@ name: Bancada de um app (reusable)
 #
 # A base roda o que está commitado nela, sem build e sem `npm install`, como o pacote publicado
 # roda no servidor: o `dist/` vai commitado.
+#
+# Com `bancada_token`, o token de uma conta de serviço do portal, cada run vai ao histórico do
+# portal, e a comparação julga cada medida pela folga que o ruído dos A/A guardados daquele runner
+# pede (`docs/guias/bancada.md`). Sem ele, a folga é a que a cena declara.
 
 on:
   workflow_call:
@@ -60,6 +66,14 @@ on:
         description: 'O runner do job (runs-on): o padrão é o da nuvem; ex.: colabhd-franca'
         type: string
         default: 'ubuntu-latest'
+      portal:
+        description: 'O portal que guarda os runs e devolve o ruído dos A/A'
+        type: string
+        default: 'https://vssh.colabh.org'
+    secrets:
+      bancada_token:
+        description: 'O token de uma conta de serviço do portal (vssh_cs_…); sem ele, o run não vai ao histórico'
+        required: false
 
 jobs:
   bancada:
@@ -114,6 +128,9 @@ jobs:
           EVENTO: ${{ github.event_name }}
           DESTINO: ${{ github.base_ref }}
           ANTERIOR: ${{ github.event.before }}
+          VSSH_BANCADA_PORTAL: ${{ inputs.portal }}
+          VSSH_BANCADA_RUNNER: ${{ inputs.runner }}
+          VSSH_BANCADA_TOKEN: ${{ secrets.bancada_token }}
         run: |
           if [ "$MODO" = aa ]; then
             node ../_tools/scripts/vssh-bancada.mjs aa "$APP_DIR" --ciclos "$CICLOS" --cpu "$CPU" --placa "$PLACA" --saida "$RUNNER_TEMP/bancada.json"
