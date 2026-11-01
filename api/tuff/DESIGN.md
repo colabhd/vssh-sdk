@@ -129,8 +129,9 @@ ele diz a severidade de uma dica. A pasta é a única exceção: ela leva a cor 
 Um arquivo é conteúdo da pessoa, e o ícone dele tem cor. É uma família à parte dos glifos de traço:
 cheia, desenhada num quadro de 48 × 48 para a grade e reduzida a 20 px na lista.
 
-A forma é a folha com selo: a folha clara, o glifo do tipo na cor dele no meio, e a extensão num
-selo colorido no canto. Ela foi escolhida porque o meio da folha e o selo são dois lugares que um
+A forma é a folha com selo: a folha clara, o glifo do tipo na cor dele na metade de cima, e a
+extensão num selo colorido no canto de baixo, sem cobrir o glifo. Na lista, onde a extensão não se
+lê, o selo some e o glifo volta ao meio da folha. Ela foi escolhida porque o meio da folha e o selo são dois lugares que um
 app pode preencher com o que é dele.
 
 Cada tipo tem um matiz e um glifo, e o glifo carrega o tipo junto com a cor, para quem não distingue
@@ -139,7 +140,7 @@ que o outro. A coluna "selo" é a cor do selo, com o branco da extensão acima d
 
 | tipo | matiz | selo | glifo |
 |---|---|---|---|
-| PDF | `#c8645a` | `#a43b35` | linhas |
+| PDF | `#c8645a` | `#a43b35` | o laço |
 | documento e texto | `#5286d3` | `#2a61b1` | linhas |
 | planilha | `#429c5a` | `#057836` | grade |
 | apresentação | `#c36c36` | `#9c4700` | quadro no tripé |
@@ -148,7 +149,7 @@ que o outro. A coluna "selo" é a cor do selo, com o branco da extensão acima d
 | áudio | `#bc6398` | `#983c75` | nota |
 | comprimido | `#9e8406` | `#766202` | zíper |
 | código | `#5d7186` | `#44576b` | `</>` |
-| outro | `#868686` | `#636363` | linhas |
+| outro | `#868686` | `#636363` | nenhum, a folha limpa |
 
 A pasta tem fundo, aba e frente, na cor de destaque clareada (a frente com 62% do destaque e o
 fundo com 85%, misturados com branco), e passa de 3,7:1 sobre a página com qualquer uma das sete

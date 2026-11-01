@@ -355,8 +355,11 @@
 // `--ds-pasta-*` por `style`, e por isso acompanha a cor de destaque quando o `<svg>` está no
 // documento; num `data:` ela cai no azul padrão.
 //
-// O selo some num contêiner `.tuff-arquivo-p`: em 20 px a extensão não se lê, e o glifo basta. Uma
-// extensão de mais de quatro letras fica sem selo.
+// O glifo mora na metade de cima da folha e o selo na de baixo, e um não cobre o outro. O selo some
+// num contêiner `.tuff-arquivo-p`: em 20 px a extensão não se lê, e o glifo volta ao meio da folha e
+// basta sozinho, porque cada tipo tem o seu (o PDF, o laço; o arquivo sem tipo, a folha limpa). O
+// zíper do comprimido não se move, porque ele sai da borda de cima. Uma extensão de mais de quatro
+// letras fica sem selo.
 
 (function () {
 
@@ -372,6 +375,9 @@
   // O glifo de cada tipo, desenhado no quadro de 48 na cor que vem por parâmetro.
   const GLIFOS = {
     linhas:   (c) => traco(c, 'M16.5 22h15M16.5 27.5h15M16.5 33h10', 2.6),
+    laco:     (c) => `<g transform="translate(24 28) scale(2.7) translate(-8 -9.2)">` +
+                     traco(c, 'M5.25 12.25c1.1-1.4 2.3-3.6 2.45-5.3.05-.75-.75-.85-.85-.15-.25 1.75 1.85 3.9 3.65 4.4.75.2.85-.55.15-.75-1.4-.4-3.6.1-5.4 1.8z', 1.05) + '</g>',
+    nada:     () => '',
     imagem:   (c) => `<circle cx="19.5" cy="22" r="2.8" fill="${c}"/><path d="M14.5 37l6.5-8 4.5 5 3.2-3.6 5.3 6.6Z" fill="${c}"/>`,
     video:    (c) => `<path d="M20 21v14l11.5-7Z" fill="${c}"/>`,
     audio:    (c) => traco(c, 'M22.5 34V21.5l9-2.2V31', 2.4) +
@@ -387,7 +393,7 @@
 
   // O tipo: a tinta do glifo, a cor do selo (o branco da extensão passa de 5,6:1 sobre ela) e o glifo.
   const TIPOS = {
-    pdf:          { tinta: '#ab413a', selo: '#a43b35', glifo: 'linhas' },
+    pdf:          { tinta: '#ab413a', selo: '#a43b35', glifo: 'laco' },
     documento:    { tinta: '#3067b8', selo: '#2a61b1', glifo: 'linhas' },
     planilha:     { tinta: '#0a7e3a', selo: '#057836', glifo: 'planilha' },
     apresentacao: { tinta: '#a44c03', selo: '#9c4700', glifo: 'quadro' },
@@ -396,7 +402,7 @@
     audio:        { tinta: '#9e427b', selo: '#983c75', glifo: 'audio' },
     comprimido:   { tinta: '#7c6702', selo: '#766202', glifo: 'zip' },
     codigo:       { tinta: '#44576b', selo: '#44576b', glifo: 'codigo' },
-    outro:        { tinta: '#636363', selo: '#636363', glifo: 'linhas' },
+    outro:        { tinta: '#636363', selo: '#636363', glifo: 'nada' },
   };
 
   // O glifo gravado na frente das pastas da pessoa, um tom abaixo dela.
@@ -449,9 +455,9 @@
   function selo(ext, cor) {
     const w = 7 + ext.length * 5.7;
     const texto = ext.replace(/[&<>"]/g, (c) => ESCAPE[c]);
-    return `<g class="tuff-arquivo-selo"><rect x="2" y="28.4" width="${w.toFixed(1)}" height="13.8" rx="1.5" fill="${cor}"/>` +
-      `<text x="${(2 + w / 2).toFixed(1)}" y="38.3" fill="#ffffff" font-family="'Instrument Sans', system-ui, sans-serif" ` +
-      `font-size="8.6" font-weight="700" text-anchor="middle">${texto}</text></g>`;
+    return `<g class="tuff-arquivo-selo"><rect x="2" y="30.6" width="${w.toFixed(1)}" height="12" rx="1.5" fill="${cor}"/>` +
+      `<text x="${(2 + w / 2).toFixed(1)}" y="39.4" fill="#ffffff" font-family="'Instrument Sans', system-ui, sans-serif" ` +
+      `font-size="8.2" font-weight="700" text-anchor="middle">${texto}</text></g>`;
   }
 
   // O tipo que um app cria (`opens.proprios` no manifesto): a mesma folha, o ícone do app no lugar
@@ -488,7 +494,9 @@
     return `<svg class="tuff-arquivo" ${NS}>` +
       `<path d="M12.5 4H29l9 9v28.5a2.5 2.5 0 0 1-2.5 2.5h-23a2.5 2.5 0 0 1-2.5-2.5v-35A2.5 2.5 0 0 1 12.5 4Z" fill="${FOLHA}"/>` +
       `<path d="M29 4v6.5a2.5 2.5 0 0 0 2.5 2.5H38Z" fill="${DOBRA}"/>` +
-      GLIFOS[t.glifo](t.tinta) +
+      (t.glifo === 'zip'
+        ? GLIFOS.zip(t.tinta)
+        : `<g class="tuff-arquivo-glifo" transform="translate(24 21.5) scale(.82) translate(-24 -28)">${GLIFOS[t.glifo](t.tinta)}</g>`) +
       (ext && ext.length <= 4 ? selo(ext, t.selo) : '') +
       '</svg>';
   }

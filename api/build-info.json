@@ -32,7 +32,7 @@
       "sha256": "0bf07c92217fe6ef27c9653a262e2476ae97bcb40a519f31c574652e974ef593"
     },
     "api/tuff/DESIGN.md": {
-      "sha256": "400c5b3bbfd491fccbd9b42dbe7644024f358be52c0ce26b9366b72fe9948610"
+      "sha256": "1fb5b0a2dcf67c0ebfc73bcb8328d76230ca0da835d280549955db94f4ac48c0"
     },
     "api/tuff/docs/componentes.html": {
       "sha256": "04f4b1fa76c12e2415e530e457a42e875b05fdafdf91049c5929b43708ad8e1a"
@@ -65,10 +65,10 @@
       "sha256": "5c9db020edc138f1683e56d4251cd47b8ee5e3b971cd79938ec82cfcfa123182"
     },
     "api/tuff/tuff.css": {
-      "sha256": "fcd47b5828764619880d3e85ec3420b6591ffca215e3a44ed434d6088496836a"
+      "sha256": "f1ee04f6a8c1b958620467f2099cbcd06a5470040adc84f67bfd0aa68b1efbd1"
     },
     "api/tuff/tuff.js": {
-      "sha256": "78961629acfdb1a19d2e4b0eadcab1b33c1fe4e22c2b6aa3ba6fb7e13be51f35"
+      "sha256": "cb0d0dacffe2b520cdd858d27836776564cbbde1a940161abde801990a19b8f3"
     },
     "api/tuff/vendor/geotiff-LICENCAS.txt": {
       "sha256": "48fe558bdf8ac64674a9104c2e679400368d529dd36de972419c9d0cfc9d4a40"

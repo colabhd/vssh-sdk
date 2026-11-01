@@ -1624,10 +1624,12 @@
   /* ── Ícone de arquivo ───────────────────────────────────────────────────────
      O desenho é do `TuffArquivo.svg` (tuff.js), que devolve um `<svg class="tuff-arquivo">`; quem o
      põe na tela dá o tamanho pelo contêiner. Em 20 px ou menos a extensão do selo não se lê, e um
-     contêiner `.tuff-arquivo-p` a esconde, deixando o glifo dizer o tipo sozinho. */
+     contêiner `.tuff-arquivo-p` a esconde, deixando o glifo dizer o tipo sozinho. Na grade o glifo
+     mora na metade de cima da folha, acima do selo; sem o selo ele volta ao meio e cresce. */
 
   .tuff-arquivo { display: block; flex: none; }
   .tuff-arquivo-p .tuff-arquivo-selo { display: none; }
+  .tuff-arquivo-p .tuff-arquivo-glifo { transform: translate(24px, 26px) scale(1.12) translate(-24px, -28px); }
 
   /* ── Busca ──────────────────────────────────────────────────────────────────
      Um `<input type="search">` com a lupa embutida. A cruz nativa do WebKit
