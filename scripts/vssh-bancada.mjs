@@ -63,6 +63,12 @@
 // no processo da placa, na velocidade dela, e por isso o perfil `software` usa o SwiftShader, a
 // placa de um runner sem GPU, mais perto de um aparelho fraco que qualquer placa de verdade.
 //
+// Um Web Worker também fica de fora: o CDP recusa o estrangulamento na sessão dele ("only
+// supported for pages, not workers"). O que a janela manda a um Worker roda na velocidade desta
+// máquina, várias vezes a do Celeron, e a tabela diz isso. Uma cena mede o que a thread da página
+// gasta, e deixa só informando a latência que espera por um Worker; a medida dela num aparelho de
+// verdade é a do campo, por `vssh.desempenho.registrar`.
+//
 // ─── A saída ─────────────────────────────────────────────────────────────────
 //
 // A tabela em Markdown no stdout e no resumo do run (`GITHUB_STEP_SUMMARY`). O código é 0 sem
@@ -429,7 +435,13 @@ async function medir(op, navegador) {
   const cabecalho = aa
     ? `A pasta \`${relative(process.cwd(), app) || '.'}\` contra ela mesma, ${op.ciclos * 2} rodadas de cada lado, alternadas, com ${cpuTexto}, na placa ${placa}.`
     : `Base \`${op.base}\` e cabeça \`${relative(process.cwd(), raizDaCabeca) || '.'}\`, ${op.ciclos * 2} rodadas de cada, alternadas, com ${cpuTexto}, na placa ${placa}.`;
-  const nota = 'Cada célula é a mediana das rodadas, ou o p95 das amostras de todas as rodadas juntas quando a cena devolve amostras; entre parênteses, cada rodada.';
+  // O CDP recusa o estrangulamento num Worker ("only supported for pages"), e o que a janela manda a
+  // um Worker roda aqui na velocidade da máquina: uma medida que espera por ele sai otimista, e
+  // levar trabalho da página para um Worker parece de graça. A tabela diz quanto.
+  const worker = cpu.indiceSemEstrangular
+    ? ` Um Web Worker não é estrangulado: ele roda na velocidade desta máquina, ${cpu.indiceSemEstrangular} contra os 100 do Celeron, e uma medida que espera por ele sai otimista.`
+    : ' Um Web Worker não é estrangulado: ele roda na velocidade desta máquina, e uma medida que espera por ele sai otimista.';
+  const nota = `Cada célula é a mediana das rodadas, ou o p95 das amostras de todas as rodadas juntas quando a cena devolve amostras; entre parênteses, cada rodada.${worker}`;
   resumir(aa ? 'Bancada do aparelho fraco, A/A' : 'Bancada do aparelho fraco', `${cabecalho} ${nota}\n\n${tabela(linhas, aa)}\n`);
   if (op.saida) {
     mkdirSync(dirname(resolve(op.saida)), { recursive: true });

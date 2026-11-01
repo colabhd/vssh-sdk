@@ -54,6 +54,27 @@ A cena que não cabe no aparelho (uma folha maior que a memória dele) devolve
 `{ pulada: '<motivo>' }`. O `sinal` interrompe entre uma cena e outra, e `quadro()` resolve no
 `requestAnimationFrame` seguinte.
 
+`sossegar()` espera a janela ficar um segundo inteiro sem tarefa longa, com teto de 20 s
+(`sossegar({ ms, teto })` muda os dois). Chame-o entre o preparo e a medida, e entre uma medida e a
+seguinte: o que o preparo deixou para depois (uma rolagem até o cursor, as imagens que chegam, uma
+compilação) cairia na primeira amostra, e uma espera fixa não sabe quanto isso leva num aparelho
+lento.
+
+```js
+async rodar({ quadro, sossegar }) {
+  abrirDocumentoGrande();
+  await sossegar();        // a janela termina o que a abertura agendou
+  const amostras = [];
+  for (const letra of 'uma frase comum') {
+    const t0 = performance.now();
+    editor.inserir(letra);
+    await quadro();
+    amostras.push(performance.now() - t0);
+  }
+  return { tecla: amostras };
+}
+```
+
 ## O "Medir este aparelho" do app
 
 O app roda as cenas no aparelho de quem usa com `vssh.desempenho.rodarCenas`, e manda o resultado
@@ -105,6 +126,14 @@ fazem antes das rodadas, a menos que `--cpu <n>` fixe um. O estrangulamento alca
 principal: a rasterização e o WebGL rodam no processo da placa, na velocidade dela. Por isso o
 perfil padrão (`--placa software`) usa o SwiftShader, a placa de um runner sem GPU.
 
+Um Web Worker também fica de fora: o CDP recusa o estrangulamento na sessão de um Worker, e o que a
+janela manda a ele roda na velocidade da máquina do laboratório, várias vezes a do Celeron. A tabela
+diz quanto. Uma cena que espera um Worker (uma compilação, uma decodificação) mede bem o que a
+thread da página gasta enquanto isso, e mede otimista a espera em si: deixe essa latência como
+`informa`, e registre a mesma medida no campo por `vssh.desempenho.registrar`, que roda no aparelho
+de quem usa. Levar trabalho da página a um Worker sempre parece de graça no laboratório; num
+Celeron de dois núcleos ele alivia a thread da janela, e a espera continua do mesmo tamanho.
+
 Um app que precisa de dados para medir (um caderno de dez mil notas, uma conta ligada) traz
 `bancada/preparar.mjs`, com a função `preparar({ home, dados, app, manifesto, lado })` do palco
 da ajuda. Ela roda uma vez em cada lado, escreve na HOME e nos dados daquele lado, e devolve o que
@@ -112,6 +141,38 @@ a ponte responde à janela, na mesma forma do `ajuda/palco.mjs` ([A ajuda do seu
 
 A base roda sem build e sem `npm install`, como o pacote publicado roda no servidor: o `dist/` do
 frontend e do backend vai commitado.
+
+## No aparelho de quem usa
+
+O laboratório compara versões; o campo diz como o app se comporta nos aparelhos de verdade, por
+classe da Aferição e sem quem usa, na página Desempenho do VSSH. O SDK web mede três coisas dentro
+da janela de todo app, sem o app fazer nada:
+
+| medida | o que conta |
+|---|---|
+| `_tecla` | do instante em que o navegador criou o keydown ao quadro seguinte pintado, com a espera atrás de uma tarefa longa |
+| `_clique` | o mesmo, do pointerdown |
+| `_tarefa` | cada tarefa de 50 ms ou mais na thread da janela |
+
+O que só o app sabe medir (o traço, a abertura de um documento, a espera por um Worker) ele declara
+no manifesto, em `desempenho.medidas`, com a experiência e a unidade, e registra pela ponte:
+
+```json
+"desempenho": {
+  "medidas": {
+    "previa": { "experiencia": "ambiente", "unidade": "ms" }
+  }
+}
+```
+
+```js
+const fim = vssh.desempenho.medir('previa');
+await compilarEMostrar();
+fim();
+```
+
+Um nome que o manifesto instalado não declara o portal recusa, e a medida some sem erro nenhum. Os
+nomes que começam por `_` são da plataforma, e um manifesto não pode usá-los.
 
 ## No CI
 
