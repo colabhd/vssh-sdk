@@ -1,7 +1,7 @@
 {
   "versaoDasCenas": 3,
-  "medidoEm": "2026-10-31",
-  "medidas": 3,
+  "medidoEm": "2026-11-01",
+  "medidas": 5,
   "cenas": {
     "vidro": {
       "cabem": 24,
@@ -12,11 +12,11 @@
       "teto": false
     },
     "compositor": {
-      "cabem": 32,
+      "cabem": 40,
       "teto": false
     },
     "layout": {
-      "cabem": 128,
+      "cabem": 112,
       "teto": false
     },
     "lista": {
@@ -25,6 +25,10 @@
     },
     "texto": {
       "cabem": 256,
+      "teto": false
+    },
+    "parado": {
+      "cabem": 2560,
       "teto": false
     },
     "traco": {
