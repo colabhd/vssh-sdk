@@ -172,7 +172,8 @@ function montarGaleria() {
       linhas.push(vssh.noAmbiente
         ? `shell do servidor: ${cap.shellVersion || 'não informada: shell velho demais para se declarar'}`
         : 'shell do servidor: nenhum, esta página está fora do ambiente');
-      linhas.push(`host: ${cap.host} · apps nativos: ${cap.nativeApps} · interop X11: ${cap.x11Interop}`);
+      // `host` é o cliente que serve o shell: navegador, cliente-de-desktop ou chromeos; `none` fora.
+      linhas.push(`cliente: ${cap.host}`);
       const verbos = Array.isArray(cap.verbos) ? cap.verbos : [];
       linhas.push(`tabela de exportação: ${verbos.length} verbo(s), ${(cap.eventos || []).length} evento(s)`);
       // O idioma de perguntar antes de usar: um nome da tabela, e não um `typeof` sobre o objeto.

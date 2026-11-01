@@ -176,8 +176,8 @@ No `frontend/index.html`, com o SDK carregado, a primeira pergunta de um app é 
 </script>
 ```
 
-A resposta traz o nome do host, o que ele sabe fazer, a versão do shell (ou `null`, num shell que
-não se declara) e a lista de verbos e eventos da ponte. Carimbe o par `shellVersion` e a versão
+A resposta traz o cliente que serve o shell (`host`: `navegador`, `cliente-de-desktop` ou
+`chromeos`), a versão do shell (ou `null`, num shell que não se declara) e a lista de verbos e eventos da ponte. Carimbe o par `shellVersion` e a versão
 das libs no log: versão dessincronizada entre app e shell é a regra, e sem o par um relato de
 "não funciona" não diz qual combinação estava em jogo.
 

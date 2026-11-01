@@ -163,7 +163,7 @@ test('o SDK carrega fora do ambiente, sem exceção, e se declara fora', { skip:
   const ambiente = await texto('ambiente');
   assert.match(ambiente, /dentro do ambiente: false/);
   assert.match(ambiente, /fora do ambiente/);
-  assert.match(ambiente, /host: none/);
+  assert.match(ambiente, /cliente: none/);
   assert.deepEqual(pagina.excecoes, [], 'a página lançou');
   assert.deepEqual(pagina.console.filter((c) => c.tipo === 'error'), [], 'houve erro no console');
 });

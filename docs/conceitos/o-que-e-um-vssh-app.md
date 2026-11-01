@@ -69,9 +69,9 @@ O padrão que atravessa todos os espaços: só dado cruza a ponte. O app manda r
 caminhos, nunca uma função nem HTML, e o shell desenha o diálogo, o menu, o seletor e a
 notificação com a aparência do ambiente.
 
-A primeira pergunta de um app é `vssh.app.capacidades()`. A resposta traz o nome do host, o que ele
-sabe fazer (`nativeApps`, `x11Interop`, `clipboardServer` e os demais), a versão do shell e a lista
-de verbos e eventos da tabela. Com a lista o app decide sozinho se o shell em que caiu tem o que
+A primeira pergunta de um app é `vssh.app.capacidades()`. A resposta traz o cliente que serve o
+shell (`host`: `navegador`, `cliente-de-desktop` ou `chromeos`, e `none` fora do ambiente), a
+versão do shell e a lista de verbos e eventos da tabela. Com a lista o app decide sozinho se o shell em que caiu tem o que
 ele precisa, e degrada onde não tem. `shellVersion: null` é resposta válida: um shell que não se
 declara.
 
