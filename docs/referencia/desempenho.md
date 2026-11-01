@@ -42,7 +42,9 @@ fração de 0 a 1 numa medida de unidade `razao`. O shell junta as vezes com o c
 manda ao portal a cada minuto, com a classe do aparelho e sem quem usa; o portal aceita só o nome
 que o manifesto instalado declara. Um nome que o manifesto não declara, ou um valor fora da unidade,
 fica no console do shell. `vssh.desempenho.medir(nome)` devolve a função que encerra a medida e a
-registra.
+registra. Os nomes que começam por `_` são da plataforma: o SDK registra sozinho, de todo app,
+`_tecla` e `_clique` (do gesto ao quadro seguinte pintado) e `_tarefa` (cada tarefa de 50 ms ou mais
+na thread do app).
 
 Não responde: um disparo, sem retorno.
 Num hiperlink: recusado. A medida vai com a descrição do aparelho, e só um vssh-app a manda.

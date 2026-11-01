@@ -852,7 +852,9 @@ declare namespace vssh {
      * do ambiente e as manda ao portal a cada minuto, com a classe do aparelho e sem quem usa; o
      * portal aceita só o nome que o manifesto instalado declara. Um nome que o manifesto não
      * declara, ou um valor fora da unidade, fica no console do shell. `vssh.desempenho.medir(nome)`
-     * devolve a função que encerra a medida e a registra.
+     * devolve a função que encerra a medida e a registra. Os nomes que começam por `_` são da
+     * plataforma: o SDK registra sozinho, de todo app, `_tecla` e `_clique` (do gesto ao quadro
+     * seguinte pintado) e `_tarefa` (cada tarefa de 50 ms ou mais na thread do app).
      */
     function registrar(nome: string, valor: number): void;
 

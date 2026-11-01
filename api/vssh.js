@@ -659,7 +659,7 @@
   vssh.desempenho = {
     // Manda o resultado de uma bancada do app, como o "Medir este aparelho" dele, ao portal, junto da descrição deste aparelho e da classe de cada experiência que o shell tem. O shell pergunta antes, num diálogo com o nome do app, e a resposta é `{ mandado: true }`, ou `{ mandado: false }` quando a pessoa não quis. A medida é um objeto de até 2000 campos, com nomes de letras, números e `_`, oito níveis no máximo e o corpo inteiro abaixo de 96 KB; o portal a guarda sem quem mandou.
     mandarMedida: (medida) => ponte.chamar('desempenho.mandarMedida', { type: 'desempenho', op: 'mandar', medida: medida }, 600000),
-    // Registra uma vez de uma medida que o manifesto declara em `desempenho.medidas`: o tempo em ms, ou a fração de 0 a 1 numa medida de unidade `razao`. O shell junta as vezes com o campo do ambiente e as manda ao portal a cada minuto, com a classe do aparelho e sem quem usa; o portal aceita só o nome que o manifesto instalado declara. Um nome que o manifesto não declara, ou um valor fora da unidade, fica no console do shell. `vssh.desempenho.medir(nome)` devolve a função que encerra a medida e a registra.
+    // Registra uma vez de uma medida que o manifesto declara em `desempenho.medidas`: o tempo em ms, ou a fração de 0 a 1 numa medida de unidade `razao`. O shell junta as vezes com o campo do ambiente e as manda ao portal a cada minuto, com a classe do aparelho e sem quem usa; o portal aceita só o nome que o manifesto instalado declara. Um nome que o manifesto não declara, ou um valor fora da unidade, fica no console do shell. `vssh.desempenho.medir(nome)` devolve a função que encerra a medida e a registra. Os nomes que começam por `_` são da plataforma: o SDK registra sozinho, de todo app, `_tecla` e `_clique` (do gesto ao quadro seguinte pintado) e `_tarefa` (cada tarefa de 50 ms ou mais na thread do app).
     registrar: (nome, valor) => ponte.disparar('desempenho.registrar', { type: 'desempenho', op: 'registrar', nome: nome, valor: valor }),
     // Este espaço não declara eventos: qualquer nome aqui é recusado.
     ao: (evento, cb) => ponte.escutar('desempenho', evento, cb),
@@ -1215,6 +1215,43 @@
     });
   });
 
+  // ── O campo dentro do quadro do app ───────────────────────────────────────────────────────
+  //
+  // O shell mede as teclas, os cliques e os quadros longos do documento dele, e a janela de um app
+  // é um quadro que esses ouvintes não alcançam: uma tecla presa um segundo atrás da prévia de um
+  // editor não aparecia em medida nenhuma. O SDK mede três coisas aqui dentro, sem o app declarar
+  // nada, e as manda pela ponte com os nomes da plataforma, que o portal aceita de todo app
+  // instalado e que um manifesto não pode usar (começam por `_`):
+  //
+  //   _tecla   do instante em que o navegador criou o keydown ao quadro seguinte pintado: a espera
+  //            atrás de uma tarefa longa entra na conta, como a pessoa a sente
+  //   _clique  o mesmo, do pointerdown
+  //   _tarefa  cada tarefa de 50 ms ou mais na thread do app, pelo Long Tasks
+  //
+  // O Long Animation Frames, que o shell usa, não serve aqui: num quadro da mesma origem do shell
+  // ele é relatado só ao documento de cima, e o app não o vê. O Long Tasks chega ao quadro nos dois
+  // casos, na mesma origem e na origem própria do cliente de desktop.
+  //
+  // Nada roda parado: cada medida começa num gesto da pessoa ou numa tarefa que o navegador já
+  // relatou.
+  if (typeof document !== 'undefined' && document.addEventListener) noAmbienteFaca(() => {
+    const mandar = (nome, ms) => {
+      try { vssh.desempenho.registrar(nome, ms); } catch { /* um shell sem o verbo: a vez se perde */ }
+    };
+    const ateOQuadro = (nome) => (e) => {
+      const t0 = e.timeStamp;
+      requestAnimationFrame(() => setTimeout(() => mandar(nome, performance.now() - t0), 0));
+    };
+    document.addEventListener('keydown', ateOQuadro('_tecla'), { capture: true, passive: true });
+    document.addEventListener('pointerdown', ateOQuadro('_clique'), { capture: true, passive: true });
+    const Observador = window.PerformanceObserver;
+    if (Observador && (Observador.supportedEntryTypes || []).includes('longtask')) {
+      new Observador((lista) => {
+        for (const t of lista.getEntries()) mandar('_tarefa', t.duration);
+      }).observe({ type: 'longtask' });
+    }
+  });
+
   // ── A medida de um app ────────────────────────────────────────────────────────────────────
 
   /**
@@ -1240,9 +1277,11 @@
   // (`rodarCenas`), no laboratório do vssh-sdk (`vssh-bancada`), que a pede pelo quadro de bancada
   // com a mensagem `bancada-rodar`, e no aparelho de referência a cada versão.
   //
-  // Uma medida devolve um número por rodada (o laboratório compara a mediana das rodadas) ou uma
-  // lista de amostras (ele compara o p95 das amostras de todas as rodadas juntas). A cena que não
-  // cabe no aparelho devolve `{ pulada: '<motivo>' }`.
+  // A cena recebe `{ sinal, quadro, sossegar }`: o sinal que a interrompe, o `quadro()` que resolve
+  // no `requestAnimationFrame` seguinte e o `sossegar()` que espera a janela ficar sem tarefa longa
+  // antes de medir. Uma medida devolve um número por rodada (o laboratório compara a mediana das
+  // rodadas) ou uma lista de amostras (ele compara o p95 das amostras de todas as rodadas juntas). A
+  // cena que não cabe no aparelho devolve `{ pulada: '<motivo>' }`.
   const ID_DE_CENA = /^[a-z0-9][a-z0-9-]{0,39}$/;
   const UNIDADES_DE_CENA = ['ms', 'razao', 'contagem'];
   let cenasDoApp = [];
@@ -1279,6 +1318,31 @@
    * `{ versao: 1, cenas: [{ id, nome, medidas }] }`, com cada medida como foi declarada e o `valor`
    * ou as `amostras` da rodada; a que a cena não devolveu sai com `faltou: true`.
    */
+  /**
+   * Espera a janela sossegar: `ms` inteiros sem tarefa longa na thread da página, com teto de
+   * `teto` ms. O que o gesto anterior de uma cena deixou para depois (uma rolagem até o cursor, as
+   * imagens que chegam, uma compilação) cairia na medida seguinte, e um tempo fixo não sabe quanto
+   * isso leva num aparelho lento: o preparo da cena viraria medida.
+   */
+  async function sossegar({ ms = 1000, teto = 20000 } = {}) {
+    const Observador = window.PerformanceObserver;
+    if (!Observador || !(Observador.supportedEntryTypes || []).includes('longtask')) {
+      await new Promise((ok) => setTimeout(ok, ms));
+      return;
+    }
+    let ultima = performance.now();
+    const obs = new Observador((lista) => {
+      for (const t of lista.getEntries()) ultima = Math.max(ultima, t.startTime + t.duration);
+    });
+    obs.observe({ type: 'longtask' });
+    const fim = performance.now() + teto;
+    try {
+      while (performance.now() - ultima < ms && performance.now() < fim) await new Promise((ok) => setTimeout(ok, 100));
+    } finally {
+      obs.disconnect();
+    }
+  }
+
   vssh.desempenho.rodarCenas = async ({ ids = null, aoProgredir = null, sinal = null } = {}) => {
     const escolhidas = Array.isArray(ids) ? cenasDoApp.filter((c) => ids.includes(c.id)) : cenasDoApp;
     const quadro = () => new Promise((ok) => requestAnimationFrame(ok));
@@ -1286,7 +1350,7 @@
     for (const [i, c] of escolhidas.entries()) {
       if (sinal && sinal.aborted) throw new Error('as cenas foram interrompidas');
       if (aoProgredir) aoProgredir({ feitas: i, total: escolhidas.length, cena: c.id });
-      const r = (await c.rodar({ sinal, quadro })) || {};
+      const r = (await c.rodar({ sinal, quadro, sossegar })) || {};
       if (typeof r.pulada === 'string') { cenas.push({ id: c.id, nome: c.nome, pulada: r.pulada }); continue; }
       const medidas = {};
       for (const [chave, m] of Object.entries(c.medidas)) medidas[chave] = { ...m, ...(valorDaMedida(r[chave]) || { faltou: true }) };
