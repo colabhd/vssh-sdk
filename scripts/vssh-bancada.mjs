@@ -48,7 +48,10 @@
 // terminar, e então `--parada` segundos em que o CDP conta os layouts e o tempo de CPU da página.
 // A janela parada não faz layout (sem tecla, rolagem ou evento, nada se anima sozinho), e por isso
 // essa medida reprova quando qualquer rodada da cabeça tem um layout, mesmo que a base também
-// tenha. O tempo de CPU só informa: o protocolo do CDP e o coletor de lixo também caem nele.
+// tenha. O tempo de CPU só informa: o protocolo do CDP e o coletor de lixo também caem nele. Por
+// fim o CDP roda a coleta de lixo e conta os nós do DOM e o heap: o que as cenas deixaram preso.
+// Os nós reprovam acima da folga, porque um documento fechado que fica na memória é um defeito que
+// nenhuma outra medida vê; o heap só informa.
 //
 // `aa` compara a pasta com ela mesma, em dois lados, e mede o ruído de cada medida: a diferença
 // entre os dois lados, e o espalhamento das rodadas. Um A/A que reprova é uma medida que a régua
@@ -271,12 +274,21 @@ async function parada(pagina, segundos) {
   const antes = await metricas();
   await dormir(segundos * 1000);
   const depois = await metricas();
+  // O que as cenas deixaram preso: os nós do DOM e o heap depois de duas coletas de lixo. Uma
+  // closure que nasce dentro de um documento e fica num lugar que dura a janela inteira segura o
+  // documento fechado, e a janela cresce a cada um, sem layout e sem CPU nenhuma.
+  await pagina.enviar('HeapProfiler.enable');
+  await pagina.enviar('HeapProfiler.collectGarbage');
+  await pagina.enviar('HeapProfiler.collectGarbage');
+  const coletada = await metricas();
   return {
     id: '_parada',
     nome: 'A janela parada',
     medidas: {
       layouts: { rotulo: `layouts em ${segundos} s`, unidade: 'contagem', zero: true, valor: depois.LayoutCount - antes.LayoutCount },
       cpu: { rotulo: `CPU em ${segundos} s`, unidade: 'ms', informa: true, valor: (depois.TaskDuration - antes.TaskDuration) * 1000 },
+      nos: { rotulo: 'nós do DOM depois das cenas e da coleta de lixo', unidade: 'contagem', folga: 300, valor: coletada.Nodes },
+      heap: { rotulo: 'heap em MB depois das cenas e da coleta de lixo', unidade: 'contagem', informa: true, valor: Math.round(coletada.JSHeapUsedSize / 1e5) / 10 },
     },
   };
 }

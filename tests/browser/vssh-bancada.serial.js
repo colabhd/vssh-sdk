@@ -75,7 +75,7 @@ test('o A/A, a pasta contra ela mesma, não reprova e diz o ruído de cada medid
   assert.equal(r.codigo, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /ruído entre os lados/);
   assert.deepEqual(r.json.linhas.map((l) => [l.cena, l.medida, l.piorou]),
-    [['conta', 'conta', false], ['conta', 'soma', false], ['conta', 'maior', false], ['_parada', 'layouts', false], ['_parada', 'cpu', false]]);
+    [['conta', 'conta', false], ['conta', 'soma', false], ['conta', 'maior', false], ['_parada', 'layouts', false], ['_parada', 'cpu', false], ['_parada', 'nos', false], ['_parada', 'heap', false]]);
   assert.deepEqual(r.json.linhas.find((l) => l.medida === 'layouts').cabeca, [0, 0]);
   // Os dois lados rodam as mesmas rodadas, e a diferença entre eles é zero; as rodadas de um lado
   // diferem pelo acréscimo da rodada.
@@ -120,6 +120,20 @@ test('a cabeça que mexe na tela parada reprova pela janela parada', { skip: fal
   assert.equal(layouts.piorou, true);
   assert.equal(r.json.linhas.find((l) => l.medida === 'conta').piorou, false);
   assert.match(r.stdout, /::error::A janela parada: layouts em 2 s/);
+});
+
+test('a cabeça que deixa o que as cenas montaram preso na memória reprova pelos nós', { skip: falta }, () => {
+  const app = repositorio('vaza');
+  // Cada rodada guarda três mil elementos fora da página, como um documento fechado que uma closure
+  // ainda segura.
+  const arq = join(app, 'frontend', 'cenas.js');
+  writeFileSync(arq, readFileSync(arq, 'utf8').replace('const amostras = [];', "const amostras = []; (window.__presos = window.__presos || []).push(...Array.from({ length: 3000 }, () => document.createElement('div')));"));
+  const r = bancada('comparar', app, '--base', 'HEAD');
+  assert.equal(r.codigo, 1, r.stdout + r.stderr);
+  const nos = r.json.linhas.find((l) => l.medida === 'nos');
+  assert.equal(nos.piorou, true, JSON.stringify(nos));
+  assert.ok(nos.medianaCabeca - nos.medianaBase >= 2500, JSON.stringify(nos));
+  assert.equal(r.json.linhas.find((l) => l.medida === 'layouts').piorou, false);
 });
 
 test('a cabeça igual à base não reprova', { skip: falta }, () => {

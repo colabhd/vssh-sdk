@@ -172,6 +172,9 @@ const ARGS = [
   '--disable-extensions',
   '--disable-background-networking',
   '--remote-debugging-port=0',       // porta efêmera: duas suítes em paralelo não brigam
+  // A página que sai fica fora do cache de voltar: guardada nele, ela continua no processo, e a
+  // contagem de nós da página seguinte leva junto o que a anterior deixou preso.
+  '--disable-back-forward-cache',
 ];
 
 // O perfil da placa de vídeo, que a bancada de um app escolhe (`scripts/vssh-bancada.mjs`). Sem

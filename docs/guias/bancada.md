@@ -116,6 +116,14 @@ layout: sem tecla, rolagem ou evento, nada se anima sozinho e nada redesenha a t
 qualquer layout numa rodada da cabeça reprova, mesmo que a base também o tenha. O tempo de CPU só
 informa, porque o protocolo do CDP e o coletor de lixo também caem nele.
 
+No fim da parada a bancada roda a coleta de lixo e conta os nós do DOM e o heap: o que as cenas
+deixaram preso. Uma closure que nasce dentro de um documento e fica num lugar que dura a janela
+inteira (um tratador num elemento fixo, uma função guardada num módulo, até uma função vazia criada
+dentro da closure) segura o documento fechado, e a janela cresce a cada um, sem layout e sem CPU
+nenhuma. Os nós reprovam quando a cabeça passa a base além da folga de 300; o heap só informa. Para
+achar quem segura, um heap snapshot pelo CDP (`HeapProfiler.takeHeapSnapshot`) e o caminho mais
+curto da raiz até um nó com `detachedness` 2.
+
 `aa` compara a pasta com ela mesma e publica o ruído de cada medida: a diferença entre os dois
 lados e o espalhamento das rodadas. Um A/A que reprova é uma medida que a regra não sabe julgar
 naquela máquina, e a saída é dar folga a ela ou fazer a cena medir mais vezes.
