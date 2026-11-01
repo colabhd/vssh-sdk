@@ -2,7 +2,7 @@
   "shellVersion": "5.0.0-rc0",
   "artifacts": {
     "api/abi.json": {
-      "sha256": "04669d1994d84ad2c9d25a2675aff694d9519093a346c4aaac136f2f1a8b54bf"
+      "sha256": "e1dfc4fc377f9a4d931d33f38855ce72d8317bbb2b699eb62f15f30c014f649e"
     },
     "api/afericao/ancora.json": {
       "sha256": "b1ad85acb8a1bc75ae2022539be87ab960d8290ea5a56166068d7d0c64b56b3e"
@@ -14,7 +14,7 @@
       "sha256": "9015df0750b5d66e348c1f6289f6e4dd9c37a5ded6822dc29e25abf633c5af0f"
     },
     "api/ajuda/ambiente.json": {
-      "sha256": "eb8726455e6fbdc3e6079937aeee696345ad42aec7d2b82db29ddfff769d26a2"
+      "sha256": "66603f6c5a52b399c646b8eaf21345c3f385e9c20f8b56f0a29ec2c6207d624f"
     },
     "api/ajuda/compilador-da-ajuda.ts": {
       "sha256": "d5f0bfe2488cd424f35e87f714afb5790300d433bbc968d5d552c2e7521aa448"
@@ -83,10 +83,10 @@
       "sha256": "8eacb3852f8819552c0c9883a82c859c3d9f925a8a26fffd1419e238a8ac07c4"
     },
     "api/vssh.d.ts": {
-      "sha256": "ea7e92c9a59d3a625056be7cba5603e7c86e41db934ac3ec8f0441bc75300c53"
+      "sha256": "93e3835badc216cef6198227bf0bc5bfd5058e584b986f7713892580d18dcbd3"
     },
     "api/vssh.js": {
-      "sha256": "6547a08cc29ea301b450e9c4ccd8ec2ea82540d4fa5d00e8b093a4349f4a4566"
+      "sha256": "291725d7ae3dee3dae16f0745bcb1a447761bdfd2bfa25f40c919c8512a04e23"
     },
     "docs/referencia/README.md": {
       "sha256": "46def3f91a7e8a31f5825c4e04e9ed58af7a34a98c0683eb33609eb3501d6621"
@@ -98,7 +98,7 @@
       "sha256": "80e837c926040cea8cb4d43136cfde641222aab76144af1549172f18428de387"
     },
     "docs/referencia/aparelho.md": {
-      "sha256": "dbaf25fa7a2ad2fee1a86b9cfa6dc337f5613ac7c4826144d0927844843956f9"
+      "sha256": "30bdef087f9a4c29aa3197ee4f633f6df7fb894922408e9e4514be95061c5699"
     },
     "docs/referencia/app.md": {
       "sha256": "47b36c371226d75c5db557e2add36a16e0b266fed2df79e66e3c2863c17bddf0"
@@ -122,7 +122,7 @@
       "sha256": "8c9f5d8adc93dec5ae65fdc826f71c87bb7ea0cf259e0fb58ad5f7536d586f15"
     },
     "docs/referencia/formato-da-ajuda.md": {
-      "sha256": "2a102d3c1fbf8f83c7dfad2c8f3c9742b16bb4354f2bdebeb177756907546efe"
+      "sha256": "d4b314244e3e370aad40299058b67b7e66da0980a15ec4cd69800ad3a60bacc8"
     },
     "docs/referencia/gpu.md": {
       "sha256": "aacc6e46d64664d676e55bb063e19437c3342f1b8082690613bcd33de2d170ed"

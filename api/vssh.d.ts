@@ -822,7 +822,7 @@ declare namespace vssh {
     interface Eventos {
       /**
        * O perfil novo, na forma de `perfil()`, a cada medida completa do aparelho: a que o ambiente
-       * faz sozinho depois de abrir e a de "Medir este aparelho".
+       * faz sozinho depois de abrir e a que a pessoa pede em Configurações > Sobre.
        */
       mudou: { perfil: Record<string, unknown> };
     }

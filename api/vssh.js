@@ -383,7 +383,7 @@
     modo: ['ajuda-modo', { ligado: 'ligado' }],
   };
   EVENTOS.aparelho = {
-    // O perfil novo, na forma de `perfil()`, a cada medida completa do aparelho: a que o ambiente faz sozinho depois de abrir e a de "Medir este aparelho".
+    // O perfil novo, na forma de `perfil()`, a cada medida completa do aparelho: a que o ambiente faz sozinho depois de abrir e a que a pessoa pede em Configurações > Sobre.
     mudou: ['aparelho-mudou', { perfil: 'perfil' }],
   };
   EVENTOS.desempenho = {

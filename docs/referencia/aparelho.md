@@ -38,7 +38,7 @@ Sem argumentos.
 `vssh.aparelho.ao('mudou', cb)`
 
 O perfil novo, na forma de `perfil()`, a cada medida completa do aparelho: a que o ambiente faz
-sozinho depois de abrir e a de "Medir este aparelho".
+sozinho depois de abrir e a que a pessoa pede em Configurações \> Sobre.
 
 | campo | tipo | opcional | no fio |
 |---|---|---|---|

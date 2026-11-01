@@ -2254,7 +2254,7 @@
               "tipo": "Record<string, unknown>"
             }
           ],
-          "descricao": "O perfil novo, na forma de `perfil()`, a cada medida completa do aparelho: a que o ambiente faz sozinho depois de abrir e a de \"Medir este aparelho\"."
+          "descricao": "O perfil novo, na forma de `perfil()`, a cada medida completa do aparelho: a que o ambiente faz sozinho depois de abrir e a que a pessoa pede em Configurações > Sobre."
         }
       }
     },
