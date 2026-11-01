@@ -38,20 +38,20 @@
   // ── Os que o shell pede ───────────────────────────────────────────────────
   //
   // Os 66 primeiros são o sprite do ambiente: barra de tarefas, menus, gerenciador de arquivos,
-  // Configurações e a central de mídia os pedem por `<use href="#ico-…">`. Três espessuras de
-  // traço (1.3, 1.4 e 1.5) e alguns sólidos convivem de propósito: um ícone denso é afinado para o
-  // peso óptico bater com os vizinhos, e `more`, `audio` e os de transporte são sólidos por
-  // natureza.
+  // Configurações e a central de mídia os pedem por `<use href="#ico-…">`. O traço é um só, 1,5, e
+  // o centro da caixa de cada glifo fica a meio pixel do centro do quadro (o play e o pular, que
+  // apontam para um lado, ficam no centro óptico). Os sólidos são os que nascem cheios: `more`,
+  // `audio`, os de transporte e as aspas, que vazadas viram um 6.
   'folder':
-    '<symbol id="ico-folder" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5V12.5a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7.5a1 1 0 0 0-1-1H7.5L6 5H3a1 1 0 0 0-1 1V8.5z"/></symbol>',
+    '<symbol id="ico-folder" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.25v4.25a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V6.25a1 1 0 0 0-1-1H7.5L6 3.75H3a1 1 0 0 0-1 1v2.5z"/></symbol>',
   'folder-plus':
-    '<symbol id="ico-folder-plus" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 8V7.5a1 1 0 0 0-1-1H7.5L6 5H3a1 1 0 0 0-1 1v6.5a1 1 0 0 0 1 1h5.5"/><path d="M12 10v4M10 12h4"/></symbol>',
+    '<symbol id="ico-folder-plus" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6.75v-.5a1 1 0 0 0-1-1H7.5L6 3.75H3a1 1 0 0 0-1 1v6.75a1 1 0 0 0 1 1h5.5"/><path d="M12 8.75v4M10 10.75h4"/></symbol>',
   'drive':
     '<symbol id="ico-drive" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="3.25" width="12.5" height="9.5" rx="1.5"/><path d="M1.75 9h12.5"/><path d="M4.5 11h.01M6.75 11h.01"/></symbol>',
   'server':
     '<symbol id="ico-server" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2.5" width="12" height="4.5" rx="1"/><rect x="2" y="9" width="12" height="4.5" rx="1"/><path d="M4.5 4.75h.01M4.5 11.25h.01"/></symbol>',
   'folder-open':
-    '<symbol id="ico-folder-open" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9L3.5 14h9L14 9H7.5L6 7.5H3a1 1 0 0 0-1 1V9z"/><path d="M2 9V7a1 1 0 0 1 1-1h3L7.5 7.5H13.5"/></symbol>',
+    '<symbol id="ico-folder-open" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5L3.5 12.5h9L14 7.5H7.5L6 6H3a1 1 0 0 0-1 1v.5z"/><path d="M2 7.5v-2a1 1 0 0 1 1-1h3L7.5 6h6"/></symbol>',
 
   // No gerenciador de arquivos, a nuvem é uma pasta de rede: o símbolo que diz "isto não está
   // neste servidor" sem legenda. O cadeado logo abaixo é o estado `precisaSenha` da pasta de rede,
@@ -61,9 +61,9 @@
   'lock':
     '<symbol id="ico-lock" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.75 7V5.25a2.25 2.25 0 0 1 4.5 0V7"/></symbol>',
   'file':
-    '<symbol id="ico-file" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1.5h7L14 5v9.5H4V1.5z"/><path d="M11 1.5V5H14"/></symbol>',
+    '<symbol id="ico-file" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1.75h5.75L13 5v8.25a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-10.5a1 1 0 0 1 1-1z"/><path d="M9.75 1.75V5H13"/></symbol>',
   'file-code':
-    '<symbol id="ico-file-code" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1.5h7L14 5v9.5H4V1.5z"/><path d="M11 1.5V5H14"/><path d="M6.5 8.5L5 10l1.5 1.5"/><path d="M9.5 8.5L11 10l-1.5 1.5"/></symbol>',
+    '<symbol id="ico-file-code" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1.75h5.75L13 5v8.25a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-10.5a1 1 0 0 1 1-1z"/><path d="M9.75 1.75V5H13"/><path d="M6.5 8.25L5 9.75l1.5 1.5M9.5 8.25l1.5 1.5-1.5 1.5"/></symbol>',
   'terminal':
     '<symbol id="ico-terminal" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5L7 8 2.5 11.5"/><path d="M9.5 12h4"/></symbol>',
   'settings':
@@ -81,7 +81,7 @@
   'trash':
     '<symbol id="ico-trash" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5h11"/><path d="M5.5 4.5V3a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v1.5"/><path d="M3.5 4.5L4.5 13.5h7l1-9"/></symbol>',
   'edit':
-    '<symbol id="ico-edit" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2l3 3-9 9H2v-3L11 2z"/></symbol>',
+    '<symbol id="ico-edit" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2l3 3-9 9H2v-3L11 2z"/><path d="M9 4l3 3"/></symbol>',
   'minimize':
     '<symbol id="ico-minimize" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 8h10"/></symbol>',
   'maximize':
@@ -99,7 +99,7 @@
   'check':
     '<symbol id="ico-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path pathLength="1" d="M2 8.5L5.5 12 14 4.5"/></symbol>',
   'print':
-    '<symbol id="ico-print" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 6.2V2.2h7v4"/><path d="M4.5 12H3.1a1.3 1.3 0 0 1-1.3-1.3V7.5a1.3 1.3 0 0 1 1.3-1.3h9.8a1.3 1.3 0 0 1 1.3 1.3v3.2a1.3 1.3 0 0 1-1.3 1.3h-1.4"/><path d="M4.5 9.9h7v3.9h-7z"/></symbol>',
+    '<symbol id="ico-print" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6V2.25h8V6"/><path d="M4 11.5H3a1.25 1.25 0 0 1-1.25-1.25v-3A1.25 1.25 0 0 1 3 6h10a1.25 1.25 0 0 1 1.25 1.25v3A1.25 1.25 0 0 1 13 11.5h-1"/><rect x="4" y="9" width="8" height="4.75" rx=".5"/></symbol>',
 
   // O sino do centro de notificações, e o par com o sino cortado logo abaixo.
   'bell':
@@ -123,21 +123,21 @@
   'more':
     '<symbol id="ico-more" viewBox="0 0 16 16" fill="currentColor"><circle cx="4" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="12" cy="8" r="1.3"/></symbol>',
   'grid':
-    '<symbol id="ico-grid" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></symbol>',
+    '<symbol id="ico-grid" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.25" y="2.25" width="4.5" height="4.5" rx="1"/><rect x="9.25" y="2.25" width="4.5" height="4.5" rx="1"/><rect x="2.25" y="9.25" width="4.5" height="4.5" rx="1"/><rect x="9.25" y="9.25" width="4.5" height="4.5" rx="1"/></symbol>',
   'image':
-    '<symbol id="ico-image" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="3" width="13" height="10" rx="1.5"/><circle cx="5.5" cy="6.5" r="1.5" fill="currentColor" stroke="none" opacity=".8"/><path d="M1.5 10.5l4-4 3 3 2-2.5 5 5"/></symbol>',
+    '<symbol id="ico-image" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="1.5"/><circle cx="5.5" cy="6.25" r="1.25" fill="currentColor" stroke="none"/><path d="M1.75 11.25l3.5-3.5 3 3 2-2 4 4"/></symbol>',
   'video':
-    '<symbol id="ico-video" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="3.5" width="10" height="9" rx="1.5"/><path d="M11.5 6.5l3.5-2v7l-3.5-2V6.5z" fill="currentColor" stroke="none" opacity=".8"/></symbol>',
+    '<symbol id="ico-video" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="4" width="9" height="8" rx="1.5"/><path d="M10.75 7.25l3.5-2v5.5l-3.5-2z" fill="currentColor"/></symbol>',
   'audio':
     '<symbol id="ico-audio" viewBox="0 0 16 16" fill="currentColor"><circle cx="4.5" cy="11.5" r="2" opacity=".9"/><circle cx="11.5" cy="9.5" r="2" opacity=".9"/><path d="M6.5 11.5V4.5l7-1.5v5.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>',
   'archive':
     '<symbol id="ico-archive" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="2.25" width="12.5" height="3.5" rx="1"/><path d="M2.75 5.75v6.5a1.5 1.5 0 0 0 1.5 1.5h7.5a1.5 1.5 0 0 0 1.5-1.5v-6.5"/><path d="M6.5 8.75h3"/></symbol>',
   'pdf':
-    '<symbol id="ico-pdf" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2h7l3 3v9H4V2z"/><path d="M11 2v3h3"/><path d="M6.5 10h1c.6 0 1-.4 1-1s-.4-1-1-1H6v3M10 9v2M10 11h1.5" stroke-linecap="round"/></symbol>',
+    '<symbol id="ico-pdf" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 1.75h5.75L13 5v8.25a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-10.5a1 1 0 0 1 1-1z"/><path d="M9.75 1.75V5H13"/><path d="M5.25 12.25c1.1-1.4 2.3-3.6 2.45-5.3.05-.75-.75-.85-.85-.15-.25 1.75 1.85 3.9 3.65 4.4.75.2.85-.55.15-.75-1.4-.4-3.6.1-5.4 1.8z" stroke-width="1.1"/></symbol>',
   'palette':
     '<symbol id="ico-palette" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.75a6.25 6.25 0 0 0 0 12.5c.9 0 1.5-.6 1.5-1.4 0-.45-.2-.75-.4-1.05-.2-.3-.35-.55-.35-.95 0-.85.65-1.5 1.5-1.5h1.4a2.6 2.6 0 0 0 2.6-2.6c0-2.75-2.8-5-6.25-5z"/><circle cx="4.9" cy="7.6" r=".95" fill="currentColor" stroke="none"/><circle cx="6.6" cy="4.7" r=".95" fill="currentColor" stroke="none"/><circle cx="9.9" cy="4.8" r=".95" fill="currentColor" stroke="none"/></symbol>',
   'globe':
-    '<symbol id="ico-globe" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 2C6.7 3.8 6 5.8 6 8s.7 4.2 2 6"/><path d="M8 2c1.3 1.8 2 3.8 2 6s-.7 4.2-2 6"/><path d="M2.5 5.5h11M2.5 10.5h11"/></symbol>',
+    '<symbol id="ico-globe" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.25"/><path d="M8 1.75c-1.9 1.75-2.75 3.85-2.75 6.25s.85 4.5 2.75 6.25c1.9-1.75 2.75-3.85 2.75-6.25S9.9 3.5 8 1.75z"/><path d="M1.75 8h12.5"/></symbol>',
   'volume-off':
     '<symbol id="ico-volume-off" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.5L5 6H2.5v4H5l3 3V3.5z"/><path d="M11 6.5l2.5 3M13.5 6.5L11 9.5"/></symbol>',
   'volume-on':
@@ -160,18 +160,18 @@
 
   // "Sessão remota" no mixer de volume: a linha do stream do motor X11, que não é app nem aba.
   'monitor':
-    '<symbol id="ico-monitor" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"/><path d="M6 14h4M8 11.5V14"/></symbol>',
+    '<symbol id="ico-monitor" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"/><path d="M6 14h4M8 11.5V14"/></symbol>',
   // O celular ou o tablet de quem usa, no diagrama da conexão da Ajuda, ao lado do monitor.
   'smartphone':
-    '<symbol id="ico-smartphone" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="1.5" width="8" height="13" rx="1.5"/><path d="M7.25 12h1.5"/></symbol>',
+    '<symbol id="ico-smartphone" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="1.5" width="8" height="13" rx="1.5"/><path d="M7.25 12h1.5"/></symbol>',
   // Janela sobre janela: a sessão de aplicativos nativos (o motor X11), que traz as janelas do
   // servidor para dentro do ambiente. O monitor ao lado é a tela inteira; este é o que se abre nela.
   'janelas':
-    '<symbol id="ico-janelas" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="5.5" width="9" height="8" rx="1.2"/><path d="M1.5 8h9M5.5 5.5V3a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-3"/></symbol>',
+    '<symbol id="ico-janelas" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5.25 5.5V3.25a1 1 0 0 1 1-1h7.25a1 1 0 0 1 1 1V9a1 1 0 0 1-1 1h-2.25M5.25 4.75h9.25"/><rect x="1.5" y="6" width="9.5" height="7.75" rx="1"/><path d="M1.5 8.5h9.5"/></symbol>',
   'keyboard':
     '<symbol id="ico-keyboard" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="4.5" width="13" height="7" rx="1.5"/><path d="M4 7.5h.01M7 7.5h.01M10 7.5h.01M13 7.5h.01M5.5 9.5h5"/></symbol>',
   'layout':
-    '<symbol id="ico-layout" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="4.5" width="13" height="7" rx="1.5"/><path d="M4 7.5h1.5M7 7.5h2M10.5 7.5H12M5 9.5h6"/><circle cx="13.5" cy="3" r="1" fill="currentColor" stroke="none"/></symbol>',
+    '<symbol id="ico-layout" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6.5H3a1.5 1.5 0 0 0-1.5 1.5v4.5A1.5 1.5 0 0 0 3 14h10a1.5 1.5 0 0 0 1.5-1.5V10"/><path d="M4.25 9.25h.01M7 9.25h.01M5 11.75h5"/><circle cx="12.5" cy="4.25" r="2.75"/><path d="M9.75 4.25h5.5M12.5 1.5c-.75.8-1.1 1.7-1.1 2.75s.35 1.95 1.1 2.75c.75-.8 1.1-1.7 1.1-2.75S13.25 2.3 12.5 1.5z" stroke-width="1"/></symbol>',
   'tiling':
     '<symbol id="ico-tiling" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M6.5 2.5v11"/><rect x="1.5" y="2.5" width="5" height="11" rx="1.5" fill="currentColor" stroke="none" opacity=".35"/></symbol>',
   'fullscreen':
@@ -186,9 +186,9 @@
   'chevron-down':
     '<symbol id="ico-chevron-down" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6L8 10.5 12.5 6"/></symbol>',
   'clock':
-    '<symbol id="ico-clock" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.25"/><path d="M8 4.5V8l2.5 1.5"/></symbol>',
+    '<symbol id="ico-clock" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6.25"/><path d="M8 4.5V8l2.5 1.5"/></symbol>',
   'bell-off':
-    '<symbol id="ico-bell-off" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5.2 3.3A4 4 0 0 1 12 6c0 3 1 4 1 4H6.5"/><path d="M4 4.6C3.7 5 3.5 5.5 3.5 6c0 3-1 4-1 4h7"/><path d="M6.6 13a1.8 1.8 0 0 0 2.8 0"/><path d="M2.2 2.2l11.6 11.6"/></symbol>',
+    '<symbol id="ico-bell-off" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5.2 3.3A4 4 0 0 1 12 6c0 3 1 4 1 4H6.5"/><path d="M4 4.6C3.7 5 3.5 5.5 3.5 6c0 3-1 4-1 4h7"/><path d="M6.6 13a1.8 1.8 0 0 0 2.8 0"/><path d="M2.2 2.2l11.6 11.6"/></symbol>',
   // O Não perturbe, na central: a lua de quem não quer ser chamado agora.
   'moon':
     '<symbol id="ico-moon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.2 9.8A5.6 5.6 0 0 1 6.2 2.8a5.6 5.6 0 1 0 7 7z"/></symbol>',
@@ -203,13 +203,13 @@
   'shield':
     '<symbol id="ico-shield" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.75 13 3.5v4.25c0 3-2.1 5.4-5 6.5-2.9-1.1-5-3.5-5-6.5V3.5L8 1.75z"/></symbol>',
   'bar-bottom':
-    '<symbol id="ico-bar-bottom" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><rect x="1.5" y="10.5" width="13" height="3" rx="1" fill="currentColor" stroke="none"/></symbol>',
+    '<symbol id="ico-bar-bottom" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><rect x="1.5" y="10.5" width="13" height="3" rx="1" fill="currentColor" stroke="none"/></symbol>',
   'bar-top':
-    '<symbol id="ico-bar-top" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><rect x="1.5" y="2.5" width="13" height="3" rx="1" fill="currentColor" stroke="none"/></symbol>',
+    '<symbol id="ico-bar-top" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><rect x="1.5" y="2.5" width="13" height="3" rx="1" fill="currentColor" stroke="none"/></symbol>',
   'bar-left':
-    '<symbol id="ico-bar-left" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><rect x="1.5" y="2.5" width="3.5" height="11" rx="1" fill="currentColor" stroke="none"/></symbol>',
+    '<symbol id="ico-bar-left" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><rect x="1.5" y="2.5" width="3.5" height="11" rx="1" fill="currentColor" stroke="none"/></symbol>',
   'bar-right':
-    '<symbol id="ico-bar-right" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><rect x="11" y="2.5" width="3.5" height="11" rx="1" fill="currentColor" stroke="none"/></symbol>',
+    '<symbol id="ico-bar-right" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><rect x="11" y="2.5" width="3.5" height="11" rx="1" fill="currentColor" stroke="none"/></symbol>',
 
   // ── Transporte de mídia ───────────────────────────────────────────────────
   //
@@ -218,15 +218,15 @@
   // repetido ao rever um trecho, e o número embaixo da seta é o que os distingue do vizinho. Ele
   // tem seis pixels de altura, o mínimo para ler o 10 a 16 px.
   'play':
-    '<symbol id="ico-play" viewBox="0 0 16 16" fill="currentColor"><path d="M5.5 3.4v9.2l7.6-4.6z"/></symbol>',
+    '<symbol id="ico-play" viewBox="0 0 16 16" fill="currentColor"><path d="M5 2.75v10.5l8.5-5.25z" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/></symbol>',
   'pause':
-    '<symbol id="ico-pause" viewBox="0 0 16 16" fill="currentColor"><path d="M5 3.5h2.3v9H5zm3.7 0H11v9H8.7z"/></symbol>',
+    '<symbol id="ico-pause" viewBox="0 0 16 16" fill="currentColor"><rect x="4.25" y="3" width="2.75" height="10" rx=".75"/><rect x="9" y="3" width="2.75" height="10" rx=".75"/></symbol>',
   'stop':
-    '<symbol id="ico-stop" viewBox="0 0 16 16" fill="currentColor"><rect x="4.5" y="4.5" width="7" height="7" rx=".8"/></symbol>',
+    '<symbol id="ico-stop" viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="4" width="8" height="8" rx="1.25"/></symbol>',
   'skip-back':
-    '<symbol id="ico-skip-back" viewBox="0 0 16 16" fill="currentColor"><path d="M12.2 3.5v9L5.6 8zM3.5 3.5h1.6v9H3.5z"/></symbol>',
+    '<symbol id="ico-skip-back" viewBox="0 0 16 16" fill="currentColor"><path d="M12.75 3.25v9.5L5.75 8z" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/><rect x="3.25" y="3" width="1.75" height="10" rx=".6"/></symbol>',
   'skip-forward':
-    '<symbol id="ico-skip-forward" viewBox="0 0 16 16" fill="currentColor"><path d="M3.8 3.5v9L10.4 8zM10.9 3.5h1.6v9h-1.6z"/></symbol>',
+    '<symbol id="ico-skip-forward" viewBox="0 0 16 16" fill="currentColor"><path d="M3.25 3.25v9.5L10.25 8z" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/><rect x="11" y="3" width="1.75" height="10" rx=".6"/></symbol>',
   'voltar-10':
     '<symbol id="ico-voltar-10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 5.5A5.5 5.5 0 0 0 3.6 3.6"/><path d="M3.25 1.25v2.6h2.6"/><path d="M4.25 8.75l1.25-.75v6"/><rect x="8.5" y="8" width="3.5" height="6" rx="1.75"/></symbol>',
   'avancar-10':
@@ -241,15 +241,15 @@
   'pip':
     '<symbol id="ico-pip" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="1"/><rect x="8" y="7.9" width="4.4" height="3.4" rx=".6"/></symbol>',
   'subtitles':
-    '<symbol id="ico-subtitles" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.8" y="3.2" width="12.4" height="9.6" rx="1"/><path d="M4.4 7.3h7.2M4.4 9.9h4.4"/></symbol>',
+    '<symbol id="ico-subtitles" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="2.75" width="12.5" height="10.5" rx="1.5"/><path d="M4.25 8.25h3.5M9.25 8.25h2.5M4.25 10.75h7.5"/></symbol>',
   'speed':
-    '<symbol id="ico-speed" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.25 12.25a5.75 5.75 0 1 1 11.5 0"/><path d="M8 12.25l3-3.5"/><path d="M4.1 8.2l.9.6M8 6.5v1M11.9 8.2l-.9.6"/><circle cx="8" cy="12.25" r="1" fill="currentColor" stroke="none"/></symbol>',
+    '<symbol id="ico-speed" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.25 11.25a5.75 5.75 0 1 1 11.5 0"/><path d="M8 11.25l3-3.5"/><path d="M4.1 7.2l.9.6M8 5.5v1M11.9 7.2l-.9.6"/><circle cx="8" cy="11.25" r="1" fill="currentColor" stroke="none"/></symbol>',
   'repeat':
-    '<symbol id="ico-repeat" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 9.4V6.6a2 2 0 0 1 2-2h7.2"/><path d="M10.6 2.4l2.2 2.2-2.2 2.2"/><path d="M12.6 6.6v2.8a2 2 0 0 1-2 2H3.4"/><path d="M5.4 13.6l-2.2-2.2 2.2-2.2"/></symbol>',
+    '<symbol id="ico-repeat" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 1.5L14 4l-2.5 2.5"/><path d="M2 7.25v-.5A2.75 2.75 0 0 1 4.75 4H14"/><path d="M4.5 14.5L2 12l2.5-2.5"/><path d="M14 8.75v.5A2.75 2.75 0 0 1 11.25 12H2"/></symbol>',
   'repeat-one':
-    '<symbol id="ico-repeat-one" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.4 9.4V6.6a2 2 0 0 1 2-2h7.2"/><path d="M10.6 2.4l2.2 2.2-2.2 2.2"/><path d="M12.6 6.6v2.8a2 2 0 0 1-2 2H3.4"/><path d="M5.4 13.6l-2.2-2.2 2.2-2.2"/><path d="M7.3 7.3l1.3-.8v3.2"/></symbol>',
+    '<symbol id="ico-repeat-one" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 1.5L14 4l-2.5 2.5"/><path d="M2 7.25v-.5A2.75 2.75 0 0 1 4.75 4H14"/><path d="M4.5 14.5L2 12l2.5-2.5"/><path d="M14 8.75v.5A2.75 2.75 0 0 1 11.25 12H2"/><path d="M7.25 7.1l1-.6v3.25"/></symbol>',
   'shuffle':
-    '<symbol id="ico-shuffle" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.6 4.4h2.1l6.6 7.2h2.2"/><path d="M2.6 11.6h2.1l6.6-7.2h2.2"/><path d="M11.3 2.4l2.2 2-2.2 2"/><path d="M11.3 9.6l2.2 2-2.2 2"/></symbol>',
+    '<symbol id="ico-shuffle" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12h.9c.9 0 1.7-.4 2.2-1.1l4-5.8c.5-.7 1.3-1.1 2.2-1.1h3.7"/><path d="M12 1.5l2.5 2.5L12 6.5"/><path d="M1.5 4h1.3c1 0 1.9.6 2.4 1.5"/><path d="M14.5 12h-3.9c-.9 0-1.7-.5-2.2-1.2l-.35-.5"/><path d="M12 9.5l2.5 2.5-2.5 2.5"/></symbol>',
   'zoom-in':
     '<symbol id="ico-zoom-in" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="7" r="4.5"/><path d="M11 11l3.5 3.5"/><path d="M7 5.2v3.6M5.2 7h3.6"/></symbol>',
   'zoom-out':
@@ -317,7 +317,7 @@
   'list-num':
     '<symbol id="ico-list-num" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h6.5M7 8h6.5M7 12h6.5"/><path d="M2.5 3l1-.5v3" stroke-width="1.2"/><path d="M2.3 10.3a.9.9 0 0 1 1.7.3c0 .7-1.7 1.4-1.7 2h1.8" stroke-width="1.2"/></symbol>',
   'quote':
-    '<symbol id="ico-quote" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12V9a4 4 0 0 1 3-4"/><circle cx="4.5" cy="10.5" r="1.5"/><path d="M9.5 12V9a4 4 0 0 1 3-4"/><circle cx="11" cy="10.5" r="1.5"/></symbol>',
+    '<symbol id="ico-quote" viewBox="0 0 16 16" fill="currentColor"><path d="M2.35 10.25C2.35 7.5 3.65 5.35 6.2 4.1L6.75 4.95C5.15 5.95 4.4 6.95 4.25 8.02A2.25 2.25 0 1 1 2.35 10.25Z"/><path d="M8.65 10.25C8.65 7.5 9.95 5.35 12.5 4.1L13.05 4.95C11.45 5.95 10.7 6.95 10.55 8.02A2.25 2.25 0 1 1 8.65 10.25Z"/></symbol>',
   'table':
     '<symbol id="ico-table" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 6.5h12M2 9.75h12M6.5 6.5v6.5"/></symbol>',
   'sigma':
@@ -333,13 +333,13 @@
   'outline':
     '<symbol id="ico-outline" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 3.5h11M5 8h8.5M7.5 12.5h6"/></symbol>',
   'form':
-    '<symbol id="ico-form" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="2" width="11" height="12" rx="1"/><path d="M5 5h6M5 8h6M5 11h3.5"/></symbol>',
+    '<symbol id="ico-form" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 2.5h5"/><rect x="2" y="4.25" width="12" height="3.25" rx="1"/><path d="M2.5 9.75h5"/><rect x="2" y="11.5" width="12" height="3.25" rx="1"/></symbol>',
   'heading':
     '<symbol id="ico-heading" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 3v10M3.5 8h6M9.5 3v10"/><path d="M12 9.5l1.25-.8V13" stroke-width="1.2"/></symbol>',
   'paragraph':
     '<symbol id="ico-paragraph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11M2.5 7h11M2.5 10h11M2.5 13h7"/></symbol>',
   'crossref':
-    '<symbol id="ico-crossref" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2.5" width="7" height="6" rx="1"/><path d="M5.5 8.5V11a1.5 1.5 0 0 0 1.5 1.5h6"/><path d="M11 10.5l2 2-2 2"/></symbol>',
+    '<symbol id="ico-crossref" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1.75" y="1.75" width="6" height="5" rx="1"/><rect x="8.25" y="9.25" width="6" height="5" rx="1"/><path d="M4.75 6.75v3.75A1.25 1.25 0 0 0 6 11.75h1.75"/><path d="M6.5 10.25l1.5 1.5-1.5 1.5"/></symbol>',
   'reply':
     '<symbol id="ico-reply" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4L2.5 7.5 6 11"/><path d="M2.5 7.5H9a4 4 0 0 1 4 4v1"/></symbol>',
   'cloud-off':

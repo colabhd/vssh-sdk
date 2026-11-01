@@ -31,7 +31,10 @@ três escolhas que dão identidade ao ambiente:
   rodapé, no divisor e na lateral. Profundidade vem do degrau de cor, e não de sombra difusa nem de
   vidro.
 - O traço de gravura. Os ícones da interface têm 16 × 16, traço 1,5 e pontas redondas, numa família
-  só para o shell e para os apps. O traço tem a espessura do fio, e o ícone herda a cor do texto ao
+  só para o shell e para os apps. A régua de um glifo novo: o centro da caixa a meio pixel do centro
+  do quadro, e o traço cobrindo de 15% a 42% dele (o sprite tem mediana de 25%). Os sólidos (o
+  `more`, os de transporte, as aspas) e os sinais de uma linha (o menos, o chevron) ficam fora da
+  conta da tinta. O traço tem a espessura do fio, e o ícone herda a cor do texto ao
   lado. É o visual de biblioteca de traço fino que o anti-slop lista entre os padrões; aqui ele
   fica, porque é o par do fio e porque um ícone de outra família denuncia a janela que não é do
   ambiente. Os ícones de arquivo ficam fora dessa regra e têm a família deles (abaixo), porque
