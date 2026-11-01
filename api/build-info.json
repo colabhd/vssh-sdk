@@ -7,6 +7,9 @@
     "api/afericao/ancora.json": {
       "sha256": "b1ad85acb8a1bc75ae2022539be87ab960d8290ea5a56166068d7d0c64b56b3e"
     },
+    "api/afericao/custos.json": {
+      "sha256": "674d3b4b99cc562407f7220f20a3e513eb02c4071159cdf65d1966e14579cfa1"
+    },
     "api/afericao/sonda.js": {
       "sha256": "9015df0750b5d66e348c1f6289f6e4dd9c37a5ded6822dc29e25abf633c5af0f"
     },
