@@ -14,7 +14,7 @@
       "sha256": "9015df0750b5d66e348c1f6289f6e4dd9c37a5ded6822dc29e25abf633c5af0f"
     },
     "api/ajuda/ambiente.json": {
-      "sha256": "66603f6c5a52b399c646b8eaf21345c3f385e9c20f8b56f0a29ec2c6207d624f"
+      "sha256": "e5ed9e47f04035d41685d7f5810768903c54f1c7848692997c10dd75146f94c7"
     },
     "api/ajuda/compilador-da-ajuda.ts": {
       "sha256": "d5f0bfe2488cd424f35e87f714afb5790300d433bbc968d5d552c2e7521aa448"
@@ -35,7 +35,7 @@
       "sha256": "0bf07c92217fe6ef27c9653a262e2476ae97bcb40a519f31c574652e974ef593"
     },
     "api/tuff/DESIGN.md": {
-      "sha256": "1fb5b0a2dcf67c0ebfc73bcb8328d76230ca0da835d280549955db94f4ac48c0"
+      "sha256": "d911dcdf137a4504e32664722ee0b6f9f2141cc41fd8565cd7b17c439ad01aff"
     },
     "api/tuff/docs/componentes.html": {
       "sha256": "04f4b1fa76c12e2415e530e457a42e875b05fdafdf91049c5929b43708ad8e1a"
@@ -122,7 +122,7 @@
       "sha256": "8c9f5d8adc93dec5ae65fdc826f71c87bb7ea0cf259e0fb58ad5f7536d586f15"
     },
     "docs/referencia/formato-da-ajuda.md": {
-      "sha256": "d4b314244e3e370aad40299058b67b7e66da0980a15ec4cd69800ad3a60bacc8"
+      "sha256": "bd95187673e719d069d71d35acf59f0d51e2d5daa0f543030e3b23bb8bce21bc"
     },
     "docs/referencia/gpu.md": {
       "sha256": "aacc6e46d64664d676e55bb063e19437c3342f1b8082690613bcd33de2d170ed"

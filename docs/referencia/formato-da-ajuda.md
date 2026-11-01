@@ -99,7 +99,7 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 57 q
 | `nova-pasta` | Criar uma pasta |
 | `o-ambiente` | O que é o VSSH |
 | `onde-as-coisas-estao` | O seu computador, o portal e a estação |
-| `pastas-de-rede` | Pastas de rede (Nextcloud, ownCloud, SharePoint) |
+| `pastas-de-rede` | Trazer uma pasta do Nextcloud ou de outro servidor para Arquivos |
 | `placa-de-video` | A placa de vídeo da estação |
 | `portal-nao-responde` | O portal não está respondendo |
 | `praticar` | Praticar os gestos |

@@ -332,6 +332,8 @@ texto o mostra. A pergunta do modo claro volta com o cliente Android.
 - Sem vidro: `--ds-blur` vale `none`.
 - Sombra só no que flutua: janela, menu, diálogo.
 - Diálogo, menu de contexto, aviso e seletor de arquivo são do desktop, e o app os pede pela ponte.
+  Um painel que pertence ao app, como o compartilhar de uma nota, a confirmação presa a um botão e
+  o nome editado no lugar onde aparece, mora na janela dele, num balão junto do que a pessoa clicou.
 - A aba é encaixada: a ativa tem a cor da barra de baixo e se liga a ela, e as outras ficam soltas
   sobre o cabeçalho, separadas por um fio (VSSH-360).
 - A área de trabalho tem quatro fundos, e a pessoa escolhe um nas boas-vindas do primeiro uso ou
