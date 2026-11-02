@@ -10,8 +10,9 @@
   "//engines": "O >=22 é do runner de teste (o glob abaixo só existe a partir dessa versão). Os templates rodam no Node que o servidor-alvo tem, e o CI os sobe em 24.",
   "scripts": {
     "//test": "Glob entre aspas: quem expande é o Node, e não o shell, senão quebra no cmd.exe do Windows. Sem dependência npm neste repositório: a suíte é `node --test` sobre a biblioteca padrão.",
-    "test": "node --test \"tests/**/*.test.js\" && node --test --test-concurrency=1 \"tests/**/*.serial.js\"",
-    "//test-serial": "Um `*.serial.js` mede tempo (a bancada de um app, `scripts/vssh-bancada.mjs`) e roda sozinho, depois do resto: com os outros arquivos em paralelo, a thread da página perde a vez para eles no meio de uma rodada, e o A/A acusa uma piora que é do teste vizinho.",
+    "test": "node --test \"tests/**/*.test.js\"",
+    "//test:bancada": "Um `*.serial.js` mede tempo (a bancada de um app, `scripts/vssh-bancada.mjs`) e roda sozinho: com outros arquivos em paralelo, a thread da página perde a vez para eles no meio de uma rodada, e o A/A acusa uma piora que é do teste vizinho. Ele fica fora do `test` e do CI de push, e roda a pedido, pelo `.github/workflows/faixa.yml` ou à mão.",
+    "test:bancada": "node --test --test-concurrency=1 \"tests/**/*.serial.js\"",
     "//test:py": "Os apps Python de `examples/`. Fica fora do `test` porque `node --test` não sabe rodá-lo e porque a ausência de `python3` não pode reprovar quem só mexeu em JavaScript. Um diretório novo de teste tem de ser ACRESCENTADO aqui: `discover` não desce sozinho por `examples/*/test`.",
     "test:py": "python3 -m unittest discover -s examples/palco/test && python3 -m unittest discover -s examples/lupa/test"
   }

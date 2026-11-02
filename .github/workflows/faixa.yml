@@ -1,0 +1,39 @@
+name: Faixa a pedido
+
+# A bancada de um app de ponta a ponta (`tests/browser/vssh-bancada.serial.js`) fica fora do
+# `npm test` e do CI de push: ela leva uns dois minutos e meio e mede tempo, e roda aqui quando
+# alguém pede, pelo "Run workflow" do Actions ou pelo rótulo `faixa` num pull request. Quem mexe
+# em `scripts/vssh-bancada.mjs`, na janela de bancada ou no reusable da bancada pede a rodada antes
+# de integrar.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled, synchronize]
+
+concurrency:
+  group: faixa-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bancada:
+    name: A bancada de um app
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'faixa')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      # O mesmo caminho do runtime `vssh` que o `ci.yml` monta (`scripts/ambiente-de-dev.sh`).
+      - name: O runtime vssh no caminho do Node e do Python
+        shell: bash
+        run: |
+          set -euo pipefail
+          . scripts/ambiente-de-dev.sh
+          { echo "VSSH_SDK=${VSSH_SDK}"; echo "NODE_PATH=${NODE_PATH}"; echo "PYTHONPATH=${PYTHONPATH}"; } >> "${GITHUB_ENV}"
+
+      - name: A bancada
+        shell: bash
+        run: npm run test:bancada

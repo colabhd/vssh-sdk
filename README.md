@@ -133,6 +133,7 @@ Um app escrito contra o `vssh-app-toolkit` troca as libs pela tabela do
 
 ```bash
 npm test          # a suíte Node: o validador do publish, o portão de libs, os templates
+npm run test:bancada  # a bancada de um app de ponta a ponta, a pedido
 npm run test:py   # os exemplos Python
 ```
 
