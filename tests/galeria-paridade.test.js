@@ -133,15 +133,3 @@ test('os manifestos declaram as mesmas capacidades', () => {
   assert.notEqual(b.id, a.id);
 });
 
-// As duas afirmações sobre o backend Python — que ele não lê `VSSH_APP_PORT`, e que quem abre o
-// endereço é o `servidor.escutar()` do runtime, são medidas EXECUTANDO, em
-// `tests/python/test_template.py`:
-//
-//   - o `carregar_backend()` de lá importa o `main.py` com o ambiente ZERADO (`clear=True`), então
-//     uma leitura de `VSSH_APP_PORT` levanta `KeyError` e derruba o arquivo inteiro;
-//   - `OEnderecoVemDoRuntime` troca o `escutar` dentro do módulo do runtime e chama o `main()`:
-//     um servidor montado à mão não passa pelo dublê.
-//
-// Havia aqui um `doesNotMatch` e um `match` sobre o texto do `main.py` dizendo as mesmas duas
-// coisas. Eles ficavam verdes com o defeito presente escrito de outro jeito (`os.getenv`,
-// `environ.get`, o import com apelido) e vermelhos numa reescrita que preservava o comportamento.

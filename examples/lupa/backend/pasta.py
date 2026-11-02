@@ -7,10 +7,9 @@ de nomes e sai a ordem; listar o diretório fica no chamador, que é a parte que
 import re
 import unicodedata
 
-#: O que a Lupa abre. Esta lista e `opens.extensions` do manifesto dizem a mesma coisa, e
-#: `test/test_manifesto.py` confere as duas: uma extensão só no manifesto põe a Lupa no "Abrir
-#: com" de um arquivo que a lista da pasta esconde, e uma só aqui mostra na pasta um arquivo que o
-#: ambiente nunca manda para cá.
+#: O que a Lupa abre. Esta lista e `opens.extensions` do manifesto dizem a mesma coisa, e mudam
+#: juntas: uma extensão só no manifesto põe a Lupa no "Abrir com" de um arquivo que a lista da
+#: pasta esconde, e uma só aqui mostra na pasta um arquivo que o ambiente nunca manda para cá.
 EXTENSOES = {
     ".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif", ".bmp", ".ico", ".svg",
     ".tif", ".tiff", ".heic", ".heif",

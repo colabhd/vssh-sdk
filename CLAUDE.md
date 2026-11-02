@@ -42,7 +42,7 @@ ter. Fora do ambiente ninguém serve `_sdk/`, e a galeria dos templates diz isso
 
 ```bash
 npm test            # a suíte Node (tests/); sem python3 os testes do validador se pulam
-npm run test:py     # o template Python e os exemplos Python
+npm run test:py     # os exemplos Python
 ```
 
 Os testes que sobem um template ou importam o backend dele leem o runtime `vssh` do `NODE_PATH` e
@@ -149,7 +149,7 @@ Rode o que a sua mudança alcança, com `node --test --test-concurrency=1 --test
 | O reusable que o CI de um app chama | `.github/workflows/_publish-app-reusable.yml` |
 | Publicar os templates e exemplos daqui | `.github/workflows/publish-apps.yml` (pede o secret `VSSH_REPO_PUBLISH_TOKEN` e a var `VSSH_REPO_API`) |
 | O CI deste repositório | `.github/workflows/ci.yml` |
-| Os templates | `templates/hello-vssh-app{,-node}/` + `tests/galeria-paridade.test.js` + `tests/template-galeria.test.js` + `tests/python/test_template.py` + `tests/browser/template-fora-do-ambiente.test.js` (o SDK de verdade, num Chrome) + `tests/browser/palco-do-app.test.js` (a ajuda do template executada) |
+| Os templates | `templates/hello-vssh-app{,-node}/` + `tests/galeria-paridade.test.js` + `tests/template-galeria.test.js` + `tests/browser/template-fora-do-ambiente.test.js` (o SDK de verdade, num Chrome) + `tests/browser/palco-do-app.test.js` (a ajuda do template executada) |
 | Os exemplos | `examples/palco/` (testes em `examples/palco/test/`), `examples/lupa/` (testes em `examples/lupa/test/`), `examples/print-engine/` |
 | Conceitos, guias e a aparência (o Tuff) | `docs/`; `docs/aparencia/` é autorado, e o que ele cita (classe `tuff-*`, ícone `#ico-*`) é conferido no build do site contra `api/tuff/` |
 | O site da documentação | `scripts/gerar-site.js` (o Markdown que ele aceita, mais as cercas `html vivo` e `tuff-icones`), `scripts/realce.js` (o realce, uma tabela de regras por linguagem), `site/` (índice, folha, busca), `.github/workflows/site.yml`; `tests/site.test.js` gera o site de verdade e mede a saída |

@@ -1,7 +1,7 @@
 """O ffmpeg de verdade, com um arquivo de verdade, porque argv não prova saída.
 
-`test_midia.py` mede a FORMA da linha de comando; este mede o que ela produz. Uma linha bem
-formada pode gerar bytes que ninguém toca, e só a execução mostra.
+Uma linha de comando bem formada pode gerar bytes que ninguém toca, e só a execução mostra o
+que ela produz.
 
 O que a execução mostrou sobre os `movflags`:
 
