@@ -17,6 +17,7 @@ retângulo que o quadro devolve.
 | [`vssh.ajuda.feito(pedido, ok)`](#feito) | não |
 | [`vssh.ajuda.ouvindo()`](#ouvindo) | não |
 | [`vssh.ajuda.isto(nome, ajuda, retangulo)`](#isto) | não |
+| [`vssh.ajuda.tecla(isto)`](#tecla) | não |
 
 ### `abrir`
 
@@ -97,6 +98,23 @@ No fio: `type: "ajuda", op: "isto"`.
 | `nome` | `string` | não | `nome` |
 | `ajuda` | `string \| null` | sim | `ajuda` |
 | `retangulo` | `{ x: number, y: number, w: number, h: number }` | sim | `retangulo` |
+
+### `tecla`
+
+`vssh.ajuda.tecla(isto)`
+
+O SDK chama este verbo sozinho quando a pessoa aperta F1 dentro do quadro, e o shell abre a Ajuda da
+janela, como o F1 dele faz. Com `isto`, que vem do Shift+F1, o shell liga o modo "O que é isto?". A
+tecla não chega ao navegador, e um app que trata o F1 por conta própria (`preventDefault` no
+`keydown`) fica com ela.
+
+Não responde: um disparo, sem retorno.
+Num hiperlink: vale.
+No fio: `type: "ajuda", op: "tecla"`.
+
+| argumento | tipo | opcional | no fio |
+|---|---|---|---|
+| `isto` | `boolean` | sim | `isto` |
 
 ## Eventos
 

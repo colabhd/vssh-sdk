@@ -776,6 +776,13 @@ declare namespace vssh {
      * chega ao app.
      */
     function isto(nome: string, ajuda?: string | null, retangulo?: { x: number; y: number; w: number; h: number }): void;
+    /**
+     * O SDK chama este verbo sozinho quando a pessoa aperta F1 dentro do quadro, e o shell abre a
+     * Ajuda da janela, como o F1 dele faz. Com `isto`, que vem do Shift+F1, o shell liga o modo "O
+     * que é isto?". A tecla não chega ao navegador, e um app que trata o F1 por conta própria
+     * (`preventDefault` no `keydown`) fica com ela.
+     */
+    function tecla(isto?: boolean): void;
 
     /** Os eventos deste espaço, e o que cada um entrega ao `cb` de `ao`. */
     interface Eventos {

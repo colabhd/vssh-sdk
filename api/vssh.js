@@ -643,6 +643,8 @@
     ouvindo: () => ponte.disparar('ajuda.ouvindo', { type: 'ajuda', op: 'ouvindo' }),
     // O SDK chama este verbo sozinho com o controle que a pessoa clicou no modo "O que é isto?": o nome que ela lê, o `data-ajuda` do primeiro ancestral que o tem, e o retângulo. O clique não chega ao app.
     isto: (nome, ajuda, retangulo) => ponte.disparar('ajuda.isto', { type: 'ajuda', op: 'isto', nome: nome, ajuda: ajuda, retangulo: retangulo }),
+    // O SDK chama este verbo sozinho quando a pessoa aperta F1 dentro do quadro, e o shell abre a Ajuda da janela, como o F1 dele faz. Com `isto`, que vem do Shift+F1, o shell liga o modo "O que é isto?". A tecla não chega ao navegador, e um app que trata o F1 por conta própria (`preventDefault` no `keydown`) fica com ela.
+    tecla: (isto) => ponte.disparar('ajuda.tecla', { type: 'ajuda', op: 'tecla', isto: isto }),
     // Assina um evento deste espaço (mostrar, gesto, fazer, modo) e devolve a função que cancela.
     ao: (evento, cb) => ponte.escutar('ajuda', evento, cb),
   };
@@ -1806,6 +1808,18 @@
     modoDaAjuda = () => { for (const tipo of tipos) window.removeEventListener(tipo, engolir, true); };
     disparar('ajuda.ouvindo', { type: 'ajuda', op: 'ouvindo' });
   }
+
+  // O F1 com o foco no quadro nasce no documento do app, e o atalho do shell não o vê. Sem este
+  // ouvinte o navegador fica com a tecla e abre a central de ajuda dele numa aba. O SDK a passa ao
+  // shell, que abre a Ajuda da janela (o Shift+F1 liga o "O que é isto?"). O ouvinte fica na
+  // borbulha, e um app que já tratou o F1 com `preventDefault` fica com a tecla.
+  if (typeof window.addEventListener === 'function') noAmbienteFaca(() => {
+    window.addEventListener('keydown', (e) => {
+      if (e.key !== 'F1' || e.altKey || e.ctrlKey || e.metaKey || e.defaultPrevented) return;
+      e.preventDefault();
+      disparar('ajuda.tecla', { type: 'ajuda', op: 'tecla', isto: e.shiftKey });
+    });
+  });
 
   // ── Os erros do app, relatados sem o app pedir ────────────────────────────────────────────
   //

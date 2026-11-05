@@ -2137,6 +2137,22 @@
           ],
           "responde": false,
           "descricao": "O SDK chama este verbo sozinho com o controle que a pessoa clicou no modo \"O que é isto?\": o nome que ela lê, o `data-ajuda` do primeiro ancestral que o tem, e o retângulo. O clique não chega ao app."
+        },
+        "tecla": {
+          "fio": {
+            "type": "ajuda",
+            "op": "tecla"
+          },
+          "campos": [
+            {
+              "nome": "isto",
+              "fio": "isto",
+              "tipo": "boolean",
+              "opcional": true
+            }
+          ],
+          "responde": false,
+          "descricao": "O SDK chama este verbo sozinho quando a pessoa aperta F1 dentro do quadro, e o shell abre a Ajuda da janela, como o F1 dele faz. Com `isto`, que vem do Shift+F1, o shell liga o modo \"O que é isto?\". A tecla não chega ao navegador, e um app que trata o F1 por conta própria (`preventDefault` no `keydown`) fica com ela."
         }
       },
       "eventos": {
