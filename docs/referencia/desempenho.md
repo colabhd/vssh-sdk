@@ -43,8 +43,10 @@ manda ao portal a cada minuto, com a classe do aparelho e sem quem usa; o portal
 que o manifesto instalado declara. Um nome que o manifesto não declara, ou um valor fora da unidade,
 fica no console do shell. `vssh.desempenho.medir(nome)` devolve a função que encerra a medida e a
 registra. Os nomes que começam por `_` são da plataforma: o SDK registra sozinho, de todo app,
-`_tecla` e `_clique` (do gesto ao quadro seguinte pintado) e `_tarefa` (cada tarefa de 50 ms ou mais
-na thread do app).
+`_tecla` e `_clique` (do gesto ao quadro seguinte pintado), `_tarefa` (cada tarefa de 50 ms ou mais
+na thread do app) e `_tarefa-<origem>` (o mesmo quadro longo com a origem do script mais longo dele:
+`quadro`, `relogio`, `evento`, `promessa`, `carga`, ou `desenho` quando o quadro é quase todo layout
+e pintura).
 
 Não responde: um disparo, sem retorno.
 Num hiperlink: recusado. A medida vai com a descrição do aparelho, e só um vssh-app a manda.

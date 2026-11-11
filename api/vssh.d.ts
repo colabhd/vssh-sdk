@@ -862,7 +862,10 @@ declare namespace vssh {
      * declara, ou um valor fora da unidade, fica no console do shell. `vssh.desempenho.medir(nome)`
      * devolve a função que encerra a medida e a registra. Os nomes que começam por `_` são da
      * plataforma: o SDK registra sozinho, de todo app, `_tecla` e `_clique` (do gesto ao quadro
-     * seguinte pintado) e `_tarefa` (cada tarefa de 50 ms ou mais na thread do app).
+     * seguinte pintado), `_tarefa` (cada tarefa de 50 ms ou mais na thread do app) e
+     * `_tarefa-<origem>` (o mesmo quadro longo com a origem do script mais longo dele: `quadro`,
+     * `relogio`, `evento`, `promessa`, `carga`, ou `desenho` quando o quadro é quase todo layout e
+     * pintura).
      */
     function registrar(nome: string, valor: number): void;
 
