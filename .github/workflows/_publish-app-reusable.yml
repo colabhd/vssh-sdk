@@ -69,11 +69,12 @@ jobs:
     steps:
       # O `vssh-app-publish` valida o manifesto com `python3`. O `ubuntu-latest` o traz de fábrica; a
       # imagem de um runner próprio costuma ter só git, curl e jq, e sem ele o publish morre antes de
-      # empacotar.
+      # empacotar. Uma fonte do apt fora do ar (um PPA da imagem do runner) faz o `apt-get update`
+      # sair com erro depois de atualizar as outras, e o pacote ainda instala com elas.
       - name: python3, se a imagem do runner não tiver
         run: |
           command -v python3 >/dev/null && exit 0
-          sudo apt-get update -qq
+          sudo apt-get update -qq || echo "::warning::uma fonte do apt não respondeu; a instalação segue com os índices das outras"
           sudo apt-get install -y -qq --no-install-recommends python3
 
       # O Node compila a pasta de ajuda do app (`contributes.ajuda`) com o compilador de `api/ajuda/`,
@@ -85,7 +86,7 @@ jobs:
         continue-on-error: true
         run: |
           ldconfig -p 2>/dev/null | grep -q 'libatomic\.so\.1' && exit 0
-          sudo apt-get update -qq
+          sudo apt-get update -qq || echo "::warning::uma fonte do apt não respondeu; a instalação segue com os índices das outras"
           sudo apt-get install -y -qq --no-install-recommends libatomic1
 
       - name: Node, para compilar a ajuda do app
@@ -105,7 +106,7 @@ jobs:
             command -v "$c" >/dev/null && exit 0
           done
           curl -fsSLo "$RUNNER_TEMP/chrome.deb" https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo apt-get update -qq
+          sudo apt-get update -qq || echo "::warning::uma fonte do apt não respondeu; a instalação segue com os índices das outras"
           sudo apt-get install -y -qq --no-install-recommends "$RUNNER_TEMP/chrome.deb"
           google-chrome --version
 

@@ -105,14 +105,16 @@ jobs:
         with:
           node-version: '24'
 
-      # A imagem de um runner próprio não traz o Chrome; o `ubuntu-latest` traz.
+      # A imagem de um runner próprio não traz o Chrome; o `ubuntu-latest` traz. Uma fonte do apt
+      # fora do ar (um PPA da imagem do runner) faz o `apt-get update` sair com erro depois de
+      # atualizar as outras, e o pacote ainda instala com elas.
       - name: Chrome
         run: |
           for c in google-chrome google-chrome-stable chromium chromium-browser; do
             command -v "$c" >/dev/null && exit 0
           done
           curl -fsSLo "$RUNNER_TEMP/chrome.deb" https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo apt-get update -qq
+          sudo apt-get update -qq || echo "::warning::uma fonte do apt não respondeu; a instalação segue com os índices das outras"
           sudo apt-get install -y -qq --no-install-recommends "$RUNNER_TEMP/chrome.deb"
           google-chrome --version
 
