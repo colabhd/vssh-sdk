@@ -539,7 +539,7 @@ function figura(ctx: Ctx, linhas: string[], base: number, col: Coletas, se: Cond
  */
 interface OpcoesDeApp { topicosDoAmbiente: Set<string>; termosDoAmbiente: Set<string> }
 
-export function compilarAjuda(arquivos: ArquivoDaAjuda[], opcoes: { app?: OpcoesDeApp } = {}): { pacote: PacoteDaAjuda; erros: string[]; receitas: Receita[] } {
+export function compilarAjuda(arquivos: ArquivoDaAjuda[], opcoes: { app?: OpcoesDeApp; idioma?: string } = {}): { pacote: PacoteDaAjuda; erros: string[]; receitas: Receita[] } {
   const chaves = opcoes.app ? TOPICO_DE_APP_CHAVES : TOPICO_CHAVES;
   const erros: string[] = [];
   const col: Coletas = { refs: [], termos: [], alvos: [], receitas: [], topico: null };
@@ -656,7 +656,7 @@ export function compilarAjuda(arquivos: ArquivoDaAjuda[], opcoes: { app?: Opcoes
   for (const nome of Object.keys(alvos)) if (!usados.has(nome)) erros.push(`alvos.json: o alvo ${nome} não é usado por nenhum passo`);
 
   livros.sort((a, b) => a.ordem - b.ordem || a.id.localeCompare(b.id));
-  topicos.sort((a, b) => a.livro.localeCompare(b.livro) || a.ordem - b.ordem || a.titulo.localeCompare(b.titulo, 'pt-BR'));
+  topicos.sort((a, b) => a.livro.localeCompare(b.livro) || a.ordem - b.ordem || a.titulo.localeCompare(b.titulo, opcoes.idioma || 'pt-BR'));
   return { pacote: { livros, topicos, glossario, alvos }, erros, receitas: col.receitas };
 }
 
@@ -878,31 +878,72 @@ export interface AjudaDoApp {
   superficies: (Superficie & { topicos: string[] })[];
 }
 
+const IDIOMAS_DO_APP = new Set(['pt-BR', 'en', 'es']);
+
 /**
- * Compila a pasta de ajuda de um app. `arquivos` têm o caminho relativo à pasta; `ambiente` são os
- * ids dos tópicos e os termos do glossário do ambiente, que os links do app podem citar.
+ * Compila a pasta de ajuda de um app. `arquivos` têm o caminho relativo à pasta (ou
+ * `<idioma>/<arquivo>` para traduções); `ambiente` são os ids dos tópicos e os termos do
+ * glossário do ambiente, que os links do app podem citar.
  */
 export function compilarAjudaDoApp(
   arquivos: ArquivoDaAjuda[],
-  { manifesto, ambiente, evidencias = {} }: {
+  { manifesto, ambiente, idioma = 'pt-BR', evidencias = {} }: {
     manifesto: Record<string, any>;
     ambiente: { topicos: string[]; termos: string[] };
+    idioma?: string;
     evidencias?: { figuras?: boolean; ponte?: boolean };
   },
 ): { ajuda: AjudaDoApp | null; erros: string[]; receitas: Receita[] } {
   const declarada = manifesto.contributes?.ajuda;
   const pasta = declarada?.pasta || 'ajuda';
   const id = String(manifesto.id || 'app');
+  const lang = IDIOMAS_DO_APP.has(idioma) ? idioma : 'pt-BR';
+  const errosSubpasta: string[] = [];
+  const porCaminho = new Map<string, { texto: string; origem: string }>();
+  for (const a of arquivos) {
+    if (!a.caminho.includes('/')) {
+      porCaminho.set(a.caminho, { texto: a.texto, origem: a.caminho });
+      continue;
+    }
+    const sub = /^([^/]+)\/([^/]+)$/.exec(a.caminho);
+    if (!sub || !IDIOMAS_DO_APP.has(sub[1])) {
+      errosSubpasta.push(`${pasta}/${a.caminho}:1: a ajuda de um app é uma pasta só, sem subpastas`);
+    }
+  }
+  if (lang !== 'pt-BR') {
+    const prefixo = `${lang}/`;
+    for (const a of arquivos) {
+      if (!a.caminho.startsWith(prefixo)) continue;
+      const rel = a.caminho.slice(prefixo.length);
+      if (!rel.includes('/')) porCaminho.set(rel, { texto: a.texto, origem: a.caminho });
+    }
+  }
+  const origens = new Map<string, string>();
+  const selecionados: ArquivoDaAjuda[] = [];
+  for (const [rel, item] of porCaminho) {
+    const caminho = /^[^/]+\.md$/.test(rel) && rel !== 'glossario.md' ? `${id}/${rel}` : rel;
+    origens.set(caminho, item.origem);
+    selecionados.push({ caminho, texto: item.texto });
+  }
   // O livro é a pasta inteira, com o nome do app, e os caminhos voltam ao da pasta nos erros. A
   // descrição do manifesto fica na ficha, e não no livro: um travessão nela é aviso do publish, e
   // não recusa da ajuda.
-  const livro: ArquivoDaAjuda = { caminho: `${id}/_livro.md`, texto: `---\nnome: ${manifesto.name || id}\nordem: 1\nicone: grid\n---\n` };
-  const mapeados = arquivos.map((a) => (/^[^/]+\.md$/.test(a.caminho) && a.caminho !== 'glossario.md' ? { ...a, caminho: `${id}/${a.caminho}` } : a));
-  const r = compilarAjuda([livro, ...mapeados], {
+  const nomeDoApp = manifesto.traducoes?.[lang]?.name || manifesto.name || id;
+  const livro: ArquivoDaAjuda = { caminho: `${id}/_livro.md`, texto: `---\nnome: ${nomeDoApp}\nordem: 1\nicone: grid\n---\n` };
+  const r = compilarAjuda([livro, ...selecionados], {
     app: { topicosDoAmbiente: new Set(ambiente.topicos), termosDoAmbiente: new Set(ambiente.termos) },
+    idioma: lang,
   });
-  const erros = r.erros.map((e) => (e.startsWith(`${id}/`) ? `${pasta}/${e.slice(id.length + 1)}` : `${pasta}/${e}`));
-  for (const a of arquivos) if (a.caminho.includes('/')) erros.push(`${pasta}/${a.caminho}:1: a ajuda de um app é uma pasta só, sem subpastas`);
+  const erros = [
+    ...r.erros.map((e) => {
+      const i = e.indexOf(':');
+      const chave = i > 0 ? e.slice(0, i) : '';
+      const origem = origens.get(chave);
+      if (origem) return `${pasta}/${origem}${e.slice(i)}`;
+      return e.startsWith(`${id}/`) ? `${pasta}/${e.slice(id.length + 1)}` : `${pasta}/${e}`;
+    }),
+    ...errosSubpasta,
+  ];
 
   const superficies = superficiesDoManifesto(manifesto);
   const conhecidas = new Set(superficies.map((x) => x.id));
