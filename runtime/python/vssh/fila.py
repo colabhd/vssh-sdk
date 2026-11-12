@@ -192,7 +192,8 @@ def submeter(trabalho, ao_progresso=None, env=None):
     `trabalho` leva `imagem` e `comando` (obrigatórios), `args`, `env`, `entradas` (dict nome →
     caminho, ou lista de caminhos), `saidas` (nomes em `saidas/`), `gpu` (`{'quantidade', 'tipo'}`,
     com `tipo` um tipo ou uma lista, ou `{'quantidade', 'memoriaMinGiB'}`), `cpu`, `memoria`,
-    `disco`, `prazo` (segundos de execução), `nome`, `abrir` (onde o clique no
+    `disco`, `prazo` (segundos de execução), `estimativaS` (quanto o comando deve
+    rodar, em segundos, de onde sai o início estimado de quem espera atrás), `nome`, `abrir` (onde o clique no
     aviso de fim leva, um caminho dentro do app) e `saidasAoVivo` (cada saída sobe
     assim que aparece em `saidas/`, e `baixar` a alcança com o job rodando; o
     comando a escreve fora e a renomeia para dentro). O que o portal recusa vem

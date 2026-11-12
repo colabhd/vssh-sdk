@@ -129,7 +129,8 @@ function subir(url, caminho) {
 /**
  * Declara, sobe as entradas e inicia. Resolve com o id do job. `trabalho` leva `imagem`,
  * `comando`, `args`, `env`, `entradas` (objeto nome → caminho, ou lista de caminhos), `saidas`,
- * `gpu`, `cpu`, `memoria`, `disco`, `prazo`, `nome`, `abrir` (onde o clique no aviso de fim leva,
+ * `gpu`, `cpu`, `memoria`, `disco`, `prazo`, `estimativaS` (quanto o comando deve rodar, em
+ * segundos, de onde sai o início estimado de quem espera atrás), `nome`, `abrir` (onde o clique no aviso de fim leva,
  * um caminho dentro do app) e `saidasAoVivo` (cada saída sobe assim que aparece em `saidas/`, e
  * `baixar` a alcança com o job rodando; o comando a escreve fora e a renomeia para dentro).
  */
