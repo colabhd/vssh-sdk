@@ -20,6 +20,18 @@
       "type": "string",
       "description": "Nome exibido. Default: o próprio id."
     },
+    "traducoes": {
+      "type": "object",
+      "description": "Traduções opcionais por código de idioma (`en`, `es`, `pt-BR`) para `name` e `description`.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
     "version": {
       "type": "string",
       "pattern": "^[0-9A-Za-z][0-9A-Za-z.\\-+_]*$",

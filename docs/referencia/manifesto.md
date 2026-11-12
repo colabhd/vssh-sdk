@@ -22,6 +22,7 @@ do campo na mensagem. Obrigatórios: `id`, `version`, `backend`.
 |---|---|---|
 | [`id`](#id) | `string` | sim |
 | [`name`](#name) | `string` | não |
+| [`traducoes`](#traducoes) | `object` | não |
 | [`version`](#version) | `string` | sim |
 | [`type`](#type) | um dos valores listados | não |
 | [`kind`](#kind) | um dos valores listados | não |
@@ -66,6 +67,20 @@ ele é DERIVADO de (HOME, id), e é por isso que trocar o id é publicar outro a
 `string`, opcional.
 
 Nome exibido. Default: o próprio id.
+
+## `traducoes`
+
+`object`, opcional.
+
+Traduções opcionais por código de idioma (`en`, `es`, `pt-BR`) para `name` e `description`.
+
+### `traducoes.<chave>.name`
+
+`string`, opcional.
+
+### `traducoes.<chave>.description`
+
+`string`, opcional.
 
 ## `version`
 

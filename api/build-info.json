@@ -2,7 +2,7 @@
   "shellVersion": "5.0.0-rc0",
   "artifacts": {
     "api/abi.json": {
-      "sha256": "2a78a792efd27983507e14f2444727f79ed44cc5fe171a96323b5aeaa7d89080"
+      "sha256": "b25a2ccadebd629e8aaa8aea403cb6085fdac54527eeff71ea1e5ac70b9545c6"
     },
     "api/afericao/ancora.json": {
       "sha256": "b1ad85acb8a1bc75ae2022539be87ab960d8290ea5a56166068d7d0c64b56b3e"
@@ -71,7 +71,7 @@
       "sha256": "f1ee04f6a8c1b958620467f2099cbcd06a5470040adc84f67bfd0aa68b1efbd1"
     },
     "api/tuff/tuff.js": {
-      "sha256": "cb0d0dacffe2b520cdd858d27836776564cbbde1a940161abde801990a19b8f3"
+      "sha256": "a6e4fab5462b62d738aee3535b68059bbc20de75c94c34dcedb1dbb53d785ace"
     },
     "api/tuff/vendor/geotiff-LICENCAS.txt": {
       "sha256": "48fe558bdf8ac64674a9104c2e679400368d529dd36de972419c9d0cfc9d4a40"
@@ -80,28 +80,28 @@
       "sha256": "43e440ec551e92f28376acdecdf1b285362a85f5b4afddfb028fef2213929862"
     },
     "api/vssh-app.schema.json": {
-      "sha256": "8eacb3852f8819552c0c9883a82c859c3d9f925a8a26fffd1419e238a8ac07c4"
+      "sha256": "4ddab8e0b74ac97f7dd9217a64d1f0db3e604bdb050bc8e509e76d4962da564c"
     },
     "api/vssh.d.ts": {
-      "sha256": "926983a5ae196ba6d0424eb1841e3e29faf55f01abdfee2647d7934bb33fb624"
+      "sha256": "a8bcfb151399bb3a3a68f6f63a061e4091b39486217670399d478d86c67b0fa7"
     },
     "api/vssh.js": {
-      "sha256": "1f73cf61636c9cb489c8b8473d7671ca834bf89bb131ea58097327fe7f209a6a"
+      "sha256": "9859a61f098fbe5911498644bb3876da19d668b4b5d791446d8ed042b6477b57"
     },
     "docs/referencia/README.md": {
-      "sha256": "08ca7843759bc5ac1dd4b63971a88c727b5c1b07b73641f67070b79f7962fd97"
+      "sha256": "4927c62784af483404962ad095628ad25aac1ac8e1168ab059cf25b28a1177bc"
     },
     "docs/referencia/ajuda.md": {
       "sha256": "f4e1ee1a4b08d1fa4e4432e98cb4417da03a21a4b6e14103257641755c551517"
     },
     "docs/referencia/ambiente.md": {
-      "sha256": "80e837c926040cea8cb4d43136cfde641222aab76144af1549172f18428de387"
+      "sha256": "6b4cbc9639944df4608ecd63ec10bfcf505bc09d5344f14d22783da8c0a36888"
     },
     "docs/referencia/aparelho.md": {
       "sha256": "30bdef087f9a4c29aa3197ee4f633f6df7fb894922408e9e4514be95061c5699"
     },
     "docs/referencia/app.md": {
-      "sha256": "08e82e00e7d631593e0661d3f714cc0ed8a89d828ee8bcb530465d0ee8077dea"
+      "sha256": "17d167afdf3eeceac43933e8c0fc528ba8dd363633c7ff6910ca640f79ca808a"
     },
     "docs/referencia/apps.md": {
       "sha256": "56838875e7cd1a8f692baec73fc5485aa7468735c05e95d98b57a52832d1fbec"
@@ -137,7 +137,7 @@
       "sha256": "c8fd408df22c5bd6905108720bd27db3b5cb26a53f152ffbcb8957f41da66682"
     },
     "docs/referencia/manifesto.md": {
-      "sha256": "599351916cf1d72487ead22f68c90013bb3e3deefb4c43d9943686d7c858ba0e"
+      "sha256": "cbfb7c33cf14cb8edbff6382a59446681113de41cafbf9016b5bd6fadd37823c"
     },
     "docs/referencia/midia.md": {
       "sha256": "97c1bd04f2b70355c93d668872c2547395b4450df48bb5352ea99a1183d3f6d9"

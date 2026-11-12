@@ -562,7 +562,7 @@
     if (fechavel) {
       const f = document.createElement('span');
       f.className = 'tuff-aba-fechar';
-      f.title = 'Fechar aba';
+      f.title = typeof VsshI18n !== 'undefined' ? VsshI18n.t('tuff.fechar_aba', 'Fechar aba') : 'Fechar aba';
       f.innerHTML = FECHAR;
       el.append(f);
     }
@@ -581,7 +581,7 @@
     if (sim && !ponto) {
       ponto = document.createElement('span');
       ponto.className = 'tuff-aba-sujo';
-      ponto.title = 'Alterações não salvas';
+      ponto.title = typeof VsshI18n !== 'undefined' ? VsshI18n.t('tuff.alteracoes_nao_salvas', 'Alterações não salvas') : 'Alterações não salvas';
       const fechar = el.querySelector('.tuff-aba-fechar');
       if (fechar) fechar.before(ponto); else el.append(ponto);
     } else if (!sim && ponto) {
@@ -855,7 +855,7 @@
     b.className = 'tuff-trilha-parte';
     b.textContent = '…';
     b.title = recolhidas.map((p) => p.rotulo).join(' / ');
-    b.setAttribute('aria-label', 'Caminho recolhido');
+    b.setAttribute('aria-label', typeof VsshI18n !== 'undefined' ? VsshI18n.t('tuff.caminho_recolhido', 'Caminho recolhido') : 'Caminho recolhido');
     b.setAttribute('aria-haspopup', 'menu');
     b.setAttribute('aria-expanded', 'false');
     b.addEventListener('click', (e) => {
@@ -1380,7 +1380,10 @@
       alca.tabIndex = 0;
       alca.setAttribute('role', 'separator');
       alca.setAttribute('aria-orientation', 'vertical');
-      alca.setAttribute('aria-label', `Largura da coluna ${c.rotulo || th.textContent.trim()}`);
+      const colNome = c.rotulo || th.textContent.trim();
+      alca.setAttribute('aria-label', typeof VsshI18n !== 'undefined'
+        ? VsshI18n.t('tuff.largura_coluna', 'Largura da coluna {coluna}', { coluna: colNome })
+        : `Largura da coluna ${colNome}`);
       th.prepend(alca);
 
       const largura = (l) => {

@@ -270,3 +270,16 @@ O [`emulador/`](emulador/) chega para desenvolver e testar um app sem servidor V
 é ele que serve `_sdk/` na máquina de quem escreve. Até lá, o
 [guia do ambiente de desenvolvimento](docs/guias/ambiente-de-desenvolvimento.md) diz como servir
 `api/vssh.js` na frente do backend à mão.
+
+### Idioma do ambiente e dos apps
+
+Apps que oferecem tradução em `pt-BR`, `en` e `es` leem o idioma ativo sem depender de pacotes
+externos:
+
+- No manifesto (`vssh-app.json`), o objeto opcional `traducoes` aceita `{ en, es, pt-BR }` com
+  `name` e `description`. O portal entrega o idioma ativo em `GET /api/apps` e mantém `traducoes`
+  para o shell trocar sem recarregar.
+- No frontend, `vssh.ambiente.idioma()` responde `{ idioma }` (`pt-BR`, `en` ou `es`), e o evento
+  `vssh.ambiente.ao('idioma', ({ idioma }) => …)` avisa quando a pessoa troca nas Configurações.
+- No backend, a variável `VSSH_IDIOMA` chega na subida do processo e cada pedido encaminhado pelo
+  portal traz o cabeçalho `X-Vssh-Idioma`.

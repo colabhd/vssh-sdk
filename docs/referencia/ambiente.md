@@ -19,6 +19,7 @@ servidor. O que o processo encontra é o mesmo nos três.
 | `VSSH_APP_TRANSPORT` | `socket` | o único transporte; um valor diferente recusa a subida com o nome do campo |
 | `VSSH_APP_TOKEN` | um segredo por usuário e app, que o portal sorteia e reaproveita enquanto o app está de pé | o portão do backend: cada pedido que o portal encaminha traz `X-Vssh-App-Token` com este valor, e `vssh.servidor` responde 403 com `X-Vssh-Token: recusado` ao que chega sem ele |
 | `VSSH_APP_BASE_PATH` | `/proxy/app/<id>/` | o prefixo sob o qual o app é servido, sem o servidor na frente; a URL pública é `/<serverId>/proxy/app/<id>/`, e o cabeçalho `X-Forwarded-Prefix` de cada pedido traz o prefixo inteiro |
+| `VSSH_IDIOMA` | `pt-BR`, `en` ou `es` | o idioma preferido da pessoa na hora da subida; pedidos HTTP também levam `X-Vssh-Idioma` com o idioma ativo |
 | `VSSH_APP_INSTALLED_HASH` | o hash do pacote instalado | o portal o compara com o do disco a cada abertura, e reinicia um processo que subiu com código que já mudou |
 | `VSSH_PORTAL_URL`, `VSSH_PORTAL_TOKEN` | a URL pública do portal e a credencial deste app diante dele; só para um app com `recursos.fila` no manifesto | `vssh.fila`: é com eles que o backend submete um trabalho ao cluster e o acompanha. O token nasce a cada subida, só alcança `/api/fila/*`, e o `stop` o revoga. Sem o par, `vssh.fila.disponivel()` diz por quê |
 | `PYTHONPATH`, `NODE_PATH` | `/opt/vssh/sdk/python` e `/opt/vssh/sdk/node`, na frente do que já havia | de onde `from vssh import servidor` e `require('vssh')` resolvem: o runtime que o sistema instala em cada servidor |
@@ -33,9 +34,10 @@ relançamento pelo supervisor subir com o mesmo token que o portal espera. As pr
 portal tem para um app específico (o layout de teclado do motor X11) e a credencial da fila, para
 quem a declarou, entram no mesmo arquivo.
 
-Cada pedido HTTP que o portal encaminha ao backend traz três cabeçalhos: `X-Vssh-App-Token`, o
-`X-Forwarded-Prefix` com o prefixo público do app, e `X-Vssh-Portas`, um modelo com `{{porta}}`
-com que um app monta a URL de um serviço que a pessoa subiu no servidor.
+Cada pedido HTTP que o portal encaminha ao backend traz quatro cabeçalhos: `X-Vssh-App-Token`, o
+`X-Forwarded-Prefix` com o prefixo público do app, `X-Vssh-Portas` (um modelo com `{{porta}}`
+com que um app monta a URL de um serviço que a pessoa subiu no servidor) e `X-Vssh-Idioma` (`pt-BR`,
+`en` ou `es`).
 
 ## Os arquivos de `~/.vssh-apps/<id>/`
 

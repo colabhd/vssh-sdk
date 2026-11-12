@@ -2,6 +2,16 @@
   "id": "hello-world",
   "name": "Hello World (Python)",
   "version": "5.0.0",
+  "traducoes": {
+    "en": {
+      "name": "Hello World (Python)",
+      "description": "An example Python app showing the environment bridge, file access, system tray, audio, printing, secret vault, and job queue."
+    },
+    "es": {
+      "name": "Hello World (Python)",
+      "description": "Aplicación de ejemplo en Python que muestra el puente con el entorno, el acceso a archivos, la bandeja, el sonido, la impresión, el almacén de secretos y la cola de tareas."
+    }
+  },
   "icon": "icon.svg",
   "icone": { "glifo": "icone/glifo.svg" },
   "category": "Utility",

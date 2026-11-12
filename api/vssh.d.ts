@@ -41,6 +41,11 @@ declare namespace vssh {
      */
     function capacidades(): Promise<unknown>;
     /**
+     * O idioma ativo do ambiente (`pt-BR`, `en` ou `es`). Também chega no aperto de mão (`ola`) e
+     * pelo evento `idioma` quando a pessoa troca nas Configurações.
+     */
+    function idioma(): Promise<unknown>;
+    /**
      * O título que a janela mostra na barra de título, na barra de tarefas e no Alt+Tab. O app o
      * reporta sempre que o dele muda; o shell corta em 200 caracteres.
      */
@@ -68,6 +73,11 @@ declare namespace vssh {
        * documento do shell, que é a página de outra origem.
        */
       aparencia: { tokens: Record<string, string> };
+      /**
+       * O novo idioma do ambiente (`pt-BR`, `en` ou `es`), emitido quando a pessoa troca a
+       * preferência em Configurações.
+       */
+      idioma: { idioma: 'pt-BR' | 'en' | 'es' };
       /**
        * O contexto com que o app foi aberto ("abrir aqui", "abrir com", um item da jump list).
        * Chega depois do load, e de novo quando uma ação alcança uma janela que já está aberta.

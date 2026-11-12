@@ -317,6 +317,8 @@
   EVENTOS.app = {
     // Os tokens de destaque do ambiente, quando a pessoa troca a cor. Chega a quem não alcança o documento do shell, que é a página de outra origem.
     aparencia: ['appearance', { tokens: 'tokens' }],
+    // O novo idioma do ambiente (`pt-BR`, `en` ou `es`), emitido quando a pessoa troca a preferência em Configurações.
+    idioma: ['language-change', { idioma: 'idioma' }],
     // O contexto com que o app foi aberto ("abrir aqui", "abrir com", um item da jump list). Chega depois do load, e de novo quando uma ação alcança uma janela que já está aberta. `item` é o `id` do item de `contributes.contextMenu` que a pessoa clicou, e é por ele que um app com mais de um item no mesmo arquivo sabe qual foi. `pagina` é a página em que outro app pediu o arquivo (`arquivos.abrir`), num PDF. Com `tipo: 'arquivo'`, o arquivo chega já concedido ao app, como se a pessoa o tivesse escolhido no seletor: o app lê e grava nele pelos verbos de `arquivos`. Uma pasta não é concedida.
     abertura: ['open-context', { caminho: 'path', url: 'url', tipo: 'tipo', rota: 'rota', item: 'item', pagina: 'page' }],
   };
@@ -399,13 +401,15 @@
     identidade: () => ponte.chamar('app.identidade', { type: 'identity' }, 5000),
     // O ambiente em que o app está: o cliente que serve o shell (`host`: `navegador`, `cliente-de-desktop` ou `chromeos`; `none` fora do ambiente), a versão do shell e a lista de verbos e eventos desta tabela. Com a lista, o app decide sozinho se o shell em que caiu tem o que ele precisa.
     capacidades: () => ponte.chamar('app.capacidades', { type: 'capabilities' }, 5000),
+    // O idioma ativo do ambiente (`pt-BR`, `en` ou `es`). Também chega no aperto de mão (`ola`) e pelo evento `idioma` quando a pessoa troca nas Configurações.
+    idioma: () => ponte.chamar('app.idioma', { type: 'language' }, 5000),
     // O título que a janela mostra na barra de título, na barra de tarefas e no Alt+Tab. O app o reporta sempre que o dele muda; o shell corta em 200 caracteres.
     titulo: (titulo) => ponte.disparar('app.titulo', { type: 'title', title: titulo }),
     // Onde o app está, para a sessão o reabrir no mesmo lugar: um caminho dentro do app, que o ambiente cola na URL quando restaura a janela. Uma rota que sai do app (um esquema, um caminho absoluto, um `..`) é recusada no console, sem resposta.
     lembrarRota: (rota) => ponte.disparar('app.lembrarRota', { type: 'rota', rota: rota }),
     // Um erro do app, para o log do ambiente, onde quem mantém o sistema o lê ao lado do que aconteceu no portal. O SDK chama este verbo sozinho a cada exceção sem tratamento e a cada promessa rejeitada sem `catch` dentro do app; o app o chama com `tipo: 'relatado'` para um erro que ele mesmo tratou e quer registrar. O shell carimba o id do app, corta a mensagem em 1000 caracteres e a pilha em 8000, tira a query da fonte, e manda o mesmo erro uma vez a cada dez minutos.
     relatarErro: (mensagem, pilha, fonte, linha, coluna, tipo) => ponte.disparar('app.relatarErro', { type: 'error-report', message: mensagem, stack: pilha, source: fonte, line: linha, column: coluna, kind: tipo }),
-    // Assina um evento deste espaço (aparencia, abertura) e devolve a função que cancela.
+    // Assina um evento deste espaço (aparencia, idioma, abertura) e devolve a função que cancela.
     ao: (evento, cb) => ponte.escutar('app', evento, cb),
   };
 

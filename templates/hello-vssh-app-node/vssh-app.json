@@ -2,6 +2,16 @@
   "id": "hello-world-node",
   "name": "Hello World (Node)",
   "version": "5.0.0",
+  "traducoes": {
+    "en": {
+      "name": "Hello World (Node)",
+      "description": "An example Node app showing the environment bridge, file access, system tray, audio, printing, secret vault, and job queue."
+    },
+    "es": {
+      "name": "Hello World (Node)",
+      "description": "Aplicación de ejemplo en Node que muestra el puente con el entorno, el acceso a archivos, la bandeja, el sonido, la impresión, el almacén de secretos y la cola de tareas."
+    }
+  },
   "icon": "icon.svg",
   "icone": { "glifo": "icone/glifo.svg" },
   "category": "Utility",

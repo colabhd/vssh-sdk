@@ -13,6 +13,7 @@ que a janela mostra e a rota que a sessão restaura.
 | [`vssh.app.ola()`](#ola) | sim, em até 5 s |
 | [`vssh.app.identidade()`](#identidade) | sim, em até 5 s |
 | [`vssh.app.capacidades()`](#capacidades) | sim, em até 5 s |
+| [`vssh.app.idioma()`](#idioma) | sim, em até 5 s |
 | [`vssh.app.titulo(titulo)`](#titulo) | não |
 | [`vssh.app.lembrarRota(rota)`](#lembrarrota) | não |
 | [`vssh.app.relatarErro(mensagem, pilha, fonte, linha, coluna, tipo)`](#relatarerro) | não |
@@ -60,6 +61,19 @@ tabela. Com a lista, o app decide sozinho se o shell em que caiu tem o que ele p
 Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
 Num hiperlink: vale.
 No fio: `type: "capabilities"`.
+
+Sem argumentos.
+
+### `idioma`
+
+`vssh.app.idioma()`
+
+O idioma ativo do ambiente (`pt-BR`, `en` ou `es`). Também chega no aperto de mão (`ola`) e pelo
+evento `idioma` quando a pessoa troca nas Configurações.
+
+Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
+No fio: `type: "language"`.
 
 Sem argumentos.
 
@@ -132,6 +146,20 @@ do shell, que é a página de outra origem.
 
 Num hiperlink: chega.
 No fio: `type: "appearance"`.
+
+### `idioma`
+
+`vssh.app.ao('idioma', cb)`
+
+O novo idioma do ambiente (`pt-BR`, `en` ou `es`), emitido quando a pessoa troca a preferência em
+Configurações.
+
+| campo | tipo | opcional | no fio |
+|---|---|---|---|
+| `idioma` | `'pt-BR' \| 'en' \| 'es'` | não | `idioma` |
+
+Num hiperlink: chega.
+No fio: `type: "language-change"`.
 
 ### `abertura`
 
