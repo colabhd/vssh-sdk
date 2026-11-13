@@ -44,7 +44,7 @@ declare namespace vssh {
      * O idioma ativo do ambiente (`pt-BR`, `en` ou `es`). Também chega no aperto de mão (`ola`) e
      * pelo evento `idioma` quando a pessoa troca nas Configurações.
      */
-    function idioma(): Promise<unknown>;
+    function idioma(): Promise<{ idioma: 'pt-BR' | 'en' | 'es' }>;
     /**
      * O título que a janela mostra na barra de título, na barra de tarefas e no Alt+Tab. O app o
      * reporta sempre que o dele muda; o shell corta em 200 caracteres.
