@@ -273,13 +273,12 @@ O [`emulador/`](emulador/) chega para desenvolver e testar um app sem servidor V
 
 ### Idioma do ambiente e dos apps
 
-Apps que oferecem tradução em `pt-BR`, `en` e `es` leem o idioma ativo sem depender de pacotes
-externos:
+O ambiente fala `pt-BR`, `en` e `es`, e um app acompanha a escolha da pessoa por três caminhos:
 
-- No manifesto (`vssh-app.json`), o objeto opcional `traducoes` aceita `{ en, es, pt-BR }` com
-  `name` e `description`. O portal entrega o idioma ativo em `GET /api/apps` e mantém `traducoes`
-  para o shell trocar sem recarregar.
-- No frontend, `vssh.ambiente.idioma()` responde `{ idioma }` (`pt-BR`, `en` ou `es`), e o evento
-  `vssh.ambiente.ao('idioma', ({ idioma }) => …)` avisa quando a pessoa troca nas Configurações.
-- No backend, a variável `VSSH_IDIOMA` chega na subida do processo e cada pedido encaminhado pelo
-  portal traz o cabeçalho `X-Vssh-Idioma`.
+- No manifesto (`vssh-app.json`), o objeto opcional `traducoes` leva `name` e `description` por
+  idioma (`{ "en": { … }, "es": { … } }`). O `GET /api/apps` já entrega o `name` e a
+  `description` no idioma da pessoa, e o menu do ambiente os mostra.
+- No frontend, `vssh.app.idioma()` responde `{ idioma }`, e `vssh.app.ao('idioma', ({ idioma }) => …)`
+  avisa quando a pessoa troca o idioma em Configurações.
+- No backend, `VSSH_IDIOMA` traz o idioma da subida do processo, e cada pedido que o portal
+  encaminha traz o cabeçalho `X-Vssh-Idioma` com o idioma daquele momento.
