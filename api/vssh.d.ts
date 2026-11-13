@@ -875,7 +875,7 @@ declare namespace vssh {
      * seguinte pintado), `_tarefa` (cada tarefa de 50 ms ou mais na thread do app) e
      * `_tarefa-<origem>` (o mesmo quadro longo com a origem do script mais longo dele: `quadro`,
      * `relogio`, `evento`, `promessa`, `carga`, ou `desenho` quando o quadro é quase todo layout e
-     * pintura).
+     * pintura) e `_tarefa-escondida` (a tarefa longa que começou com a aba escondida).
      */
     function registrar(nome: string, valor: number): void;
 

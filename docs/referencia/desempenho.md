@@ -46,7 +46,7 @@ registra. Os nomes que começam por `_` são da plataforma: o SDK registra sozin
 `_tecla` e `_clique` (do gesto ao quadro seguinte pintado), `_tarefa` (cada tarefa de 50 ms ou mais
 na thread do app) e `_tarefa-<origem>` (o mesmo quadro longo com a origem do script mais longo dele:
 `quadro`, `relogio`, `evento`, `promessa`, `carga`, ou `desenho` quando o quadro é quase todo layout
-e pintura).
+e pintura) e `_tarefa-escondida` (a tarefa longa que começou com a aba escondida).
 
 Não responde: um disparo, sem retorno.
 Num hiperlink: recusado. A medida vai com a descrição do aparelho, e só um vssh-app a manda.
