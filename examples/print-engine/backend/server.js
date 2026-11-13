@@ -144,7 +144,7 @@ const servidor = http.createServer(async (req, res) => {
       // que alguém o removeu depois. E nomear TODOS os que serviriam é o que impede a mensagem de
       // mandar instalar chromium num servidor que já tem Chrome — o erro que originou esta lista.
       motivo: bin ? null
-        : `nenhum navegador da família chromium encontrado neste servidor. Qualquer um destes serve: ${CANDIDATOS.join(', ')} (apt-get install -y chromium)`,
+        : `nenhum navegador da família chromium encontrado nesta estação. Qualquer um destes serve: ${CANDIDATOS.join(', ')} (apt-get install -y chromium)`,
     });
   }
 

@@ -13,15 +13,15 @@ O Hello World é um app de exemplo. A janela dele é uma galeria: cada painel ch
 
 ## A placa de vídeo
 
-O painel [[O que o ambiente decidiu por este app]] diz se o servidor deu uma placa de vídeo a este app. [[medir GPU × CPU (leva alguns segundos)]] codifica o mesmo vídeo duas vezes, uma no processador e outra na placa, e diz quantas vezes uma foi mais rápida que a outra.
+O painel [[O que o ambiente decidiu por este app]] diz se a estação deu uma placa de vídeo a este app. [[medir GPU × CPU (leva alguns segundos)]] codifica o mesmo vídeo duas vezes, uma no processador e outra na placa, e diz quantas vezes uma foi mais rápida que a outra.
 
 ## A fila de processamento
 
-Um trabalho grande demais para este servidor vai para o cluster. No painel da fila, [[nvidia-smi no cluster (leva um minuto)]] sobe um contêiner com uma placa do cluster e mostra qual placa ele recebeu.
+Um trabalho grande demais para esta estação vai para o cluster. No painel da fila, [[nvidia-smi no cluster (leva um minuto)]] sobe um contêiner com uma placa do cluster e mostra qual placa ele recebeu.
 
 ## A senha de exemplo
 
-O app pede uma senha chamada `HELLO_SEGREDO`, que serve só para mostrar o cofre. O valor vai para o seu servidor, e o app o recebe quando sobe de novo.
+O app pede uma senha chamada `HELLO_SEGREDO`, que serve só para mostrar o cofre. O valor vai para a sua estação, e o app o recebe quando sobe de novo.
 
 ```passos
 - {{Clique}} em [[guardar HELLO_SEGREDO]] e escreva qualquer texto no campo que abre.

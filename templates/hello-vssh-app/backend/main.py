@@ -160,7 +160,7 @@ def limites_do_cgroup():
         with open("/proc/self/cgroup", encoding="utf-8") as fh:
             linha = next((l for l in fh.read().split("\n") if l.startswith("0::")), None)
         if not linha:
-            return {"contido": False, "motivo": "sem cgroup v2 neste servidor"}
+            return {"contido": False, "motivo": "sem cgroup v2 nesta estação"}
         base = os.path.join("/sys/fs/cgroup", linha[3:].strip().lstrip("/"))
 
         def ler(nome):
@@ -337,7 +337,7 @@ def _por_que_vaapi_falhou(stderr, dispositivo):
 
     # ── NVENC primeiro: os erros dele têm nome próprio e não se confundem com os do VA-API ──
     if "h264_nvenc" in s and "unknown encoder" in s:
-        return "este ffmpeg foi compilado SEM NVENC — é do pacote, não do servidor nem da placa"
+        return "este ffmpeg foi compilado SEM NVENC — é do pacote, não da estação nem da placa"
     if "libnvidia-encode" in s or "libcuda.so" in s:
         return ("o userspace NVIDIA está incompleto — falta a libnvidia-encode.so.1, que vem com o "
                 "driver. Num container ou LXC ela precisa ter sido montada do host junto com o resto")
@@ -348,10 +348,10 @@ def _por_que_vaapi_falhou(stderr, dispositivo):
                 "esta placa não tem motor de codificação (A100 e H100 não têm; é computação, não vídeo)")
     if "out of memory (10)" in s or "openencodesessionex failed" in s:
         return ("a placa recusou mais uma sessão de NVENC — placa de consumo limita as sessões "
-                "simultâneas, e outra coisa neste servidor já as ocupa")
+                "simultâneas, e outra coisa nesta estação já as ocupa")
 
     if "unknown encoder" in s:
-        return "este ffmpeg foi compilado SEM VAAPI — é do pacote, não do servidor nem da placa"
+        return "este ffmpeg foi compilado SEM VAAPI — é do pacote, não da estação nem da placa"
     if "permission denied" in s:
         return "sem permissão no render node — falta o grupo `render` (usermod -aG render <usuario>)"
 
@@ -370,7 +370,7 @@ def _por_que_vaapi_falhou(stderr, dispositivo):
         quem = dispositivo.get("fabricante") or dispositivo.get("driver")
         return (f"esta é uma GPU VIRTUAL ({quem}) — ela NÃO implementa VA-API, e nenhum pacote "
                 "resolve. Ela existe para desenhar tela, não para codificar vídeo: para isso, "
-                "outro servidor.")
+                "outra estação.")
     if nao_inicializou and (dispositivo or {}).get("fabricante") == "NVIDIA":
         # É a NVIDIA que mais engana: `vainfo` instalado, libva respondendo, e nada codifica. Não
         # é driver faltando — é a API errada. O pacote de VA-API que existe para ela só decodifica.
@@ -418,7 +418,7 @@ def _o_que_a_placa_sabe(alvo):
         return {
             "tem": False,
             "ferramenta": "vainfo",
-            "motivo": ("o `vainfo` não está instalado neste servidor — `apt-get install -y vainfo` "
+            "motivo": ("o `vainfo` não está instalado nesta estação — `apt-get install -y vainfo` "
                        "e esta peça passa a listar o que a placa sabe fazer"
                        if isinstance(err, FileNotFoundError) else str(bruto).split("\n")[0][:200]),
         }
@@ -467,7 +467,7 @@ def benchmark_gpu(frames=300):
         subprocess.run(["ffmpeg", "-version"], capture_output=True, timeout=5, check=True)
     except (OSError, subprocess.SubprocessError):
         return {"rodou": False,
-                "motivo": "ffmpeg não está neste servidor — o app o declara em requiredPackages, "
+                "motivo": "ffmpeg não está nesta estação — o app o declara em requiredPackages, "
                           "então o instalador deveria ter recusado"}
 
     def rodar(args, rotulo):
@@ -562,7 +562,7 @@ def benchmark_gpu(frames=300):
                    # O diagnóstico primeiro, o stderr depois. Quem lê quer saber o que FAZER.
                    f"a GPU não codificou — {gpu_res.get('diagnostico') or gpu_res.get('erro')}")
     elif ganho >= 1.2:
-        leitura = (f"a GPU deste servidor é {ganho}× mais rápida que a CPU neste trabalho"
+        leitura = (f"a GPU desta estação é {ganho}× mais rápida que a CPU neste trabalho"
                    + (f", gastando {economia}× menos processador" if economia else ""))
     elif economia and economia >= 3:
         # O caso da placa boa ao lado de uma CPU enorme. Parede a CPU ganha; processador a placa
@@ -570,7 +570,7 @@ def benchmark_gpu(frames=300):
         nucleos = os.cpu_count() or 1
         leitura = (f"a GPU é mais lenta que ESTA CPU em parede ({ganho}×) — são {nucleos} núcleos "
                    f"contra um motor de vídeo — mas gasta {economia}× menos processador. Num "
-                   "servidor compartilhado é isso que vale: o transcode corre sem tirar os núcleos "
+                   "estação compartilhada é isso que vale: o transcode corre sem tirar os núcleos "
                    "de quem está trabalhando")
     elif ganho <= 0.8:
         # Sem "placa virtual" aqui: uma virtual nem chega a medir (`video` é None). Era esta frase,
@@ -579,7 +579,7 @@ def benchmark_gpu(frames=300):
                    + (" e não poupa processador" if economia else "")
                    + " — esta placa não compensa neste trabalho")
     else:
-        leitura = f"empate técnico ({ganho}×) — a GPU deste servidor não compensa neste trabalho"
+        leitura = f"empate técnico ({ganho}×) — a GPU desta estação não compensa neste trabalho"
 
     return {"rodou": True, "frames": frames, "renderNode": node,
             "video": alvo.get("video") if alvo else None,
@@ -680,7 +680,7 @@ class Pedido(servidor.Pedido):
             # tick. Chamar isto dez vezes no mesmo dia rende uma notificação.
             if caminho == "/api/avisar" and metodo == "POST":
                 hoje = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-                avisos.notificar("O disco do servidor está acima de 90%.",
+                avisos.notificar("O disco da estação está acima de 90%.",
                                  titulo="Hello World", nivel="warning", chave=f"disco-cheio-{hoje}")
                 self._json(200, {"notificada": True, "key": f"disco-cheio-{hoje}"})
                 return

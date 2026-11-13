@@ -116,7 +116,7 @@
       <h2>Ambiente</h2>
       <p class="tuff-sec-desc">
         <strong>Leia esta peça primeiro</strong>: ela explica todas as outras. O SDK
-        (<code>_sdk/vssh.js</code>) é servido pelo shell do servidor, então a versão que roda aqui é
+        (<code>_sdk/vssh.js</code>) é servido pelo shell da estação, então a versão que roda aqui é
         a de lá, e <code>capacidades()</code> traz a lista de verbos que esse shell atende. Um app
         instalado hoje pergunta a essa lista antes de usar uma peça, e é aqui que se vê por que
         algo lá embaixo não respondeu.
@@ -134,7 +134,7 @@
       <ul class="tuff-sec-desc">
         <li>O limite de recurso: este template declara
           <code>memoryMax: "512M"</code>, mas o número abaixo vem do <em>cgroup</em>, não do
-          manifesto. Num servidor sem gerenciador systemd do usuário
+          manifesto. Numa estação sem gerenciador systemd do usuário
           (<code>loginctl enable-linger</code>) nada é aplicado, e aí ele aparece como
           <code>max</code>: o app roda <em>sem</em> limite, e isso é informação, não erro.</li>
         <li>A GPU: o que o lançador <em>concedeu</em> a este processo, lido pelo
@@ -153,7 +153,7 @@
           "não existe". É por isso que ele aparece <em>junto</em> da decisão, e nunca no lugar
           dela. Fora do lançador não há registro, e a peça diz isso.</li>
         <li>O cofre: o app declara o <em>nome</em> (<code>HELLO_SEGREDO</code>); o
-          valor você guarda pelo botão abaixo, e ele mora no <em>seu</em> servidor, não no
+          valor você guarda pelo botão abaixo, e ele mora na <em>sua</em> estação, não no
           portal. Depois de guardar, <strong>reinicie o app</strong>: o ambiente de um processo é
           fixado no start.</li>
       </ul>
@@ -170,16 +170,16 @@
         mesmo vídeo duas vezes, uma em CPU (<code>libx264</code>) e outra pela GPU
         (<code>VAAPI</code>, que atravessa Intel, AMD e NVIDIA pelo mesmo render node do DRM), e o
         número útil é a <em>razão</em> entre as duas. "180 fps" sozinho não diz nada; "2,4× mais
-        rápido que a CPU deste servidor" diz. Uma placa virtual costuma sair <em>mais lenta</em>, e
+        rápido que a CPU desta estação" diz. Uma placa virtual costuma sair <em>mais lenta</em>, e
         é bom descobrir isso antes de projetar em cima dela.
         <br>Ele usa <code>ffmpeg</code>, que este template declara em <code>requiredPackages</code>,
-        então o instalador já recusou o servidor que não o tem.
+        então o instalador já recusou a estação que não o tem.
       </p>
       <p class="tuff-sec-desc">
         <strong>O segredo se guarda AQUI, no app</strong>, e em Configurações não. É o app que sabe
         que falta credencial, e sabe na hora exata em que ela falta. O botão chama
-        <code>vssh.segredos.pedir()</code>: o campo é do desktop, o valor vai direto para o seu
-        servidor, e o app <em>nunca o toca</em>, nem no envio nem na volta. No Chaveiro, a
+        <code>vssh.segredos.pedir()</code>: o campo é do desktop, o valor vai direto para a sua
+        estação, e o app <em>nunca o toca</em>, nem no envio nem na volta. No Chaveiro, a
         janela do ambiente, você confere, troca e apaga o que já está guardado.
       </p>
     </section>
@@ -192,14 +192,14 @@
         escreve <code>VSSH_PORTAL_URL</code> e <code>VSSH_PORTAL_TOKEN</code> no ambiente do
         processo a cada subida, e o backend chama <code>vssh.fila.submeter()</code> com imagem,
         comando, entradas e os nomes das saídas. O portal cria o Job no cluster que
-        <em>este servidor</em> aponta, acompanha, e as saídas voltam por <code>baixar()</code>.
+        <em>esta estação</em> aponta, acompanha, e as saídas voltam por <code>baixar()</code>.
         Nada da estação é montado lá: o que o job vê é o que o app mandou.
       </p>
       <ul class="tuff-sec-desc">
         <li>A primeira leitura é <code>vssh.fila.disponivel()</code>, e um botão de "mandar para o
           cluster" só deve aparecer quando ela diz sim. Sem o par de variáveis (o manifesto não
           declara, ou o app não reiniciou desde que passou a declarar), sem cluster apontado para
-          este servidor, ou com o portal sem <code>VSSH_FILA_CLUSTERS</code>, a resposta diz
+          esta estação, ou com o portal sem <code>VSSH_FILA_CLUSTERS</code>, a resposta diz
           <em>qual</em> dos três é o motivo.</li>
         <li>A sonda é o menor job que prova o caminho inteiro: <code>nvidia-smi</code> numa imagem
           CUDA, com uma GPU do cluster, escrevendo em <code>/vssh/saidas/placa.txt</code>. O que
@@ -216,7 +216,7 @@
     <section class="tuff-painel">
       <h2>Backend próprio</h2>
       <p class="tuff-sec-desc">
-        O app é um processo seu no servidor Linux. <code>fetch('api/ping')</code> vai relativo,
+        O app é um processo seu na estação. <code>fetch('api/ping')</code> vai relativo,
         sempre: uma barra no começo apontaria para a raiz do portal, e não para o app.
       </p>
       <div class="tuff-acoes"><button class="tuff-btn" id="ping">chamar api/ping</button></div>
@@ -455,7 +455,7 @@
         <code>{ exists }</code>, e só o 404 vira <code>false</code>: "não tenho permissão" lança em
         vez de virar "não existe". <code>acompanhar</code> avisa quando algo muda <strong>por
         fora</strong> do app, e devolve a função que cancela, porque cada assinatura segura um
-        vigia vivo no servidor.
+        vigia vivo na estação.
       </p>
       <div class="tuff-acoes">
         <button class="tuff-btn" id="fs-pick">escolher um arquivo</button>
@@ -501,9 +501,9 @@
       <h2>Seletores do ambiente</h2>
       <p class="tuff-sec-desc">
         Três, e a diferença entre eles é o que o usuário vê: abrir, salvar (com nome sugerido) e
-        escolher pasta. Todos devolvem o <strong>caminho absoluto no servidor</strong>, ou
+        escolher pasta. Todos devolvem o <strong>caminho absoluto na estação</strong>, ou
         <code>null</code> quando a pessoa cancela, e <code>null</code> também fora do ambiente,
-        onde não há caminho de servidor que faça sentido. <strong>Escolher é consentir:</strong> é
+        onde não há caminho de estação que faça sentido. <strong>Escolher é consentir:</strong> é
         o seletor que concede o acesso de <code>vssh.arquivos</code> àquele caminho, e não há
         segunda confirmação.
       </p>
@@ -567,8 +567,8 @@
       </p>
       <p class="tuff-sec-desc">
         <code>abrirLink</code> é o que mais engana: o link abre no navegador <strong>do
-        ambiente</strong>, que resolve a rede a partir do servidor Linux, então
-        <code>http://localhost:3000</code> ali é o loopback <em>do servidor</em>, e não o da sua
+        ambiente</strong>, que resolve a rede a partir da estação, então
+        <code>http://localhost:3000</code> ali é o loopback <em>da estação</em>, e não o da sua
         máquina. Só <code>http</code>/<code>https</code>; o resto é recusado. O link comum ao lado
         prova a outra metade: <code>window.open</code> e <code>target="_blank"</code> são
         <strong>desviados sozinhos</strong> pelo SDK, e o app não faz nada para não abrir aba no
@@ -616,7 +616,7 @@
         (<code>contributes.settings</code> no manifesto). Este template a declara opcional
         (<code>contributes.settingsOptIn</code>): a seção só aparece para quem a ligar aqui, com
         <code>vssh.configuracoes.ligar()</code>, e a escolha acompanha a pessoa em qualquer
-        servidor. Um app cuja seção é preferência de quem o usa não declara nada, e ela existe
+        estação. Um app cuja seção é preferência de quem o usa não declara nada, e ela existe
         sempre.
       </p>
       <div class="tuff-grupo">
@@ -656,7 +656,7 @@
       <h2>Impressão</h2>
       <p class="tuff-sec-desc">
         O app <strong>não imprime</strong>: ele pede a tela, e quem escolhe o destino e confirma é o
-        usuário. O destino oferecido primeiro é a fila do <em>próprio servidor</em>, onde o arquivo
+        usuário. O destino oferecido primeiro é a fila da <em>própria estação</em>, onde o arquivo
         não viaja, e imprimir 200 páginas pelo navegador significa baixar 200 páginas antes.
       </p>
       <div class="tuff-acoes"><button class="tuff-btn" id="print">escolher arquivo e imprimir</button></div>

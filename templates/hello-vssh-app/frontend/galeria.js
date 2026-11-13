@@ -170,8 +170,8 @@ function montarGaleria() {
       // Fora do ambiente não há shell nenhum, e "shell antigo" seria diagnosticar um problema que
       // não existe. `shellVersion: null` tem duas causas, e elas pedem ações opostas.
       linhas.push(vssh.noAmbiente
-        ? `shell do servidor: ${cap.shellVersion || 'não informada: shell velho demais para se declarar'}`
-        : 'shell do servidor: nenhum, esta página está fora do ambiente');
+        ? `shell da estação: ${cap.shellVersion || 'não informada: shell velho demais para se declarar'}`
+        : 'shell da estação: nenhum, esta página está fora do ambiente');
       // `host` é o cliente que serve o shell: navegador, cliente-de-desktop ou chromeos; `none` fora.
       linhas.push(`cliente: ${cap.host}`);
       const verbos = Array.isArray(cap.verbos) ? cap.verbos : [];
@@ -368,7 +368,7 @@ function montarGaleria() {
     escrever('runtimeout', 'pedindo o segredo ao ambiente…');
     try {
       const r = await vssh.segredos.pedir('HELLO_SEGREDO', 'Um segredo de demonstração',
-        'Qualquer texto. Serve para demonstrar o cofre: ele vai para o SEU servidor e volta para '
+        'Qualquer texto. Serve para demonstrar o cofre: ele vai para a SUA estação e volta para '
         + 'este app como variável de ambiente.');
       if (r === null) return escrever('runtimeout', 'cofre indisponível fora do ambiente.');
       if (r.cancelado) return escrever('runtimeout', 'você cancelou, e cancelar é resposta, não erro.');
@@ -390,7 +390,7 @@ function montarGaleria() {
       ? 'fora do ambiente não há cofre, e isso responde `null`, não uma lista vazia: '
         + '"não há onde perguntar" e "não há nada guardado" pedem coisas diferentes de quem lê.'
       : r.names.length
-        ? `guardados para este app: ${r.names.join(', ')}\n(só os nomes; o valor não sai do seu servidor)`
+        ? `guardados para este app: ${r.names.join(', ')}\n(só os nomes; o valor não sai da sua estação)`
         : 'nada guardado ainda para este app.');
   });
 
@@ -855,8 +855,8 @@ function montarGaleria() {
     $('abrir-url').addEventListener('click', async () => {
       await vssh.arquivos.abrirLink('https://example.org/');
       escrever('abrir', 'abri no navegador DO AMBIENTE.\n'
-        + 'Repare no que isso significa: aquele navegador resolve a rede a partir do servidor '
-        + 'Linux. Um `http://localhost:3000` ali é o loopback DO SERVIDOR, não o da sua máquina, '
+        + 'Repare no que isso significa: aquele navegador resolve a rede a partir da estação. '
+        + 'Um `http://localhost:3000` ali é o loopback DA ESTAÇÃO, não o da sua máquina, '
         + 'e é assim que se alcança um serviço que só escuta lá dentro. Só http/https: o ambiente '
         + 'recusa o resto, porque um esquema arbitrário abriria o que o app quisesse na máquina '
         + 'de quem olha.');
@@ -950,7 +950,7 @@ function montarGaleria() {
       zonaDeSoltura.classList.remove('sobre');
       escrever('arrastar', `${info.caminhos.length} caminho(s), soltos em (${info.x}, ${info.y}):\n`
         + info.caminhos.join('\n')
-        + '\n\nSão caminhos NO SERVIDOR, e não `File` do navegador. Para ler o conteúdo, '
+        + '\n\nSão caminhos NA ESTAÇÃO, e não `File` do navegador. Para ler o conteúdo, '
         + '`vssh.arquivos.ler()` ou a File System Access; o arraste entrega o endereço, não os bytes.');
     }, { alvo: zonaDeSoltura });
     zonaDeSoltura.addEventListener('dragover', () => zonaDeSoltura.classList.add('sobre'));
@@ -1210,7 +1210,7 @@ function montarGaleria() {
       if (pararWatch) {
         pararWatch(); pararWatch = null;
         $('fs-watch').textContent = 'acompanhar';
-        escrever('fs', 'acompanhamento cancelado: o vigia do servidor foi solto');
+        escrever('fs', 'acompanhamento cancelado: o vigia da estação foi solto');
         return;
       }
       try {

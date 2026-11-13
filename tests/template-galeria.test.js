@@ -430,7 +430,7 @@ test('a falha da GPU é CLASSIFICADA — as causas pedem ações opostas', () =>
   assert.match(fn(s, VIRTUAL), /NÃO implementa VA-API/);
   assert.match(fn(s, VIRTUAL), /nenhum pacote resolve/,
     'a resposta deixou esperança onde não há — pior que uma resposta ruim');
-  assert.match(fn(s, VIRTUAL), /outro servidor/);
+  assert.match(fn(s, VIRTUAL), /outra estação/);
 
   // A MESMA saída numa placa física é outro diagnóstico: aí o pacote É o caminho.
   assert.match(fn(s, FISICA), /driver ausente/);

@@ -151,7 +151,7 @@ function limitesDoCgroup() {
   try {
     // cgroup v2: uma linha só, `0::<caminho relativo à raiz>`.
     const linha = fs.readFileSync('/proc/self/cgroup', 'utf8').split('\n').find((l) => l.startsWith('0::'));
-    if (!linha) return { contido: false, motivo: 'sem cgroup v2 neste servidor' };
+    if (!linha) return { contido: false, motivo: 'sem cgroup v2 nesta estação' };
     const base = path.join('/sys/fs/cgroup', linha.slice(3).trim());
     const ler = (nome) => {
       try { return fs.readFileSync(path.join(base, nome), 'utf8').trim(); } catch { return null; }
@@ -345,7 +345,7 @@ function _porQueVaapiFalhou(stderr, dispositivo) {
 
   // ── NVENC primeiro: os erros dele têm nome próprio e não se confundem com os do VA-API ──
   if (s.includes('h264_nvenc') && s.includes('unknown encoder')) {
-    return 'este ffmpeg foi compilado SEM NVENC — é do pacote, não do servidor nem da placa';
+    return 'este ffmpeg foi compilado SEM NVENC — é do pacote, não da estação nem da placa';
   }
   if (s.includes('libnvidia-encode') || s.includes('libcuda.so')) {
     return 'o userspace NVIDIA está incompleto — falta a libnvidia-encode.so.1, que vem com o ' +
@@ -360,11 +360,11 @@ function _porQueVaapiFalhou(stderr, dispositivo) {
   }
   if (s.includes('out of memory (10)') || s.includes('openencodesessionex failed')) {
     return 'a placa recusou mais uma sessão de NVENC — placa de consumo limita as sessões ' +
-           'simultâneas, e outra coisa neste servidor já as ocupa';
+           'simultâneas, e outra coisa nesta estação já as ocupa';
   }
 
   if (s.includes('unknown encoder')) {
-    return 'este ffmpeg foi compilado SEM VAAPI — é do pacote, não do servidor nem da placa';
+    return 'este ffmpeg foi compilado SEM VAAPI — é do pacote, não da estação nem da placa';
   }
   if (s.includes('permission denied')) {
     return 'sem permissão no render node — falta o grupo `render` (usermod -aG render <usuario>)';
@@ -385,8 +385,8 @@ function _porQueVaapiFalhou(stderr, dispositivo) {
     // resposta ruim. Quem lê isto precisa parar de procurar pacote e trocar de servidor.
     return `esta é uma GPU VIRTUAL (${dispositivo.fabricante || dispositivo.driver}) — ela NÃO ` +
            'implementa VA-API, e nenhum pacote resolve. Ela existe para desenhar tela, não para ' +
-           'codificar vídeo nem computar. Um app que depende de aceleração precisa de outro ' +
-           'servidor, com placa física — e descobrir isso agora é o que esta peça existe para fazer';
+           'codificar vídeo nem computar. Um app que depende de aceleração precisa de outra ' +
+           'estação, com placa física — e descobrir isso agora é o que esta peça existe para fazer';
   }
   if (semEntrypoint) {
     return 'a placa abre, mas NÃO tem motor de codificação de vídeo — ela pode servir para render ' +
@@ -443,7 +443,7 @@ function _oQueAPlacaSabe(alvo) {
       tem: false,
       ferramenta: 'vainfo',
       motivo: /ENOENT/.test(bruto)
-        ? 'o `vainfo` não está instalado neste servidor — `apt-get install -y vainfo` e esta peça ' +
+        ? 'o `vainfo` não está instalado nesta estação — `apt-get install -y vainfo` e esta peça ' +
           'passa a listar o que a placa sabe fazer'
         : bruto.split('\n')[0].slice(0, 200),
     };
@@ -465,7 +465,7 @@ function benchmarkGpu({ frames = 300 } = {}) {
     catch { return false; }
   })();
   if (!temFfmpeg) {
-    return { rodou: false, motivo: 'ffmpeg não está neste servidor — o app o declara em ' +
+    return { rodou: false, motivo: 'ffmpeg não está nesta estação — o app o declara em ' +
                                    'requiredPackages, então o instalador deveria ter recusado' };
   }
 
@@ -572,15 +572,15 @@ function benchmarkGpu({ frames = 300 } = {}) {
       // é a prova, e ela vem embaixo para quem for atrás.
       : `a GPU não codificou — ${gpuRes.diagnostico || gpuRes.erro}`;
   } else if (ganho >= 1.2) {
-    leitura = `a GPU deste servidor é ${ganho}× mais rápida que a CPU neste trabalho` +
+    leitura = `a GPU desta estação é ${ganho}× mais rápida que a CPU neste trabalho` +
               (economia ? `, gastando ${economia}× menos processador` : '');
   } else if (economia && economia >= 3) {
     // O caso da placa boa ao lado de uma CPU enorme. Parede a CPU ganha; processador a placa ganha
     // de longe — e é o processador que o resto do ambiente está usando.
     const nucleos = require('node:os').availableParallelism?.() || require('node:os').cpus().length || 1;
     leitura = `a GPU é mais lenta que ESTA CPU em parede (${ganho}×) — são ${nucleos} núcleos contra ` +
-              `um motor de vídeo — mas gasta ${economia}× menos processador. Num servidor ` +
-              'compartilhado é isso que vale: o transcode corre sem tirar os núcleos de quem está ' +
+              `um motor de vídeo — mas gasta ${economia}× menos processador. Numa estação ` +
+              'compartilhada é isso que vale: o transcode corre sem tirar os núcleos de quem está ' +
               'trabalhando';
   } else if (ganho <= 0.8) {
     // Sem "placa virtual" aqui: uma virtual nem chega a medir (`video` é null). Era esta frase,
@@ -588,7 +588,7 @@ function benchmarkGpu({ frames = 300 } = {}) {
     leitura = `a GPU é MAIS LENTA que a CPU aqui (${ganho}×)` +
               (economia ? ' e não poupa processador' : '') + ' — esta placa não compensa neste trabalho';
   } else {
-    leitura = `empate técnico (${ganho}×) — a GPU deste servidor não compensa neste trabalho`;
+    leitura = `empate técnico (${ganho}×) — a GPU desta estação não compensa neste trabalho`;
   }
 
   return {
@@ -687,7 +687,7 @@ const server = http.createServer(servidor.portao(async (req, res) => {
     // dez vezes no mesmo dia rende uma notificação; no dia seguinte, outra.
     if (url.pathname === '/api/avisar' && req.method === 'POST') {
       const hoje = new Date().toISOString().slice(0, 10);
-      avisos.notificar('O disco do servidor está acima de 90%.', {
+      avisos.notificar('O disco da estação está acima de 90%.', {
         titulo: 'Hello World', nivel: 'warning', chave: `disco-cheio-${hoje}`,
       });
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });

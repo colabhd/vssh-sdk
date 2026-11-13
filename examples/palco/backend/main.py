@@ -245,7 +245,7 @@ class Pedido(servidor.Pedido):
         # responder 503.
         if not shutil.which(argv[0]):
             log("ffmpeg-ausente", {"programa": argv[0]})
-            self._json(503, {"error": f"{argv[0]} não está neste servidor"})
+            self._json(503, {"error": f"{argv[0]} não está nesta estação"})
             return
 
         self.send_response(200)

@@ -242,7 +242,7 @@ class Pedido(servidor.Pedido):
                 caminho, lado, ao_gerar=lambda ms: log("miniatura", {"nome": nome, "ms": ms}))
         except miniaturas.SemFerramenta as e:
             log("miniatura-sem-ferramenta", {"falta": str(e)})
-            return self._json(503, {"error": f"falta {e} no servidor"})
+            return self._json(503, {"error": f"falta {e} na estação"})
         except ValueError as e:
             log("miniatura-falhou", {"nome": nome, "erro": str(e)})
             return self._json(422, {"error": "não consegui reduzir este arquivo"})

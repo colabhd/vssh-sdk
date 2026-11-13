@@ -441,7 +441,7 @@ function montarPalco() {
     preparando(false);
     if (!atual) return;
     avisar(noCano()
-      ? 'A conversão no servidor falhou. O log do app diz o motivo.'
+      ? 'A conversão na estação falhou. O log do app diz o motivo.'
       : 'A reprodução falhou. Abra o arquivo de novo.');
   });
 
@@ -895,10 +895,10 @@ function montarPalco() {
     if (!atual) return;
     const q = video.getVideoPlaybackQuality && video.getVideoPlaybackQuality();
     const modo = {
-      direto: 'direto do servidor, sem conversão',
-      remux: 'reembalado no servidor, sem recomprimir a imagem',
-      audio: 'só o áudio é convertido no servidor',
-      transcode: 'convertido no servidor',
+      direto: 'direto da estação, sem conversão',
+      remux: 'reembalado na estação, sem recomprimir a imagem',
+      audio: 'só o áudio é convertido na estação',
+      transcode: 'convertido na estação',
     }[atual.modo] || atual.modo;
     const et = atual.etiquetas || {};
     const linhas = [
