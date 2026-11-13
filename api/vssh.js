@@ -2379,8 +2379,19 @@
     return undefined;
   }
 
+  function tituloPadrao(tipo) {
+    const lang = String(window.vssh?.idioma || 'pt-BR').toLowerCase();
+    const tabela = {
+      pasta:  { pt: 'Escolher pasta', en: 'Choose folder', es: 'Elegir carpeta' },
+      abrir:  { pt: 'Abrir arquivo',  en: 'Open file',     es: 'Abrir archivo' },
+      salvar: { pt: 'Salvar arquivo', en: 'Save file',     es: 'Guardar archivo' },
+    }[tipo];
+    const base = lang.startsWith('en') ? 'en' : lang.startsWith('es') ? 'es' : 'pt';
+    return tabela[base];
+  }
+
   window.showDirectoryPicker = async function (opts = {}) {
-    const path = await arquivos.escolherPasta(opts.title || 'Escolher pasta', dirDeStartIn(opts.startIn));
+    const path = await arquivos.escolherPasta(opts.title || tituloPadrao('pasta'), dirDeStartIn(opts.startIn));
     if (!path) throw abortError();
     return new VsshDirectoryHandle(path);
   };
@@ -2392,13 +2403,13 @@
         + 'e você vai receber um array de um item. Chame de novo para cada arquivo, ou peça uma pasta '
         + 'com showDirectoryPicker().');
     }
-    const path = await arquivos.escolherArquivo(opts.title || 'Abrir arquivo', filtroDeTypes(opts.types), dirDeStartIn(opts.startIn));
+    const path = await arquivos.escolherArquivo(opts.title || tituloPadrao('abrir'), filtroDeTypes(opts.types), dirDeStartIn(opts.startIn));
     if (!path) throw abortError();
     return [new VsshFileHandle(path)];
   };
 
   window.showSaveFilePicker = async function (opts = {}) {
-    const path = await arquivos.escolherDestino(opts.title || 'Salvar arquivo', filtroDeTypes(opts.types),
+    const path = await arquivos.escolherDestino(opts.title || tituloPadrao('salvar'), filtroDeTypes(opts.types),
       dirDeStartIn(opts.startIn), opts.suggestedName);
     if (!path) throw abortError();
     return new VsshFileHandle(path);

@@ -56,13 +56,13 @@
       "sha256": "f1147bab886d50c4030f5d26a2aa6905eb22cbc43f0ad86ae3c51376e6ce8cde"
     },
     "api/tuff/tuff-imagem.js": {
-      "sha256": "b2e38a3d56a7b86638464d81b04bcbffb674923da4d8dc1e896b9d7977fe7557"
+      "sha256": "dc45fb8fa949ff1f182938e124a413f618ad7976288f812ce06b10325ed07148"
     },
     "api/tuff/tuff-midia.css": {
       "sha256": "ce4cafb3c597a4860bd255bf466988b5f6f4c7284ce9bfe5ca6d5d139ea434da"
     },
     "api/tuff/tuff-midia.js": {
-      "sha256": "7882477fa89e42ffed5541e7834878b5f451dca5f404fc3ae5855eb8da640807"
+      "sha256": "8752b7ae86030ac6b52441d8ec522b964126f325deb7a3ef46cb5f72d9136099"
     },
     "api/tuff/tuff-tokens.css": {
       "sha256": "5c9db020edc138f1683e56d4251cd47b8ee5e3b971cd79938ec82cfcfa123182"
@@ -86,7 +86,7 @@
       "sha256": "a8bcfb151399bb3a3a68f6f63a061e4091b39486217670399d478d86c67b0fa7"
     },
     "api/vssh.js": {
-      "sha256": "9859a61f098fbe5911498644bb3876da19d668b4b5d791446d8ed042b6477b57"
+      "sha256": "f8c7dead8922eace3ccf07a524408c1188a6f2ba9a0025b931a484de690792bb"
     },
     "docs/referencia/README.md": {
       "sha256": "4927c62784af483404962ad095628ad25aac1ac8e1168ab059cf25b28a1177bc"

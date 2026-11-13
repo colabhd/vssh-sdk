@@ -25,6 +25,7 @@
 // ao abrir um arquivo, é do app, e um player pronto tomaria essa decisão por ele.
 
 (function () {
+  const _t = (k, fb, p) => (typeof VsshI18n !== 'undefined' ? VsshI18n.t(k, fb, p) : fb);
 
   // ── Utilidades ─────────────────────────────────────────────────────────────
 
@@ -80,7 +81,7 @@
     // teclado não alcança o controle mais usado do player.
     el.setAttribute('role', 'slider');
     el.setAttribute('tabindex', '0');
-    el.setAttribute('aria-label', el.getAttribute('aria-label') || 'Posição');
+    el.setAttribute('aria-label', el.getAttribute('aria-label') || _t('tuff.media.position', 'Posição'));
     return { trilho, buffer, tocado, polegar, previa };
   }
 
@@ -453,7 +454,7 @@
     el.append(canvas, previa);
     el.setAttribute('role', 'slider');
     if (!el.hasAttribute('tabindex')) el.tabIndex = 0;
-    if (!el.hasAttribute('aria-label')) el.setAttribute('aria-label', 'Posição');
+    if (!el.hasAttribute('aria-label')) el.setAttribute('aria-label', _t('tuff.media.position', 'Posição'));
     const ctx = canvas.getContext('2d');
 
     let largura = 0;
@@ -1184,7 +1185,7 @@
         const s = document.createElement('script');
         s.src = new URL('tuff-imagem.js', ENDERECO).href;
         s.onload = () => ok(window.TuffImagem);
-        s.onerror = () => { carregando = null; falhou(new Error('o decodificador de imagem não carregou')); };
+        s.onerror = () => { carregando = null; falhou(new Error(_t('tuff.media.decoderLoadFailed', 'o decodificador de imagem não carregou'))); };
         document.head.appendChild(s);
       });
     }

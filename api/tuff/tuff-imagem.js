@@ -43,6 +43,10 @@
 // isso à pessoa. O teto vale para o TIFF: um HEIC de celular tem 12 a 48 megapixels.
 
 (function () {
+  const _t = (k, fb, p) => {
+    if (typeof VsshI18n !== 'undefined') return VsshI18n.t(k, fb, p);
+    return p ? fb.replace(/\{(\w+)\}/g, (_, n) => (p[n] ?? `{${n}}`)) : fb;
+  };
 
   const TETO_DE_PIXELS = 64e6;
   const BASE = (document.currentScript && document.currentScript.src) || location.href;
@@ -145,12 +149,12 @@
       let tamanho = dv.getUint32(0);
       const tipo = quatro(cab, 4);
       if (tamanho === 1) tamanho = Number(dv.getBigUint64(8));
-      if (i === 0 && tipo !== 'ftyp') throw erro('formato', 'o arquivo não é HEIF');
+      if (i === 0 && tipo !== 'ftyp') throw erro('formato', _t('tuff.image.notHeif', 'o arquivo não é HEIF'));
       if (tipo === 'meta') return leitor.ler(p, tamanho);
       if (tamanho < 8) break;
       p += tamanho;
     }
-    throw erro('formato', 'o arquivo HEIF não tem a caixa meta');
+    throw erro('formato', _t('tuff.image.heifNoMeta', 'o arquivo HEIF não tem a caixa meta'));
   }
 
   /** O índice do arquivo: itens, onde estão os bytes de cada um, referências e propriedades. */
@@ -273,10 +277,10 @@
    * `largura × altura`, cada um na posição que `posicoes[i]` diz.
    */
   async function decodificarHevc(hvcC, ladrilhos, posicoes, largura, altura) {
-    if (typeof VideoDecoder === 'undefined') throw erro('sem-hevc', 'este navegador não tem WebCodecs');
+    if (typeof VideoDecoder === 'undefined') throw erro('sem-hevc', _t('tuff.image.noWebCodecs', 'este navegador não tem WebCodecs'));
     const config = { codec: codecDe(hvcC), description: hvcC };
     const apoio = await VideoDecoder.isConfigSupported(config).catch(() => ({ supported: false }));
-    if (!apoio.supported) throw erro('sem-hevc', `este navegador não decodifica ${config.codec}`);
+    if (!apoio.supported) throw erro('sem-hevc', _t('tuff.image.noCodec', 'este navegador não decodifica {codec}', { codec: config.codec }));
 
     const canvas = document.createElement('canvas');
     canvas.width = largura; canvas.height = altura;
@@ -344,11 +348,11 @@
   async function desenharItemHeif(leitor, indice, it) {
     const { grade, ladrilhos } = montagem(indice, it);
     if (!ladrilhos.length || ladrilhos.some((l) => !l || l.tipo !== 'hvc1')) {
-      throw erro('formato', 'o HEIF usa uma codificação que o ambiente não lê (só HEVC)');
+      throw erro('formato', _t('tuff.image.heifHevcOnly', 'o HEIF usa uma codificação que o ambiente não lê (só HEVC)'));
     }
     const hvcC = prop(ladrilhos[0], 'hvcC');
     const ispe = prop(ladrilhos[0], 'ispe');
-    if (!hvcC || !ispe) throw erro('formato', 'o ladrilho HEVC não traz hvcC e ispe');
+    if (!hvcC || !ispe) throw erro('formato', _t('tuff.image.hevcMissingBoxes', 'o ladrilho HEVC não traz hvcC e ispe'));
 
     let largura = ispe.largura, altura = ispe.altura, colunas = 1;
     if (grade) {
@@ -372,7 +376,7 @@
     const leitor = new Leitor(url);
     const indice = lerIndice(await lerMeta(leitor));
     const primario = indice.itens.get(indice.primario);
-    if (!primario) throw erro('formato', 'o HEIF não aponta a imagem principal');
+    if (!primario) throw erro('formato', _t('tuff.image.heifNoPrimary', 'o HEIF não aponta a imagem principal'));
 
     const { grade, ladrilhos } = montagem(indice, primario);
     let largura = 0, altura = 0;
@@ -413,8 +417,8 @@
         if (window.GeoTIFF) { ok(window.GeoTIFF); return; }
         const s = document.createElement('script');
         s.src = new URL('vendor/geotiff.min.js', BASE).href;
-        s.onload = () => (window.GeoTIFF ? ok(window.GeoTIFF) : falhou(erro('rede', 'o geotiff não carregou')));
-        s.onerror = () => { geotiff = null; falhou(erro('rede', 'o geotiff não carregou')); };
+        s.onload = () => (window.GeoTIFF ? ok(window.GeoTIFF) : falhou(erro('rede', _t('tuff.image.geotiffLoadFailed', 'o geotiff não carregou'))));
+        s.onerror = () => { geotiff = null; falhou(erro('rede', _t('tuff.image.geotiffLoadFailed', 'o geotiff não carregou'))); };
         document.head.appendChild(s);
       });
     }
@@ -476,7 +480,7 @@
     const GeoTIFF = await carregarGeotiff();
     let tiff;
     try { tiff = await GeoTIFF.fromUrl(url, { allowFullFile: true }); }
-    catch (e) { throw erro('formato', `o TIFF não abriu: ${e.message || e}`); }
+    catch (e) { throw erro('formato', _t('tuff.image.tiffOpenFailed', 'o TIFF não abriu: {error}', { error: e.message || e })); }
     const n = await tiff.getImageCount();
 
     // As páginas, cada uma com os níveis de redução que vêm logo depois dela.
@@ -504,7 +508,7 @@
       /** Uma página, na maior resolução que cabe no teto. */
       async desenhar(numero) {
         const pagina = paginas[numero || 0];
-        if (!pagina) throw erro('formato', `o TIFF não tem a página ${numero}`);
+        if (!pagina) throw erro('formato', _t('tuff.image.tiffNoPage', 'o TIFF não tem a página {page}', { page: numero }));
         const original = tamanho(pagina.imagem);
         let img = pagina.imagem, { largura, altura } = original;
         if (largura * altura > teto) {
@@ -540,7 +544,7 @@
     const e = extensao(o.nome || url);
     if (TIFF.has(e)) return abrirTiff(url, o.teto || TETO_DE_PIXELS);
     if (HEIF.has(e)) return abrirHeif(url);
-    throw erro('formato', `o Tuff não decodifica .${e}; o navegador abre este formato sozinho`);
+    throw erro('formato', _t('tuff.image.unsupportedFormat', 'o Tuff não decodifica .{ext}; o navegador abre este formato sozinho', { ext: e }));
   }
 
   /**
@@ -559,7 +563,7 @@
     img.decoding = 'async';
     img.src = url;
     try { await img.decode(); }
-    catch { throw erro('formato', 'o navegador não conseguiu decodificar a imagem'); }
+    catch { throw erro('formato', _t('tuff.image.decodeFailed', 'o navegador não conseguiu decodificar a imagem')); }
     return { elemento: img, documento: null, reduzida: false };
   }
 
