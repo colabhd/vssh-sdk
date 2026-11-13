@@ -61,14 +61,14 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 57 q
 | `abrir-um-servidor-seu` | Abrir o seu Dash, Vite ou notebook |
 | `algo-travou` | A tela travou ou um aplicativo parou de responder |
 | `alternar-janelas` | Passar de uma janela para outra |
-| `aplicativos-do-servidor` | Os aplicativos deste servidor |
+| `aplicativos-do-servidor` | Os aplicativos desta estação |
 | `app-nao-abre` | Um aplicativo não abre |
 | `area-de-trabalho` | A área de trabalho e os ícones |
 | `arquivo-sumiu` | Um arquivo sumiu |
 | `arquivos` | Os seus arquivos e pastas |
 | `atalhos-de-teclado` | Atalhos de teclado |
 | `avisos-e-notificacoes` | Avisos, notificações e Não perturbe |
-| `baixar-arquivos` | Levar um arquivo do servidor para o seu computador |
+| `baixar-arquivos` | Levar um arquivo da estação para o seu computador |
 | `barra-de-tarefas` | A barra de tarefas |
 | `chaveiro` | Senhas guardadas no Chaveiro |
 | `como-usar-a-ajuda` | Como usar a Ajuda |
@@ -77,8 +77,8 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 57 q
 | `copiar-e-mover` | Copiar e mover arquivos |
 | `desfazer` | Desfazer o que acabou de fazer |
 | `editor-de-texto` | O Editor de texto |
-| `entrar-e-sair` | Entrar, trocar de servidor e sair |
-| `enviar-arquivos` | Levar arquivos do seu computador para o servidor |
+| `entrar-e-sair` | Entrar, trocar de estação e sair |
+| `enviar-arquivos` | Levar arquivos do seu computador para a estação |
 | `este-aparelho` | Ver o aparelho em que você está e ajudar a medir o que ele faz |
 | `excluir-e-lixeira` | Excluir e a Lixeira |
 | `fundo-e-cor` | Trocar o fundo da tela e a cor de destaque |
@@ -118,5 +118,5 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 57 q
 
 `{{g:<termo>}}` cita um termo do glossário do app ou um destes: aba, ambiente, aplicativo, área de
 trabalho, área de transferência, arquivo, arrastar, barra de tarefas, clique direito, clique duplo,
-encaixar, endereço, estação, janela, Lixeira, Não perturbe, notificação, pasta, portal, servidor,
-seu computador, tela cheia, toque duplo, toque longo.
+encaixar, endereço, estação, janela, Lixeira, Não perturbe, notificação, pasta, portal, seu
+computador, tela cheia, toque duplo, toque longo.

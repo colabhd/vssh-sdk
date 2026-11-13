@@ -22,7 +22,7 @@
     },
     {
       "id": "aplicativos-do-servidor",
-      "titulo": "Os aplicativos deste servidor"
+      "titulo": "Os aplicativos desta estação"
     },
     {
       "id": "app-nao-abre",
@@ -50,7 +50,7 @@
     },
     {
       "id": "baixar-arquivos",
-      "titulo": "Levar um arquivo do servidor para o seu computador"
+      "titulo": "Levar um arquivo da estação para o seu computador"
     },
     {
       "id": "barra-de-tarefas",
@@ -86,11 +86,11 @@
     },
     {
       "id": "entrar-e-sair",
-      "titulo": "Entrar, trocar de servidor e sair"
+      "titulo": "Entrar, trocar de estação e sair"
     },
     {
       "id": "enviar-arquivos",
-      "titulo": "Levar arquivos do seu computador para o servidor"
+      "titulo": "Levar arquivos do seu computador para a estação"
     },
     {
       "id": "este-aparelho",
@@ -249,7 +249,6 @@
     "notificação",
     "pasta",
     "portal",
-    "servidor",
     "seu computador",
     "tela cheia",
     "toque duplo",

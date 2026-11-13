@@ -14,7 +14,7 @@
       "sha256": "9015df0750b5d66e348c1f6289f6e4dd9c37a5ded6822dc29e25abf633c5af0f"
     },
     "api/ajuda/ambiente.json": {
-      "sha256": "e5ed9e47f04035d41685d7f5810768903c54f1c7848692997c10dd75146f94c7"
+      "sha256": "76a93b6a9d9e4f8275dcad89cef1ae10a51bfde27aa32bfa09e62f2566e6224a"
     },
     "api/ajuda/compilador-da-ajuda.ts": {
       "sha256": "2f81a6a0274d59dba259519ba8d99cffae3beeab0c3455e203c60eec9fe1f0b4"
@@ -122,7 +122,7 @@
       "sha256": "8c9f5d8adc93dec5ae65fdc826f71c87bb7ea0cf259e0fb58ad5f7536d586f15"
     },
     "docs/referencia/formato-da-ajuda.md": {
-      "sha256": "bd95187673e719d069d71d35acf59f0d51e2d5daa0f543030e3b23bb8bce21bc"
+      "sha256": "25a292959ae949388ec765ea2382472a7bde0dbaf75b62beb05a4b69c0c6696f"
     },
     "docs/referencia/gpu.md": {
       "sha256": "aacc6e46d64664d676e55bb063e19437c3342f1b8082690613bcd33de2d170ed"
