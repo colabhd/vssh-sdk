@@ -40,6 +40,19 @@ Um trabalho que imprime linhas de `vssh.progresso` no stdout tem o progresso lid
 `ao_evento` de `acompanhar` recebe `progresso` com o job, e `job['progresso']` traz `feito`,
 `total` e `etapa`. Quem já baixou as saídas chama `remover` para o dado sair do S3 na hora.
 
+A vez de baixar: um app que baixa da internet (o Escriba baixando um vídeo) pede a vez ao portal
+antes de começar, porque a saída do servidor é uma só e os downloads de todas as contas a dividem.
+O portal concede as vagas do servidor revezando entre as pessoas (`docs/api/fila.md`). O app
+renova o pedido a cada poucos segundos, enquanto espera e enquanto baixa, e o solta no fim; um
+pedido sem renovação por 60 s vence, e uma vaga dura no máximo o dobro do download previsto.
+
+    v = fila.pedir_vez_de_baixar('t1', tamanho_previsto=600_000_000)
+    while not v['vaga']:
+        time.sleep(5)
+        v = fila.bater_vez_de_baixar(v['id'])     # {'id', 'vaga', 'posicao', 'prazoS'}
+    ...                                           # baixa, chamando bater_vez_de_baixar a cada 15 s
+    fila.soltar_vez_de_baixar(v['id'])
+
 Só biblioteca padrão, como o resto do pacote.
 """
 
@@ -50,7 +63,8 @@ import time
 import urllib.error
 import urllib.request
 
-__all__ = ['ErroDaFila', 'disponivel', 'submeter', 'estado', 'acompanhar', 'log', 'cancelar', 'remover', 'baixar', 'listar']
+__all__ = ['ErroDaFila', 'disponivel', 'submeter', 'estado', 'acompanhar', 'log', 'cancelar', 'remover', 'baixar', 'listar',
+           'pedir_vez_de_baixar', 'bater_vez_de_baixar', 'soltar_vez_de_baixar']
 
 BLOCO = 4 * 1024 * 1024
 # Os tempos são de silêncio no socket, e não de duração: um envio de gigabytes anda enquanto os
@@ -339,3 +353,26 @@ def listar(env=None):
     """Os jobs deste app para este usuário, do mais novo ao mais velho."""
     r = _pedir('GET', '/jobs', env=env)
     return r.get('jobs', []) if r else []
+
+
+def pedir_vez_de_baixar(ident, tamanho_previsto=None, env=None):
+    """Pede a vez de baixar no servidor. `ident` é o nome que o app dá ao download (1 a 64 letras,
+    números, `.`, `-`, `_` ou `:`), e `tamanho_previsto`, em bytes, dá o prazo da vaga. Devolve
+    `{'id', 'vaga', 'posicao', 'prazoS'}`: com a vaga, ou a posição na espera (1 é o próximo).
+    Levanta `ErroDaFila`, com `status` 0 quando o portal não respondeu e 503 quando a vez está fora."""
+    corpo = {'ident': ident}
+    if tamanho_previsto:
+        corpo['tamanhoPrevisto'] = tamanho_previsto
+    return _pedir('POST', '/downloads', corpo, env=env)
+
+
+def bater_vez_de_baixar(id_do_pedido, env=None):
+    """Renova o pedido (o `id` que `pedir_vez_de_baixar` devolveu) e devolve a vez de agora. Um pedido
+    que venceu (sem renovação por 60 s, ou passado o prazo da vaga) levanta `ErroDaFila` com `status`
+    404: peça de novo, e o novo pedido entra no fim da fila."""
+    return _pedir('POST', '/downloads/%s/batimento' % id_do_pedido, {}, env=env)
+
+
+def soltar_vez_de_baixar(id_do_pedido, env=None):
+    """Solta a vaga, ou desiste da espera. Soltar o que já não existe não é erro."""
+    _pedir('DELETE', '/downloads/%s' % id_do_pedido, env=env)
