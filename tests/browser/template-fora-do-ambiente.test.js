@@ -18,9 +18,10 @@
 // (um artefato montado à mão de um checkout do sistema, por exemplo). Sem o artefato o teste se
 // pula dizendo o caminho.
 //
-// O runtime `vssh` que o backend importa vem do `NODE_PATH` quando há um (a fonte, ou o que
+// O runtime `vssh` que o backend importa vem do `NODE_PATH` quando ele o traz (a fonte, ou o que
 // `scripts/ambiente-de-dev.sh` exporta), e da cópia gerada em `runtime/node` deste checkout
-// quando não há. `VSSH_TEMPLATE_URL` aponta para um backend já de pé em qualquer lugar, e aí
+// quando não traz: ela vai no fim do caminho, como em `scripts/janela-de-bancada.mjs`, e um
+// `NODE_PATH` da máquina que só tem outros pacotes não a esconde. `VSSH_TEMPLATE_URL` aponta para um backend já de pé em qualquer lugar, e aí
 // nenhum sobe daqui.
 //
 // Só o template Node: o `galeria.js` é o mesmo arquivo nos dois templates e a marcação difere
@@ -46,10 +47,15 @@ const RUNTIME_NODE = path.join(ROOT, 'runtime', 'node');
 const MIME = { '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.woff2': 'font/woff2', '.woff': 'font/woff', '.svg': 'image/svg+xml', '.json': 'application/json' };
 
+/** Se o `NODE_PATH` deste processo já resolve o `vssh`. */
+function vsshNoNodePath() {
+  try { require.resolve('vssh'); return true; } catch { return false; }
+}
+
 function motivoParaPular() {
   if (!caminhoDoNavegador()) return motivoDoSkip();
   if (!fs.existsSync(SDK_WEB)) return `sem o SDK web em ${SDK_WEB}: o canal do sistema o escreve em api/, ou aponte VSSH_SDK_WEB`;
-  if (!URL_DO_APP && !process.env.NODE_PATH && !fs.existsSync(path.join(RUNTIME_NODE, 'vssh'))) {
+  if (!URL_DO_APP && !vsshNoNodePath() && !fs.existsSync(path.join(RUNTIME_NODE, 'vssh'))) {
     return 'sem o runtime `vssh` neste checkout: o canal do sistema o escreve em runtime/node, ou exporte NODE_PATH';
   }
   return false;
@@ -91,7 +97,7 @@ async function subirBackend() {
     cwd: APP,
     env: {
       ...process.env,
-      NODE_PATH: process.env.NODE_PATH || RUNTIME_NODE,
+      NODE_PATH: [process.env.NODE_PATH, RUNTIME_NODE].filter(Boolean).join(path.delimiter),
       VSSH_APP_ID: 'hello-world-node', VSSH_APP_DATA_DIR: path.join(dirTemp, 'data'),
     },
     stdio: ['ignore', 'pipe', 'pipe'],
