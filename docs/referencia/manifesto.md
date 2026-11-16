@@ -997,8 +997,9 @@ usuário decide em Configurações → Sites e, até lá, o link segue para o na
 
 um dos valores listados, obrigatório, valores `"python3"`, `"node"`, `"binary"`.
 
-Prefira um runtime que o próprio mecanismo já exija (python3): um nvm/pyenv pessoal não aparece no
-PATH de um exec não-interativo por SSH.
+A linguagem do backend. `node` e `python3` sobem com o interpretador do VSSH-Runtime, que toda
+estação instala em /opt/vssh/runtime na mesma versão; `interpretador` diz quando o app quer o da
+estação. `binary` executa o `entrypoint` direto.
 
 ### `backend.entrypoint`
 
