@@ -64,6 +64,7 @@
   "minShellVersion": "5.0.0",
   "backend": {
     "runtime": "python3",
+    "interpretador": "estacao",
     "transport": "socket",
     "entrypoint": "backend/main.py",
     "healthcheckPath": "/saude",
