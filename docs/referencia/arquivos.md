@@ -27,6 +27,8 @@ Ler e escrever com o consentimento do usuário, escolher, vigiar, abrir, abrir c
 | [`vssh.arquivos.escolherArquivos(titulo, filtro, pasta)`](#escolherarquivos) | sim, em até 10 min |
 | [`vssh.arquivos.escolherDestino(titulo, filtro, pasta, nome)`](#escolherdestino) | sim, em até 10 min |
 | [`vssh.arquivos.escolherPasta(titulo, pasta)`](#escolherpasta) | sim, em até 10 min |
+| [`vssh.arquivos.recentes(limite)`](#recentes) | sim, em até 5 s |
+| [`vssh.arquivos.esquecerRecentes(caminhos)`](#esquecerrecentes) | sim, em até 5 s |
 | [`vssh.arquivos.permissoes(caminho)`](#permissoes) | sim, em até 5 s |
 | [`vssh.arquivos.areaDeTransferencia()`](#areadetransferencia) | sim, em até 5 s |
 | [`vssh.arquivos.copiarParaAreaDeTransferencia(caminhos)`](#copiarparaareadetransferencia) | sim, em até 5 s |
@@ -327,6 +329,41 @@ No fio: `type: "pick", variant: "directory"`.
 |---|---|---|---|
 | `titulo` | `string` | sim | `title` |
 | `pasta` | `string` | sim | `dir` |
+
+### `recentes`
+
+`vssh.arquivos.recentes(limite)`
+
+Os arquivos que a pessoa abriu ou salvou por último com este app, do mais novo ao mais antigo:
+`{ itens }`, cada um com `caminho`, `nome`, `tamanho`, `modificado` (em segundos), `em` (o instante
+do uso, em ms) e `acao` (`aberto` ou `salvo`). Entram o arquivo que ela escolheu num seletor deste
+app e o que o ambiente abriu nele. `limite` vai até 200, e o padrão é 20. A lista vem vazia quando
+ela desligou os recentes em Configurações, e um arquivo que não existe mais não aparece. Um recente
+é um caminho: `permissoes(caminho)` diz se o app ainda o abre sem seletor.
+
+Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
+No fio: `type: "recentes"`.
+
+| argumento | tipo | opcional | no fio |
+|---|---|---|---|
+| `limite` | `number` | sim | `limit` |
+
+### `esquecerRecentes`
+
+`vssh.arquivos.esquecerRecentes(caminhos)`
+
+Tira arquivos dos recentes deste app: os de `caminhos`, ou todos quando a lista não vem. Responde
+`{ esquecidos }`. Os arquivos continuam no disco, e o que outro app ou o ambiente abriu continua nos
+recentes deles.
+
+Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
+No fio: `type: "recentes-esquecer"`.
+
+| argumento | tipo | opcional | no fio |
+|---|---|---|---|
+| `caminhos` | `string[]` | sim | `paths` |
 
 ### `permissoes`
 

@@ -283,6 +283,22 @@ declare namespace vssh {
      */
     function escolherPasta(titulo?: string, pasta?: string): Promise<unknown>;
     /**
+     * Os arquivos que a pessoa abriu ou salvou por último com este app, do mais novo ao mais
+     * antigo: `{ itens }`, cada um com `caminho`, `nome`, `tamanho`, `modificado` (em segundos),
+     * `em` (o instante do uso, em ms) e `acao` (`aberto` ou `salvo`). Entram o arquivo que ela
+     * escolheu num seletor deste app e o que o ambiente abriu nele. `limite` vai até 200, e o
+     * padrão é 20. A lista vem vazia quando ela desligou os recentes em Configurações, e um arquivo
+     * que não existe mais não aparece. Um recente é um caminho: `permissoes(caminho)` diz se o app
+     * ainda o abre sem seletor.
+     */
+    function recentes(limite?: number): Promise<unknown>;
+    /**
+     * Tira arquivos dos recentes deste app: os de `caminhos`, ou todos quando a lista não vem.
+     * Responde `{ esquecidos }`. Os arquivos continuam no disco, e o que outro app ou o ambiente
+     * abriu continua nos recentes deles.
+     */
+    function esquecerRecentes(caminhos?: string[]): Promise<unknown>;
+    /**
      * Com `caminho`, se este app pode tocá-lo: `true` ou `false`. Sem, a lista dos caminhos
      * concedidos a ele, com que o app refaz um handle sem abrir seletor. Quem decide é o shell; o
      * espelho que o SDK mantém serve só ao que precisa responder sem esperar.

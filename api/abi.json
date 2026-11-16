@@ -854,6 +854,38 @@
           "ritmo": "humano",
           "descricao": "Abre o seletor de pasta e responde com o caminho escolhido, ou `null` se o usuário cancelou. A pasta inteira fica concedida a este app, e é assim que um app trabalha numa árvore sem pedir arquivo a arquivo."
         },
+        "recentes": {
+          "fio": {
+            "type": "recentes"
+          },
+          "campos": [
+            {
+              "nome": "limite",
+              "fio": "limit",
+              "tipo": "number",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "Os arquivos que a pessoa abriu ou salvou por último com este app, do mais novo ao mais antigo: `{ itens }`, cada um com `caminho`, `nome`, `tamanho`, `modificado` (em segundos), `em` (o instante do uso, em ms) e `acao` (`aberto` ou `salvo`). Entram o arquivo que ela escolheu num seletor deste app e o que o ambiente abriu nele. `limite` vai até 200, e o padrão é 20. A lista vem vazia quando ela desligou os recentes em Configurações, e um arquivo que não existe mais não aparece. Um recente é um caminho: `permissoes(caminho)` diz se o app ainda o abre sem seletor."
+        },
+        "esquecerRecentes": {
+          "fio": {
+            "type": "recentes-esquecer"
+          },
+          "campos": [
+            {
+              "nome": "caminhos",
+              "fio": "paths",
+              "tipo": "string[]",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "Tira arquivos dos recentes deste app: os de `caminhos`, ou todos quando a lista não vem. Responde `{ esquecidos }`. Os arquivos continuam no disco, e o que outro app ou o ambiente abriu continua nos recentes deles."
+        },
         "permissoes": {
           "fio": {
             "type": "grants"

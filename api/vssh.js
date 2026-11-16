@@ -258,6 +258,8 @@
     'arquivos.escolherDestino': () => null,
     'arquivos.escolherPasta': () => null,
     'arquivos.permissoes': (m) => (m.path ? null : []),
+    'arquivos.recentes': () => ({ itens: [] }),
+    'arquivos.esquecerRecentes': () => ({ esquecidos: 0 }),
     'arquivos.areaDeTransferencia': () => null,
     'arquivos.copiarParaAreaDeTransferencia': () => false,
     'arquivos.abrirLink': (m) => { window.open(m.url, '_blank', 'noopener'); return null; },
@@ -481,6 +483,10 @@
     escolherDestino: (titulo, filtro, pasta, nome) => ponte.chamar('arquivos.escolherDestino', { type: 'pick', variant: 'save', title: titulo, filter: filtro, dir: pasta, name: nome }, 600000),
     // Abre o seletor de pasta e responde com o caminho escolhido, ou `null` se o usuário cancelou. A pasta inteira fica concedida a este app, e é assim que um app trabalha numa árvore sem pedir arquivo a arquivo.
     escolherPasta: (titulo, pasta) => ponte.chamar('arquivos.escolherPasta', { type: 'pick', variant: 'directory', title: titulo, dir: pasta }, 600000),
+    // Os arquivos que a pessoa abriu ou salvou por último com este app, do mais novo ao mais antigo: `{ itens }`, cada um com `caminho`, `nome`, `tamanho`, `modificado` (em segundos), `em` (o instante do uso, em ms) e `acao` (`aberto` ou `salvo`). Entram o arquivo que ela escolheu num seletor deste app e o que o ambiente abriu nele. `limite` vai até 200, e o padrão é 20. A lista vem vazia quando ela desligou os recentes em Configurações, e um arquivo que não existe mais não aparece. Um recente é um caminho: `permissoes(caminho)` diz se o app ainda o abre sem seletor.
+    recentes: (limite) => ponte.chamar('arquivos.recentes', { type: 'recentes', limit: limite }, 5000),
+    // Tira arquivos dos recentes deste app: os de `caminhos`, ou todos quando a lista não vem. Responde `{ esquecidos }`. Os arquivos continuam no disco, e o que outro app ou o ambiente abriu continua nos recentes deles.
+    esquecerRecentes: (caminhos) => ponte.chamar('arquivos.esquecerRecentes', { type: 'recentes-esquecer', paths: caminhos }, 5000),
     // Com `caminho`, se este app pode tocá-lo: `true` ou `false`. Sem, a lista dos caminhos concedidos a ele, com que o app refaz um handle sem abrir seletor. Quem decide é o shell; o espelho que o SDK mantém serve só ao que precisa responder sem esperar.
     permissoes: (caminho) => ponte.chamar('arquivos.permissoes', { type: 'grants', path: caminho }, 5000),
     // O que está na área de transferência de arquivos do ambiente: `{ action, paths }`, ou `null`. É a área do gerenciador de arquivos, que nenhuma API do navegador alcança; texto e imagem vão por `navigator.clipboard`, direto no app.
