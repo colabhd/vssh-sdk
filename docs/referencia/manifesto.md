@@ -1039,6 +1039,17 @@ que se escolhe: sem contrato, um app aberto uma vez seguiria ocupando RAM em tod
 conta, sem janela na tela. kind:'service' resolve 'encerrar' e 'manter' para 'manter', porque um
 daemon nao morre com uma janela, e respeita 'ocioso:\<N\>m'.
 
+### `backend.interpretador`
+
+um dos valores listados, opcional, padrão `"runtime"`, valores `"runtime"`, `"estacao"`.
+
+Com que interpretador o backend sobe quando `runtime` é `node` ou `python3`. 'runtime' (padrão): o
+Node ou o Python do VSSH-Runtime, o pacote que o VSSH instala em /opt/vssh/runtime, com a mesma
+versão em toda estação. 'estacao': o `node` ou o `python3` do PATH da estação. É a escolha do app
+que importa módulos instalados pelo gerenciador de pacotes dela (o `PIL` do `python3-pil` só existe
+para o Python da distribuição), e com ela a versão do interpretador varia de uma estação para outra.
+Não tem efeito com `runtime: binary`.
+
 ### `backend.installCommand`
 
 `string`, opcional.
