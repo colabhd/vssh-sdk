@@ -46,10 +46,11 @@ Configurações. Os dois eixos são independentes: um `type: engine` pode ser `k
 
 | campo | o que decide |
 |---|---|
-| `backend.runtime` | `python3`, `node` ou `binary`. Prefira um runtime que o próprio sistema já exija: um `nvm` ou `pyenv` pessoal não aparece no `PATH` de um exec não-interativo por SSH |
+| `backend.runtime` | `python3`, `node` ou `binary`. Os dois primeiros sobem com o Node e o Python do VSSH-Runtime, que toda estação tem em `/opt/vssh/runtime` na mesma versão: o app não depende do que a distribuição dela traz. `binary` executa o `entrypoint` direto |
+| `backend.interpretador` | `runtime` (o padrão) ou `estacao`. Com `estacao` o backend sobe com o `node` ou o `python3` do `PATH` da estação. É a saída do app que importa módulos instalados pelo gerenciador de pacotes dela (o `PIL` do `python3-pil`), que o Python do VSSH-Runtime não enxerga. O app declara esses pacotes em `requiredPackages` |
 | `backend.entrypoint` | o arquivo que o `vssh-app-run` executa, relativo à raiz do pacote. Ele precisa escutar no socket unix de `$VSSH_APP_SOCKET`; um backend que binde uma porta em `127.0.0.1` não é proxiado por ninguém, e o sintoma é healthcheck `000` e janela em branco |
 | `backend.transport` | tem um valor só, `socket`. O campo existe para que um manifesto que ainda declare `tcp` receba um erro que nomeia o problema, em vez de instalar e nunca responder |
-| `backend.installCommand` | roda duas vezes: como root na instalação, e como cada usuário na primeira subida (e de novo quando o hash do código muda). Escreva-o idempotente |
+| `backend.installCommand` | roda duas vezes: como root na instalação, e como cada usuário na primeira subida (e de novo quando o hash do código muda). Escreva-o idempotente. Para o app que sobe com o VSSH-Runtime, o comando roda com o Node, o `npm`, o Python e o `pip` dele na frente do `PATH`: o que um `npm ci` ou um `python3 -m venv` constrói serve ao interpretador que vai rodar o app |
 | `backend.healthcheckPath` | o caminho que o ciclo de vida sonda até 15 vezes, 1 s entre elas, com o header `X-Vssh-App-Token`. `000`, `5xx`, `401` e `403` não contam como pronto; `404` conta, porque o servidor respondeu, e o que está errado é o caminho |
 | `backend.aoFechar` | o que acontece ao backend quando a última janela fecha, ou quando ninguém mais o usa. `encerrar` (padrão) para o processo; `manter` o deixa de pé, para quem é dono de sessão de terceiro (um servidor de notebooks, um build em curso); `ocioso:<N>m` o deixa de pé enquanto houver conexão no socket dele, e o supervisor o encerra depois de N minutos sem nenhuma, que é o valor de um motor sob demanda. `kind: service` trata `encerrar` como `manter` e respeita `ocioso:<N>m` |
 

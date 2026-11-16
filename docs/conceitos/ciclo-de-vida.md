@@ -32,9 +32,17 @@ queda, e uma invocação à mão), e é por isso que as decisões de contenção
    subir com o `venv` da versão anterior;
 6. decide a GPU: quem não declarou `gpu: true` recebe `CUDA_VISIBLE_DEVICES=""`; quem declarou
    recebe o inventário do servidor e o veredito, gravados em `limits.json`;
-7. escreve o `run.pid` e faz `exec` do runtime dentro de um `systemd-run --user --scope` com os
+7. escreve o `run.pid` e faz `exec` do backend dentro de um `systemd-run --user --scope` com os
    tetos de memória e de tarefas. Sem gerenciador systemd do usuário o app sobe do mesmo jeito,
    sem limite, e o motivo fica em `limits.json` e em Configurações.
+
+O backend `node` ou `python3` sobe pelo caminho absoluto do interpretador do VSSH-Runtime
+(`/opt/vssh/runtime`), que também chega ao app em `VSSH_NODE` e `VSSH_PYTHON`. O `PATH` do
+processo fica o da estação: um terminal ou um kernel que o app abre para a pessoa encontra o `node`
+e o `python3` da conta dela, e o app que lança um filho no interpretador do sistema usa a variável
+(em Python, o `sys.executable`). Um app Python com um `.venv/` sobe com o Python do venv. Numa
+estação sem o VSSH-Runtime o lançador recusa a subida e diz o comando que o instala, e
+`backend.interpretador: "estacao"` mantém o app no interpretador do `PATH`.
 
 O `exec` troca a imagem do processo mantendo o PID. É por isso que `pgrep -f "vssh-app-run <id>"`
 para de casar segundos depois da subida, e por isso que o ambiente reconhece o processo pelo

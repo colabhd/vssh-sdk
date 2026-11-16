@@ -61,10 +61,12 @@ Duas decisões estão nesse bloco:
 
 - não há `installCommand`. O backend importa `vssh`, o runtime que todo servidor VSSH tem em
   `/opt/vssh/sdk/python` e que o lançador põe no `PYTHONPATH` do app; o resto é biblioteca
-  padrão. Um app com dependências próprias declara `python3-pip` em `requiredPackages` e um
-  `installCommand` como `( [ "${VSSH_APP_REBUILD:-}" != 1 ] && test -d vendor/py ) || python3 -m
-  pip install --target vendor/py -r requirements.txt`, idempotente porque roda uma vez como root
-  no install e uma por usuário no primeiro run;
+  padrão. Um app com dependências próprias declara um `installCommand` como
+  `( [ "${VSSH_APP_REBUILD:-}" != 1 ] && test -d vendor/py ) || python3 -m pip install --target
+  vendor/py -r requirements.txt`, idempotente porque roda uma vez como root no install e uma por
+  usuário no primeiro run. O `python3` e o `pip` desse comando são os do VSSH-Runtime, o mesmo
+  Python em que o backend sobe. Um app que importa um módulo do `apt` da estação declara
+  `"interpretador": "estacao"` e o pacote em `requiredPackages`;
 - `healthcheckPath` aponta para o `/saude` que o portão do runtime responde antes de chamar o
   app. A sondagem segura o clique de quem abriu o app, e vai com o token.
 
