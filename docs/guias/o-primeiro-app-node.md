@@ -64,7 +64,9 @@ quem faz a cópia: vendorizar (rodar `npm ci` uma vez e commitar `node_modules/`
 empacota o que está versionado, por `git archive`, então a pasta entra no tarball) ou deixar
 `node_modules/` no `.gitignore` e reconstruir no alvo por um `installCommand` como
 `( [ "${VSSH_APP_REBUILD:-}" != 1 ] && test -d node_modules ) || npm ci --omit=dev`, que roda
-uma vez como root no install e uma por usuário no primeiro run.
+uma vez como root no install e uma por usuário no primeiro run. O `npm` desse comando é o do
+VSSH-Runtime, o mesmo Node em que o backend sobe, e o manifesto não precisa pedir o `nodejs` da
+distribuição em `requiredPackages`.
 
 ## 3. O backend
 
