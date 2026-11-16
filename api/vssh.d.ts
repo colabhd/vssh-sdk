@@ -293,6 +293,14 @@ declare namespace vssh {
      */
     function recentes(limite?: number): Promise<unknown>;
     /**
+     * Põe um arquivo nos recentes deste app, ou o leva ao alto da lista: `acao` é `aberto` (o
+     * padrão) ou `salvo`. Serve ao arquivo que o app abre sem o seletor: um recente clicado na tela
+     * inicial dele, um arquivo solto na janela, o que a sessão restaurou. O seletor e o "Abrir com"
+     * do ambiente já anotam sozinhos. Responde `{ registrado }`, que é `false` quando a pessoa
+     * desligou os recentes, numa pasta de rede e num caminho com trecho escondido.
+     */
+    function lembrarRecente(caminho: string, acao?: string): Promise<unknown>;
+    /**
      * Tira arquivos dos recentes deste app: os de `caminhos`, ou todos quando a lista não vem.
      * Responde `{ esquecidos }`. Os arquivos continuam no disco, e o que outro app ou o ambiente
      * abriu continua nos recentes deles.

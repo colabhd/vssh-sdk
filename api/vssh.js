@@ -259,6 +259,7 @@
     'arquivos.escolherPasta': () => null,
     'arquivos.permissoes': (m) => (m.path ? null : []),
     'arquivos.recentes': () => ({ itens: [] }),
+    'arquivos.lembrarRecente': () => ({ registrado: false }),
     'arquivos.esquecerRecentes': () => ({ esquecidos: 0 }),
     'arquivos.areaDeTransferencia': () => null,
     'arquivos.copiarParaAreaDeTransferencia': () => false,
@@ -485,6 +486,8 @@
     escolherPasta: (titulo, pasta) => ponte.chamar('arquivos.escolherPasta', { type: 'pick', variant: 'directory', title: titulo, dir: pasta }, 600000),
     // Os arquivos que a pessoa abriu ou salvou por último com este app, do mais novo ao mais antigo: `{ itens }`, cada um com `caminho`, `nome`, `tamanho`, `modificado` (em segundos), `em` (o instante do uso, em ms) e `acao` (`aberto` ou `salvo`). Entram o arquivo que ela escolheu num seletor deste app e o que o ambiente abriu nele. `limite` vai até 200, e o padrão é 20. A lista vem vazia quando ela desligou os recentes em Configurações, e um arquivo que não existe mais não aparece. Um recente é um caminho: `permissoes(caminho)` diz se o app ainda o abre sem seletor.
     recentes: (limite) => ponte.chamar('arquivos.recentes', { type: 'recentes', limit: limite }, 5000),
+    // Põe um arquivo nos recentes deste app, ou o leva ao alto da lista: `acao` é `aberto` (o padrão) ou `salvo`. Serve ao arquivo que o app abre sem o seletor: um recente clicado na tela inicial dele, um arquivo solto na janela, o que a sessão restaurou. O seletor e o "Abrir com" do ambiente já anotam sozinhos. Responde `{ registrado }`, que é `false` quando a pessoa desligou os recentes, numa pasta de rede e num caminho com trecho escondido.
+    lembrarRecente: (caminho, acao) => ponte.chamar('arquivos.lembrarRecente', { type: 'recentes-lembrar', path: caminho, acao: acao }, 5000),
     // Tira arquivos dos recentes deste app: os de `caminhos`, ou todos quando a lista não vem. Responde `{ esquecidos }`. Os arquivos continuam no disco, e o que outro app ou o ambiente abriu continua nos recentes deles.
     esquecerRecentes: (caminhos) => ponte.chamar('arquivos.esquecerRecentes', { type: 'recentes-esquecer', paths: caminhos }, 5000),
     // Com `caminho`, se este app pode tocá-lo: `true` ou `false`. Sem, a lista dos caminhos concedidos a ele, com que o app refaz um handle sem abrir seletor. Quem decide é o shell; o espelho que o SDK mantém serve só ao que precisa responder sem esperar.

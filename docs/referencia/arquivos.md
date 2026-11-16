@@ -28,6 +28,7 @@ Ler e escrever com o consentimento do usuário, escolher, vigiar, abrir, abrir c
 | [`vssh.arquivos.escolherDestino(titulo, filtro, pasta, nome)`](#escolherdestino) | sim, em até 10 min |
 | [`vssh.arquivos.escolherPasta(titulo, pasta)`](#escolherpasta) | sim, em até 10 min |
 | [`vssh.arquivos.recentes(limite)`](#recentes) | sim, em até 5 s |
+| [`vssh.arquivos.lembrarRecente(caminho, acao)`](#lembrarrecente) | sim, em até 5 s |
 | [`vssh.arquivos.esquecerRecentes(caminhos)`](#esquecerrecentes) | sim, em até 5 s |
 | [`vssh.arquivos.permissoes(caminho)`](#permissoes) | sim, em até 5 s |
 | [`vssh.arquivos.areaDeTransferencia()`](#areadetransferencia) | sim, em até 5 s |
@@ -348,6 +349,25 @@ No fio: `type: "recentes"`.
 | argumento | tipo | opcional | no fio |
 |---|---|---|---|
 | `limite` | `number` | sim | `limit` |
+
+### `lembrarRecente`
+
+`vssh.arquivos.lembrarRecente(caminho, acao)`
+
+Põe um arquivo nos recentes deste app, ou o leva ao alto da lista: `acao` é `aberto` (o padrão) ou
+`salvo`. Serve ao arquivo que o app abre sem o seletor: um recente clicado na tela inicial dele, um
+arquivo solto na janela, o que a sessão restaurou. O seletor e o "Abrir com" do ambiente já anotam
+sozinhos. Responde `{ registrado }`, que é `false` quando a pessoa desligou os recentes, numa pasta
+de rede e num caminho com trecho escondido.
+
+Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
+No fio: `type: "recentes-lembrar"`.
+
+| argumento | tipo | opcional | no fio |
+|---|---|---|---|
+| `caminho` | `string` | não | `path` |
+| `acao` | `string` | sim | `acao` |
 
 ### `esquecerRecentes`
 

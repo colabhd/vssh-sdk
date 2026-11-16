@@ -870,6 +870,27 @@
           "ritmo": "rapido",
           "descricao": "Os arquivos que a pessoa abriu ou salvou por último com este app, do mais novo ao mais antigo: `{ itens }`, cada um com `caminho`, `nome`, `tamanho`, `modificado` (em segundos), `em` (o instante do uso, em ms) e `acao` (`aberto` ou `salvo`). Entram o arquivo que ela escolheu num seletor deste app e o que o ambiente abriu nele. `limite` vai até 200, e o padrão é 20. A lista vem vazia quando ela desligou os recentes em Configurações, e um arquivo que não existe mais não aparece. Um recente é um caminho: `permissoes(caminho)` diz se o app ainda o abre sem seletor."
         },
+        "lembrarRecente": {
+          "fio": {
+            "type": "recentes-lembrar"
+          },
+          "campos": [
+            {
+              "nome": "caminho",
+              "fio": "path",
+              "tipo": "string"
+            },
+            {
+              "nome": "acao",
+              "fio": "acao",
+              "tipo": "string",
+              "opcional": true
+            }
+          ],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "Põe um arquivo nos recentes deste app, ou o leva ao alto da lista: `acao` é `aberto` (o padrão) ou `salvo`. Serve ao arquivo que o app abre sem o seletor: um recente clicado na tela inicial dele, um arquivo solto na janela, o que a sessão restaurou. O seletor e o \"Abrir com\" do ambiente já anotam sozinhos. Responde `{ registrado }`, que é `false` quando a pessoa desligou os recentes, numa pasta de rede e num caminho com trecho escondido."
+        },
         "esquecerRecentes": {
           "fio": {
             "type": "recentes-esquecer"
