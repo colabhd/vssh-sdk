@@ -55,7 +55,9 @@ que volta faz com esse trabalho, quem decide é o `rodar`:
                                  precisa ter em `retomar` quem ouça os eventos dele
 
 A posição lida é gravada depois da entrega, então uma linha pode chegar de novo depois de um
-reinício, e o app que não pode repeti-la confere se já a tem. Um trabalho cujo executor morreu sem
+reinício, e o app que não pode repeti-la confere se já a tem. O app que guarda na memória o que
+ouviu pede `retomar(desde_o_comeco=True)`: a saída inteira do trabalho chega de novo, da primeira
+linha, e ele refaz o que tinha. Um trabalho cujo executor morreu sem
 escrever o fim (um SIGKILL, a estação reiniciada) termina em `falhou`.
 
 No registro, `pid` é o do comando, e `executor` é o do processo que o acompanha.
@@ -379,11 +381,11 @@ def _entregar(t, d, posicao, tudo):
     return posicao
 
 
-def _seguir_na_estacao(t, processo, registrar, env):
+def _seguir_na_estacao(t, processo, registrar, env, desde_o_comeco=False):
     """Lê os arquivos do trabalho até o fim dele, e então grava o fim, notifica, tira a atividade
     e apaga o diretório. `processo` é o executor quando foi este backend que o subiu."""
     d = t._reg['dir']
-    posicao = _posicao_lida(d)
+    posicao = 0 if desde_o_comeco else _posicao_lida(d)
     while True:
         if t._reg.get('pid') is None:
             pid = _pid_do_comando(d)
@@ -647,13 +649,15 @@ def _faxina(env):
         shutil.rmtree(d, ignore_errors=True)
 
 
-def retomar(ao_evento=None, linhas=False, registrar=None, env=None):
+def retomar(ao_evento=None, linhas=False, registrar=None, desde_o_comeco=False, env=None):
     """Volta a seguir os trabalhos que estavam em curso: os da fila, e os da estação que o
     `rodar` marcou com `retomavel=True`. Os outros da estação são encerrados.
 
     Devolve os `Trabalho` retomados. Chame no boot do backend, antes de servir. `registrar` é a
     função da notificação do fim para os trabalhos da estação que tinham uma (`rodar` não tem
-    como gravá-la); sem ela, o fim desses escreve a notificação padrão.
+    como gravá-la); sem ela, o fim desses escreve a notificação padrão. Com `desde_o_comeco`, a
+    saída de cada trabalho da estação chega de novo da primeira linha, e não de onde o backend
+    anterior parou.
     """
     env = os.environ if env is None else env
     retomados = []
@@ -676,8 +680,8 @@ def retomar(ao_evento=None, linhas=False, registrar=None, env=None):
                 seguir['registrar'] = registrar if callable(registrar) else True
             with _tranca:
                 _em_curso[t.chave] = t
-            threading.Thread(target=_seguir_na_estacao, args=(t, None, seguir, env), name='vssh-trabalho-%s' % t.chave,
-                             daemon=True).start()
+            threading.Thread(target=_seguir_na_estacao, args=(t, None, seguir, env, desde_o_comeco),
+                             name='vssh-trabalho-%s' % t.chave, daemon=True).start()
             retomados.append(t)
         else:
             # O trabalho da estação que o app não pediu para retomar é encerrado, para não segurar

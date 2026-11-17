@@ -30,7 +30,8 @@
 // aconteceu com ele fora chega na volta, com a notificação); sem isso, que é o padrão, o trabalho é
 // encerrado, para não segurar a GPU, e marcado como `falhou`. O app que retoma um trabalho precisa
 // ter em `retomar` quem ouça os eventos dele. A posição lida é gravada depois da entrega, então uma
-// linha pode chegar de novo depois de um reinício. Um trabalho cujo executor morreu sem escrever o
+// linha pode chegar de novo depois de um reinício; com `retomar({ desdeOComeco: true })`, a saída
+// inteira chega de novo, da primeira linha, para o app que refaz o que guardava na memória. Um trabalho cujo executor morreu sem escrever o
 // fim termina em `falhou`. No registro, `pid` é o do comando, e `executor` é o do processo que o
 // acompanha.
 
@@ -287,9 +288,9 @@ function entregar(t, d, posicao, tudo) {
 
 // Lê os arquivos do trabalho até o fim dele, e então grava o fim, notifica, tira a atividade e
 // apaga o diretório. `processo` é o executor quando foi este backend que o subiu.
-function seguirNaEstacao(t, processo, fimDe, env) {
+function seguirNaEstacao(t, processo, fimDe, env, desdeOComeco = false) {
   const d = t._reg.dir;
-  let posicao = posicaoLida(d);
+  let posicao = desdeOComeco ? 0 : posicaoLida(d);
   let saiu = false;
   if (processo) {
     processo.on('exit', () => { saiu = true; });
@@ -487,7 +488,8 @@ function faxina(env) {
  * marcou com `retomavel: true`. Os outros da estação são encerrados. Devolve os `Trabalho`
  * retomados. Chame no boot do backend, antes de servir. `registrar` é a função da notificação do
  * fim para os trabalhos da estação que tinham uma (`rodar` não tem como gravá-la); sem ela, o
- * fim desses escreve a notificação padrão.
+ * fim desses escreve a notificação padrão. Com `desdeOComeco`, a saída de cada trabalho da estação
+ * chega de novo da primeira linha, e não de onde o backend anterior parou.
  */
 function retomar(opcoes = {}) {
   const env = opcoes.env || process.env;
@@ -503,7 +505,7 @@ function retomar(opcoes = {}) {
       const fimDe = { ...((lerJson(path.join(reg.dir, 'pedido.json')) || {}).notificacao || {}) };
       if (fimDe.registrar === 'funcao') fimDe.registrar = typeof opcoes.registrar === 'function' ? opcoes.registrar : true;
       emCurso.set(t.chave, t);
-      seguirNaEstacao(t, null, fimDe, env);
+      seguirNaEstacao(t, null, fimDe, env, !!opcoes.desdeOComeco);
       retomados.push(t);
     } else {
       // O trabalho da estação que o app não pediu para retomar é encerrado, para não segurar a

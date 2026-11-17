@@ -194,7 +194,7 @@
       "sha256": "9c17a7f2ff03479780e139eb387a1ac740170c333e8bb65edbc5f991e089f8b2"
     },
     "runtime/node/vssh/trabalhos.js": {
-      "sha256": "c56b6136d5bc1acdb714e3e4a3edbe935d4673cc4605368cd21d11fa9231c1d1"
+      "sha256": "52693a7927ae86c1bf90436d225f99c9cef3c47a536f8efb57019c070614d488"
     },
     "runtime/node/vssh/web.js": {
       "sha256": "4509b6e8b36401048ca6ace6606025cd3f96f3ed25f3aa91f26c1a84f2fd9421"
@@ -236,7 +236,7 @@
       "sha256": "b0b114cd714aa6cf4dca4f34d921589153b18f0d61e474e3fc8501e33d4a029e"
     },
     "runtime/python/vssh/trabalhos.py": {
-      "sha256": "0ca373487da3ba8cc81e24efb775f3c8f6c6c2fa83407645f77c9e7f86ec435e"
+      "sha256": "b046e614f7733ba20aa168f2a97a12ac972f8a8d151c86c7c71c6a36958f9964"
     },
     "runtime/python/vssh/web.py": {
       "sha256": "c23d0cf6490efbba52380ff4effb3298aca660dddba9edeb72398aab8adfb751"
