@@ -50,12 +50,20 @@ const t = trabalhos.rodar('converter:3f2a', ['ffmpeg', '-i', entrada, saida],
   { titulo: 'aula-12.mkv', aoEvento: publicar });
 ```
 
-O processo sobe num grupo próprio. As linhas de progresso viram eventos e a atividade do trabalho
-na bandeja, e as outras linhas chegam ao app. No fim, a notificação vai ao sino com o título e o
-resultado, e a falha leva como motivo a última linha que o processo escreveu no stderr. Depois disso
-a atividade sai. Cancelar (`t.cancelar()`) manda SIGTERM ao grupo inteiro e SIGKILL cinco segundos
-depois, então um processo que abriu filhos não os deixa rodando. Um cancelamento não notifica,
-porque quem cancelou já sabe.
+O comando sobe destacado do backend, por um executor do runtime, que é o pai dele: grava o stdout
+e o stderr em arquivos, num diretório do trabalho em `~/.cache/vssh/trabalhos/<id>/`, e escreve o
+fim por último. O backend segue o trabalho lendo esses arquivos. As linhas de progresso viram
+eventos e a atividade do trabalho na bandeja, e as outras linhas chegam ao app. No fim, a
+notificação vai ao sino com o título e o resultado, e a falha leva como motivo a última linha que o
+comando escreveu no stderr. Depois disso a atividade sai, e o diretório do trabalho também.
+
+Cancelar (`t.cancelar()`) manda SIGTERM ao grupo do comando e SIGKILL cinco segundos depois, então
+um comando que abriu filhos não os deixa rodando. O comando que quer limpar o que fez pela metade
+trata o SIGTERM e sai dentro desses cinco segundos. Um cancelamento não notifica, porque quem
+cancelou já sabe.
+
+Com a estação cheia, o trabalho cede a vez: o agente do sistema leva o grupo do comando a `nice`
+19 e ao disco ocioso, como faz com uma cópia de arquivos, e devolve o disco quando ela folga.
 
 `registrar` decide a notificação do fim: `True` (o padrão) escreve uma genérica, `False` não
 escreve, e uma função recebe o registro final e devolve `{titulo, texto, level}`. `abrir` é o
@@ -177,12 +185,73 @@ mudança, e `trabalhos.listar()` os devolve do mais novo ao mais velho. Chame `t
 no boot do backend, antes de servir:
 
 - um job da fila que estava em curso volta a ser seguido, porque ele continua no cluster;
-- um processo da estação não tem volta: ele deixou de ser filho de alguém, e o stdout dele se
-  perdeu. Ele é encerrado, para não segurar a GPU, e o registro vira `falhou`, com o motivo "o app
-  reiniciou no meio".
+- um trabalho da estação continuou rodando sem o backend, porque o comando não é filho dele. O
+  que o `retomar()` faz com esse trabalho, quem decide é o `rodar`.
 
-Um trabalho longo na estação pede `backend.aoFechar: "manter"` no manifesto: com o padrão
-`encerrar`, fechar a última janela para o backend, e o processo vai junto.
+```python
+t = trabalhos.rodar('converter:3f2a', comando, titulo='aula-12.mkv', ao_evento=publicar, retomavel=True)
+```
+
+```js
+const t = trabalhos.rodar('converter:3f2a', comando, { titulo: 'aula-12.mkv', aoEvento: publicar, retomavel: true });
+```
+
+Com `retomavel`, o backend que volta segue o trabalho de novo: lê os arquivos de onde o anterior
+tinha parado, e o fim que aconteceu com ele fora chega na volta, com a notificação. Os eventos de
+um trabalho retomado vão ao `ao_evento` que você passa ao `retomar`, e por isso o app que marca um
+trabalho como retomável precisa ter ali quem saiba o que fazer com eles. Sem `retomavel`, que é o
+padrão, o trabalho é encerrado, para não segurar a GPU, e o registro vira `falhou`, com o motivo
+"o app reiniciou no meio".
+
+A posição lida é gravada depois da entrega de cada leva de linhas, então uma linha pode chegar de
+novo depois de um reinício. O app que não pode repetir uma linha confere se já a tem. O app que
+guarda na memória o que ouviu pede a saída inteira de volta, da primeira linha, e refaz o que
+tinha:
+
+```python
+trabalhos.retomar(ao_evento=publicar, desde_o_comeco=True)
+```
+
+```js
+trabalhos.retomar({ aoEvento: publicar, desdeOComeco: true });
+```
+
+A função de `registrar` não fica gravada com o trabalho. Num trabalho retomado que tinha uma,
+`retomar(registrar=...)` a recebe de novo; sem ela, o fim escreve a notificação genérica. As outras
+opções da notificação (`acoes`, `rota`, `abrir`) ficam gravadas.
+
+No registro, `pid` é o do comando, e `executor` é o do processo que o acompanha. Um trabalho cujo
+executor morreu sem escrever o fim (a memória acabou, a estação reiniciou) termina em `falhou`, com
+o motivo "o trabalho parou antes de terminar".
+
+O trabalho destacado chegou ao runtime `1.2.0`, e `desde_o_comeco` ao `1.4.0`. Num servidor com um
+runtime anterior, `rodar` não conhece `retomavel`; o app que precisa rodar nos dois confere antes:
+
+```python
+import inspect
+RETOMA = 'desde_o_comeco' in inspect.signature(trabalhos.retomar).parameters
+```
+
+Um trabalho longo na estação pede `backend.aoFechar: "manter"` no manifesto. Com o padrão
+`encerrar`, fechar a última janela para o backend: o comando segue rodando sem ele, sem ninguém
+para ouvir o que ele diz, até o backend subir de novo e o `retomar()` retomá-lo ou encerrá-lo.
+
+### A peça de baixo
+
+`rodar` é o disparo de um comando destacado mais o registro, os eventos e a notificação. Quem já
+tem o próprio jeito de contar o que acontece usa só o disparo:
+
+| | |
+|---|---|
+| `trabalhos.disparar(comando, ...)` | sobe o comando pelo executor, num diretório de trabalho novo, e devolve o diretório e o processo do executor (`{ dir, processo }` no Node). `arquivos` (`{nome: texto}`) são gravados no diretório antes de o comando subir, e o comando recebe o diretório em `VSSH_TRABALHO_DIR` |
+| `trabalhos.vivo(d)` | o trabalho não escreveu o fim, e o executor está de pé |
+| `trabalhos.fim(d)` | `estado`, `codigo`, `motivo` e `terminadoEm`, ou nada enquanto o trabalho roda |
+| `trabalhos.grupo(d)` | o grupo de processos do comando |
+| `trabalhos.encerrar(d)` | encerra o executor e o comando, sem esperar o comando limpar nada |
+
+Cancelar um trabalho disparado assim é criar o arquivo `cancel` no diretório dele. É o que o
+agente do sistema usa para as cópias de arquivos, que o ambiente segue por outro caminho. Estas
+cinco funções chegaram ao runtime `1.3.0`.
 
 ## A chave
 
