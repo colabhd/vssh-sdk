@@ -6,12 +6,13 @@ Um app de backend importa este pacote em vez de carregar uma cópia dele: o port
 metade instalada da analogia com o .NET Framework: o app declara o que precisa, e a máquina em que
 ele roda já tem o que ele importa.
 
-Onze módulos, cada um importado por si:
+Doze módulos, cada um importado por si:
 
     from vssh import servidor    # o socket unix do app, o portão de token, o `/saude`, o log
     from vssh import web         # a SPA do app, com o SDK web e o Tuff injetados no `<head>`
     from vssh import eventos     # SSE: um stream por pedido, e a difusão a quem assinou
     from vssh import dados       # o filesystem privado do app, e as rotas que o frontend chama
+    from vssh import banco       # um SQLite por pessoa e por app, com as migrações
     from vssh import avisos      # notificar, atividade em curso e bandeja, para um app sem janela
     from vssh import app         # quem sou, o diretório de dados, a versão do pacote instalado
     from vssh import gpu         # o que o sistema concedeu de GPU a este app, e por que não

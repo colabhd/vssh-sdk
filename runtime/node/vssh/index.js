@@ -14,12 +14,13 @@
 //   import { createRequire } from 'node:module';
 //   const { servidor } = createRequire(import.meta.url)('vssh');
 //
-// Os onze módulos carregam sob demanda: quem só notifica não paga o servidor.
+// Os doze módulos carregam sob demanda: quem só notifica não paga o servidor.
 //
 //   servidor   o socket unix do app, o portão de token, o `/saude`, o log
 //   web        a SPA do app, com o SDK web e o Tuff injetados no `<head>`
 //   eventos    SSE: um stream por resposta, e a difusão a quem assinou
 //   dados      o filesystem privado do app, e as rotas que o frontend chama
+//   banco      um SQLite por pessoa e por app, com as migrações (pede o Node 22.5 ou mais novo)
 //   avisos     notificar, atividade em curso e bandeja, para um app sem janela
 //   app        quem sou, o diretório de dados, a versão do pacote instalado
 //   gpu        o que o sistema concedeu de GPU a este app, e por que não
@@ -33,6 +34,7 @@ const modulos = {
   web: './web.js',
   eventos: './eventos.js',
   dados: './dados.js',
+  banco: './banco.js',
   avisos: './avisos.js',
   app: './app.js',
   gpu: './gpu.js',

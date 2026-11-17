@@ -160,6 +160,9 @@
     "runtime/node/vssh/avisos.js": {
       "sha256": "92e3d6793dde0448acbbdabec42509e32848bad4833e7f37d1602b12ac9d2aa1"
     },
+    "runtime/node/vssh/banco.js": {
+      "sha256": "0ac6caf01d426f905ccdb4df52bb3657e7cea46edb5c0cdb5116e1441e99dd90"
+    },
     "runtime/node/vssh/dados.js": {
       "sha256": "387b561b5d8bc0d0210d0afb8f4e4d0166b009563c7b3c043dc5c6a5c8a8cb29"
     },
@@ -173,7 +176,7 @@
       "sha256": "6643de6528771774c3bef5dbc4a08f30701a1d4db6db7951af565c24b8cded29"
     },
     "runtime/node/vssh/index.js": {
-      "sha256": "71a682e8f2f7ac101472acfe110d81d23f7bb7ee3b0fe938e40d6ad0b8222217"
+      "sha256": "461fd76ff3ae38363bb519641da2c5c6708fcfad426842706848f90ed9447816"
     },
     "runtime/node/vssh/metricas.js": {
       "sha256": "32fbd54a471aae69485e31f8f028cce91378eb40ee9122ab14e684c2becb72cf"
@@ -194,13 +197,16 @@
       "sha256": "4509b6e8b36401048ca6ace6606025cd3f96f3ed25f3aa91f26c1a84f2fd9421"
     },
     "runtime/python/vssh/__init__.py": {
-      "sha256": "99266eccfffc83e6b0a48b89a9f899d420b638de43451dfe763a2a75a0dc76ea"
+      "sha256": "ce629a5c051ba4b5027d251a51af09815cbfc95ac5c5d7fc1196f5f19b4e5e4b"
     },
     "runtime/python/vssh/app.py": {
       "sha256": "aff23ac21b1d02f7d9f53656d2fec3e0300b4400739d318ccdd843c31e3fd1aa"
     },
     "runtime/python/vssh/avisos.py": {
       "sha256": "301c25a8c86c3c61c4f062756fc971015e9e60a368f9723b2fd1fb1be52572db"
+    },
+    "runtime/python/vssh/banco.py": {
+      "sha256": "7232a7587e907534f1504443ba1744fa46fe2b58b37a03057cf5477444370ffa"
     },
     "runtime/python/vssh/dados.py": {
       "sha256": "093db2bffc9ddf18c5e813c207b62d18684526f1d56a9ebff1471781e25a0970"
