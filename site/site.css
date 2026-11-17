@@ -134,7 +134,11 @@ body { overflow: hidden; }
   background: var(--ds-bg3);
   border-radius: var(--ds-radius-sm);
 }
-.site-artigo pre {
+/* O `pre` de uma amostra viva é o do app, com a moldura e o respiro da peça que o usa (o
+   `.tuff-codigo-corpo`). Esta regra mora fora de camada e venceria a do Tuff, e por isso não o
+   alcança. O `:where` deixa a exceção sem peso, e as regras seguintes sobre o `pre` do artigo
+   continuam vencendo esta. */
+.site-artigo pre:not(:where(.site-vivo-amostra pre)) {
   margin: 0 0 var(--ds-gap-lg);
   padding: var(--ds-gap-lg) var(--ds-gap-xl);
   overflow-x: auto;
@@ -182,24 +186,26 @@ body { overflow: hidden; }
   margin: 0 0 var(--ds-gap-xl);
   overflow-x: auto;
 }
-.site-artigo table {
+/* A tabela do artigo. A de uma amostra viva é a do app (`.tuff-tabela`), e estas regras, que moram
+   fora de camada e venceriam as do Tuff, não a alcançam. */
+.site-artigo table:not(:where(.site-vivo-amostra table)) {
   border-collapse: collapse;
   width: 100%;
   font-size: var(--tuff-size-md);
   line-height: 1.5;
 }
-.site-artigo th, .site-artigo td {
+.site-artigo :is(th, td):not(:where(.site-vivo-amostra *)) {
   padding: var(--ds-gap-sm) var(--ds-gap-md);
   border: 1px solid var(--ds-border);
   vertical-align: top;
   text-align: left;
 }
-.site-artigo th {
+.site-artigo th:not(:where(.site-vivo-amostra *)) {
   font-weight: var(--tuff-weight-b);
   color: var(--ds-text-mid);
   background: var(--ds-bg2);
 }
-.site-artigo tbody tr:nth-child(even) { background: color-mix(in srgb, var(--ds-bg2) 50%, transparent); }
+.site-artigo tbody tr:nth-child(even):not(:where(.site-vivo-amostra *)) { background: color-mix(in srgb, var(--ds-bg2) 50%, transparent); }
 .site-artigo td code { white-space: nowrap; }
 
 /* "Nesta página": a lista dos h2, logo abaixo do título. */
