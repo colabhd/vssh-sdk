@@ -930,6 +930,24 @@
   .tuff-tabela-linha[aria-selected="true"] { background: var(--ds-sel); color: var(--ds-sel-text); }
   table.tuff-tabela .tuff-tabela-linha > td { padding: 4px var(--ds-gap-md); border-bottom: 1px solid var(--ds-border); }
 
+  /* A linha que nomeia um grupo de linhas ("Instalados pelo portal"): um degrau acima do fundo,
+     no corpo do cabeçalho, sem responder ao ponteiro. Numa `<table>`, cada grupo é um `<tbody>` que
+     começa por `<tr class="tuff-tabela-grupo"><th colspan="…" scope="rowgroup">`, e é isso que liga
+     o nome às linhas dele para um leitor de tela. Na tabela em grade a linha de grupo é um
+     `role="row"` com uma célula só. */
+  table.tuff-tabela .tuff-tabela-grupo > th,
+  table.tuff-tabela .tuff-tabela-grupo > td,
+  div.tuff-tabela > .tuff-tabela-grupo {
+    padding: var(--ds-gap-sm) var(--ds-gap-md);
+    text-align: left;
+    font-size: var(--tuff-size-xs);
+    font-weight: var(--tuff-weight-m);
+    color: var(--ds-text-dim);
+    background: var(--ds-bg3);
+    border-bottom: 1px solid var(--ds-border);
+  }
+  div.tuff-tabela > .tuff-tabela-grupo { padding-inline: var(--tuff-tabela-margem, var(--ds-gap-md)); }
+
   div.tuff-tabela .tuff-tabela-cab,
   div.tuff-tabela .tuff-tabela-linha {
     display: grid;
@@ -1077,6 +1095,45 @@
     top: 0;
     z-index: 3;
   }
+
+  /* ── Seções ─────────────────────────────────────────────────────────────────
+     As seções de uma página, cada uma com o próprio endereço: links numa tira sobre um fio, e a
+     atual com o fio na cor de destaque clareada, que é o indicador do lugar onde a pessoa está.
+     Elas são outra peça que as abas (`.tuff-abas`), que são documentos abertos, com fechar e
+     reordenar, e que o segmentado (`.tuff-seg`), que troca um modo sem mudar de endereço.
+
+     A atual é o link com `aria-current="page"`, e é o atributo que pinta: o olho e o leitor de
+     tela leem o mesmo fato. A tira é um `<nav>` com `aria-label`, e os links andam pelo Tab, como
+     todo link. Quando não cabem, a tira rola de lado, sem barra de rolagem à vista. O fio de baixo
+     é uma sombra interna, e o fio de 2 px da atual passa por cima dele. */
+  .tuff-secoes {
+    display: flex;
+    gap: var(--ds-gap-xs);
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    box-shadow: inset 0 -1px 0 var(--ds-border);
+  }
+  .tuff-secoes::-webkit-scrollbar { display: none; }
+  .tuff-secao {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    min-height: max(32px, var(--ds-alvo));
+    padding: 0 var(--ds-gap-lg);
+    border-bottom: 2px solid transparent;
+    font-size: var(--tuff-size-md);
+    color: var(--ds-text-dim);
+    white-space: nowrap;
+    text-decoration: none;
+  }
+  .tuff-secao:hover { color: var(--ds-text); }
+  .tuff-secao[aria-current="page"] {
+    color: var(--ds-text-mid);
+    border-bottom-color: var(--ds-accent-texto);
+  }
+  .tuff-secao:focus-visible { outline: 2px solid var(--ds-border-focus); outline-offset: -2px; }
 
   /* ── Trilha ─────────────────────────────────────────────────────────────────
      O caminho até onde a pessoa está, com cada lugar acima dele clicável. A

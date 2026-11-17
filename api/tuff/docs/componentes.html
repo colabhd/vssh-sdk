@@ -370,6 +370,24 @@
 
     <section class="tuff-painel">
       <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Seções</div>
+        <div class="tuff-sec-desc">As seções de uma página, cada uma com o próprio endereço. São links: andam pelo Tab, e a atual é a que leva <code>aria-current="page"</code>. Para documentos abertos, as abas; para um modo sem endereço, o segmentado.</div>
+      </div>
+      <nav class="tuff-secoes" id="secoes-exemplo" aria-label="Seções da estação">
+        <a class="tuff-secao" href="#quem-abre" aria-current="page">Quem abre</a>
+        <a class="tuff-secao" href="#componentes">Componentes do sistema</a>
+        <a class="tuff-secao" href="#apps">Apps</a>
+        <a class="tuff-secao" href="#conexao">Conexão e rede</a>
+      </nav>
+      <nav class="tuff-secoes" style="width:220px" aria-label="Seções numa tira estreita">
+        <a class="tuff-secao" href="#quem-abre">Quem abre</a>
+        <a class="tuff-secao" href="#componentes" aria-current="page">Componentes do sistema</a>
+        <a class="tuff-secao" href="#apps">Apps</a>
+      </nav>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
         <div class="tuff-sec-titulo">Trilha</div>
         <div class="tuff-sec-desc">O caminho até o lugar atual, de <code>TuffTrilha.desenhar</code>. Quando não cabe, as partes do meio recolhem num "…" e a pasta atual continua inteira. O "…" e os rótulos da barra de menus abrem o menu do ambiente, que fora dele não existe.</div>
       </div>
@@ -403,6 +421,21 @@
       <div class="amostra" style="align-items:flex-start; gap:var(--ds-gap-lg)">
         <div class="tabela-exemplo" style="flex:1 1 480px; min-width:0"></div>
         <div class="tabela-exemplo" style="flex:none; width:300px"></div>
+      </div>
+      <div class="tuff-sec-desc">Uma linha pode nomear um grupo: cada grupo é um <code>&lt;tbody&gt;</code> que começa por <code>tuff-tabela-grupo</code>, com o nome num <code>&lt;th scope="rowgroup"&gt;</code>.</div>
+      <div style="border:1px solid var(--ds-border); border-radius:var(--ds-radius-lg); overflow:hidden; background:var(--ds-bg2)">
+        <table class="tuff-tabela">
+          <thead><tr><th class="tuff-tabela-th">Componente</th><th class="tuff-tabela-th">Versão</th><th class="tuff-tabela-th tuff-tabela-num">Estações atrás</th></tr></thead>
+          <tbody>
+            <tr class="tuff-tabela-grupo"><th colspan="3" scope="rowgroup">Instalados pelo portal</th></tr>
+            <tr class="tuff-tabela-linha"><td>Agente do sistema</td><td>1.0.0</td><td class="tuff-tabela-num">0</td></tr>
+            <tr class="tuff-tabela-linha"><td>Terminal</td><td>1.4.2</td><td class="tuff-tabela-num">1</td></tr>
+          </tbody>
+          <tbody>
+            <tr class="tuff-tabela-grupo"><th colspan="3" scope="rowgroup">Buscados no repositório pela estação</th></tr>
+            <tr class="tuff-tabela-linha"><td>vssh-app-run</td><td>1.1.0</td><td class="tuff-tabela-num">0</td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
