@@ -212,6 +212,28 @@ test('o backend do template responde por trás da mesma origem', { skip: pular }
   assert.deepEqual(pagina.excecoes, []);
 });
 
+test('a peça do banco guarda, lista e apaga pelas rotas do backend', { skip: pular }, async (t) => {
+  // O runtime deste checkout pode ser de antes do módulo `banco`: aí a rota responde 503 com o
+  // motivo, que é o que a peça promete, e o resto do caso não tem o que medir.
+  const sondagem = await pagina.avaliar("fetch('api/notas').then((r) => r.status)");
+  if (sondagem === 503) { t.skip('o runtime `vssh` deste checkout ainda não tem o módulo `banco`'); return; }
+
+  pagina.limparRegistros();
+  const resposta = async (botao) => {
+    await pagina.avaliar("document.getElementById('banco').textContent = ''; true");
+    await clicar(botao);
+    return texto('banco');
+  };
+  await resposta('banco-apagar');
+  assert.match(await resposta('banco-guardar'), /^POST api\/notas → HTTP 200\n[\s\S]*"versao": 2[\s\S]*"texto": "anotada em /);
+  const lista = await resposta('banco-listar');
+  assert.match(lista, /^GET api\/notas → HTTP 200\n/);
+  assert.equal(JSON.parse(lista.slice(lista.indexOf('\n') + 1)).total, 1);
+  assert.match(await resposta('banco-apagar'), /"apagadas": 1/);
+  assert.equal(JSON.parse((await resposta('banco-listar')).split('\n').slice(1).join('\n')).total, 0);
+  assert.deepEqual(pagina.excecoes, []);
+});
+
 // ─── A moldura num celular em pé ─────────────────────────────────────────────
 //
 // Uma página nova, com 320 px (a largura que o WCAG usa para medir o reflow) e toque emulado, para o `(pointer: coarse)` responder dentro dela.

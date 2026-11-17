@@ -428,6 +428,27 @@
     </section>
 
     <section class="tuff-painel larga">
+      <h2>O banco do app</h2>
+      <p class="tuff-sec-desc">
+        <code>vssh.banco</code> abre um SQLite no diretório de dados do app, um por pessoa, e
+        aplica as migrações que o backend declara, sempre para a frente. As notas desta peça
+        moram numa tabela, e a página fala com três rotas do backend: quem lê e escreve no banco
+        é o backend.
+      </p>
+      <p class="tuff-sec-desc">
+        O armazém da peça de cima guarda o que é arquivo. O banco guarda o que é registro, com
+        busca, ordem e transação. Cada resposta traz a <code>versao</code> do banco, que é quantas
+        migrações ele já recebeu: este template declara duas.
+      </p>
+      <div class="tuff-acoes">
+        <button class="tuff-btn" id="banco-guardar">guardar uma nota</button>
+        <button class="tuff-btn" id="banco-listar">listar</button>
+        <button class="tuff-btn" id="banco-apagar">apagar todas</button>
+      </div>
+      <pre class="saida" id="banco"></pre>
+    </section>
+
+    <section class="tuff-painel larga">
       <h2>Arquivos do usuário pela File System Access</h2>
       <p class="tuff-sec-desc">
         A API padrão do W3C, respondida pelo polyfill que entra junto com <code>_sdk/vssh.js</code>:
