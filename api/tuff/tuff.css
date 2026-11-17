@@ -1806,6 +1806,56 @@
     .tuff-busca-limpar { right: 0; width: var(--ds-alvo); height: var(--ds-alvo); }
   }
 
+  /* ── Bloco de código ────────────────────────────────────────────────────────
+     Um comando ou um trecho que a pessoa lê inteiro e copia para outro lugar: o texto em mono
+     num poço da cor da página, e, quando há o que fazer com ele, um cabeçalho com o nome do bloco
+     e as ações. O texto quebra onde for preciso para caber na largura, porque um comando com um
+     token de quarenta letras não tem espaço onde quebrar. Um bloco alto rola dentro de
+     `--tuff-codigo-altura`, e aí o corpo leva `tabindex="0"`, para o teclado alcançar o que rola.
+
+     O botão `.tuff-codigo-copiar` copia o texto do corpo, sem código de quem usa (tuff.js). O
+     rótulo dele vira o de `data-copiado` por um instante, ou o de `data-falhou` quando o navegador
+     recusa a cópia, e o bloco dispara `tuff-copiou`. */
+  .tuff-codigo {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    overflow: hidden;
+  }
+  .tuff-codigo-cab {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ds-gap-md);
+    padding: var(--ds-gap-sm) var(--ds-gap-md) var(--ds-gap-sm) var(--ds-gap-lg);
+    background: var(--ds-bg3);
+    border-bottom: 1px solid var(--ds-border);
+  }
+  .tuff-codigo-titulo {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--tuff-size-xs);
+    font-weight: var(--tuff-weight-m);
+    color: var(--ds-text-dim);
+  }
+  .tuff-codigo-acoes { display: flex; align-items: center; gap: var(--ds-gap-md); flex: none; }
+  .tuff-codigo-corpo {
+    margin: 0;
+    padding: var(--ds-gap-lg);
+    max-height: var(--tuff-codigo-altura, none);
+    overflow: auto;
+    font: var(--tuff-weight-n) var(--tuff-size-sm)/1.7 var(--ds-font-mono);
+    color: var(--ds-text);
+    background: var(--ds-bg);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .tuff-codigo-corpo:focus-visible { outline: 2px solid var(--ds-border-focus); outline-offset: -2px; }
+
   /* ── Detalhe (disclosure) ───────────────────────────────────────────────────
      `<details>` nativo: abre sem JavaScript, é encontrável pelo Ctrl+F do
      navegador e já anuncia o estado a um leitor de tela. A seta padrão sai e

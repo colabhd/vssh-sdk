@@ -370,6 +370,32 @@
 
     <section class="tuff-painel">
       <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Bloco de código</div>
+        <div class="tuff-sec-desc">Um comando que a pessoa copia para outro lugar. O <code>tuff-codigo-copiar</code> copia o corpo e responde no próprio rótulo. Um bloco alto rola dentro de <code>--tuff-codigo-altura</code>.</div>
+      </div>
+      <div class="tuff-codigo">
+        <div class="tuff-codigo-cab">
+          <span class="tuff-codigo-titulo">Comando</span>
+          <div class="tuff-codigo-acoes">
+            <button class="tuff-btn tuff-codigo-copiar" type="button" data-copiado="Copiado" data-falhou="Não copiou">Copiar</button>
+          </div>
+        </div>
+        <pre class="tuff-codigo-corpo">VSSH_URL="https://vssh.exemplo.org" \
+VSSH_SERVER_TOKEN="vssh_reg_5f1c0a9e7b3d4c2f8a6e1d0b9c7f3a2e" \
+bash &lt;(curl -fsSL https://vssh.exemplo.org/infra/vssh-provision.sh) --target here</pre>
+      </div>
+      <div class="tuff-codigo">
+        <pre class="tuff-codigo-corpo" tabindex="0" style="--tuff-codigo-altura: 84px" aria-label="Saída do comando">instalando python3… feito
+instalando ffmpeg… feito
+instalando texlive… feito
+instalando pandoc… feito
+instalando typst… feito
+registrando a estação… feito</pre>
+      </div>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
         <div class="tuff-sec-titulo">Seções</div>
         <div class="tuff-sec-desc">As seções de uma página, cada uma com o próprio endereço. São links: andam pelo Tab, e a atual é a que leva <code>aria-current="page"</code>. Para documentos abertos, as abas; para um modo sem endereço, o segmentado.</div>
       </div>

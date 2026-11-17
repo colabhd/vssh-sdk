@@ -19,7 +19,8 @@
 //     TuffLista.ligar(recipiente, op)     a lista longa, com só as linhas à vista no DOM
 //     TuffArvore.ligar(recipiente, op)    pastas e itens sobre a lista longa, com o teclado
 //
-// E um comportamento sem chamada: o `.tuff-busca-limpar` esvazia a busca ao lado dele.
+// E dois comportamentos sem chamada: o `.tuff-busca-limpar` esvazia a busca ao lado dele, e o
+// `.tuff-codigo-copiar` copia o texto do bloco de código onde mora.
 //
 // Nasceu na biblioteca de componentes do toolkit de apps (`vssh-app-toolkit/lib/web/tuff/`); a
 // fonte é esta. O shell carrega este arquivo junto de `tuff.css`, e um app o recebe como
@@ -1996,5 +1997,39 @@ if (typeof document !== 'undefined' && document.addEventListener) {
     campo.value = '';
     campo.dispatchEvent(new Event('input', { bubbles: true }));
     campo.focus();
+  });
+}
+
+// ─── O copiar do bloco de código ──────────────────────────────────────────────
+//
+// O botão `.tuff-codigo-copiar` copia o texto do `.tuff-codigo-corpo` do mesmo `.tuff-codigo`. A
+// área de transferência recusa a cópia fora de um contexto seguro e sem a permissão dela, e os dois
+// casos acontecem em uso comum; por isso a recusa também tem resposta. O bloco dispara `tuff-copiou`
+// com `detail.ok`, para quem quer avisar de outro jeito. Um botão só de texto troca o rótulo pelo de
+// `data-copiado` ou de `data-falhou` por um instante, com `aria-live`, e volta ao rótulo dele. Um
+// ouvinte só, no documento, serve a todo bloco da página.
+
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('click', (e) => {
+    const botao = e.target.closest?.('.tuff-codigo-copiar');
+    const bloco = botao?.closest('.tuff-codigo');
+    const corpo = bloco?.querySelector('.tuff-codigo-corpo');
+    if (!corpo) return;
+    const responder = (ok) => {
+      bloco.dispatchEvent(new CustomEvent('tuff-copiou', { bubbles: true, detail: { ok } }));
+      const frase = ok ? botao.dataset.copiado : botao.dataset.falhou;
+      if (!frase || botao.childElementCount || botao.dataset.tuffRotulo !== undefined) return;
+      botao.dataset.tuffRotulo = botao.textContent;
+      botao.setAttribute('aria-live', 'polite');
+      botao.textContent = frase;
+      setTimeout(() => {
+        botao.textContent = botao.dataset.tuffRotulo;
+        delete botao.dataset.tuffRotulo;
+      }, ok ? 1500 : 2500);
+    };
+    const copia = navigator.clipboard?.writeText
+      ? navigator.clipboard.writeText(corpo.textContent)
+      : Promise.reject(new Error('sem área de transferência'));
+    copia.then(() => responder(true), () => responder(false));
   });
 }
