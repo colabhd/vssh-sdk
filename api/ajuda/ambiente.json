@@ -45,6 +45,10 @@
       "titulo": "Atalhos de teclado"
     },
     {
+      "id": "atividade",
+      "titulo": "Ver o que você fez com os arquivos e desfazer uma operação"
+    },
+    {
       "id": "avisos-e-notificacoes",
       "titulo": "Avisos, notificações e Não perturbe"
     },

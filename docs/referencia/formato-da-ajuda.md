@@ -52,7 +52,7 @@ existe quando o manifesto declara o campo dela.
 
 ## Os tópicos do ambiente
 
-Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 57 que existem:
+Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 58 que existem:
 
 | id | título |
 |---|---|
@@ -67,6 +67,7 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 57 q
 | `arquivo-sumiu` | Um arquivo sumiu |
 | `arquivos` | Os seus arquivos e pastas |
 | `atalhos-de-teclado` | Atalhos de teclado |
+| `atividade` | Ver o que você fez com os arquivos e desfazer uma operação |
 | `avisos-e-notificacoes` | Avisos, notificações e Não perturbe |
 | `baixar-arquivos` | Levar um arquivo da estação para o seu computador |
 | `barra-de-tarefas` | A barra de tarefas |
