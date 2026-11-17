@@ -128,6 +128,27 @@
      é preto de 1 px e some sobre o fundo escuro do ambiente. */
   .tuff-btn:focus-visible { outline: 2px solid var(--ds-border-focus); outline-offset: 1px; }
 
+  /* O botão ocupado. Quem espera uma resposta marca o botão com `aria-busy="true"` e o desliga, e
+     ele ganha um giro antes do rótulo, na cor do texto. O rótulo diz o que anda ("Gerando"), e é
+     ele que um leitor de tela lê; o giro é para o olho. Um botão que já tem um ícone
+     `.tuff-ico--gira` gira o ícone, e não ganha um segundo sinal. Desligado e ocupado, ele fica
+     mais visível que o desligado comum: a espera é dele, e a pessoa precisa achar onde clicou. */
+  .tuff-btn[aria-busy="true"] { cursor: progress; }
+  .tuff-btn[aria-busy="true"]:disabled { opacity: .7; }
+  .tuff-btn[aria-busy="true"]:not(:has(.tuff-ico--gira))::before {
+    content: '';
+    flex: none;
+    width: 12px;
+    height: 12px;
+    border: 2px solid color-mix(in srgb, currentColor 35%, transparent);
+    border-left-color: currentColor;
+    border-radius: 50%;
+    animation: tuff-girar .8s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .tuff-btn[aria-busy="true"]::before { animation: none; }
+  }
+
   /* O primário lê `--ds-on-accent` para o texto, e a variável existe por um
      motivo medido: `#0e639c` é azul médio, preto sobre ele dá ~3,3:1 e reprova
      AA; branco dá 5,2:1. Sem o token, cada app escolhe no olho, e o erro só
@@ -484,6 +505,47 @@
     background: var(--ds-bg3);
     border-radius: var(--ds-radius-sm);
   }
+  /* A etiqueta que leva a algum lugar é um `<a class="tuff-tag">`, e a que filtra a lista é um
+     `<button class="tuff-tag">`. As duas respondem ao ponteiro com o fundo de hover e o texto
+     forte, têm o anel de foco, e sob o dedo crescem até o alvo. */
+  a.tuff-tag,
+  button.tuff-tag {
+    border: 0;
+    font-family: var(--ds-font);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  a.tuff-tag:hover,
+  button.tuff-tag:hover { background: var(--ds-bg-hover); color: var(--ds-text); }
+  a.tuff-tag:focus-visible,
+  button.tuff-tag:focus-visible { outline: 2px solid var(--ds-border-focus); outline-offset: 1px; }
+  @media (pointer: coarse) {
+    a.tuff-tag,
+    button.tuff-tag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: var(--ds-alvo);
+      min-height: var(--ds-alvo);
+    }
+  }
+
+  /* O ponto de estado: "está de pé?" numa linha de lista, onde uma pílula por linha pesaria mais
+     que o nome. As cores são as da pílula. O ponto não tem nome: quem o usa dá `role="img"` com
+     `aria-label` ("No ar"), ou escreve o estado em texto ao lado, porque a cor sozinha não chega a
+     quem não a distingue nem a um leitor de tela. Sem variante ele é o estado que ainda não se
+     conhece. */
+  .tuff-ponto {
+    display: inline-block;
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ds-text-dim);
+  }
+  .tuff-ponto--ok { background: var(--ds-green); }
+  .tuff-ponto--aviso { background: var(--ds-warn); }
+  .tuff-ponto--erro { background: var(--ds-danger); }
 
   .tuff-tecla {
     display: inline-block;
@@ -1765,7 +1827,7 @@
      aparece: no avatar, no cursor dela no texto e na marca da prévia. As
      iniciais são escuras porque as cores de pessoa são claras sobre o fundo
      escuro do ambiente. `--presente` acrescenta o ponto de quem está no
-     documento agora. Na pilha os avatares se sobrepõem, e o anel da cor do
+     documento agora, `--pequeno` e `--grande` trocam o tamanho. Na pilha os avatares se sobrepõem, e o anel da cor do
      painel separa um do outro. Um avatar que leva a algum lugar (ir até o
      cursor da pessoa) é um `<button class="tuff-avatar">`. */
   .tuff-avatar {
@@ -1791,6 +1853,8 @@
   }
   button.tuff-avatar:focus-visible { outline: 2px solid var(--ds-border-focus); outline-offset: 2px; }
   .tuff-avatar--pequeno { width: 20px; height: 20px; font-size: var(--tuff-size-2xs); }
+  /* O grande é o do topo de uma ficha, ao lado do nome da pessoa em corpo de título. */
+  .tuff-avatar--grande { width: 52px; height: 52px; font-size: var(--tuff-size-xl); }
   .tuff-avatar--presente::after {
     content: '';
     position: absolute;

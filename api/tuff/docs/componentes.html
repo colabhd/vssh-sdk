@@ -114,6 +114,11 @@
         <button class="tuff-btn" disabled>indisponível</button>
       </div>
       <div class="amostra">
+        <button class="tuff-btn tuff-btn--primario" aria-busy="true" disabled>Gerando</button>
+        <button class="tuff-btn" aria-busy="true" disabled>Atualizando</button>
+        <span class="tuff-sec-desc">ocupado: <code>aria-busy="true"</code> e <code>disabled</code> enquanto a resposta não chega</span>
+      </div>
+      <div class="amostra">
         <button class="tuff-btn tuff-btn--icone" aria-label="Recarregar"><svg class="tuff-ico"><use href="#ico-refresh"></use></svg></button>
         <button class="tuff-btn tuff-btn--icone" aria-label="Ampliar"><svg class="tuff-ico"><use href="#ico-zoom-in"></use></svg></button>
         <button class="tuff-btn tuff-btn--icone" aria-label="Reduzir"><svg class="tuff-ico"><use href="#ico-zoom-out"></use></svg></button>
@@ -220,9 +225,19 @@
         <span class="tuff-pill">desconhecido</span>
       </div>
       <div class="amostra">
+        <span class="tuff-ponto tuff-ponto--ok" role="img" aria-label="No ar"></span> ipprivm01
+        <span class="tuff-ponto tuff-ponto--aviso" role="img" aria-label="Cheia"></span> gpu-lantri
+        <span class="tuff-ponto tuff-ponto--erro" role="img" aria-label="Fora do ar"></span> lab-03
+        <span class="tuff-ponto" role="img" aria-label="Verificando"></span> lab-04
+        <span class="tuff-sec-desc">o ponto, para a linha de uma lista; o nome do estado vai no <code>aria-label</code></span>
+      </div>
+      <div class="amostra">
         <span class="tuff-tag">python3</span>
         <span class="tuff-tag">ffmpeg</span>
         <span class="tuff-tag" data-tuff-dica="declarado em requiredPackages">python3-pip</span>
+        <a class="tuff-tag" href="#estado-etiqueta" id="estado-etiqueta">lab-cpps</a>
+        <button class="tuff-tag" type="button">só os meus</button>
+        <span class="tuff-sec-desc">a etiqueta que é um link ou um botão responde ao ponteiro e ao Tab</span>
       </div>
       <div class="amostra">
         <span class="tuff-tecla">Ctrl</span>
@@ -420,6 +435,7 @@
         <span class="tuff-avatar" style="--tuff-cor:#4ec9b0" title="Ana Beatriz Moreira">AM</span>
         <span class="tuff-avatar tuff-avatar--presente" style="--tuff-cor:#c678dd" title="Helena Duarte">HD</span>
         <span class="tuff-avatar tuff-avatar--pequeno" style="--tuff-cor:#ce9178" title="Rafael Almeida">RA</span>
+        <span class="tuff-avatar tuff-avatar--grande" style="--tuff-cor:#569cd6" title="Júlia Prado">JP</span>
         <span class="tuff-avatares">
           <span class="tuff-avatar" style="--tuff-cor:#4ec9b0">AM</span>
           <button class="tuff-avatar tuff-avatar--presente" style="--tuff-cor:#c678dd" aria-label="Helena Duarte, no capítulo 2">HD</button>
