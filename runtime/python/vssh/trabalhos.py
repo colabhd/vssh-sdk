@@ -23,10 +23,12 @@ vssh.trabalhos: um trabalho longo que o app acompanha, na estação ou na fila, 
 
 ─── Na estação ──────────────────────────────────────────────────────────────
 
-`rodar` sobe o processo num grupo próprio, e cancelar manda SIGTERM ao grupo inteiro: um motor
-que abriu um `ffmpeg` filho não o deixa rodando sozinho. Cinco segundos depois, quem ainda estiver
-de pé recebe SIGKILL. O stdout é lido linha a linha; as de progresso viram a atividade do trabalho
-na bandeja, e as outras vão para o app. As últimas linhas do stderr dão o `motivo` de uma falha.
+`rodar` sobe o comando destacado do backend, por um executor (`vssh/executor.py`) que grava o
+stdout e o stderr dele em arquivos, num diretório do trabalho em `~/.cache/vssh/trabalhos/<id>/`.
+O backend segue o trabalho lendo esses arquivos: as linhas de progresso viram eventos e a
+atividade do trabalho na bandeja, e as outras vão para o app. Cancelar manda SIGTERM ao grupo do
+comando: um motor que abriu um `ffmpeg` filho não o deixa rodando sozinho. Cinco segundos depois,
+quem ainda estiver de pé recebe SIGKILL. As últimas linhas do stderr dão o `motivo` de uma falha.
 No fim, a notificação vai ao sino antes de a atividade sair, como em `avisos.limpar_atividade`.
 
 ─── Na fila ─────────────────────────────────────────────────────────────────
@@ -41,9 +43,22 @@ novo, e o app que as baixa confere se já as tem.
 ─── Depois de um reinício ──────────────────────────────────────────────────
 
 O registro de cada trabalho mora em `$VSSH_APP_DATA_DIR/trabalhos/<chave>.json`, reescrito a cada
-mudança. `retomar()` volta a seguir os da fila que estavam em curso, porque o job continua no
-cluster. Um da estação não tem volta: o processo não é mais filho de ninguém, e o stdout dele se
-perdeu. Ele é encerrado, para não segurar a GPU, e marcado como `falhou` com o motivo.
+mudança. `retomar()` volta a seguir os que estavam em curso. Um da fila continua no cluster.
+
+Um da estação continua rodando sem o backend, porque o comando não é filho dele. O que o backend
+que volta faz com esse trabalho, quem decide é o `rodar`:
+
+    rodar(..., retomavel=True)   o backend volta a segui-lo: lê os arquivos de onde tinha parado, e
+                                 o fim que aconteceu com ele fora chega na volta, com a notificação
+    rodar(...)                   o trabalho é encerrado, para não segurar a GPU, e marcado como
+                                 `falhou` com o motivo. É o padrão: o app que retoma um trabalho
+                                 precisa ter em `retomar` quem ouça os eventos dele
+
+A posição lida é gravada depois da entrega, então uma linha pode chegar de novo depois de um
+reinício, e o app que não pode repeti-la confere se já a tem. Um trabalho cujo executor morreu sem
+escrever o fim (um SIGKILL, a estação reiniciada) termina em `falhou`.
+
+No registro, `pid` é o do comando, e `executor` é o do processo que o acompanha.
 
 A chave segue a regra das atividades do shell (`[\\w:.-]`, até 64 caracteres), porque ela é a
 chave da atividade na bandeja. Uma chave só tem um trabalho em curso de cada vez.
@@ -53,8 +68,10 @@ import collections
 import json
 import os
 import re
+import shutil
 import signal
 import subprocess
+import sys
 import threading
 import time
 
@@ -67,14 +84,12 @@ __all__ = ['rodar', 'na_fila', 'estado', 'listar', 'retomar', 'Trabalho', 'ESTAD
 
 ESTADOS_FINAIS = ('concluido', 'falhou', 'cancelado')
 _CHAVE = re.compile(r'^[\w:.-]{1,64}$')
-_ESPERA_DO_SIGKILL_S = 5.0
-# A bandeja não precisa de mais que duas atualizações por segundo, e um motor que informa cada
-# milésimo escreveria o arquivo da atividade mil vezes.
-_INTERVALO_DA_ATIVIDADE_S = 0.5
+# De quanto em quanto tempo o backend lê os arquivos de um trabalho da estação.
+_VOLTA_S = 0.25
+_EXECUTOR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'executor.py')
 
 _tranca = threading.Lock()
 _em_curso = {}
-_renovacao = []
 
 
 def _agora_ms():
@@ -120,8 +135,6 @@ class Trabalho:
         self._tranca = threading.Lock()
         self._fim = threading.Event()
         self._cancelado = False
-        self._processo = None
-        self._ultima_atividade = 0.0
         if registro['estado'] in ESTADOS_FINAIS:
             self._fim.set()
 
@@ -134,20 +147,17 @@ class Trabalho:
         return self.estado()
 
     def cancelar(self):
-        """Pede o fim. Na estação, SIGTERM ao grupo e SIGKILL depois; na fila, o cancelar do portal."""
+        """Pede o fim. Na estação, o executor manda SIGTERM ao grupo do comando e SIGKILL depois;
+        na fila, é o cancelar do portal."""
         if self._fim.is_set():
             return False
         self._cancelado = True
-        if self._reg['onde'] == 'estacao' and self._processo is not None:
-            _sinalizar_grupo(self._processo.pid, signal.SIGTERM)
-            p = self._processo
-
-            def matar():
-                if p.poll() is None:
-                    _sinalizar_grupo(p.pid, signal.SIGKILL)
-            t = threading.Timer(_ESPERA_DO_SIGKILL_S, matar)
-            t.daemon = True
-            t.start()
+        if self._reg['onde'] == 'estacao' and self._reg.get('dir'):
+            try:
+                with open(os.path.join(self._reg['dir'], 'cancel'), 'w'):
+                    pass
+            except OSError:
+                return False
         elif self._reg['onde'] == 'fila' and self._reg.get('job'):
             try:
                 fila.cancelar(self._reg['job'], env=self._env)
@@ -235,85 +245,226 @@ def _registrar(chave, onde, titulo, env, **extra):
                  'progresso': None, 'motivo': None, 'codigo': None, 'criadoEm': _agora_ms(), 'terminadoEm': None}, **extra)
 
 
-def _acompanhar_bandeja(env):
-    with _tranca:
-        if not _renovacao:
-            _renovacao.append(avisos.manter_atividades_vivas(env=env))
-
-
 # ── Na estação ────────────────────────────────────────────────────────────────
 
-def _item_da_atividade(reg):
-    p = reg.get('progresso') or {}
-    return {
-        'titulo': reg['titulo'],
-        'texto': p.get('etapa') or 'Rodando',
-        'formato': 'progresso',
-        'progresso': {'feito': p['feito'], 'total': p['total']} if p.get('total') else {'indeterminado': True},
-    }
+def _base(env):
+    """Onde moram os diretórios dos trabalhos da estação: `~/.cache/vssh/trabalhos`."""
+    home = env.get('HOME')
+    if not home and env.get('VSSH_APP_DATA_DIR'):
+        home = os.path.abspath(os.path.join(env['VSSH_APP_DATA_DIR'], '..', '..', '..'))
+    return os.path.join(home or os.path.expanduser('~'), '.cache', 'vssh', 'trabalhos')
+
+
+def _novo_id():
+    n, alfabeto, texto = _agora_ms(), '0123456789abcdefghijklmnopqrstuvwxyz', ''
+    while n:
+        n, r = divmod(n, 36)
+        texto = alfabeto[r] + texto
+    return '%s-%s' % (texto or '0', os.urandom(4).hex())
+
+
+def _nascimento(pid):
+    """O instante em que o processo nasceu, em tiques desde o boot (campo 22 de
+    `/proc/<pid>/stat`), ou `None` fora do Linux. O nome do processo vem entre parênteses e pode
+    ter espaço, então a contagem começa depois do último `)`."""
+    try:
+        with open('/proc/%d/stat' % pid) as f:
+            return f.read().rsplit(')', 1)[1].split()[19]
+    except (OSError, IndexError):
+        return None
+
+
+def _executor_vivo(d):
+    """O executor do trabalho em `d` ainda roda? O pid está de pé e é o do processo que nasceu
+    quando o trabalho foi disparado: o kernel reaproveita o número de um processo que morreu."""
+    try:
+        with open(os.path.join(d, 'pid')) as f:
+            partes = f.read().split()
+        pid = int(partes[0])
+        if os.name != 'posix':
+            return False   # no Windows, `os.kill(pid, 0)` mata o processo
+        os.kill(pid, 0)
+        return len(partes) < 2 or _nascimento(pid) == partes[1]
+    except (OSError, ValueError, IndexError):
+        return False
+
+
+def _grupo_do_comando(d):
+    """O grupo de processos do comando do trabalho em `d`, se ele ainda é o que nasceu ali: o
+    nascimento gravado garante que não é o de outro processo que herdou o número. `None` quando
+    o comando não subiu ou já saiu."""
+    try:
+        with open(os.path.join(d, 'grupo')) as f:
+            partes = f.read().split()
+        if len(partes) > 1 and _nascimento(int(partes[0])) == partes[1]:
+            return int(partes[0])
+    except (OSError, ValueError, IndexError):
+        pass
+    return None
+
+
+def _encerrar_orfao(d):
+    """O executor morreu sem escrever o fim (um SIGKILL, a memória acabou), e o comando ficou sem
+    ninguém: ele é encerrado, para não segurar a GPU."""
+    grupo = _grupo_do_comando(d)
+    if grupo is not None:
+        _sinalizar_grupo(grupo, signal.SIGKILL)
+
+
+def _encerrar(d):
+    """Encerra de vez o trabalho em `d`: o executor primeiro, para ele não escrever um fim, e o
+    comando depois."""
+    if _executor_vivo(d):
+        try:
+            with open(os.path.join(d, 'pid')) as f:
+                os.kill(int(f.read().split()[0]), signal.SIGKILL)
+        except (OSError, ValueError, IndexError):
+            pass
+    _encerrar_orfao(d)
+
+
+def _pid_do_comando(d):
+    try:
+        with open(os.path.join(d, 'grupo')) as f:
+            return int(f.read().split()[0])
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+def _ler_json(caminho):
+    try:
+        with open(caminho, encoding='utf-8') as f:
+            r = json.load(f)
+        return r if isinstance(r, dict) else None
+    except (OSError, ValueError):
+        return None
+
+
+def _posicao_lida(d):
+    try:
+        with open(os.path.join(d, 'lido')) as f:
+            return int(f.read().strip() or 0)
+    except (OSError, ValueError):
+        return 0
+
+
+def _entregar(t, d, posicao, tudo):
+    """Entrega ao app o que o comando escreveu desde `posicao`, e devolve a posição nova. Sem
+    `tudo`, uma linha que ainda não terminou espera a volta seguinte."""
+    try:
+        with open(os.path.join(d, 'saida'), 'rb') as f:
+            f.seek(posicao)
+            novo = f.read()
+    except OSError:
+        return posicao
+    if not tudo:
+        novo = novo[:novo.rfind(b'\n') + 1]
+    if not novo:
+        return posicao
+    for linha in novo.decode('utf-8', 'replace').splitlines():
+        p = _progresso.ler(linha)
+        if p is None:
+            t._linha(linha)
+        else:
+            t._mudar('progresso', progresso=p)
+    posicao += len(novo)
+    try:
+        tmp = os.path.join(d, 'lido.tmp')
+        with open(tmp, 'w') as f:
+            f.write(str(posicao))
+        os.replace(tmp, os.path.join(d, 'lido'))
+    except OSError:
+        pass
+    return posicao
+
+
+def _seguir_na_estacao(t, processo, registrar, env):
+    """Lê os arquivos do trabalho até o fim dele, e então grava o fim, notifica, tira a atividade
+    e apaga o diretório. `processo` é o executor quando foi este backend que o subiu."""
+    d = t._reg['dir']
+    posicao = _posicao_lida(d)
+    while True:
+        if t._reg.get('pid') is None:
+            pid = _pid_do_comando(d)
+            if pid is not None:
+                t._mudar(None, pid=pid)
+        # O fim é conferido antes da leitura: o que o comando escreveu até sair entra nela.
+        acabou = os.path.exists(os.path.join(d, 'exit'))
+        if not acabou:
+            vivo = processo.poll() is None if processo is not None else _executor_vivo(d)
+            if not vivo:
+                acabou = os.path.exists(os.path.join(d, 'exit'))   # escrito entre as duas leituras
+        else:
+            vivo = False
+        posicao = _entregar(t, d, posicao, tudo=acabou or not vivo)
+        if acabou or not vivo:
+            if not acabou:
+                _encerrar_orfao(d)
+            break
+        time.sleep(_VOLTA_S)
+    if processo is not None:
+        try:
+            processo.wait(5)   # recolhe o executor, que já escreveu o fim
+        except subprocess.TimeoutExpired:
+            pass
+    fim = _ler_json(os.path.join(d, 'fim.json')) if acabou else None
+    if fim is None:
+        fim = {'estado': 'falhou', 'codigo': None, 'motivo': 'o trabalho parou antes de terminar'}
+
+    def registrar_fim(registro):
+        _notificar_fim(registro, registrar.get('registrar', True), registrar.get('acoes'), registrar.get('rota'),
+                       registrar.get('abrir'), env)
+        avisos.limpar_atividade(t.chave, env=env)
+        shutil.rmtree(d, ignore_errors=True)
+    t._terminar(fim.get('estado') if fim.get('estado') in ESTADOS_FINAIS else 'falhou', motivo=fim.get('motivo'),
+                codigo=fim.get('codigo'), antes_de_anunciar=registrar_fim)
 
 
 def rodar(chave, comando, titulo=None, ao_evento=None, cwd=None, ambiente=None, registrar=True,
-          acoes=None, rota=None, abrir=None, env=None):
-    """Sobe `comando` (uma lista) e o acompanha. Devolve o `Trabalho`.
+          acoes=None, rota=None, abrir=None, retomavel=False, env=None):
+    """Sobe `comando` (uma lista) destacado do backend e o acompanha. Devolve o `Trabalho`.
+
+    Com `retomavel=True`, o `retomar()` de um backend que reiniciou volta a seguir o trabalho; sem
+    ele, o `retomar()` o encerra.
 
     `ambiente` é o ambiente do processo (o do app, por padrão). `registrar` decide a notificação
     do fim: `True` escreve uma com o título e o resultado, `False` não escreve, e uma função
     `registrar(registro) -> {titulo, texto, level} | None` escreve a que ela devolver. `acoes`,
     `rota` e `abrir` são os de `avisos.notificar`: botões na notificação, e o caminho dentro do
-    app aonde o clique nela leva.
+    app aonde o clique nela leva. O que não é função fica gravado com o trabalho, e vale também
+    depois de um `retomar`.
     """
     env = os.environ if env is None else env
-    reg = _registrar(chave, 'estacao', titulo, env, pid=None)
-    t = Trabalho(reg, ao_evento, env)
-    processo = subprocess.Popen(list(comando), cwd=cwd, env=dict(ambiente) if ambiente is not None else None,
-                                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                text=True, bufsize=1, start_new_session=True)
-    t._processo = processo
+    reg = _registrar(chave, 'estacao', titulo, env, pid=None, executor=None, dir=None, retomavel=bool(retomavel))
+    d = os.path.join(_base(env), _novo_id())
+    os.makedirs(d, mode=0o700)
+    notificacao = {'registrar': 'funcao' if callable(registrar) else bool(registrar), 'acoes': acoes, 'rota': rota, 'abrir': abrir}
+    with open(os.path.join(d, 'pedido.json'), 'w', encoding='utf-8') as f:
+        json.dump({'chave': chave, 'titulo': reg['titulo'], 'app': env.get('VSSH_APP_ID'), 'comando': list(comando),
+                   'cwd': cwd, 'notificacao': notificacao, 'criadoEm': reg['criadoEm']}, f, ensure_ascii=False)
+    t = Trabalho(dict(reg, dir=d), ao_evento, env)
+    # O executor roda com o ambiente do app (é dele a atividade na bandeja), e recebe o do comando
+    # pelo stdin. Sessão própria: ele não morre com o backend.
+    try:
+        processo = subprocess.Popen([sys.executable or 'python3', _EXECUTOR, d], env=dict(env), stdin=subprocess.PIPE,
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    except OSError:
+        shutil.rmtree(d, ignore_errors=True)
+        raise
+    nasceu = _nascimento(processo.pid)
+    with open(os.path.join(d, 'pid'), 'w') as f:
+        f.write('%d %s' % (processo.pid, nasceu) if nasceu else str(processo.pid))
+    try:
+        processo.stdin.write(json.dumps({'ambiente': dict(ambiente) if ambiente is not None else None}).encode('utf-8'))
+        processo.stdin.close()
+    except OSError:
+        pass   # o executor morreu antes de ler: o acompanhamento termina o trabalho em `falhou`
     with _tranca:
         _em_curso[chave] = t
-    t._mudar(None, pid=processo.pid)
-    _acompanhar_bandeja(env)
-    avisos.atividade(chave, _item_da_atividade(reg), env=env)
-
-    erros = collections.deque(maxlen=20)
-
-    def ler_stderr():
-        for linha in processo.stderr:
-            if linha.strip():
-                erros.append(linha.rstrip('\r\n'))
-
-    def ler_stdout():
-        for linha in processo.stdout:
-            p = _progresso.ler(linha)
-            if p is None:
-                t._linha(linha.rstrip('\r\n'))
-                continue
-            registro = t._mudar('progresso', progresso=p)
-            agora = time.monotonic()
-            if agora - t._ultima_atividade >= _INTERVALO_DA_ATIVIDADE_S:
-                t._ultima_atividade = agora
-                avisos.atividade(chave, _item_da_atividade(registro), env=env)
-
-    def esperar():
-        leitores = [threading.Thread(target=ler_stdout, daemon=True), threading.Thread(target=ler_stderr, daemon=True)]
-        for l in leitores:
-            l.start()
-        codigo = processo.wait()
-        for l in leitores:
-            l.join()
-        if t._cancelado:
-            estado_final, motivo = 'cancelado', None
-        elif codigo == 0:
-            estado_final, motivo = 'concluido', None
-        else:
-            estado_final, motivo = 'falhou', (erros[-1] if erros else 'saiu com o código %d' % codigo)
-        def registrar_fim(registro):
-            _notificar_fim(registro, registrar, acoes, rota, abrir, env)
-            avisos.limpar_atividade(chave, env=env)
-        t._terminar(estado_final, motivo=motivo, codigo=codigo, antes_de_anunciar=registrar_fim)
-
-    threading.Thread(target=esperar, name='vssh-trabalho-%s' % chave, daemon=True).start()
+    t._mudar(None, executor=processo.pid)
+    seguir = {'registrar': registrar, 'acoes': acoes, 'rota': rota, 'abrir': abrir}
+    threading.Thread(target=_seguir_na_estacao, args=(t, processo, seguir, env), name='vssh-trabalho-%s' % chave,
+                     daemon=True).start()
     return t
 
 
@@ -420,10 +571,39 @@ def _vivo(pid):
         return False
 
 
-def retomar(ao_evento=None, linhas=False, env=None):
-    """Volta a seguir os trabalhos da fila que estavam em curso, e encerra os da estação.
+# Um diretório de trabalho sem registro em curso é sobra: o app apagou o registro, ou caiu entre
+# criar o diretório e gravá-lo. A hora de espera cobre um `rodar` que está nesse intervalo agora.
+_SOBRA_S = 60 * 60
 
-    Devolve os `Trabalho` retomados. Chame no boot do backend, antes de servir.
+
+def _faxina(env):
+    """Apaga os diretórios deste app que nenhum registro em curso segue e cujo executor já saiu."""
+    base = _base(env)
+    seguidos = {r.get('dir') for r in listar(env) if r.get('estado') not in ESTADOS_FINAIS}
+    try:
+        nomes = os.listdir(base)
+    except OSError:
+        return
+    limite = time.time() - _SOBRA_S
+    for nome in nomes:
+        d = os.path.join(base, nome)
+        if d in seguidos or (_ler_json(os.path.join(d, 'pedido.json')) or {}).get('app') != env.get('VSSH_APP_ID'):
+            continue
+        try:
+            if os.stat(d).st_mtime >= limite or (not os.path.exists(os.path.join(d, 'exit')) and _executor_vivo(d)):
+                continue
+        except OSError:
+            continue
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def retomar(ao_evento=None, linhas=False, registrar=None, env=None):
+    """Volta a seguir os trabalhos que estavam em curso: os da fila, e os da estação que o
+    `rodar` marcou com `retomavel=True`. Os outros da estação são encerrados.
+
+    Devolve os `Trabalho` retomados. Chame no boot do backend, antes de servir. `registrar` é a
+    função da notificação do fim para os trabalhos da estação que tinham uma (`rodar` não tem
+    como gravá-la); sem ela, o fim desses escreve a notificação padrão.
     """
     env = os.environ if env is None else env
     retomados = []
@@ -439,9 +619,31 @@ def retomar(ao_evento=None, linhas=False, env=None):
                 _em_curso[t.chave] = t
             threading.Thread(target=_seguir, args=(t, linhas, env), daemon=True).start()
             retomados.append(t)
+        elif reg.get('onde') == 'estacao' and reg.get('retomavel') and reg.get('dir') and os.path.isdir(reg['dir']):
+            pedido = _ler_json(os.path.join(reg['dir'], 'pedido.json')) or {}
+            seguir = dict(pedido.get('notificacao') or {})
+            if seguir.get('registrar') == 'funcao':
+                seguir['registrar'] = registrar if callable(registrar) else True
+            with _tranca:
+                _em_curso[t.chave] = t
+            threading.Thread(target=_seguir_na_estacao, args=(t, None, seguir, env), name='vssh-trabalho-%s' % t.chave,
+                             daemon=True).start()
+            retomados.append(t)
         else:
-            if reg.get('pid') and _vivo(reg['pid']):
+            # O trabalho da estação que o app não pediu para retomar é encerrado, para não segurar
+            # a GPU. Um sem diretório é de um runtime anterior, em que o comando era filho do
+            # backend e o `pid` gravado era o dele.
+            d = reg.get('dir') if reg.get('onde') == 'estacao' else None
+            if d and os.path.isdir(d):
+                _encerrar(d)
+            elif reg.get('onde') == 'estacao' and not d and reg.get('pid') and _vivo(reg['pid']):
                 _sinalizar_grupo(reg['pid'], signal.SIGKILL)
             motivo = 'o app reiniciou no meio' if reg.get('onde') == 'estacao' else 'o envio à fila foi interrompido'
-            t._terminar('falhou', motivo=motivo, antes_de_anunciar=lambda _r: avisos.limpar_atividade(t.chave, env=env))
+
+            def limpar(_r, t=t, d=d):
+                avisos.limpar_atividade(t.chave, env=env)
+                if d:
+                    shutil.rmtree(d, ignore_errors=True)
+            t._terminar('falhou', motivo=motivo, antes_de_anunciar=limpar)
+    _faxina(env)
     return retomados

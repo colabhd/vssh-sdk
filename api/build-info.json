@@ -169,6 +169,9 @@
     "runtime/node/vssh/eventos.js": {
       "sha256": "0bbe0ed0bef8763cbb3c700379c6818e978329ed7c27b0d9c65487cf7bd56ff3"
     },
+    "runtime/node/vssh/executor.js": {
+      "sha256": "e79eb9ece86bf7ff7b82786d728030eca2c4bc18f7b72bd49564a22c7ed5ab0e"
+    },
     "runtime/node/vssh/fila.js": {
       "sha256": "3c86a673aed11119d92f6e5b7b075a44bb683c402444b74063c6537fed4e3174"
     },
@@ -191,7 +194,7 @@
       "sha256": "9c17a7f2ff03479780e139eb387a1ac740170c333e8bb65edbc5f991e089f8b2"
     },
     "runtime/node/vssh/trabalhos.js": {
-      "sha256": "640269e88a8a993d5d70d9ca97077fb0c5ddf2a573c8c13bcf91612b8fc1a0de"
+      "sha256": "ba4f7802208c2056b969491f00d6d57f607b9a11143d4ba541d1da88e2d0c1b3"
     },
     "runtime/node/vssh/web.js": {
       "sha256": "4509b6e8b36401048ca6ace6606025cd3f96f3ed25f3aa91f26c1a84f2fd9421"
@@ -214,6 +217,9 @@
     "runtime/python/vssh/eventos.py": {
       "sha256": "c5c3673a2c6d43c65785b8d22003d95485b11eeea01a545b5aa80ffe87c36f2d"
     },
+    "runtime/python/vssh/executor.py": {
+      "sha256": "5060a16e49e16121d2e5f0c16531b1962a95aba49de2c2f16408ea521a9da4de"
+    },
     "runtime/python/vssh/fila.py": {
       "sha256": "d5667bdab2c5551a87af308e6678a70e907c89ac9b4979270a7c8415193240b2"
     },
@@ -230,7 +236,7 @@
       "sha256": "b0b114cd714aa6cf4dca4f34d921589153b18f0d61e474e3fc8501e33d4a029e"
     },
     "runtime/python/vssh/trabalhos.py": {
-      "sha256": "daad3dfe6521aac3e390fabbe094efdafc823a9f7609ccc5b4a10be2a25d7e57"
+      "sha256": "7c6fb253d8ab60f1b3b0dc8e4228524ae06a840680229d4f53debeea4d986bc1"
     },
     "runtime/python/vssh/web.py": {
       "sha256": "c23d0cf6490efbba52380ff4effb3298aca660dddba9edeb72398aab8adfb751"

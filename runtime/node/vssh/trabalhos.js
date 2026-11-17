@@ -16,17 +16,29 @@
 // ou cancelado, com `motivo` e `codigo`). Cada saída chega uma vez por acompanhamento; depois de um
 // `retomar`, as que já tinham subido chegam de novo.
 //
-// Na estação, o processo sobe num grupo próprio, e cancelar manda SIGTERM ao grupo e SIGKILL cinco
-// segundos depois; as linhas de progresso viram a atividade na bandeja, e o fim vira notificação
-// antes de a atividade sair. Na fila, a biblioteca não escreve atividade nem notificação, porque o
-// portal já faz as duas coisas para o job. O registro de cada trabalho mora em
-// `$VSSH_APP_DATA_DIR/trabalhos/<chave>.json`, e `retomar()` volta a seguir os da fila depois de um
-// reinício e encerra os da estação, que perderam o stdout.
+// Na estação, o comando sobe destacado do backend, por um executor (`vssh/executor.js`) que grava
+// o stdout e o stderr dele em arquivos, num diretório do trabalho em
+// `~/.cache/vssh/trabalhos/<id>/`. O backend segue o trabalho lendo esses arquivos. Cancelar manda
+// SIGTERM ao grupo do comando e SIGKILL cinco segundos depois; as linhas de progresso viram a
+// atividade na bandeja, e o fim vira notificação antes de a atividade sair. Na fila, a biblioteca
+// não escreve atividade nem notificação, porque o portal já faz as duas coisas para o job.
+//
+// O registro de cada trabalho mora em `$VSSH_APP_DATA_DIR/trabalhos/<chave>.json`, e `retomar()`
+// volta a seguir os que estavam em curso. Um da estação continua rodando sem o backend, porque o
+// comando não é filho dele, e quem decide o que o backend que volta faz com ele é o `rodar`: com
+// `retomavel: true`, o backend volta a segui-lo (lê os arquivos de onde tinha parado, e o fim que
+// aconteceu com ele fora chega na volta, com a notificação); sem isso, que é o padrão, o trabalho é
+// encerrado, para não segurar a GPU, e marcado como `falhou`. O app que retoma um trabalho precisa
+// ter em `retomar` quem ouça os eventos dele. A posição lida é gravada depois da entrega, então uma
+// linha pode chegar de novo depois de um reinício. Um trabalho cujo executor morreu sem escrever o
+// fim termina em `falhou`. No registro, `pid` é o do comando, e `executor` é o do processo que o
+// acompanha.
 
 const fs = require('node:fs');
 const path = require('node:path');
+const os = require('node:os');
+const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
-const readline = require('node:readline');
 
 const app = require('./app.js');
 const avisos = require('./avisos.js');
@@ -35,11 +47,11 @@ const progresso = require('./progresso.js');
 
 const FINAIS = ['concluido', 'falhou', 'cancelado'];
 const CHAVE = /^[\w:.-]{1,64}$/;
-const ESPERA_DO_SIGKILL_MS = 5000;
-const INTERVALO_DA_ATIVIDADE_MS = 500;
+// De quanto em quanto tempo o backend lê os arquivos de um trabalho da estação.
+const VOLTA_MS = 250;
+const EXECUTOR = path.join(__dirname, 'executor.js');
 
 const emCurso = new Map();
-let pararRenovacao = null;
 
 const diretorio = (env) => path.join(app.dados(env), 'trabalhos');
 const arquivo = (chave, env) => path.join(diretorio(env), `${chave}.json`);
@@ -82,8 +94,6 @@ class Trabalho {
     this._aoEvento = aoEvento;
     this._env = env;
     this._cancelado = false;
-    this._processo = null;
-    this._ultimaAtividade = 0;
     this._fim = new Promise((resolve) => { this._resolver = resolve; });
     this._terminado = FINAIS.includes(registro.estado);
     if (this._terminado) this._resolver({ ...registro });
@@ -94,14 +104,15 @@ class Trabalho {
   /** O registro final. */
   esperar() { return this._fim; }
 
-  /** Pede o fim. Na estação, SIGTERM ao grupo e SIGKILL depois; na fila, o cancelar do portal. */
+  /**
+   * Pede o fim. Na estação, o executor manda SIGTERM ao grupo do comando e SIGKILL depois; na
+   * fila, é o cancelar do portal.
+   */
   cancelar() {
     if (this._terminado) return false;
     this._cancelado = true;
-    if (this._reg.onde === 'estacao' && this._processo) {
-      const p = this._processo;
-      sinalizarGrupo(p.pid, 'SIGTERM');
-      setTimeout(() => { if (p.exitCode === null && p.signalCode === null) sinalizarGrupo(p.pid, 'SIGKILL'); }, ESPERA_DO_SIGKILL_MS).unref();
+    if (this._reg.onde === 'estacao' && this._reg.dir) {
+      try { fs.writeFileSync(path.join(this._reg.dir, 'cancel'), ''); } catch { return false; }
     } else if (this._reg.onde === 'fila' && this._reg.job) {
       fila.cancelar(this._reg.job, this._env).catch(() => {});
     }
@@ -158,16 +169,6 @@ function registrar(chave, onde, titulo, extra) {
   };
 }
 
-function itemDaAtividade(reg) {
-  const p = reg.progresso || {};
-  return {
-    titulo: reg.titulo,
-    texto: p.etapa || 'Rodando',
-    formato: 'progresso',
-    progresso: p.total ? { feito: p.feito, total: p.total } : { indeterminado: true },
-  };
-}
-
 function notificarFim(reg, opcaoRegistrar, acoes, rota, abrir, env) {
   if (opcaoRegistrar === false || reg.estado === 'cancelado') return;   // quem cancelou já sabe
   let corpo;
@@ -180,63 +181,182 @@ function notificarFim(reg, opcaoRegistrar, acoes, rota, abrir, env) {
   });
 }
 
+// ── Na estação ──────────────────────────────────────────────────────────────────────────────
+
+/** Onde moram os diretórios dos trabalhos da estação: `~/.cache/vssh/trabalhos`. */
+function base(env) {
+  let home = env.HOME;
+  if (!home && env.VSSH_APP_DATA_DIR) home = path.resolve(env.VSSH_APP_DATA_DIR, '..', '..', '..');
+  return path.join(home || os.homedir(), '.cache', 'vssh', 'trabalhos');
+}
+
+const novoId = () => `${Date.now().toString(36)}-${crypto.randomBytes(4).toString('hex')}`;
+
+// O instante em que o processo nasceu, em tiques desde o boot (campo 22 de `/proc/<pid>/stat`), ou
+// `null` fora do Linux. O nome do processo vem entre parênteses e pode ter espaço, então a
+// contagem começa depois do último `)`.
+function nascimento(pid) {
+  try {
+    const stat = fs.readFileSync(`/proc/${pid}/stat`, 'utf8');
+    return stat.slice(stat.lastIndexOf(')') + 1).trim().split(/\s+/)[19] || null;
+  } catch { return null; }
+}
+
+// O executor do trabalho em `d` ainda roda? O pid está de pé e é o do processo que nasceu quando o
+// trabalho foi disparado: o kernel reaproveita o número de um processo que morreu.
+function executorVivo(d) {
+  try {
+    const [pid, nasceu] = fs.readFileSync(path.join(d, 'pid'), 'utf8').trim().split(/\s+/);
+    process.kill(Number(pid), 0);
+    return !nasceu || nascimento(Number(pid)) === nasceu;
+  } catch { return false; }
+}
+
+// O grupo de processos do comando do trabalho em `d`, se ele ainda é o que nasceu ali: o
+// nascimento gravado garante que não é o de outro processo que herdou o número. `null` quando o
+// comando não subiu ou já saiu.
+function grupoDoComando(d) {
+  try {
+    const [grupo, nasceu] = fs.readFileSync(path.join(d, 'grupo'), 'utf8').trim().split(/\s+/);
+    if (nasceu && nascimento(Number(grupo)) === nasceu) return Number(grupo);
+  } catch { /* sem o arquivo, o comando nem chegou a subir */ }
+  return null;
+}
+
+// O executor morreu sem escrever o fim (um SIGKILL, a memória acabou), e o comando ficou sem
+// ninguém: ele é encerrado, para não segurar a GPU.
+function encerrarOrfao(d) {
+  const grupo = grupoDoComando(d);
+  if (grupo !== null) sinalizarGrupo(grupo, 'SIGKILL');
+}
+
+// Encerra de vez o trabalho em `d`: o executor primeiro, para ele não escrever um fim, e o comando
+// depois.
+function encerrar(d) {
+  if (executorVivo(d)) {
+    try { process.kill(Number(fs.readFileSync(path.join(d, 'pid'), 'utf8').trim().split(/\s+/)[0]), 'SIGKILL'); } catch { /* já saiu */ }
+  }
+  encerrarOrfao(d);
+}
+
+function pidDoComando(d) {
+  try { return Number(fs.readFileSync(path.join(d, 'grupo'), 'utf8').trim().split(/\s+/)[0]) || null; } catch { return null; }
+}
+
+function lerJson(caminho) {
+  try {
+    const r = JSON.parse(fs.readFileSync(caminho, 'utf8'));
+    return r && typeof r === 'object' ? r : null;
+  } catch { return null; }
+}
+
+function posicaoLida(d) {
+  try { return Number(fs.readFileSync(path.join(d, 'lido'), 'utf8').trim()) || 0; } catch { return 0; }
+}
+
+// Entrega ao app o que o comando escreveu desde `posicao`, e devolve a posição nova. Sem `tudo`,
+// uma linha que ainda não terminou espera a volta seguinte.
+function entregar(t, d, posicao, tudo) {
+  let novo;
+  try {
+    const fd = fs.openSync(path.join(d, 'saida'), 'r');
+    try {
+      const tamanho = fs.fstatSync(fd).size - posicao;
+      if (tamanho <= 0) return posicao;
+      novo = Buffer.alloc(tamanho);
+      fs.readSync(fd, novo, 0, tamanho, posicao);
+    } finally { fs.closeSync(fd); }
+  } catch { return posicao; }
+  if (!tudo) novo = novo.subarray(0, novo.lastIndexOf(0x0a) + 1);
+  if (!novo.length) return posicao;
+  const linhas = novo.toString('utf8').split('\n');
+  if (linhas.at(-1) === '') linhas.pop();
+  for (const bruta of linhas) {
+    const linha = bruta.replace(/\r$/, '');
+    const p = progresso.ler(linha);
+    if (p) t._mudar('progresso', { progresso: p });
+    else t._linha(linha);
+  }
+  const lida = posicao + novo.length;
+  try {
+    fs.writeFileSync(path.join(d, 'lido.tmp'), String(lida));
+    fs.renameSync(path.join(d, 'lido.tmp'), path.join(d, 'lido'));
+  } catch { /* a posição fica na memória; depois de um reinício as linhas chegam de novo */ }
+  return lida;
+}
+
+// Lê os arquivos do trabalho até o fim dele, e então grava o fim, notifica, tira a atividade e
+// apaga o diretório. `processo` é o executor quando foi este backend que o subiu.
+function seguirNaEstacao(t, processo, fimDe, env) {
+  const d = t._reg.dir;
+  let posicao = posicaoLida(d);
+  let saiu = false;
+  if (processo) {
+    processo.on('exit', () => { saiu = true; });
+    processo.on('error', () => { saiu = true; });
+  }
+  const volta = () => {
+    if (t._reg.pid === null || t._reg.pid === undefined) {
+      const pid = pidDoComando(d);
+      if (pid !== null) t._mudar(null, { pid });
+    }
+    // O fim é conferido antes da leitura: o que o comando escreveu até sair entra nela.
+    let acabou = fs.existsSync(path.join(d, 'exit'));
+    let vivo = false;
+    if (!acabou) {
+      vivo = processo ? !saiu : executorVivo(d);
+      if (!vivo) acabou = fs.existsSync(path.join(d, 'exit'));   // escrito entre as duas leituras
+    }
+    posicao = entregar(t, d, posicao, acabou || !vivo);
+    if (!acabou && vivo) { setTimeout(volta, VOLTA_MS); return; }
+    if (!acabou) encerrarOrfao(d);
+    const fim = (acabou && lerJson(path.join(d, 'fim.json')))
+      || { estado: 'falhou', codigo: null, motivo: 'o trabalho parou antes de terminar' };
+    t._terminar(FINAIS.includes(fim.estado) ? fim.estado : 'falhou', fim.motivo ?? null, fim.codigo ?? null, (registro) => {
+      notificarFim(registro, fimDe.registrar ?? true, fimDe.acoes, fimDe.rota, fimDe.abrir, env);
+      avisos.limparAtividade(t.chave, { env });
+      fs.rmSync(d, { recursive: true, force: true });
+    });
+  };
+  setTimeout(volta, 0);
+}
+
 /**
- * Sobe `comando` (um array) e o acompanha. Devolve o `Trabalho`.
+ * Sobe `comando` (um array) destacado do backend e o acompanha. Devolve o `Trabalho`.
  *
  * Opções: `titulo`, `aoEvento`, `cwd`, `ambiente` (o do processo; o do app por padrão),
  * `registrar` (`true`, `false` ou `(registro) => ({ titulo, texto, level })`), `acoes`, `rota` e
  * `abrir` (os de `avisos.notificar`: botões na notificação, e o caminho dentro do app aonde o
- * clique nela leva), `env`.
+ * clique nela leva), `retomavel` (com `true`, o `retomar()` de um backend que reiniciou volta a
+ * seguir o trabalho; sem ele, o `retomar()` o encerra), `env`. O que não é função fica gravado com
+ * o trabalho, e vale também depois de um `retomar`.
  */
 function rodar(chave, comando, opcoes = {}) {
   const env = opcoes.env || process.env;
-  const t = new Trabalho(registrar(chave, 'estacao', opcoes.titulo, { pid: null }), opcoes.aoEvento, env);
-  const [exe, ...args] = comando;
-  const processo = spawn(exe, args, {
-    cwd: opcoes.cwd, env: opcoes.ambiente || process.env, stdio: ['ignore', 'pipe', 'pipe'], detached: true,
-  });
-  t._processo = processo;
-  emCurso.set(chave, t);
-  t._mudar(null, { pid: processo.pid ?? null });
-  if (!pararRenovacao) pararRenovacao = avisos.manterAtividadesVivas(env);
-  avisos.atividade(chave, itemDaAtividade(t._reg), env);
-
-  const erros = [];
-  readline.createInterface({ input: processo.stderr }).on('line', (linha) => {
-    if (linha.trim()) { erros.push(linha); if (erros.length > 20) erros.shift(); }
-  });
-  const saida = readline.createInterface({ input: processo.stdout });
-  saida.on('line', (linha) => {
-    const p = progresso.ler(linha);
-    if (!p) { t._linha(linha); return; }
-    const registro = t._mudar('progresso', { progresso: p });
-    const agora = Date.now();
-    if (agora - t._ultimaAtividade >= INTERVALO_DA_ATIVIDADE_MS) {
-      t._ultimaAtividade = agora;
-      avisos.atividade(chave, itemDaAtividade(registro), env);
-    }
-  });
-
-  let saidaFechou = new Promise((r) => saida.on('close', r));
-  let terminou = false;
-  // Um `spawn` que falha emite `error` e depois `close`; o trabalho termina uma vez só.
-  const terminar = (codigo, motivoDeSpawn) => {
-    if (terminou) return;
-    terminou = true;
-    saidaFechou.then(() => {
-      let estadoFinal = 'concluido';
-      let motivo = null;
-      if (t._cancelado) estadoFinal = 'cancelado';
-      else if (motivoDeSpawn) { estadoFinal = 'falhou'; motivo = motivoDeSpawn; }
-      else if (codigo !== 0) { estadoFinal = 'falhou'; motivo = erros.at(-1) || `saiu com o código ${codigo}`; }
-      t._terminar(estadoFinal, motivo, codigo, (registro) => {
-        notificarFim(registro, opcoes.registrar ?? true, opcoes.acoes, opcoes.rota, opcoes.abrir, env);
-        avisos.limparAtividade(chave, { env });
-      });
-    });
+  const reg = registrar(chave, 'estacao', opcoes.titulo, { pid: null, executor: null, dir: null, retomavel: !!opcoes.retomavel });
+  const d = path.join(base(env), novoId());
+  fs.mkdirSync(d, { recursive: true, mode: 0o700 });
+  const opcaoRegistrar = opcoes.registrar ?? true;
+  const notificacao = {
+    registrar: typeof opcaoRegistrar === 'function' ? 'funcao' : !!opcaoRegistrar,
+    acoes: opcoes.acoes ?? null, rota: opcoes.rota ?? null, abrir: opcoes.abrir ?? null,
   };
-  processo.on('error', (e) => { saidaFechou = Promise.resolve(); terminar(null, `não consegui rodar ${exe}: ${e.message}`); });
-  processo.on('close', (codigo) => terminar(codigo));
+  fs.writeFileSync(path.join(d, 'pedido.json'), JSON.stringify({
+    chave, titulo: reg.titulo, app: env.VSSH_APP_ID ?? null, comando: [...comando], cwd: opcoes.cwd ?? null,
+    notificacao, criadoEm: reg.criadoEm,
+  }));
+  const t = new Trabalho({ ...reg, dir: d }, opcoes.aoEvento, env);
+  // O executor roda com o ambiente do app (é dele a atividade na bandeja), e recebe o do comando
+  // pelo stdin. Sessão própria: ele não morre com o backend.
+  const processo = spawn(process.execPath, [EXECUTOR, d], { env, stdio: ['pipe', 'ignore', 'ignore'], detached: true });
+  const nasceu = processo.pid ? nascimento(processo.pid) : null;
+  fs.writeFileSync(path.join(d, 'pid'), nasceu ? `${processo.pid} ${nasceu}` : String(processo.pid ?? ''));
+  processo.stdin.on('error', () => { /* o executor morreu antes de ler: o acompanhamento termina o trabalho */ });
+  processo.stdin.end(JSON.stringify({ ambiente: opcoes.ambiente ?? null }));
+  processo.unref();
+  emCurso.set(chave, t);
+  t._mudar(null, { executor: processo.pid ?? null });
+  seguirNaEstacao(t, processo, { registrar: opcaoRegistrar, acoes: opcoes.acoes, rota: opcoes.rota, abrir: opcoes.abrir }, env);
   return t;
 }
 
@@ -301,9 +421,33 @@ function vivo(pid) {
   try { process.kill(pid, 0); return true; } catch { return false; }
 }
 
+// Um diretório de trabalho sem registro em curso é sobra: o app apagou o registro, ou caiu entre
+// criar o diretório e gravá-lo. A hora de espera cobre um `rodar` que está nesse intervalo agora.
+const SOBRA_MS = 60 * 60 * 1000;
+
+/** Apaga os diretórios deste app que nenhum registro em curso segue e cujo executor já saiu. */
+function faxina(env) {
+  const raiz = base(env);
+  const seguidos = new Set(listar(env).filter((r) => !FINAIS.includes(r.estado)).map((r) => r.dir));
+  let nomes = [];
+  try { nomes = fs.readdirSync(raiz); } catch { return; }
+  for (const nome of nomes) {
+    const d = path.join(raiz, nome);
+    if (seguidos.has(d) || ((lerJson(path.join(d, 'pedido.json')) || {}).app ?? null) !== (env.VSSH_APP_ID ?? null)) continue;
+    try {
+      if (fs.statSync(d).mtimeMs >= Date.now() - SOBRA_MS) continue;
+      if (!fs.existsSync(path.join(d, 'exit')) && executorVivo(d)) continue;
+    } catch { continue; }
+    fs.rmSync(d, { recursive: true, force: true });
+  }
+}
+
 /**
- * Volta a seguir os trabalhos da fila que estavam em curso, e encerra os da estação. Devolve os
- * `Trabalho` retomados. Chame no boot do backend, antes de servir.
+ * Volta a seguir os trabalhos que estavam em curso: os da fila, e os da estação que o `rodar`
+ * marcou com `retomavel: true`. Os outros da estação são encerrados. Devolve os `Trabalho`
+ * retomados. Chame no boot do backend, antes de servir. `registrar` é a função da notificação do
+ * fim para os trabalhos da estação que tinham uma (`rodar` não tem como gravá-la); sem ela, o
+ * fim desses escreve a notificação padrão.
  */
 function retomar(opcoes = {}) {
   const env = opcoes.env || process.env;
@@ -315,13 +459,27 @@ function retomar(opcoes = {}) {
       emCurso.set(t.chave, t);
       seguir(t, !!opcoes.linhas, env);
       retomados.push(t);
+    } else if (reg.onde === 'estacao' && reg.retomavel && reg.dir && fs.existsSync(reg.dir)) {
+      const fimDe = { ...((lerJson(path.join(reg.dir, 'pedido.json')) || {}).notificacao || {}) };
+      if (fimDe.registrar === 'funcao') fimDe.registrar = typeof opcoes.registrar === 'function' ? opcoes.registrar : true;
+      emCurso.set(t.chave, t);
+      seguirNaEstacao(t, null, fimDe, env);
+      retomados.push(t);
     } else {
-      if (reg.pid && vivo(reg.pid)) sinalizarGrupo(reg.pid, 'SIGKILL');
-      t._terminar('falhou', reg.onde === 'estacao' ? 'o app reiniciou no meio' : 'o envio à fila foi interrompido', null,
-        () => avisos.limparAtividade(t.chave, { env }));
+      // O trabalho da estação que o app não pediu para retomar é encerrado, para não segurar a
+      // GPU. Um sem diretório é de um runtime anterior, em que o comando era filho do backend e o
+      // `pid` gravado era o dele.
+      const d = reg.onde === 'estacao' ? reg.dir : null;
+      if (d && fs.existsSync(d)) encerrar(d);
+      else if (reg.onde === 'estacao' && !d && reg.pid && vivo(reg.pid)) sinalizarGrupo(reg.pid, 'SIGKILL');
+      t._terminar('falhou', reg.onde === 'estacao' ? 'o app reiniciou no meio' : 'o envio à fila foi interrompido', null, () => {
+        avisos.limparAtividade(t.chave, { env });
+        if (d) fs.rmSync(d, { recursive: true, force: true });
+      });
     }
   }
+  faxina(env);
   return retomados;
 }
 
-module.exports = { rodar, naFila, estado, listar, retomar, Trabalho, FINAIS };
+module.exports = { rodar, naFila, estado, listar, retomar, Trabalho, FINAIS, _nascimento: nascimento };
