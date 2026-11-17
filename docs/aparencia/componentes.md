@@ -111,6 +111,16 @@ item ativo da gaveta, que é como o ambiente já diz "este aqui está valendo".
 </div>
 ```
 
+Um botão que espera uma resposta leva `aria-busy="true"` e `disabled`. Ele ganha um giro antes do
+rótulo, na cor do texto, e o rótulo diz o que anda ("Gerando"), que é o que um leitor de tela lê.
+Para quem pediu menos movimento ao sistema, o giro fica parado. Um botão que já tem um ícone
+`.tuff-ico--gira` gira o ícone e não ganha um segundo sinal.
+
+```html vivo
+<button class="tuff-btn tuff-btn--primario" aria-busy="true" disabled>Gerando</button>
+<button class="tuff-btn" aria-busy="true" disabled>Atualizando</button>
+```
+
 ## Campos
 
 Nunca controle nativo. O custo de ignorar isso é um `input type="date"` abrindo um calendário
@@ -242,6 +252,27 @@ que algo anda. A tag é uma etiqueta neutra, e a tecla (`.tuff-tecla`) desenha u
 <span class="tuff-tecla">P</span>
 ```
 
+A etiqueta que leva a algum lugar é um `<a class="tuff-tag">`, e a que filtra a lista é um
+`<button class="tuff-tag">`. As duas respondem ao ponteiro com o fundo de hover e o texto forte,
+têm o anel de foco e, sob o dedo, crescem até o alvo de toque.
+
+```html vivo
+<a class="tuff-tag" href="#estado">lab-cpps</a>
+<button class="tuff-tag" type="button">só os meus</button>
+```
+
+O ponto (`.tuff-ponto`) diz o estado numa linha de lista, onde uma pílula por linha pesaria mais
+que o nome. As cores são as da pílula, e sem variante ele é o estado que ainda não se conhece. A
+cor sozinha não chega a quem não a distingue, nem a um leitor de tela: o ponto leva `role="img"`
+com `aria-label`, ou o estado vai escrito ao lado.
+
+```html vivo
+<span class="tuff-ponto tuff-ponto--ok" role="img" aria-label="No ar"></span> ipprivm01
+<span class="tuff-ponto tuff-ponto--aviso" role="img" aria-label="Cheia"></span> gpu-lantri
+<span class="tuff-ponto tuff-ponto--erro" role="img" aria-label="Fora do ar"></span> lab-03
+<span class="tuff-ponto" role="img" aria-label="Verificando"></span> lab-04
+```
+
 ## Dica
 
 A linha explicativa que acompanha um controle: barra à esquerda em vez de caixa inteira, porque ela
@@ -287,6 +318,26 @@ que atravessa, sem fingir saber a fração; a `--alerta` troca o preenchimento p
 
 A largura do preenchimento é `style="width:…%"` escrito pelo app, e a transição de `--ds-dur`
 faz a barra andar em vez de pular.
+
+## Pessoas
+
+O avatar são as iniciais sobre a cor da pessoa, em `--tuff-cor`. Quem escolhe a cor é o app, e ela
+é a mesma em todo lugar em que a pessoa aparece. As iniciais são escuras porque as cores de pessoa
+são claras sobre o fundo do ambiente. `.tuff-avatar--presente` acrescenta o ponto de quem está no
+documento agora, e `.tuff-avatar--pequeno` e `.tuff-avatar--grande` trocam o tamanho: o grande é o
+do topo de uma ficha. Na pilha (`.tuff-avatares`) os avatares se sobrepõem. Um avatar que leva a
+algum lugar é um `<button class="tuff-avatar">`, com `aria-label`.
+
+```html vivo
+<span class="tuff-avatar" style="--tuff-cor:#4ec9b0" title="Ana Beatriz Moreira">AM</span>
+<span class="tuff-avatar tuff-avatar--presente" style="--tuff-cor:#c678dd" title="Helena Duarte">HD</span>
+<span class="tuff-avatar tuff-avatar--pequeno" style="--tuff-cor:#ce9178" title="Rafael Almeida">RA</span>
+<span class="tuff-avatar tuff-avatar--grande" style="--tuff-cor:#569cd6" title="Júlia Prado">JP</span>
+<span class="tuff-avatares">
+  <span class="tuff-avatar" style="--tuff-cor:#4ec9b0">AM</span>
+  <button class="tuff-avatar tuff-avatar--presente" style="--tuff-cor:#c678dd" aria-label="Helena Duarte, no capítulo 2">HD</button>
+</span>
+```
 
 ## Ícones
 

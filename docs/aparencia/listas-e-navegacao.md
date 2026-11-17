@@ -1,8 +1,9 @@
 # Listas e navegação
 
-As peças com que um app organiza o que mostra: a lista, a lista longa e a árvore, o par chave e
-valor, a barra de ferramentas, a gaveta de navegação, a busca, o detalhe e o tooltip. Todas em
-`tuff.css`; a lista longa, a árvore e a gaveta precisam também de `tuff.js`.
+As peças com que um app organiza o que mostra: a lista, a lista longa e a árvore, a tabela, o par
+chave e valor, a barra de ferramentas, a gaveta de navegação, as seções, a busca, o detalhe, o
+bloco de código e o tooltip. Todas em `tuff.css`; a lista longa, a árvore, a gaveta e o botão de
+copiar do bloco de código precisam também de `tuff.js`.
 
 ## Lista
 
@@ -76,6 +77,37 @@ as linhas ficam arrastáveis quando `aoArrastar(evento, no)` existe.
 | `aria-expanded` | só nas pastas; a `.tuff-arvore-seta` gira com ele e some num item que não é pasta |
 | `.tuff-arvore-recuo` | o recuo, `--tuff-arvore-nivel` vezes o degrau `--ds-gap-lg` |
 | `.tuff-item--foco` | a linha do foco do teclado, com o contorno só quando o foco chegou pelo teclado |
+
+## Tabela
+
+Uma lista com mais de um atributo por item. Numa `<table class="tuff-tabela">`, a célula do
+cabeçalho é `.tuff-tabela-th`, a linha é `.tuff-tabela-linha`, e a coluna de número leva
+`.tuff-tabela-num`, que alinha à direita com algarismos de mesma largura.
+
+Uma linha pode nomear um grupo de linhas. Cada grupo é um `<tbody>` que começa por
+`.tuff-tabela-grupo`, com o nome num `<th scope="rowgroup">`: é isso que liga o nome às linhas dele
+para um leitor de tela.
+
+```html vivo
+<table class="tuff-tabela">
+  <thead>
+    <tr><th class="tuff-tabela-th">Componente</th><th class="tuff-tabela-th">Versão</th><th class="tuff-tabela-th tuff-tabela-num">Estações atrás</th></tr>
+  </thead>
+  <tbody>
+    <tr class="tuff-tabela-grupo"><th colspan="3" scope="rowgroup">Instalados pelo portal</th></tr>
+    <tr class="tuff-tabela-linha"><td>Agente do sistema</td><td>1.0.0</td><td class="tuff-tabela-num">0</td></tr>
+    <tr class="tuff-tabela-linha"><td>Terminal</td><td>1.4.2</td><td class="tuff-tabela-num">1</td></tr>
+  </tbody>
+  <tbody>
+    <tr class="tuff-tabela-grupo"><th colspan="3" scope="rowgroup">Buscados no repositório pela estação</th></tr>
+    <tr class="tuff-tabela-linha"><td>vssh-app-run</td><td>1.1.0</td><td class="tuff-tabela-num">0</td></tr>
+  </tbody>
+</table>
+```
+
+A coluna que se ordena, a forma em grade (uma lista de `div` com as mesmas classes, que mede a
+própria largura) e as colunas de largura arrastável pedem o `TuffTabela`, de `tuff.js`. O
+comentário da peça em `tuff.css` descreve as três.
 
 ## Chave e valor
 
@@ -170,6 +202,24 @@ da seção visível enquanto a página rola (cada item aponta a seção pelo `da
 gaveta depois de um clique só quando ela está em modo gaveta; persistente, ela responde "onde eu
 estou", e fechá-la apagaria a resposta no momento em que a pessoa acabou de perguntar.
 
+## Seções
+
+As seções de uma página, cada uma com o próprio endereço. São links numa tira sobre um fio, e
+andam pelo Tab como todo link. A atual é a que leva `aria-current="page"`, e é o atributo que
+pinta: o olho e o leitor de tela leem o mesmo fato. Quando não cabem, a tira rola de lado.
+
+Para documentos abertos, com fechar e reordenar, a peça é a tira de abas (`.tuff-abas`). Para
+trocar um modo sem mudar de endereço, é o controle segmentado.
+
+```html vivo
+<nav class="tuff-secoes" aria-label="Seções da estação">
+  <a class="tuff-secao" href="#seções" aria-current="page">Quem abre</a>
+  <a class="tuff-secao" href="#seções">Componentes do sistema</a>
+  <a class="tuff-secao" href="#seções">Apps</a>
+  <a class="tuff-secao" href="#seções">Conexão e rede</a>
+</nav>
+```
+
 ## Busca
 
 Um `input type="search"` com a lupa embutida. A cruz nativa do WebKit sai: ela é branca, quadrada
@@ -196,6 +246,63 @@ estado a um leitor de tela. A seta padrão sai e volta como pseudo-elemento, par
   <summary>Aberto de início</summary>
   <div class="tuff-detalhe-corpo">Com o atributo <code>open</code> no <code>details</code>.</div>
 </details>
+```
+
+## Bloco de código
+
+Um comando ou um trecho que a pessoa copia para outro lugar: o texto em mono num poço da cor da
+página, e um cabeçalho opcional com o nome do bloco e as ações. O texto quebra onde for preciso
+para caber na largura, porque um comando com um token de quarenta letras não tem espaço onde
+quebrar.
+
+```html vivo
+<div class="tuff-codigo">
+  <div class="tuff-codigo-cab">
+    <span class="tuff-codigo-titulo">Comando</span>
+  </div>
+  <pre class="tuff-codigo-corpo">VSSH_URL="https://vssh.exemplo.org" \
+VSSH_SERVER_TOKEN="vssh_reg_5f1c0a9e7b3d4c2f8a6e1d0b9c7f3a2e" \
+curl -fsSL https://vssh.exemplo.org/infra/vssh-provision.sh | bash -s -- --target here</pre>
+</div>
+```
+
+O botão `.tuff-codigo-copiar`, nas ações do cabeçalho, copia o texto do corpo sem código do app:
+quem escuta o clique é o `tuff.js`. O rótulo dele vira o de `data-copiado` por um instante, ou o
+de `data-falhou` quando o navegador recusa a cópia.
+
+```html
+<div class="tuff-codigo">
+  <div class="tuff-codigo-cab">
+    <span class="tuff-codigo-titulo">Comando</span>
+    <div class="tuff-codigo-acoes">
+      <button class="tuff-btn tuff-codigo-copiar" type="button" data-copiado="Copiado" data-falhou="Não copiou">Copiar</button>
+    </div>
+  </div>
+  <pre class="tuff-codigo-corpo">…</pre>
+</div>
+```
+
+O bloco também dispara um evento com o resultado da cópia. Um botão com um ícone dentro não troca
+o rótulo, e é pelo evento que o app responde.
+
+```js
+bloco.addEventListener('tuff-copiou', (e) => {
+  // e.detail.ok diz se o texto chegou à área de transferência.
+});
+```
+
+Um bloco alto rola dentro de `--tuff-codigo-altura`, e aí o corpo leva `tabindex="0"`, para o
+teclado alcançar o que rola.
+
+```html vivo
+<div class="tuff-codigo">
+  <pre class="tuff-codigo-corpo" tabindex="0" style="--tuff-codigo-altura: 84px" aria-label="Saída do comando">instalando python3… feito
+instalando ffmpeg… feito
+instalando texlive… feito
+instalando pandoc… feito
+instalando typst… feito
+registrando a estação… feito</pre>
+</div>
 ```
 
 ## Tooltip
