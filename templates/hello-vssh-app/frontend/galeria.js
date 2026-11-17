@@ -496,6 +496,27 @@ function montarGaleria() {
   $('priv-apagar').addEventListener('click', () => privado('unlink nota.txt',
     { op: 'unlink', path: 'nota.txt' }));
 
+  // ── O banco do app ───────────────────────────────────────────────────────────
+  //
+  // As notas moram numa tabela do SQLite que o backend abre com `vssh.banco`. A página fala com
+  // as rotas de `api/notas` e nunca com o banco: o que cada rota lê e escreve é decisão do
+  // backend. Num backend que não conseguiu abrir o banco, a rota responde 503 com o motivo, e é
+  // ele que aparece aqui.
+  const notas = async (rotulo, opcoes) => {
+    try {
+      const r = await fetch('api/notas', opcoes);
+      escrever('banco', `${rotulo} → HTTP ${r.status}\n${JSON.stringify(await r.json(), null, 2)}`);
+    } catch (e) { falhar('banco', e); }
+  };
+
+  $('banco-guardar').addEventListener('click', () => notas('POST api/notas', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ texto: `anotada em ${new Date().toISOString()}` }),
+  }));
+  $('banco-listar').addEventListener('click', () => notas('GET api/notas'));
+  $('banco-apagar').addEventListener('click', () => notas('DELETE api/notas', { method: 'DELETE' }));
+
   // A notificação de backend COM ação. O clique não volta para esta página: ele vai para o backend,
   // como POST — porque quando alguém clicar, a janela pode não existir mais. O backend difunde o
   // resultado pelo SSE, e é assim que a linha abaixo muda sem esta página ter pedido nada.

@@ -264,6 +264,29 @@ Ela faz o checkout esparso de `runtime`, `api` e `scripts` em `_sdk/` no workspa
 `VSSH_SDK`, `NODE_PATH` e `PYTHONPATH` em `GITHUB_ENV`. A publicação continua no reusable, num
 job à parte; quem precisa fixar uma revisão deste repositório passa `ref` à ação.
 
+## O banco do app: `vssh.banco`
+
+O runtime `1.1.0` traz o módulo `banco`: um SQLite por pessoa e por app no diretório de dados,
+aberto com o diário em WAL, as chaves estrangeiras ligadas e o arquivo fechado às outras contas, e
+uma lista de migrações que o app declara e o runtime aplica para a frente. A API é a mesma em
+Python e em Node, e o [guia](docs/guias/banco.md) a mostra inteira.
+
+Nada muda para um app que não o usa. Para quem já guarda dados:
+
+- Quem guarda JSON em arquivos pelo `vssh.dados` continua funcionando. Passar ao banco vale quando
+  o app precisa de busca, de ordem ou de mudar várias coisas juntas. A primeira migração cria as
+  tabelas, e uma função de migração lê os arquivos antigos e os insere: ela roda uma vez, numa
+  transação, e os arquivos ficam onde estão até o app decidir tirá-los.
+- Quem já abre um SQLite à mão (o `sqlite3` do Python, o `node:sqlite` ou um pacote npm) pode
+  apontar `banco.abrir(nome=...)` para o mesmo arquivo quando ele mora no diretório de dados com
+  a extensão `.db`. O runtime usa o `PRAGMA user_version` como a versão do banco: um app que já
+  usa esse número declara na lista as mesmas migrações, na mesma ordem, e o banco de quem está na
+  versão 3 recebe da quarta em diante. Um app que guarda a versão de outro jeito continua abrindo
+  o banco dele como abria, e migra para o `vssh.banco` quando quiser.
+- No Node, o driver é o `node:sqlite`, do Node 22.5 em diante. O VSSH-Runtime do servidor traz
+  um Node que o tem, e um app que dependia de um pacote npm de SQLite pode deixá-lo.
+- A página continua sem falar com o banco: ela fala com o backend.
+
 ## O que vai mudar, e quando
 
 O [`emulador/`](emulador/) chega para desenvolver e testar um app sem servidor VSSH por perto, e

@@ -59,7 +59,7 @@ from urllib.parse import parse_qs, urlsplit
 # `vssh.avisos.bandeja` do SDK web: aquele morre com a janela; este escreve um arquivo que o
 # portal lê, e o clique volta como POST, porque a rede é assimétrica (o portal alcança o app; o
 # app não alcança o portal).
-from vssh import app, avisos, dados, eventos, fila, gpu, servidor, web
+from vssh import app, avisos, banco, dados, eventos, fila, gpu, servidor, web
 
 _AQUI = os.path.dirname(os.path.abspath(__file__))
 
@@ -87,6 +87,51 @@ arquivos_privados = dados.abrir("privado", ao_avisar=log)
 # As rotas que o frontend chama em `api/privado`. O portão de token fica no `servidor.Pedido`, na
 # frente de tudo, e por isso estas rotas não têm um segundo.
 servir_privado = dados.rotas(arquivos_privados, prefixo="/api/privado", ao_avisar=log)
+
+# ── O banco deste app ────────────────────────────────────────────────────────
+#
+# `banco.abrir` cria o arquivo do banco no diretório de dados, um SQLite por pessoa, e aplica as
+# migrações que faltam. A posição de cada migração na lista é a versão que ela deixa o banco: a tabela é a 1,
+# e a coluna do instante é a 2. Uma migração publicada não se edita, porque o banco de quem a
+# aplicou já passou dela; a correção é a migração seguinte.
+MIGRACOES_DAS_NOTAS = [
+    "CREATE TABLE notas (id INTEGER PRIMARY KEY, texto TEXT NOT NULL)",
+    "ALTER TABLE notas ADD COLUMN criada_em INTEGER NOT NULL DEFAULT 0",
+]
+MAX_NOTA = 500
+_notas = {"db": None}
+_tranca_das_notas = threading.Lock()
+
+
+def banco_das_notas():
+    """O banco, aberto no primeiro pedido que o usa. O backend sobe sem ele: uma peça que não
+    consegue abrir o banco diz o motivo na rota, e as outras continuam de pé."""
+    with _tranca_das_notas:
+        if _notas["db"] is None:
+            _notas["db"] = banco.abrir(migracoes=MIGRACOES_DAS_NOTAS)
+        return _notas["db"]
+
+
+def listar_notas():
+    db = banco_das_notas()
+    return {
+        "versao": db.versao,
+        "total": db.valor("SELECT count(*) FROM notas"),
+        "notas": db.todas("SELECT id, texto, criada_em FROM notas ORDER BY id DESC LIMIT 20"),
+    }
+
+
+def guardar_nota(texto):
+    db = banco_das_notas()
+    nova = db.executar("INSERT INTO notas (texto, criada_em) VALUES (?, ?)",
+                       [str(texto or "sem texto")[:MAX_NOTA], int(time.time() * 1000)])
+    return {"versao": db.versao, "nota": db.uma("SELECT id, texto, criada_em FROM notas WHERE id = ?", [nova["ultimo_id"]])}
+
+
+def apagar_notas():
+    db = banco_das_notas()
+    return {"versao": db.versao, "apagadas": db.executar("DELETE FROM notas")["mudancas"]}
+
 
 # A raiz vai absoluta, a partir deste arquivo. Uma relativa (`web.spa("frontend")`) resolve contra
 # a pasta do `vssh-app.json` a partir do script principal, e numa bancada que importa este módulo
@@ -773,6 +818,24 @@ class Pedido(servidor.Pedido):
 
             # ── Duas janelas, um backend ────────────────────────────────────
             #
+            # ── O banco do app ──────────────────────────────────────────────
+            # A página pede, e quem lê e escreve no banco é este processo. Um banco que não abre
+            # responde 503 com o motivo, em vez de derrubar as outras peças.
+            if caminho == "/api/notas":
+                try:
+                    if metodo == "GET":
+                        self._json(200, listar_notas())
+                    elif metodo == "POST":
+                        self._json(200, guardar_nota((self._corpo() or {}).get("texto")))
+                    elif metodo == "DELETE":
+                        self._json(200, apagar_notas())
+                    else:
+                        self._json(405, {"error": "método não atendido"})
+                except Exception as err:  # noqa: BLE001
+                    log("erro", {"rota": caminho, "erro": repr(err)})
+                    self._json(503, {"error": f"o banco do app não abriu: {err}"})
+                return
+
             # O contador vive AQUI, no processo. Duas janelas do mesmo app são duas visões deste
             # mesmo processo — mesmo socket, mesmo token, mesmo VSSH_APP_DATA_DIR.
             if caminho == "/api/estado" and metodo == "GET":

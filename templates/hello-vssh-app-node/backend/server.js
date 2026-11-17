@@ -28,6 +28,7 @@ const path = require('node:path');
 //   web        a SPA do app, com o SDK web e o Tuff injetados no `<head>`
 //   eventos    SSE, e a difusão a quem assinou
 //   dados      o filesystem privado do app, e as rotas que o frontend chama
+//   banco      um SQLite por pessoa e por app, com as migrações
 //   avisos     notificar, atividade em curso e bandeja, para um app sem janela
 //   app        quem sou, e onde guardo as coisas
 //   gpu        o que o lançador concedeu de GPU a este processo
@@ -40,7 +41,7 @@ const path = require('node:path');
 // `vssh.avisos.bandeja` do SDK web: aquele morre com a janela; este escreve um arquivo que o
 // portal lê, e o clique volta como POST, porque a rede é assimétrica (o portal alcança o app; o
 // app não alcança o portal).
-const { servidor, web, eventos, dados, avisos, app, gpu, fila } = require('vssh');
+const { servidor, web, eventos, dados, banco, avisos, app, gpu, fila } = require('vssh');
 
 // Onde este backend escuta é decisão do lifecycle, não deste arquivo: socket unix em
 // $VSSH_APP_SOCKET. Quem lê a variável,
@@ -85,6 +86,49 @@ const arquivosPrivados = dados.abrir('privado', { aoAvisar: log });
 // As rotas que o frontend chama em `api/privado`. O portão de token fica no `servidor.portao`,
 // na frente de tudo, e por isso estas rotas não têm um segundo.
 const servirPrivado = dados.rotas(arquivosPrivados, { prefixo: '/api/privado', aoAvisar: log });
+
+// ── O banco deste app ────────────────────────────────────────────────────────
+//
+// `banco.abrir` cria o arquivo do banco no diretório de dados, um SQLite por pessoa, e aplica as
+// migrações que faltam. A posição de cada migração na lista é a versão que ela deixa o banco: a tabela é a 1,
+// e a coluna do instante é a 2. Uma migração publicada não se edita, porque o banco de quem a
+// aplicou já passou dela; a correção é a migração seguinte.
+const MIGRACOES_DAS_NOTAS = [
+  'CREATE TABLE notas (id INTEGER PRIMARY KEY, texto TEXT NOT NULL)',
+  'ALTER TABLE notas ADD COLUMN criada_em INTEGER NOT NULL DEFAULT 0',
+];
+const MAX_NOTA = 500;
+let dasNotas = null;
+
+/**
+ * O banco, aberto no primeiro pedido que o usa. O backend sobe sem ele: uma peça que não consegue
+ * abrir o banco diz o motivo na rota, e as outras continuam de pé.
+ */
+function bancoDasNotas() {
+  dasNotas ||= banco.abrir({ migracoes: MIGRACOES_DAS_NOTAS });
+  return dasNotas;
+}
+
+function listarNotas() {
+  const db = bancoDasNotas();
+  return {
+    versao: db.versao,
+    total: db.valor('SELECT count(*) FROM notas'),
+    notas: db.todas('SELECT id, texto, criada_em FROM notas ORDER BY id DESC LIMIT 20'),
+  };
+}
+
+function guardarNota(texto) {
+  const db = bancoDasNotas();
+  const nova = db.executar('INSERT INTO notas (texto, criada_em) VALUES (?, ?)',
+    [String(texto || 'sem texto').slice(0, MAX_NOTA), Date.now()]);
+  return { versao: db.versao, nota: db.uma('SELECT id, texto, criada_em FROM notas WHERE id = ?', [nova.ultimo_id]) };
+}
+
+function apagarNotas() {
+  const db = bancoDasNotas();
+  return { versao: db.versao, apagadas: db.executar('DELETE FROM notas').mudancas };
+}
 
 // A raiz vai absoluta, a partir deste arquivo. Uma relativa (`web.spa('frontend')`) resolve contra
 // a pasta do `vssh-app.json` a partir do script principal, e numa bancada que importa este módulo
@@ -796,6 +840,27 @@ const server = http.createServer(servidor.portao(async (req, res) => {
     // "Nova janela") são duas visões deste mesmo processo — mesma porta, mesmo token, mesmo
     // VSSH_APP_DATA_DIR. É o que este par de rotas demonstra, e também o que ele avisa: estado de
     // UI guardado no backend passa a ter mais de um cliente.
+    // ── O banco do app ──────────────────────────────────────────────────────
+    // A página pede, e quem lê e escreve no banco é este processo. Um banco que não abre responde
+    // 503 com o motivo, em vez de derrubar as outras peças.
+    if (url.pathname === '/api/notas') {
+      let status = 200;
+      let corpo;
+      try {
+        if (req.method === 'GET') corpo = listarNotas();
+        else if (req.method === 'POST') corpo = guardarNota((await lerCorpo(req)).texto);
+        else if (req.method === 'DELETE') corpo = apagarNotas();
+        else { status = 405; corpo = { error: 'método não atendido' }; }
+      } catch (err) {
+        log('erro', { rota: url.pathname, erro: String(err && err.message || err) });
+        status = 503;
+        corpo = { error: `o banco do app não abriu: ${err && err.message || err}` };
+      }
+      res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(corpo));
+      return;
+    }
+
     if (url.pathname === '/api/estado' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(estado()));
