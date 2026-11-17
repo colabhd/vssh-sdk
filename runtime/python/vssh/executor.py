@@ -11,7 +11,7 @@ lê de onde parou.
 
 ─── O diretório do trabalho ──────────────────────────────────────────────────────────────────
 
-    pedido.json   de quem dispara: `chave`, `titulo`, `comando`, `cwd`
+    pedido.json   de quem dispara: `comando`, `cwd`, e a `chave` e o `titulo` da atividade
     pid           de quem dispara: o pid do executor e o instante em que ele nasceu
     grupo         o grupo de processos do comando e o instante em que ele nasceu: é o que o
                   governador da estação leva a `nice` 19 e o que um cancelamento encerra
@@ -26,8 +26,9 @@ credencial, e o arquivo fica no disco até a faxina.
 
 ─── O que o executor faz enquanto o comando roda ─────────────────────────────────────────────
 
-As linhas de progresso (`vssh.progresso`) viram a atividade do trabalho na bandeja, que ele
-renova, com o backend do app de pé ou não. Cancelar manda SIGTERM ao grupo do comando, e SIGKILL
+O comando recebe o diretório em `VSSH_TRABALHO_DIR`. As linhas de progresso (`vssh.progresso`)
+viram a atividade do trabalho na bandeja, que ele renova, com o backend do app de pé ou não; um
+pedido sem `chave`, ou com `atividade: false`, não tem atividade. Cancelar manda SIGTERM ao grupo do comando, e SIGKILL
 cinco segundos depois a quem ainda estiver de pé: um comando que quer limpar o que fez pela metade
 trata o SIGTERM. O executor não escreve a notificação do fim nem tira a atividade: isso é do
 backend, que conhece o texto, e sem ele a atividade expira sozinha.
@@ -88,7 +89,9 @@ def executar(d):
         ambiente = (json.load(sys.stdin) or {}).get('ambiente')
     except ValueError:
         ambiente = None
-    chave, titulo = pedido['chave'], pedido.get('titulo') or pedido['chave']
+    chave = pedido.get('chave') if pedido.get('atividade') is not False else None
+    titulo = pedido.get('titulo') or chave
+    ambiente = dict(os.environ if ambiente is None else ambiente, VSSH_TRABALHO_DIR=d)
 
     def terminar(estado, codigo, motivo):
         _escrever(os.path.join(d, 'fim.json'), json.dumps(
@@ -106,8 +109,9 @@ def executar(d):
     nasceu = _nascimento(filho.pid)
     _escrever(os.path.join(d, 'grupo'), '%d %s' % (filho.pid, nasceu) if nasceu else str(filho.pid))
 
-    parar_renovacao = avisos.manter_atividades_vivas()
-    avisos.atividade(chave, item_da_atividade(titulo, None))
+    parar_renovacao = avisos.manter_atividades_vivas() if chave else (lambda: None)
+    if chave:
+        avisos.atividade(chave, item_da_atividade(titulo, None))
     ultimos_erros = collections.deque(maxlen=20)
 
     def copiar_saida():
@@ -116,7 +120,7 @@ def executar(d):
             for linha in filho.stdout:
                 arquivo.write(linha)
                 arquivo.flush()
-                p = progresso.ler(linha)
+                p = progresso.ler(linha) if chave else None
                 if p is None:
                     continue
                 agora = time.monotonic()

@@ -13,7 +13,7 @@
 //
 // ── O diretório do trabalho ─────────────────────────────────────────────────────────────────
 //
-//   pedido.json   de quem dispara: `chave`, `titulo`, `comando`, `cwd`
+//   pedido.json   de quem dispara: `comando`, `cwd`, e a `chave` e o `titulo` da atividade
 //   pid           de quem dispara: o pid do executor e o instante em que ele nasceu
 //   grupo         o grupo de processos do comando e o instante em que ele nasceu: é o que o
 //                 governador da estação leva a `nice` 19 e o que um cancelamento encerra
@@ -28,8 +28,9 @@
 //
 // ── O que o executor faz enquanto o comando roda ────────────────────────────────────────────
 //
-// As linhas de progresso (`vssh.progresso`) viram a atividade do trabalho na bandeja, que ele
-// renova, com o backend do app de pé ou não. Cancelar manda SIGTERM ao grupo do comando, e SIGKILL
+// O comando recebe o diretório em `VSSH_TRABALHO_DIR`. As linhas de progresso (`vssh.progresso`)
+// viram a atividade do trabalho na bandeja, que ele renova, com o backend do app de pé ou não; um
+// pedido sem `chave`, ou com `atividade: false`, não tem atividade. Cancelar manda SIGTERM ao grupo do comando, e SIGKILL
 // cinco segundos depois a quem ainda estiver de pé: um comando que quer limpar o que fez pela
 // metade trata o SIGTERM. O executor não escreve a notificação do fim nem tira a atividade: isso é
 // do backend, que conhece o texto, e sem ele a atividade expira sozinha.
@@ -84,8 +85,9 @@ async function executar(d) {
     for await (const pedaco of process.stdin) pedacos.push(pedaco);
     ambiente = (JSON.parse(Buffer.concat(pedacos).toString('utf8') || '{}') || {}).ambiente || undefined;
   } catch { ambiente = undefined; }
-  const chave = pedido.chave;
+  const chave = pedido.atividade === false ? null : (pedido.chave || null);
   const titulo = pedido.titulo || chave;
+  ambiente = { ...(ambiente || process.env), VSSH_TRABALHO_DIR: d };
 
   const terminar = (estado, codigo, motivo) => {
     escrever(path.join(d, 'fim.json'), JSON.stringify({ estado, codigo, motivo, terminadoEm: Date.now() }));
@@ -95,7 +97,7 @@ async function executar(d) {
   const [exe, ...args] = pedido.comando.map(String);
   const saida = fs.openSync(path.join(d, 'saida'), 'a');
   const erros = fs.openSync(path.join(d, 'erros'), 'a');
-  const filho = spawn(exe, args, { cwd: pedido.cwd || undefined, env: ambiente || process.env, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
+  const filho = spawn(exe, args, { cwd: pedido.cwd || undefined, env: ambiente, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
 
   let falhaAoSubir = null;
   const fechou = new Promise((resolve) => {
@@ -107,12 +109,12 @@ async function executar(d) {
     escrever(path.join(d, 'grupo'), nasceu ? `${filho.pid} ${nasceu}` : String(filho.pid));
   }
 
-  const pararRenovacao = avisos.manterAtividadesVivas();
-  avisos.atividade(chave, itemDaAtividade(titulo, null));
+  const pararRenovacao = chave ? avisos.manterAtividadesVivas() : () => {};
+  if (chave) avisos.atividade(chave, itemDaAtividade(titulo, null));
   const ultimosErros = [];
   let ultimaAtividade = 0;
   const olharLinha = porLinha((linha) => {
-    const p = progresso.ler(linha);
+    const p = chave ? progresso.ler(linha) : null;
     if (!p || Date.now() - ultimaAtividade < INTERVALO_DA_ATIVIDADE_MS) return;
     ultimaAtividade = Date.now();
     avisos.atividade(chave, itemDaAtividade(titulo, p));

@@ -80,7 +80,8 @@ from . import avisos
 from . import fila
 from . import progresso as _progresso
 
-__all__ = ['rodar', 'na_fila', 'estado', 'listar', 'retomar', 'Trabalho', 'ESTADOS_FINAIS']
+__all__ = ['rodar', 'na_fila', 'estado', 'listar', 'retomar', 'Trabalho', 'ESTADOS_FINAIS',
+           'disparar', 'vivo', 'grupo', 'fim', 'encerrar']
 
 ESTADOS_FINAIS = ('concluido', 'falhou', 'cancelado')
 _CHAVE = re.compile(r'^[\w:.-]{1,64}$')
@@ -420,6 +421,74 @@ def _seguir_na_estacao(t, processo, registrar, env):
                 codigo=fim.get('codigo'), antes_de_anunciar=registrar_fim)
 
 
+# ── A peça de baixo: disparar um comando destacado, e perguntar por ele ──────────────────────────
+#
+# `rodar` é isto mais o registro, os eventos e a notificação. Quem já tem o próprio jeito de contar
+# o que acontece (o agente do sistema, com os jobs de arquivo que o shell segue por SSE) usa só
+# esta parte: o disparo, a marca de quem está vivo e o fim.
+
+def disparar(comando, base=None, cwd=None, ambiente=None, pedido=None, arquivos=None, env=None):
+    """Sobe `comando` (uma lista) destacado, por um executor, num diretório de trabalho novo.
+    Devolve `(diretório, processo do executor)`.
+
+    `base` é onde o diretório nasce (`~/.cache/vssh/trabalhos` por padrão). `pedido` são os
+    campos a mais do `pedido.json`: com `chave` e `titulo`, o executor mantém a atividade do
+    trabalho na bandeja, e `atividade: False` a desliga. `arquivos` (`{nome: texto}`) são
+    gravados no diretório antes de o comando subir: é por onde entra um `params.json`. O comando
+    recebe o diretório em `VSSH_TRABALHO_DIR`, e `ambiente`, que pode levar uma credencial, vai
+    ao executor pelo stdin e não toca o disco.
+    """
+    env = os.environ if env is None else env
+    d = os.path.join(base or _base(env), _novo_id())
+    os.makedirs(d, mode=0o700)
+    try:
+        for nome, texto in (arquivos or {}).items():
+            with open(os.path.join(d, os.path.basename(nome)), 'w', encoding='utf-8') as f:
+                f.write(texto)
+        with open(os.path.join(d, 'pedido.json'), 'w', encoding='utf-8') as f:
+            json.dump(dict(pedido or {}, app=env.get('VSSH_APP_ID'), comando=list(comando), cwd=cwd), f, ensure_ascii=False)
+        # O executor roda com o ambiente de quem dispara (é dele a atividade na bandeja), e recebe o
+        # do comando pelo stdin. Sessão própria: ele não morre com quem o disparou.
+        processo = subprocess.Popen([sys.executable or 'python3', _EXECUTOR, d], env=dict(env), stdin=subprocess.PIPE,
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    except OSError:
+        shutil.rmtree(d, ignore_errors=True)
+        raise
+    nasceu = _nascimento(processo.pid)
+    with open(os.path.join(d, 'pid'), 'w') as f:
+        f.write('%d %s' % (processo.pid, nasceu) if nasceu else str(processo.pid))
+    try:
+        processo.stdin.write(json.dumps({'ambiente': dict(ambiente) if ambiente is not None else None}).encode('utf-8'))
+        processo.stdin.close()
+    except OSError:
+        pass   # o executor morreu antes de ler: quem acompanha vê o trabalho parado, sem fim
+    return d, processo
+
+
+def vivo(d):
+    """O trabalho do diretório `d` ainda roda: não escreveu o fim, e o executor dele está de pé."""
+    return not os.path.exists(os.path.join(d, 'exit')) and _executor_vivo(d)
+
+
+def grupo(d):
+    """O grupo de processos do comando do trabalho em `d`, ou `None` quando o comando não subiu
+    ou já saiu. É o que se leva a `nice` 19 para o trabalho ceder a vez."""
+    return _grupo_do_comando(d)
+
+
+def fim(d):
+    """O fim do trabalho em `d` (`estado`, `codigo`, `motivo`, `terminadoEm`), ou `None` enquanto
+    ele não terminou de escrevê-lo."""
+    return _ler_json(os.path.join(d, 'fim.json')) if os.path.exists(os.path.join(d, 'exit')) else None
+
+
+def encerrar(d):
+    """Encerra de vez o trabalho em `d`, sem esperar o comando limpar nada: o executor, e o grupo
+    do comando. É para o trabalho que ficou sem ninguém; quem quer que o comando saia por conta
+    própria escreve o arquivo `cancel`."""
+    _encerrar(d)
+
+
 def rodar(chave, comando, titulo=None, ao_evento=None, cwd=None, ambiente=None, registrar=True,
           acoes=None, rota=None, abrir=None, retomavel=False, env=None):
     """Sobe `comando` (uma lista) destacado do backend e o acompanha. Devolve o `Trabalho`.
@@ -436,29 +505,10 @@ def rodar(chave, comando, titulo=None, ao_evento=None, cwd=None, ambiente=None, 
     """
     env = os.environ if env is None else env
     reg = _registrar(chave, 'estacao', titulo, env, pid=None, executor=None, dir=None, retomavel=bool(retomavel))
-    d = os.path.join(_base(env), _novo_id())
-    os.makedirs(d, mode=0o700)
     notificacao = {'registrar': 'funcao' if callable(registrar) else bool(registrar), 'acoes': acoes, 'rota': rota, 'abrir': abrir}
-    with open(os.path.join(d, 'pedido.json'), 'w', encoding='utf-8') as f:
-        json.dump({'chave': chave, 'titulo': reg['titulo'], 'app': env.get('VSSH_APP_ID'), 'comando': list(comando),
-                   'cwd': cwd, 'notificacao': notificacao, 'criadoEm': reg['criadoEm']}, f, ensure_ascii=False)
+    d, processo = disparar(comando, cwd=cwd, ambiente=ambiente, env=env, pedido={
+        'chave': chave, 'titulo': reg['titulo'], 'notificacao': notificacao, 'criadoEm': reg['criadoEm']})
     t = Trabalho(dict(reg, dir=d), ao_evento, env)
-    # O executor roda com o ambiente do app (é dele a atividade na bandeja), e recebe o do comando
-    # pelo stdin. Sessão própria: ele não morre com o backend.
-    try:
-        processo = subprocess.Popen([sys.executable or 'python3', _EXECUTOR, d], env=dict(env), stdin=subprocess.PIPE,
-                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
-    except OSError:
-        shutil.rmtree(d, ignore_errors=True)
-        raise
-    nasceu = _nascimento(processo.pid)
-    with open(os.path.join(d, 'pid'), 'w') as f:
-        f.write('%d %s' % (processo.pid, nasceu) if nasceu else str(processo.pid))
-    try:
-        processo.stdin.write(json.dumps({'ambiente': dict(ambiente) if ambiente is not None else None}).encode('utf-8'))
-        processo.stdin.close()
-    except OSError:
-        pass   # o executor morreu antes de ler: o acompanhamento termina o trabalho em `falhou`
     with _tranca:
         _em_curso[chave] = t
     t._mudar(None, executor=processo.pid)

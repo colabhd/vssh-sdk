@@ -321,6 +321,56 @@ function seguirNaEstacao(t, processo, fimDe, env) {
   setTimeout(volta, 0);
 }
 
+// ── A peça de baixo: disparar um comando destacado, e perguntar por ele ────────────────────────
+//
+// `rodar` é isto mais o registro, os eventos e a notificação. Quem já tem o próprio jeito de contar
+// o que acontece usa só esta parte: o disparo, a marca de quem está vivo e o fim.
+
+/**
+ * Sobe `comando` (um array) destacado, por um executor, num diretório de trabalho novo. Devolve
+ * `{ dir, processo }`, com o processo do executor.
+ *
+ * Opções: `base` (onde o diretório nasce; `~/.cache/vssh/trabalhos` por padrão), `cwd`,
+ * `ambiente` (o do comando; pode levar uma credencial, vai ao executor pelo stdin e não toca o
+ * disco), `pedido` (os campos a mais do `pedido.json`: com `chave` e `titulo` o executor mantém a
+ * atividade do trabalho na bandeja, e `atividade: false` a desliga), `arquivos` (`{ nome: texto }`,
+ * gravados no diretório antes de o comando subir) e `env`. O comando recebe o diretório em
+ * `VSSH_TRABALHO_DIR`.
+ */
+function disparar(comando, opcoes = {}) {
+  const env = opcoes.env || process.env;
+  const d = path.join(opcoes.base || base(env), novoId());
+  fs.mkdirSync(d, { recursive: true, mode: 0o700 });
+  let processo;
+  try {
+    for (const [nome, texto] of Object.entries(opcoes.arquivos || {})) fs.writeFileSync(path.join(d, path.basename(nome)), texto);
+    fs.writeFileSync(path.join(d, 'pedido.json'), JSON.stringify({
+      ...(opcoes.pedido || {}), app: env.VSSH_APP_ID ?? null, comando: [...comando], cwd: opcoes.cwd ?? null,
+    }));
+    // O executor roda com o ambiente de quem dispara (é dele a atividade na bandeja), e recebe o do
+    // comando pelo stdin. Sessão própria: ele não morre com quem o disparou.
+    processo = spawn(process.execPath, [EXECUTOR, d], { env, stdio: ['pipe', 'ignore', 'ignore'], detached: true });
+  } catch (e) {
+    fs.rmSync(d, { recursive: true, force: true });
+    throw e;
+  }
+  const nasceu = processo.pid ? nascimento(processo.pid) : null;
+  fs.writeFileSync(path.join(d, 'pid'), nasceu ? `${processo.pid} ${nasceu}` : String(processo.pid ?? ''));
+  processo.stdin.on('error', () => { /* o executor morreu antes de ler: quem acompanha vê o trabalho parado, sem fim */ });
+  processo.stdin.end(JSON.stringify({ ambiente: opcoes.ambiente ?? null }));
+  processo.unref();
+  return { dir: d, processo };
+}
+
+/** O trabalho do diretório `d` ainda roda: não escreveu o fim, e o executor dele está de pé. */
+const estaVivo = (d) => !fs.existsSync(path.join(d, 'exit')) && executorVivo(d);
+
+/**
+ * O fim do trabalho em `d` (`estado`, `codigo`, `motivo`, `terminadoEm`), ou `null` enquanto ele
+ * não terminou de escrevê-lo.
+ */
+const fimDoTrabalho = (d) => (fs.existsSync(path.join(d, 'exit')) ? lerJson(path.join(d, 'fim.json')) : null);
+
 /**
  * Sobe `comando` (um array) destacado do backend e o acompanha. Devolve o `Trabalho`.
  *
@@ -334,26 +384,16 @@ function seguirNaEstacao(t, processo, fimDe, env) {
 function rodar(chave, comando, opcoes = {}) {
   const env = opcoes.env || process.env;
   const reg = registrar(chave, 'estacao', opcoes.titulo, { pid: null, executor: null, dir: null, retomavel: !!opcoes.retomavel });
-  const d = path.join(base(env), novoId());
-  fs.mkdirSync(d, { recursive: true, mode: 0o700 });
   const opcaoRegistrar = opcoes.registrar ?? true;
   const notificacao = {
     registrar: typeof opcaoRegistrar === 'function' ? 'funcao' : !!opcaoRegistrar,
     acoes: opcoes.acoes ?? null, rota: opcoes.rota ?? null, abrir: opcoes.abrir ?? null,
   };
-  fs.writeFileSync(path.join(d, 'pedido.json'), JSON.stringify({
-    chave, titulo: reg.titulo, app: env.VSSH_APP_ID ?? null, comando: [...comando], cwd: opcoes.cwd ?? null,
-    notificacao, criadoEm: reg.criadoEm,
-  }));
+  const { dir: d, processo } = disparar(comando, {
+    cwd: opcoes.cwd, ambiente: opcoes.ambiente, env,
+    pedido: { chave, titulo: reg.titulo, notificacao, criadoEm: reg.criadoEm },
+  });
   const t = new Trabalho({ ...reg, dir: d }, opcoes.aoEvento, env);
-  // O executor roda com o ambiente do app (é dele a atividade na bandeja), e recebe o do comando
-  // pelo stdin. Sessão própria: ele não morre com o backend.
-  const processo = spawn(process.execPath, [EXECUTOR, d], { env, stdio: ['pipe', 'ignore', 'ignore'], detached: true });
-  const nasceu = processo.pid ? nascimento(processo.pid) : null;
-  fs.writeFileSync(path.join(d, 'pid'), nasceu ? `${processo.pid} ${nasceu}` : String(processo.pid ?? ''));
-  processo.stdin.on('error', () => { /* o executor morreu antes de ler: o acompanhamento termina o trabalho */ });
-  processo.stdin.end(JSON.stringify({ ambiente: opcoes.ambiente ?? null }));
-  processo.unref();
   emCurso.set(chave, t);
   t._mudar(null, { executor: processo.pid ?? null });
   seguirNaEstacao(t, processo, { registrar: opcaoRegistrar, acoes: opcoes.acoes, rota: opcoes.rota, abrir: opcoes.abrir }, env);
@@ -482,4 +522,13 @@ function retomar(opcoes = {}) {
   return retomados;
 }
 
-module.exports = { rodar, naFila, estado, listar, retomar, Trabalho, FINAIS, _nascimento: nascimento };
+module.exports = {
+  rodar, naFila, estado, listar, retomar, Trabalho, FINAIS,
+  // A peça de baixo. `grupo(d)` é o grupo de processos do comando, ou `null` quando ele não subiu
+  // ou já saiu: é o que se leva a `nice` 19 para o trabalho ceder a vez.
+  disparar, vivo: estaVivo, grupo: grupoDoComando, fim: fimDoTrabalho,
+  // Encerra de vez o trabalho em `d`, sem esperar o comando limpar nada: o executor, e o grupo do
+  // comando. Quem quer que o comando saia por conta própria escreve o arquivo `cancel`.
+  encerrar,
+  _nascimento: nascimento,
+};
