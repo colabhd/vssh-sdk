@@ -251,6 +251,13 @@ VSSH-378, VSSH-381):
 - A exceção ao verbo no botão é o diálogo que um programa da estação pede no molde do kdialog
   (`--yesno`) sem dizer o rótulo: ele mostra "Sim" e "Não", porque a pergunta é do programa e o
   shell não conhece o verbo dela. O programa que manda o rótulo fica com o dele.
+- O diálogo que uma janela pede é uma folha dela: desce do cabeçalho, mora dentro da moldura e
+  anda, minimiza e fecha com a janela. Um véu na cor do fundo escurece o conteúdo bloqueado, e o
+  cabeçalho fica claro e em uso. As outras janelas seguem em uso. Uma pergunta do próprio ambiente,
+  sem janela de onde nascer, continua no meio da tela.
+- A janela que tem uma pergunta aberta fora de vista (minimizada ou atrás de outra) não vem para a
+  frente sozinha. O botão dela na barra ganha um ponto parado na cor de destaque, no canto do
+  ícone, até a pessoa ir até ela.
 - Na tela estreita, o diálogo é uma folha que sobe de baixo, com os botões empilhados em 44 px.
 - Um aviso diz quem falou (o ícone e o nome do app, nunca o id), quando, o que houve, e as ações.
   Ele pode trazer uma figura: a pessoa que mencionou, o arquivo de que se trata. O tom é um ponto
