@@ -39,6 +39,17 @@
    documento que roda fora do ambiente; o que o ambiente faz pelo app (a senha
    que vai ao cofre, o consentimento) continua sendo pedido a ele.
 
+   ─── O contrato com os apps ────────────────────────────────────────────────
+
+   Um app carrega este arquivo do ambiente, sem cópia, e uma mudança aqui chega
+   a todo app publicado no deploy seguinte. O desenho de uma peça muda; o nome
+   dela fica. `contrato.json`, ao lado deste arquivo, lista as classes, os
+   atributos, os tokens, as funções e os ícones que um app escreve, e a bancada
+   do Tuff reprova quando um deles some. Um nome novo entra na lista com
+   `node scripts/contrato-do-tuff.js --gravar`. Um nome que precisa sair ganha
+   uma entrada em `de_saida`, com o que usar no lugar, e as duas formas
+   convivem enquanto os apps trocam.
+
    ─── A régua de aceitação ──────────────────────────────────────────────────
 
      • controle nativo: nunca; `<select>` e `<input>` têm caixa própria
