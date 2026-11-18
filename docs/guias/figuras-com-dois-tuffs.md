@@ -70,6 +70,11 @@ tinha com o Tuff de antes fica fora dessa lista.
 `INSTAVEL` é uma figura que muda com o mesmo Tuff. A comparação não a julga: abra a de `antes/` e
 a de `depois/` e olhe.
 
+A instabilidade é medida numa rodada só. Um cursor de texto pisca em qualquer figura com um campo
+em foco, e pode cair apagado só na rodada de depois: a figura aparece então em `MUDOU`, com uma
+diferença de poucas dezenas de pixels numa caixa estreita, da altura de uma linha. A página mostra
+o cursor no lugar da diferença, e a figura não mudou.
+
 A comparação vê o recorte de cada passo da ajuda, e nada além dele. Uma tela que nenhum tópico
 mostra não entra, e um app sem ajuda com passos não tem figura para comparar.
 
