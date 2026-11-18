@@ -636,6 +636,52 @@ function montarGaleria() {
           + 'porque um app que ecoa uma senha põe a senha no log de alguém.');
     });
 
+    // ── O diálogo que o app desenha ───────────────────────────────────────────
+    //
+    // `TuffDialogo.abrir` é do Tuff, e não da ponte: a pergunta abre dentro desta página, como
+    // folha do documento, e resolve o `id` do botão, ou `null` quando a pessoa sai pelo Esc. A
+    // ação `perigo` pinta o botão de destruir e abre o foco no outro, para um Enter distraído não
+    // apagar nada.
+    //
+    // Fora do ambiente ninguém serve `_sdk/tuff/`, e sem o `tuff.js` não há `TuffDialogo`: a peça
+    // diz isso em vez de lançar.
+    const semOTuff = () => {
+      if (typeof TuffDialogo !== 'undefined') return false;
+      escrever('dialogo-do-app', 'O tuff.js não chegou a esta página (_sdk/tuff/ é servido pelo ambiente), e sem ele não há TuffDialogo.');
+      return true;
+    };
+
+    $('tuff-dialogo-destroi').addEventListener('click', async () => {
+      if (semOTuff()) return;
+      const r = await TuffDialogo.abrir({
+        titulo: 'Descartar o rascunho?',
+        texto: 'O que você escreveu desde a última gravação se perde.',
+        acoes: [{ id: 'manter', rotulo: 'Continuar escrevendo' }, { id: 'descartar', rotulo: 'Descartar', perigo: true }],
+      });
+      escrever('dialogo-do-app', r === null
+        ? 'abrir devolveu null: a pessoa saiu pelo Esc.'
+        : `abrir devolveu o id do botão: ${r}`);
+    });
+
+    // O `conteudo` é um nó desta página, posto abaixo do texto. O diálogo não lê o valor dele: quem
+    // lê é o app, depois da resposta, e é isso que deixa qualquer controle caber ali.
+    $('tuff-dialogo-formato').addEventListener('click', async () => {
+      if (semOTuff()) return;
+      const formato = document.createElement('select');
+      formato.className = 'tuff-select';
+      formato.setAttribute('aria-label', 'Formato');
+      for (const nome of ['PDF', 'Markdown', 'Texto puro']) formato.append(new Option(nome, nome));
+      const r = await TuffDialogo.abrir({
+        titulo: 'Exportar em que formato?',
+        texto: 'O arquivo vai para a pasta do projeto.',
+        conteudo: formato,
+        acoes: [{ id: 'cancelar', rotulo: 'Cancelar' }, { id: 'exportar', rotulo: 'Exportar', principal: true }],
+      });
+      escrever('dialogo-do-app', r === 'exportar'
+        ? `exportar, em ${formato.value}`
+        : 'a pessoa desistiu, e nada foi exportado.');
+    });
+
     // ── Menu de contexto ───────────────────────────────────────────────────────
     //
     // Só dados atravessam: nem HTML, nem função. O shell devolve o `id` do escolhido (ou o

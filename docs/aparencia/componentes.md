@@ -303,6 +303,71 @@ explica seria lido como "abra um vídeo" sem botão nenhum por perto.
 </div>
 ```
 
+## Diálogo
+
+Uma pergunta que a pessoa precisa responder antes de seguir. O título é a pergunta ("Descartar o
+rascunho?"), o texto é a consequência, e cada botão diz o verbo, nunca "Sim" e "Não". O tom, o
+círculo com o ícone, aparece só no que destrói ou falhou. A marcação é a que o diálogo do ambiente
+usa, e por isso a pergunta que o app desenha e a que ele pede ao shell saem iguais.
+
+```html vivo
+<div class="tuff-dialogo" role="alertdialog" aria-labelledby="dlg-t" aria-describedby="dlg-x" style="position:static;animation:none">
+  <div class="tuff-dialogo-corpo">
+    <span class="tuff-dialogo-tom tuff-dialogo-tom--perigo"><svg class="tuff-ico" aria-hidden="true"><use href="#ico-trash"></use></svg></span>
+    <div class="tuff-dialogo-texto">
+      <h2 class="tuff-dialogo-titulo" id="dlg-t">Descartar o rascunho?</h2>
+      <p class="tuff-dialogo-mensagem" id="dlg-x">O que você escreveu desde a última gravação se perde.</p>
+    </div>
+  </div>
+  <div class="tuff-dialogo-acoes">
+    <button class="tuff-btn">Continuar escrevendo</button>
+    <button class="tuff-btn tuff-btn--perigo">Descartar</button>
+  </div>
+</div>
+```
+
+A amostra está parada no lugar, com `position: static`. De verdade, quem abre o diálogo é o
+`TuffDialogo`, de `tuff.js`, e ele desce do topo do documento como uma folha, com um véu sobre o
+resto, que fica fora do ponteiro e do teclado. Abaixo de 600 px a folha sobe de baixo, com os botões
+empilhados em 44 px e o principal em cima.
+
+```js
+const resposta = await TuffDialogo.abrir({
+  titulo: 'Descartar o rascunho?',
+  texto: 'O que você escreveu desde a última gravação se perde.',
+  acoes: [
+    { id: 'manter', rotulo: 'Continuar escrevendo' },
+    { id: 'descartar', rotulo: 'Descartar', perigo: true },
+  ],
+});
+if (resposta === 'descartar') descartar();
+```
+
+`abrir` resolve o `id` do botão escolhido, ou `null` quando a pessoa sai pelo Esc. Sair é uma
+resposta, e o app a trata como o botão que não muda nada.
+
+| opção | o que faz |
+|---|---|
+| `titulo` | a pergunta |
+| `texto` | a consequência, abaixo do título |
+| `acoes` | os botões, na ordem em que aparecem: `{ id, rotulo, principal, perigo }`. A `principal` é a que o Enter escolhe. A `perigo` pinta o botão de destruir, põe o tom e abre o foco no botão que não destrói |
+| `conteudo` | um nó do app, posto abaixo do texto: um campo, uma lista de formatos. O foco abre no primeiro campo dele, e quem lê o valor é o app, depois da resposta |
+| `tom` | `'erro'` para o que falhou |
+
+### O diálogo do app e o do ambiente
+
+Um app pergunta de dois jeitos, e os dois abrem dentro da janela dele, com o mesmo desenho.
+
+| a pergunta | quem abre |
+|---|---|
+| leva conteúdo do próprio app: escolher um formato, nomear uma coisa com as regras do app, descartar uma edição | o app, com `TuffDialogo.abrir` |
+| o app roda fora do ambiente (em desenvolvimento, num teste), onde a ponte degrada para o `confirm` do navegador | o app, com `TuffDialogo.abrir` |
+| o ambiente faz algo pelo app: guardar uma senha no cofre (`vssh.segredos`), escolher um arquivo (`vssh.arquivos`), dar um consentimento | o ambiente |
+| uma pergunta simples, sem conteúdo próprio, que deve mostrar de qual app vem | o ambiente, com `vssh.dialogos.confirmar` e os outros: a folha abre na janela do app com o ícone e o nome dele em cima |
+
+O menu de contexto, o aviso e o seletor de arquivo não têm peça no Tuff: eles saem da janela do
+app, e por isso são do ambiente.
+
 ## Espera
 
 Spinner para "não sei quanto falta"; barra para "sei". Trocar os dois custa confiança: uma barra

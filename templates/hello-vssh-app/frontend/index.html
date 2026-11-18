@@ -306,6 +306,23 @@
     </section>
 
     <section class="tuff-painel">
+      <h2>O diálogo que o app desenha</h2>
+      <p class="tuff-sec-desc">
+        <code>TuffDialogo.abrir</code> desenha a pergunta <strong>dentro desta página</strong>, com o
+        desenho do diálogo do ambiente: a pergunta no título, a consequência no texto e o verbo em
+        cada botão. Ele serve à pergunta que leva conteúdo do próprio app, como a lista de formatos
+        abaixo, e funciona fora do ambiente. O que o ambiente faz pelo app (a senha que vai ao
+        cofre, o seletor de arquivo) continua em <code>vssh.dialogos</code>, <code>vssh.segredos</code>
+        e <code>vssh.arquivos</code>.
+      </p>
+      <div class="tuff-acoes">
+        <button class="tuff-btn" id="tuff-dialogo-destroi">uma pergunta que destrói</button>
+        <button class="tuff-btn" id="tuff-dialogo-formato">com conteúdo do app</button>
+      </div>
+      <pre class="saida" id="dialogo-do-app"></pre>
+    </section>
+
+    <section class="tuff-painel">
       <h2>Menu de contexto do ambiente</h2>
       <p class="tuff-sec-desc">
         O menu é <strong>do desktop</strong>, desenhado por cima da janela. O app manda só

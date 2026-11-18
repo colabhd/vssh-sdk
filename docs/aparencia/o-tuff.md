@@ -112,13 +112,16 @@ A régua para uma peça nova é uma: se um app poderia precisar do mesmo compone
 que é do shell e de mais ninguém (a barra de tarefas, o menu iniciar, a área de trabalho) fica nas
 folhas do shell.
 
-O que o Tuff não tem, e nunca vai ter: diálogo, menu de contexto, aviso, bandeja e seletor de
-arquivo. Essas superfícies são do desktop, e o app as pede pela ponte (`vssh.dialogos`,
-`vssh.avisos`, `vssh.arquivos.escolherArquivo`). É o que permite ao desktop montar o menu ele mesmo,
-e é por isso que o menu de um app se parece com o resto do ambiente. Há um motivo mecânico além do
-estético: um modal desenhado dentro do app fica preso no iframe. Ele não cobre a janela, não
-sobrevive a um app em tela cheia e não aparece por cima do resto do ambiente. Um `div` com
-`position: fixed` dá a impressão de diálogo até o dia em que alguém maximiza a janela.
+O que o Tuff não tem: menu de contexto, aviso, bandeja e seletor de arquivo. Essas superfícies são
+do desktop, e o app as pede pela ponte (`vssh.dialogos.menuDeContexto`, `vssh.avisos`,
+`vssh.arquivos.escolherArquivo`). É o que permite ao desktop montar o menu ele mesmo, e é por isso
+que o menu de um app se parece com o resto do ambiente. Elas saem da janela do app, e o que é
+desenhado dentro dele fica preso no documento dele.
+
+O diálogo é dos dois lados, porque a pergunta de um app mora dentro da janela dele. Pedida ao shell
+(`vssh.dialogos`), ela abre como folha da janela; desenhada pelo app (`TuffDialogo.abrir`), ela
+abre como folha do documento, com a mesma marcação. [Componentes](componentes.md#diálogo) diz
+quando usar cada um.
 
 ## A régua de aceitação
 
