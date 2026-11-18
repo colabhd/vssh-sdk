@@ -58,13 +58,14 @@ seguinte.
 | [Um motor fora do pacote](guias/motor.md) | Entregar ao servidor o que o app usa e não cabe no pacote (um ambiente com PyTorch, os pesos de um modelo), baixado uma vez por servidor e achado por `VSSH_MOTOR_<NOME>`. |
 | [A ajuda do seu app](guias/ajuda.md) | Um livro do app na Ajuda do ambiente: a pasta de tópicos, o que o `cobre` declara e o nível que sai dele, os passos que apontam a sua janela, `vssh.ajuda.abrir`, e o que o publish confere. |
 | [A bancada do seu app](guias/bancada.md) | As cenas que medem a janela no aparelho fraco, o "Medir este aparelho" que roda as mesmas cenas, e a comparação de cada PR com a base no CI, com a CPU calibrada no Celeron de referência. |
+| [As figuras de um app com dois Tuffs](guias/figuras-com-dois-tuffs.md) | Rodar o palco de um app com o Tuff publicado e com o Tuff de uma mudança, e ler as figuras que mudaram, os passos que pararam e as figuras instáveis; o roteiro de quem muda o Tuff no sistema. |
 | [Publicar](guias/publicar.md) | Empacotar, publicar no repositório de artefatos e instalar num servidor, por CI ou à mão. |
 
 ## Aparência
 
 | página | o que ela promete |
 |---|---|
-| [O Tuff](aparencia/o-tuff.md) | O que o ambiente visual é, o que chega a um app em `_sdk/tuff/`, a camada que deixa o app vencer, a cor de destaque, e a régua do que é do Tuff e do que é do desktop. |
+| [O Tuff](aparencia/o-tuff.md) | O que o ambiente visual é, o que chega a um app em `_sdk/tuff/`, a camada que deixa o app vencer, o contrato dos nomes que não saem, a cor de destaque, e a régua do que é do Tuff e do que é do desktop. |
 | [Tokens](aparencia/tokens.md) | A paleta, o texto, o destaque que muda em runtime, os status, a tipografia e as medidas, token a token. |
 | [Componentes](aparencia/componentes.md) | Painel, botões, campos, switch, linha de configuração, controle segmentado, estado, dica, vazio, espera e ícones, cada um com a amostra viva e o markup. |
 | [Listas e navegação](aparencia/listas-e-navegacao.md) | Lista, chave e valor, barra de ferramentas, a gaveta de navegação e o `TuffGaveta`, busca, detalhe e tooltip. |

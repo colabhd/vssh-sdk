@@ -288,6 +288,69 @@ test('uma cena que responde um verbo que a ponte não tem interrompe o palco com
   assert.match(r.saida, /ajuda\/palco\.mjs responde arquivos\.escolherPastinha/);
 });
 
+// ─── As figuras com dois Tuffs ───────────────────────────────────────────────
+//
+// O `tuff-antes-e-depois.mjs` roda o palco do template com duas cópias do Tuff e compara as
+// figuras. A cópia de depois é a de `api/tuff/` com uma regra a mais no fim da folha.
+
+const COMPARAR = path.join(ROOT, 'scripts', 'tuff-antes-e-depois.mjs');
+
+/** Uma cópia de `api/tuff/` com `regra` acrescentada ao `tuff.css`. */
+function tuffCom(regra) {
+  const dir = path.join(pasta('vssh-tuff-'), 'tuff');
+  fs.cpSync(path.join(ROOT, 'api', 'tuff'), dir, { recursive: true });
+  fs.appendFileSync(path.join(dir, 'tuff.css'), `\n${regra}\n`);
+  return dir;
+}
+
+test('com o mesmo Tuff as figuras ficam iguais, e uma regra nova na folha aparece na figura de cada passo', { skip: pular }, async () => {
+  const igual = pasta('vssh-dois-tuffs-');
+  const a = await rodar(COMPARAR, [TEMPLATE, '--depois', path.join(ROOT, 'api', 'tuff'), '--saida', igual]);
+  assert.equal(a.code, 0, a.saida);
+  assert.deepEqual([a.valores('FIGURAS'), a.valores('IGUAIS'), a.valores('MUDARAM'), a.valores('INSTAVEL')], [['2'], ['2'], ['0'], []], a.saida);
+
+  const saida = pasta('vssh-dois-tuffs-');
+  const r = await rodar(COMPARAR, [TEMPLATE, '--depois', tuffCom('@layer vssh { .tuff-btn { border-radius: 14px; } }'), '--saida', saida]);
+  assert.equal(r.code, 0, r.saida);
+  assert.deepEqual([r.valores('IGUAIS'), r.valores('MUDARAM'), r.valores('FALTA_NOVA')], [['0'], ['2'], []], r.saida);
+
+  const conta = JSON.parse(fs.readFileSync(path.join(saida, 'comparacao.json'), 'utf8'));
+  assert.deepEqual(conta.mudaram.map((m) => m.id), ['comecar-0-0', 'comecar-0-1']);
+  for (const m of conta.mudaram) {
+    // O canto de um botão é uma fração pequena da figura, e a caixa da diferença cabe nela.
+    assert.ok(m.pixels > 0 && m.pixels < m.total / 10, `${m.id}: ${m.pixels} de ${m.total} pixels`);
+    assert.ok(m.caixa.x >= 0 && m.caixa.y >= 0 && m.caixa.x + m.caixa.w <= m.depois.w && m.caixa.y + m.caixa.h <= m.depois.h, JSON.stringify(m.caixa));
+    assert.deepEqual(fs.readFileSync(path.join(saida, 'diferenca', `${m.id}.png`)).subarray(0, 4), PNG);
+  }
+  const html = fs.readFileSync(path.join(saida, 'comparacao.html'), 'utf8');
+  for (const lado of ['antes', 'depois', 'diferenca']) assert.ok(html.includes(`src="${lado}/comecar-0-0.png"`), `a página não mostra a figura de ${lado}`);
+});
+
+test('uma folha que esconde o botão do passo vira falta nova, e a figura dele só existe na rodada de antes', { skip: pular }, async () => {
+  const saida = pasta('vssh-dois-tuffs-');
+  const r = await rodar(COMPARAR, [TEMPLATE, '--depois', tuffCom('.tuff-btn { display: none !important; }'), '--saida', saida]);
+  assert.equal(r.code, 0, r.saida);
+  assert.ok(r.valores('FALTA_NOVA').some((f) => /^ajuda\/comecar\.md:\d+: /.test(f)), r.saida);
+  assert.ok(r.valores('SO_ANTES').includes('comecar-0-0'), r.saida);
+  assert.deepEqual(r.valores('MUDARAM'), ['0'], r.saida);
+});
+
+test('a figura que muda com o mesmo Tuff sai da conta, e a falta que o app já tinha não é nova', { skip: pular }, async () => {
+  // Um quadrado de cor sorteada no canto da janela, e um rótulo que a janela não mostra.
+  const app = copiaDoTemplate((t) => t.replace('[[listar os nomes guardados]]', '[[listar as senhas]]'));
+  const pagina = path.join(app, 'frontend', 'index.html');
+  fs.writeFileSync(pagina, fs.readFileSync(pagina, 'utf8').replace('</body>',
+    '<div id="sorteado" style="position:fixed;left:0;top:0;width:12px;height:12px;z-index:9"></div>\n'
+    + '<script>document.getElementById("sorteado").style.background = "#" + crypto.getRandomValues(new Uint8Array(3)).reduce((s, b) => s + b.toString(16).padStart(2, "0"), "");</script>\n</body>'));
+  const saida = pasta('vssh-dois-tuffs-');
+  const r = await rodar(COMPARAR, [app, '--depois', tuffCom('@layer vssh { .tuff-btn { border-radius: 14px; } }'), '--saida', saida]);
+  assert.equal(r.code, 0, r.saida);
+  assert.ok(r.valores('INSTAVEL').some((l) => l.startsWith('comecar-0-0: ')), r.saida);
+  assert.deepEqual([r.valores('MUDARAM'), r.valores('FALTA_NOVA')], [['0'], []], r.saida);
+  const conta = JSON.parse(fs.readFileSync(path.join(saida, 'comparacao.json'), 'utf8'));
+  assert.ok(conta.instaveis.find((m) => m.id === 'comecar-0-0').pixels >= 12 * 12, 'o quadrado sorteado tem 12 px de lado, em 2x');
+});
+
 // ─── O publish inteiro ───────────────────────────────────────────────────────
 
 function tem(cmd) {

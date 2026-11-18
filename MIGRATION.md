@@ -287,6 +287,22 @@ Nada muda para um app que não o usa. Para quem já guarda dados:
   um Node que o tem, e um app que dependia de um pacote npm de SQLite pode deixá-lo.
 - A página continua sem falar com o banco: ela fala com o backend.
 
+## O Tuff: o que muda e o que fica
+
+O seu app carrega o Tuff do ambiente, e por isso recebe cada versão dele sem publicar nada. O que
+fica são os nomes: as classes `tuff-*`, os atributos `data-tuff-*`, os tokens `--tuff-*` e
+`--ds-*`, os membros dos objetos `Tuff*` e os ícones do sprite, listados em
+[`api/tuff/contrato.json`](api/tuff/contrato.json). O que muda é o desenho, e uma mudança de
+desenho feita de propósito entra nesta seção, com a versão do ambiente em que chega.
+
+Um nome que vai sair aparece em `de_saida`, no mesmo arquivo, com o que usar no lugar. Ele
+continua atendido enquanto os apps trocam.
+
+Nenhum nome está de saída, e nenhuma mudança de desenho está anunciada.
+[O contrato com os apps](docs/aparencia/o-tuff.md#o-contrato-com-os-apps) diz o que a lista cobre,
+e [As figuras de um app com dois Tuffs](docs/guias/figuras-com-dois-tuffs.md) mostra como ver o
+seu app com um Tuff que ainda não saiu.
+
 ## O que vai mudar, e quando
 
 O [`emulador/`](emulador/) chega para desenvolver e testar um app sem servidor VSSH por perto, e

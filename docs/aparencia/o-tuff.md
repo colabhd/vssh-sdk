@@ -123,6 +123,34 @@ O diálogo é dos dois lados, porque a pergunta de um app mora dentro da janela 
 abre como folha do documento, com a mesma marcação. [Componentes](componentes.md#diálogo) diz
 quando usar cada um.
 
+## O contrato com os apps
+
+Um app não tem cópia do Tuff: uma mudança numa folha chega a todo app no deploy seguinte. O que o
+Tuff promete a um app são os nomes, e a lista deles viaja com as folhas, em
+[`api/tuff/contrato.json`](../../api/tuff/contrato.json):
+
+| lista | o que tem |
+|---|---|
+| `classes` | toda classe `tuff-*` |
+| `atributos` | todo `data-tuff-*` que um app escreve na marcação |
+| `tokens` | toda variável `--tuff-*` e `--ds-*` |
+| `funcoes` | todo membro dos objetos `Tuff*` (`TuffDialogo.abrir`, `TuffIcones.svg`) |
+| `icones` | todo nome do sprite |
+
+Um nome dessas listas continua valendo. O desenho de uma peça pode mudar de uma versão do ambiente
+para outra, e o que mudou de propósito sai no [MIGRATION.md](../../MIGRATION.md#o-tuff-o-que-muda-e-o-que-fica).
+
+Um nome que precisa sair entra em `de_saida`, com a lista dele e o que usar no lugar (`use`), e
+continua atendido enquanto os apps trocam. Um app que usa um nome de `de_saida` troca pelo `use`
+na versão seguinte dele.
+
+O que o contrato deixa de fora: o desenho de cada peça, os seletores internos de uma folha, e
+qualquer nome que não esteja na lista. Um app que escreve CSS contra a estrutura de dentro de uma
+peça (`.tuff-abas > div:first-child`) depende do que o Tuff não promete.
+
+Para ver o seu app com um Tuff que ainda não saiu, o guia é
+[As figuras de um app com dois Tuffs](../guias/figuras-com-dois-tuffs.md).
+
 ## A régua de aceitação
 
 Seis coisas que um app feito com o Tuff respeita, e que a galeria existe para julgar olhando:
