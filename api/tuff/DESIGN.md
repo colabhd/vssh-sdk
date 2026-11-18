@@ -248,6 +248,9 @@ VSSH-378, VSSH-381):
   e cada botão diz o verbo ("Excluir", "Manter os dois"), nunca "Sim" e "Não". O tom (o círculo
   com o ícone) aparece só no que destrói ou falhou. Um diálogo pedido por um app mostra o ícone e
   o nome dele em cima, para a pessoa saber quem pergunta.
+- A exceção ao verbo no botão é o diálogo que um programa da estação pede no molde do kdialog
+  (`--yesno`) sem dizer o rótulo: ele mostra "Sim" e "Não", porque a pergunta é do programa e o
+  shell não conhece o verbo dela. O programa que manda o rótulo fica com o dele.
 - Na tela estreita, o diálogo é uma folha que sobe de baixo, com os botões empilhados em 44 px.
 - Um aviso diz quem falou (o ícone e o nome do app, nunca o id), quando, o que houve, e as ações.
   Ele pode trazer uma figura: a pessoa que mencionou, o arquivo de que se trata. O tom é um ponto
