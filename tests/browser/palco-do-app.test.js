@@ -5,10 +5,12 @@
 // com a figura de cada um.
 //
 // Os casos medem as três coisas que o palco decide. A figura com os rótulos conferidos (o nível 3)
-// fica de fora quando um passo cita um nome que a janela não mostra. A ponte (o nível 4) fica de
-// fora quando o SDK da página não responde ao `ajuda-mostrar`, que é o caso de um app que não
-// carrega `_sdk/vssh.js`: as figuras continuam, porque o palco acha o controle pelo DOM. E o
-// publish inteiro sobe as figuras depois do `ajuda.json`, contra um Worker de mentira.
+// fica de fora quando um passo cita um nome que a janela não mostra, e quando o passo anda com o
+// clique de verdade e para no "Fazer por mim". A ponte (o nível 4) fica de fora quando o SDK da
+// página não responde às mensagens da Ajuda, que é o caso de um app que não carrega
+// `_sdk/vssh.js`: as figuras continuam, porque o palco põe na janela o SDK da bancada e acha os
+// controles por ele. E o publish inteiro sobe as figuras depois do `ajuda.json`, contra um Worker
+// de mentira.
 //
 // Sem Chrome, sem `api/` ou sem o runtime `vssh` neste checkout, os casos se pulam dizendo o que
 // falta.
@@ -135,8 +137,11 @@ export async function preparar({ home, dados }) {
 }
 `;
 
-/** O app de bancada da cena, com `palco` no lugar do `palco.mjs` (nenhum quando `null`). */
-function appDaCena(palco = CENA) {
+/**
+ * O app de bancada da cena, com `palco` no lugar do `palco.mjs` (nenhum quando `null`). O botão
+ * atende ao evento `gesto`, e `alvo` é como o `alvos.json` o acha.
+ */
+function appDaCena(palco = CENA, gesto = 'click', alvo = { nome: 'Escolher a pasta' }) {
   const dir = path.join(pasta('vssh-palco-cena-'), 'app');
   const escrever = (rel, texto) => {
     fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
@@ -180,7 +185,7 @@ servidor.escutar(http.createServer(servidor.portao(async (req, res) => {
 <p id="nome"></p>
 <script>
   fetch('api/titulo').then((r) => r.json()).then((j) => { document.getElementById('titulo').textContent = j.titulo; });
-  document.getElementById('escolher').addEventListener('click', async () => {
+  document.getElementById('escolher').addEventListener('${gesto}', async () => {
     let texto;
     try {
       const pasta = await vssh.arquivos.escolherPasta('A pasta do projeto');
@@ -193,7 +198,7 @@ servidor.escutar(http.createServer(servidor.portao(async (req, res) => {
 </script>
 </body></html>
 `);
-  escrever('ajuda/alvos.json', JSON.stringify({ escolher: { nome: 'Escolher a pasta' } }));
+  escrever('ajuda/alvos.json', JSON.stringify({ escolher: alvo }));
   escrever('ajuda/comecar.md', `---
 id: comecar
 titulo: A pasta do projeto
@@ -245,6 +250,35 @@ test('uma regra da cena responde só o pedido cujos campos batem com o quando de
   const fora = appDaCena(CENA.replace("{ 'arquivos.escolherPasta': pasta }", regras.replace("'A pasta do projeto'", "'Mais um título'")));
   const f = await rodar(PALCO, [fora, '--saida', pasta('vssh-palco-')]);
   assert.ok(f.valores('FALTA').some((x) => x.includes('[[Projetos de exemplo]]')), f.saida);
+});
+
+test('um alvo achado pelo seletor leva na figura o nome que o SDK diz do controle', { skip: pular }, async () => {
+  const saida = pasta('vssh-palco-');
+  const r = await rodar(PALCO, [appDaCena(CENA, 'click', { seletor: '#escolher' }), '--saida', saida]);
+  assert.equal(r.code, 0, r.saida);
+  assert.deepEqual(r.valores('FALTA'), [], r.saida);
+  const { cenas } = JSON.parse(fs.readFileSync(path.join(saida, 'indice.json'), 'utf8'));
+  assert.equal(cenas['comecar-0-0'].alvos[0].nome, 'Escolher a pasta');
+
+  const outro = pasta('vssh-palco-');
+  await rodar(PALCO, [appDaCena(CENA, 'click', { seletor: '#escolher', rotulo: 'O botão da pasta' }), '--saida', outro]);
+  const comRotulo = JSON.parse(fs.readFileSync(path.join(outro, 'indice.json'), 'utf8')).cenas;
+  assert.equal(comRotulo['comecar-0-0'].alvos[0].nome, 'O botão da pasta');
+});
+
+test('um botão que só atende ao ponteiro passa com o clique de verdade e reprova pelo "Fazer por mim"', { skip: pular }, async () => {
+  const app = appDaCena(CENA, 'pointerdown');
+  const saida = pasta('vssh-palco-');
+  const r = await rodar(PALCO, [app, '--saida', saida]);
+  assert.equal(r.code, 0, r.saida);
+  assert.deepEqual(r.valores('PONTE'), ['1'], r.saida);
+  assert.deepEqual(r.valores('EVIDENCIA_FIGURAS'), ['0'], r.saida);
+  const faltas = r.valores('FALTA');
+  assert.equal(faltas.length, 1, r.saida);
+  assert.ok(faltas[0].includes('[[Projetos de exemplo]]') && faltas[0].includes('"Fazer por mim"'), r.saida);
+
+  const c = await rodar(COMPILAR, [app, '--palco', saida]);
+  assert.deepEqual(c.valores('NIVEL'), ['2'], c.saida);
 });
 
 test('uma cena que responde um verbo que a ponte não tem interrompe o palco com o nome dele', { skip: pular }, async () => {

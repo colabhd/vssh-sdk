@@ -91,6 +91,15 @@ que não aparece ou um rótulo que a janela não mostra vira uma linha no resumo
 fica no 2. A janela abre vazia, como na primeira vez que alguém usa o app: um passo que precisa de
 um documento aberto começa pelos passos que chegam até ele, ou o app traz uma cena.
 
+O palco acha cada alvo e lê o nome dele pelo SDK web da sua janela, com as mensagens que o ambiente
+manda quando a pessoa pede o Mostrar onde fica ou pergunta o que é um controle. As receitas rodam
+duas vezes. Na primeira o clique e o texto são os de um mouse e de um teclado, e as figuras saem
+dela. Na segunda o `clicar` e o `digitar` vão pelo Fazer por mim do ambiente: o SDK chama o
+`click()` do controle, e num campo escreve o `value` e dispara `input` e `change`. Um botão que só
+atende a `pointerdown` ou a `mousedown`, e um campo que só lê as teclas, andam na primeira e param
+na segunda. A linha do resumo diz que o passo parou pelo Fazer por mim, e o nível fica no 2 até o
+controle atender ao `click` e ao `input`. A tecla de um passo vai pelo teclado nas duas.
+
 ## A cena do palco
 
 Uma janela que só mostra alguma coisa depois de uma pasta escolhida ou de um arquivo na HOME tira
@@ -109,16 +118,17 @@ export async function preparar({ home, dados, app, manifesto }) {
 }
 ```
 
-O palco chama `preparar` uma vez, antes de subir o backend. `home` é uma pasta descartável, que o
-backend recebe como HOME, com as pastas XDG embaixo dela; `dados` é o diretório de dados do app
-(`VSSH_APP_DATA_DIR`), e `app` a pasta do pacote. O que a função escreve nas duas é o que a janela
-encontra, e o palco apaga as duas no fim.
+O palco chama `preparar` antes de subir o backend, uma vez em cada uma das duas passadas. `home` é
+uma pasta descartável, que o backend recebe como HOME, com as pastas XDG embaixo dela; `dados` é o
+diretório de dados do app (`VSSH_APP_DATA_DIR`), e `app` a pasta do pacote. O que a função escreve
+nas duas é o que a janela encontra, e o palco apaga as duas no fim da passada.
 
 O `ponte` diz o que o palco responde quando a janela pede um verbo ao ambiente. A chave é o nome
 público do verbo, como na [referência da ponte](../referencia/README.md), e o valor é o que o shell
 manda de volta no fio. Um verbo fora da lista recebe a recusa de um shell que não o atende, e um
-nome que a ponte não tem interrompe o palco, com o nome na mensagem. Todas as receitas rodam sobre o
-mesmo backend, na ordem dos tópicos, então o que uma receita grava a seguinte encontra.
+nome que a ponte não tem interrompe o palco, com o nome na mensagem. Numa passada, todas as receitas
+rodam sobre o mesmo backend, na ordem dos tópicos, então o que uma receita grava a seguinte
+encontra. A segunda passada começa de uma cena nova, sem o que a primeira gravou.
 
 Quando a janela pede o mesmo verbo duas vezes e cada pedido quer outra resposta (a pasta de origem
 e a de destino de uma importação), `ponte` vira uma lista de regras. `quando` compara os campos do
@@ -164,6 +174,11 @@ destaque por cima. Pelo `nome`, o SDK procura entre botões, links, campos e ele
 `aria-label`, `title` ou `data-ajuda`, e compara com o `aria-label`, o `title`, o `placeholder` ou
 o texto do elemento. Um controle só com ícone ganha um `aria-label`, e o mesmo nome serve ao leitor
 de tela e à Ajuda. O app não escreve nada para isso: basta carregar o SDK web.
+
+Um alvo achado pelo `seletor` que não é um controle com nome (uma lista, um painel, o ícone de uma
+linha) leva um `rotulo`, como em `{ "seletor": "#gravacoes", "rotulo": "A lista de gravações" }`.
+A figura do passo usa o `rotulo` no texto alternativo dela, e o palco deixa de comparar o nome do
+alvo com os `[[rótulos]]` do passo.
 
 ## Abrir um tópico de dentro do app
 

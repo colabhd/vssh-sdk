@@ -5,8 +5,10 @@
 // aqui, e por isso o que um mede é a mesma janela que o outro fotografa.
 //
 // O quadro responde aos pedidos que a cena declara (`respostasDaPonte`) e recusa os outros, como
-// um verbo que o shell não atende. Ele também pede as cenas da bancada do app ao SDK web
-// (`bancada-rodar`) e guarda o progresso e o resultado que voltam, em `palco.bancada`.
+// um verbo que o shell não atende. Para o palco, ele manda ao SDK web da janela as mensagens da
+// Ajuda (`ajuda-mostrar`, `ajuda-modo`, `ajuda-fazer`) e guarda em `palco` o que volta: o retângulo
+// de um alvo, o nome do controle clicado e o desfecho de um gesto. Para a bancada, ele pede as
+// cenas ao SDK web (`bancada-rodar`) e guarda o progresso e o resultado em `palco.bancada`.
 
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, statSync, createReadStream } from 'node:fs';
@@ -70,13 +72,16 @@ const QUADRO = (largura, altura, respostas) => `<!doctype html><meta charset="ut
 <style>html,body{margin:0;background:#fff}iframe{position:absolute;left:0;top:0;border:0;width:${largura}px;height:${altura}px}</style>
 <iframe id="app"></iframe>
 <script>
-  window.palco = { achados: {}, pedidos: [], bancada: {} };
+  window.palco = { achados: {}, feitos: {}, ouvindo: false, isto: null, pedidos: [], bancada: {} };
   const RESPOSTAS = ${JSON.stringify(respostas).replace(/</g, '\\u003c')};
   const quadro = document.getElementById('app');
   addEventListener('message', (e) => {
     const m = e.data;
     if (!m || m.vsshApp !== true || e.source !== quadro.contentWindow) return;
     if (m.type === 'ajuda' && m.op === 'achou') { palco.achados[m.pedido] = m.retangulo || null; return; }
+    if (m.type === 'ajuda' && m.op === 'feito') { palco.feitos[m.pedido] = m.ok !== false; return; }
+    if (m.type === 'ajuda' && m.op === 'ouvindo') { palco.ouvindo = true; return; }
+    if (m.type === 'ajuda' && m.op === 'isto') { palco.isto = { nome: typeof m.nome === 'string' ? m.nome : '', ajuda: m.ajuda || null }; return; }
     if (m.type === 'bancada') {
       const b = palco.bancada[m.pedido] || (palco.bancada[m.pedido] = { progresso: null, resultado: null, erro: null });
       if (m.op === 'progresso') b.progresso = { feitas: m.feitas, total: m.total, cena: m.cena };
@@ -92,7 +97,21 @@ const QUADRO = (largura, altura, respostas) => `<!doctype html><meta charset="ut
     }
   });
   window.carregar = () => new Promise((ok) => { quadro.onload = () => ok(true); quadro.src = '/app/?palco=' + Date.now(); });
-  window.mostrar = (pedido, alvo) => quadro.contentWindow.postMessage({ vsshApp: true, type: 'ajuda-mostrar', pedido, alvo }, location.origin);
+  // O SDK web da bancada, posto na janela de um app que não o carrega: é por ele que o palco acha os
+  // controles, e a página continua sem responder à ponte por conta própria.
+  window.carregarSdk = () => new Promise((ok) => {
+    const doc = quadro.contentDocument;
+    const s = doc.createElement('script');
+    s.src = '/app/_palco/vssh.js';
+    s.onload = () => ok(true);
+    s.onerror = () => ok(false);
+    (doc.head || doc.documentElement).appendChild(s);
+  });
+  // Cada pedido apaga a resposta que o quadro guardava sob o mesmo número: a janela recarrega entre
+  // as receitas, o quadro fica, e a resposta de um pedido antigo passaria pela do novo.
+  window.mostrar = (pedido, alvo) => { delete palco.achados[pedido]; quadro.contentWindow.postMessage({ vsshApp: true, type: 'ajuda-mostrar', pedido, alvo }, location.origin); };
+  window.fazer = (pedido, alvo, acao) => { delete palco.feitos[pedido]; quadro.contentWindow.postMessage({ vsshApp: true, type: 'ajuda-fazer', pedido, alvo, ...acao }, location.origin); };
+  window.modo = (ligado) => { palco.ouvindo = false; palco.isto = null; quadro.contentWindow.postMessage({ vsshApp: true, type: 'ajuda-modo', ligado }, location.origin); };
   window.pedirCenas = (pedido, ids) => quadro.contentWindow.postMessage({ vsshApp: true, type: 'bancada-rodar', pedido, ids: ids || null }, location.origin);
 </script>`;
 
@@ -113,6 +132,12 @@ export async function subirFrente(backend, largura, altura, respostas) {
     if (!u.pathname.startsWith('/app/')) { res.writeHead(404); res.end(); return; }
     const resto = u.pathname.slice('/app'.length);
     if (resto.startsWith('/_sdk/')) { servirSdk(resto.slice('/_sdk/'.length), res); return; }
+    // O SDK de `api/`, para o palco pôr na janela de um app que não carrega o `_sdk/vssh.js`.
+    if (resto === '/_palco/vssh.js') {
+      res.writeHead(200, { 'content-type': 'text/javascript; charset=utf-8', 'cache-control': 'no-cache' });
+      createReadStream(join(API, 'vssh.js')).pipe(res);
+      return;
+    }
     const pedido = http.request({
       host: alvo.hostname, port: alvo.port, path: resto + u.search, method: req.method,
       headers: { ...req.headers, host: 'app' },
