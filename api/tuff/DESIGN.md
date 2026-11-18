@@ -255,6 +255,8 @@ VSSH-378, VSSH-381):
   anda, minimiza e fecha com a janela. Um véu na cor do fundo escurece o conteúdo bloqueado, e o
   cabeçalho fica claro e em uso. As outras janelas seguem em uso. Uma pergunta do próprio ambiente,
   sem janela de onde nascer, continua no meio da tela.
+- O seletor de arquivo que uma janela pede continua uma janela do tamanho dele, amarrada a quem
+  pediu: o mesmo véu cobre o conteúdo da dona, e o seletor minimiza e fecha com ela.
 - A janela que tem uma pergunta aberta fora de vista (minimizada ou atrás de outra) não vem para a
   frente sozinha. O botão dela na barra ganha um ponto parado na cor de destaque, no canto do
   ícone, até a pessoa ir até ela.
