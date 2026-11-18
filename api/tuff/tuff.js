@@ -1,7 +1,7 @@
 'use strict';
 
 // Tuff: o comportamento do núcleo. A gaveta de navegação, o nome e o ícone de arquivo, as abas, a
-// trilha, a barra de menus, a tabela, a moldura de app, a lista longa e a árvore.
+// trilha, a barra de menus, a tabela, a moldura de app, a lista longa, a árvore e o diálogo.
 //
 //     TuffGaveta.ligar(raiz)              devolve { abrir, fechar, destruir }
 //     TuffNome.desenhar(el, nome, op)     escreve o nome quebrando nos separadores
@@ -18,6 +18,8 @@
 //     TuffApp.ligar(raiz, opcoes)         a moldura: a gaveta, o painel, o "Mais" e a forma
 //     TuffLista.ligar(recipiente, op)     a lista longa, com só as linhas à vista no DOM
 //     TuffArvore.ligar(recipiente, op)    pastas e itens sobre a lista longa, com o teclado
+//     TuffDialogo.abrir(opcoes)           uma pergunta dentro do documento; resolve o id do botão
+//     TuffDialogo.montar(opcoes)          só a marcação do diálogo, para quem tem a própria moldura
 //
 // E dois comportamentos sem chamada: o `.tuff-busca-limpar` esvazia a busca ao lado dele, e o
 // `.tuff-codigo-copiar` copia o texto do bloco de código onde mora.
@@ -2033,3 +2035,157 @@ if (typeof document !== 'undefined' && document.addEventListener) {
     copia.then(() => responder(true), () => responder(false));
   });
 }
+
+// ─── O diálogo ──────────────────────────────────────────────────────────────
+//
+// Uma pergunta dentro do documento de quem a faz. O desenho é o do diálogo do ambiente: o título
+// é a pergunta, o texto é a consequência, e cada botão diz o verbo.
+//
+//     const resposta = await TuffDialogo.abrir({
+//       titulo: 'Descartar a edição?',
+//       texto: 'O que você mudou desde 14:20 se perde.',
+//       acoes: [{ id: 'manter', rotulo: 'Continuar editando' }, { id: 'descartar', rotulo: 'Descartar', perigo: true }],
+//     });
+//
+// `abrir` resolve o `id` do botão escolhido, ou `null` quando a pessoa sai pelo Esc. Uma ação
+// `principal` é a que o Enter escolhe, e uma ação `perigo` pinta o botão de destruir, põe o tom e
+// abre o foco no botão que não destrói. `conteudo` é um nó de quem chama (um campo, uma lista de
+// formatos), posto abaixo do texto; os valores dele são lidos por quem chama depois da resposta.
+// `tom: 'erro'` põe o tom do que falhou.
+//
+// O diálogo é de quem desenha o próprio conteúdo, ou de quem roda fora do ambiente. O que o
+// ambiente faz pelo app (o seletor de arquivo, a senha que vai ao cofre) se pede a ele, pela ponte.
+(function () {
+  let seq = 0;
+  // Os diálogos abertos neste documento, na ordem em que abriram: só o último responde.
+  const abertos = [];
+
+  function el(tag, classe, texto) {
+    const no = document.createElement(tag);
+    if (classe) no.className = classe;
+    if (texto != null) no.textContent = texto;
+    return no;
+  }
+
+  const ICONE_DO_TOM = { erro: 'warning', perigo: 'trash' };
+
+  /**
+   * A marcação de um diálogo, sem a moldura: `{ raiz, botoes }`. `raiz` é o `.tuff-dialogo`, com o
+   * papel e os rótulos de acessibilidade, e `botoes` é a lista dos botões na ordem das ações.
+   */
+  function montar({ titulo = '', texto = '', acoes = [], tom = null, icone = null, conteudo = null } = {}) {
+    const id = `tuff-dialogo-${++seq}`;
+    const destroi = acoes.some((a) => a && a.perigo);
+    const oTom = tom === 'erro' ? 'erro' : (tom === 'perigo' || destroi ? 'perigo' : null);
+    const raiz = el('div', 'tuff-dialogo');
+    raiz.setAttribute('role', oTom ? 'alertdialog' : 'dialog');
+    raiz.setAttribute('aria-modal', 'true');
+    raiz.setAttribute('aria-labelledby', `${id}-t`);
+
+    const corpo = el('div', 'tuff-dialogo-corpo');
+    if (oTom) {
+      const marca = el('span', `tuff-dialogo-tom tuff-dialogo-tom--${oTom}`);
+      if (typeof TuffIcones !== 'undefined') marca.innerHTML = TuffIcones.svg(icone || ICONE_DO_TOM[oTom]);
+      corpo.append(marca);
+    }
+    const area = el('div', 'tuff-dialogo-texto');
+    const h = el('h2', 'tuff-dialogo-titulo', titulo);
+    h.id = `${id}-t`;
+    area.append(h);
+    if (texto) {
+      const p = el('p', 'tuff-dialogo-mensagem', texto);
+      p.id = `${id}-x`;
+      raiz.setAttribute('aria-describedby', p.id);
+      area.append(p);
+    }
+    if (conteudo instanceof Node) area.append(conteudo);
+    corpo.append(area);
+
+    const fila = el('div', 'tuff-dialogo-acoes');
+    const botoes = acoes.filter((a) => a && typeof a.id === 'string' && typeof a.rotulo === 'string').map((a) => {
+      const b = el('button', 'tuff-btn', a.rotulo);
+      b.type = 'button';
+      if (a.perigo) b.classList.add('tuff-btn--perigo');
+      else if (a.principal) b.classList.add('tuff-btn--primario');
+      b.dataset.acao = a.id;
+      return b;
+    });
+    fila.append(...botoes);
+    raiz.append(corpo, fila);
+    return { raiz, botoes };
+  }
+
+  /** O resto do documento fica fora do ponteiro, do teclado e do leitor de tela com um diálogo aberto. */
+  function bloquear() {
+    const daFrente = abertos.at(-1);
+    for (const no of document.body.children) {
+      if (no.classList.contains('tuff-dialogo-veu')) continue;
+      if (no.classList.contains('tuff-dialogo')) { no.inert = no !== daFrente; continue; }
+      if (abertos.length) {
+        if (!no.inert) { no.inert = true; no.dataset.tuffDialogoInerte = ''; }
+      } else if ('tuffDialogoInerte' in no.dataset) {
+        no.inert = false;
+        delete no.dataset.tuffDialogoInerte;
+      }
+    }
+  }
+
+  function abrir(opcoes = {}) {
+    const acoes = Array.isArray(opcoes.acoes) ? opcoes.acoes : [];
+    if (!acoes.some((a) => a && typeof a.id === 'string' && typeof a.rotulo === 'string')) {
+      return Promise.reject(new Error('TuffDialogo.abrir pede ao menos uma ação, com id e rotulo'));
+    }
+    const { raiz, botoes } = montar(opcoes);
+    const veu = el('div', 'tuff-dialogo-veu');
+    const quemAbriu = document.activeElement && document.activeElement !== document.body ? document.activeElement : null;
+    const principal = acoes.find((a) => a && a.principal && !a.perigo);
+    const destroi = acoes.some((a) => a && a.perigo);
+
+    return new Promise((resolver) => {
+      function responder(valor) {
+        const i = abertos.indexOf(raiz);
+        if (i < 0) return;
+        abertos.splice(i, 1);
+        const devolver = raiz.contains(document.activeElement) || document.activeElement === document.body;
+        raiz.remove();
+        veu.remove();
+        bloquear();
+        if (devolver && quemAbriu?.isConnected && !quemAbriu.closest('[inert]')) quemAbriu.focus({ preventScroll: true });
+        resolver(valor);
+      }
+
+      for (const b of botoes) b.addEventListener('click', () => responder(b.dataset.acao));
+      // O clique no véu deixa o teclado onde está, dentro do diálogo.
+      veu.addEventListener('mousedown', (e) => e.preventDefault());
+      raiz.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); responder(null); return; }
+        if (e.key === 'Enter' && principal && !e.target.matches('textarea, button, a[href]')) {
+          e.preventDefault();
+          responder(principal.id);
+          return;
+        }
+        if (e.key !== 'Tab') return;
+        // O Tab dá a volta dentro do diálogo.
+        const focaveis = [...raiz.querySelectorAll('button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+          .filter((no) => !no.disabled && no.getClientRects().length);
+        if (!focaveis.length) return;
+        const primeiro = focaveis[0], ultimo = focaveis[focaveis.length - 1];
+        if (e.shiftKey && document.activeElement === primeiro) { e.preventDefault(); ultimo.focus(); }
+        else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primeiro.focus(); }
+      });
+
+      abertos.push(raiz);
+      document.body.append(veu, raiz);
+      bloquear();
+      // O foco abre no campo de quem chama; sem campo, no botão que não destrói quando há um que
+      // destrói, e no principal no resto.
+      const campo = raiz.querySelector('.tuff-dialogo-texto input, .tuff-dialogo-texto select, .tuff-dialogo-texto textarea');
+      const seguro = destroi ? botoes.find((b) => !b.classList.contains('tuff-btn--perigo')) : null;
+      (campo || seguro || botoes.find((b) => b.classList.contains('tuff-btn--primario')) || botoes[0])?.focus();
+      if (campo) campo.select?.();
+    });
+  }
+
+  window.TuffDialogo = { abrir, montar };
+})();
+

@@ -261,6 +261,8 @@ VSSH-378, VSSH-381):
   frente sozinha. O botão dela na barra ganha um ponto parado na cor de destaque, no canto do
   ícone, até a pessoa ir até ela.
 - Na tela estreita, o diálogo é uma folha que sobe de baixo, com os botões empilhados em 44 px.
+- O desenho do diálogo é um só, o do `.tuff-dialogo`: o do shell, o que um app pede ao shell e o
+  que um app desenha têm a mesma marcação, e a pessoa não distingue um do outro.
 - Um aviso diz quem falou (o ícone e o nome do app, nunca o id), quando, o que houve, e as ações.
   Ele pode trazer uma figura: a pessoa que mencionou, o arquivo de que se trata. O tom é um ponto
   no canto do ícone do app, e o título diz o que houve; o aviso não ganha fio colorido à esquerda.
@@ -343,9 +345,13 @@ texto o mostra. A pergunta do modo claro volta com o cliente Android.
 
 - Sem vidro: `--ds-blur` vale `none`.
 - Sombra só no que flutua: janela, menu, diálogo.
-- Diálogo, menu de contexto, aviso e seletor de arquivo são do desktop, e o app os pede pela ponte.
-  Um painel que pertence ao app, como o compartilhar de uma nota, a confirmação presa a um botão e
-  o nome editado no lugar onde aparece, mora na janela dele, num balão junto do que a pessoa clicou.
+- Menu de contexto, aviso e seletor de arquivo são do desktop, e o app os pede pela ponte. Um
+  painel que pertence ao app, como o compartilhar de uma nota, a confirmação presa a um botão e o
+  nome editado no lugar onde aparece, mora na janela dele, num balão junto do que a pessoa clicou.
+- O diálogo é uma peça do Tuff (`.tuff-dialogo`), e a pergunta de um app mora na janela dele dos
+  dois jeitos: pedida ao shell, ela é folha da janela; desenhada pelo app (`TuffDialogo.abrir`),
+  ela é folha do documento. O app desenha a pergunta que leva conteúdo dele, como a escolha de um
+  formato, e pede ao shell o que o ambiente faz por ele, como a senha que vai ao cofre.
 - A aba é encaixada: a ativa tem a cor da barra de baixo e se liga a ela, e as outras ficam soltas
   sobre o cabeçalho, separadas por um fio (VSSH-360).
 - A área de trabalho tem quatro fundos, e a pessoa escolhe um nas boas-vindas do primeiro uso ou

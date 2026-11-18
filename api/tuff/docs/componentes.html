@@ -333,6 +333,22 @@
 
     <section class="tuff-painel">
       <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Diálogo</div>
+        <div class="tuff-sec-desc">
+          <code>TuffDialogo.abrir</code>: a pergunta é o título, o texto é a consequência, e cada botão diz o verbo.
+          A folha desce do topo do documento, e abaixo de 600 px sobe de baixo.
+        </div>
+      </div>
+      <div class="tuff-acoes" style="justify-content:flex-start">
+        <button class="tuff-btn" type="button" id="dlg-pergunta">Uma pergunta</button>
+        <button class="tuff-btn" type="button" id="dlg-destroi">Uma que destrói</button>
+        <button class="tuff-btn" type="button" id="dlg-conteudo">Com um campo</button>
+      </div>
+      <div class="tuff-sec-desc" id="dlg-resposta" aria-live="polite">Nenhuma resposta ainda.</div>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
         <div class="tuff-sec-titulo">Detalhe</div>
         <div class="tuff-sec-desc">
           <code>&lt;details&gt;</code> nativo: abre sem JavaScript e é achável pelo Ctrl+F do navegador.
@@ -1033,7 +1049,41 @@ registrando a estação… feito</pre>
     TuffGaveta.ligar(document.getElementById('gaveta'));
   }
 
+  // Os três diálogos da galeria, e a resposta de cada um escrita embaixo dos botões.
+  function montarDialogos() {
+    const resposta = document.getElementById('dlg-resposta');
+    const dizer = (r) => { resposta.textContent = r === null ? 'Saiu pelo Esc.' : `Respondeu: ${r}`; };
+    document.getElementById('dlg-pergunta').addEventListener('click', async () => {
+      dizer(await TuffDialogo.abrir({
+        titulo: 'Exportar a transcrição?',
+        texto: 'O arquivo vai para a pasta do projeto, ao lado do áudio.',
+        acoes: [{ id: 'cancelar', rotulo: 'Cancelar' }, { id: 'exportar', rotulo: 'Exportar', principal: true }],
+      }));
+    });
+    document.getElementById('dlg-destroi').addEventListener('click', async () => {
+      dizer(await TuffDialogo.abrir({
+        titulo: 'Descartar a edição?',
+        texto: 'O que você mudou desde 14:20 se perde.',
+        acoes: [{ id: 'manter', rotulo: 'Continuar editando' }, { id: 'descartar', rotulo: 'Descartar', perigo: true }],
+      }));
+    });
+    document.getElementById('dlg-conteudo').addEventListener('click', async () => {
+      const campo = document.createElement('input');
+      campo.className = 'tuff-campo';
+      campo.value = 'Falante 1';
+      campo.setAttribute('aria-label', 'Nome do falante');
+      const r = await TuffDialogo.abrir({
+        titulo: 'Nome do falante',
+        texto: 'Como este falante aparece na transcrição.',
+        conteudo: campo,
+        acoes: [{ id: 'cancelar', rotulo: 'Cancelar' }, { id: 'salvar', rotulo: 'Salvar', principal: true }],
+      });
+      dizer(r === 'salvar' ? `salvar, com "${campo.value}"` : r);
+    });
+  }
+
   addEventListener('DOMContentLoaded', () => {
+    montarDialogos();
     montarNavegacao();
     desenharNomes();
     montarAbas();

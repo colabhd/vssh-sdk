@@ -22,19 +22,22 @@
    shell e de mais ninguém (a barra de tarefas, o menu iniciar, a área de
    trabalho) fica nas folhas do shell.
 
-   ─── O que este arquivo não tem, e nunca deve ter ───────────────────────────
+   ─── O que este arquivo não tem ───────────────────────────────────────────
 
-   Diálogo, menu de contexto, aviso, bandeja e seletor de arquivo. Essas
-   superfícies são do desktop, e o app as pede pela ponte (`vssh.dialog.*`,
-   `vssh.contextMenu`, `vssh.toast`, `vssh.notify`, `vssh.tray`,
-   `vssh.pickFile`): é o que permite ao desktop montar o menu ele mesmo, e é
-   por isso que o menu de um app se parece com o resto do ambiente.
+   Menu de contexto, aviso, bandeja e seletor de arquivo. Essas superfícies são
+   do desktop, e o app as pede pela ponte (`vssh.dialogos.menuDeContexto`,
+   `vssh.avisos.*`, `vssh.arquivos.*`): é o que permite ao desktop montar o
+   menu ele mesmo, e é por isso que o menu de um app se parece com o resto do
+   ambiente. Elas saem da janela do app, e o que é desenhado aqui dentro fica
+   preso no documento dele.
 
-   Há um motivo mecânico além do estético: um modal desenhado aqui dentro fica
-   preso no iframe. Ele não cobre a janela, não sobrevive a um app em tela cheia
-   e não aparece por cima do resto do ambiente. Um `<div>` com
-   `position: fixed` num app dá a impressão de diálogo até o dia em que alguém
-   maximiza a janela.
+   O diálogo é dos dois lados. A pergunta que um app faz mora dentro da janela
+   dele: quando ele a pede ao shell (`vssh.dialogos.*`), ela abre como folha da
+   janela, e quando ele a desenha (`TuffDialogo.abrir`, com o `.tuff-dialogo`
+   daqui), ela abre como folha do documento. A marcação e o desenho são os
+   mesmos. O diálogo daqui serve à pergunta com conteúdo do próprio app e ao
+   documento que roda fora do ambiente; o que o ambiente faz pelo app (a senha
+   que vai ao cofre, o consentimento) continua sendo pedido a ele.
 
    ─── A régua de aceitação ──────────────────────────────────────────────────
 
@@ -2000,4 +2003,166 @@
     user-select: none;
     text-indent: 0;
   }
+
+  /* ── O diálogo ──────────────────────────────────────────────
+     Uma pergunta dentro do documento: o título é a pergunta, o texto é a
+     consequência, e cada botão diz o verbo. O tom (o círculo com o ícone)
+     aparece só no que destrói ou falhou. É a marcação que o diálogo do shell
+     monta, e por isso a pergunta que um app desenha (`TuffDialogo.abrir`) e a
+     que ele pede ao shell (`vssh.dialogos.*`) saem iguais.
+
+     A forma é a folha: desce do topo do documento, centrada na largura, com o
+     véu na cor do fundo sobre o resto, que `TuffDialogo` deixa `inert`. Numa
+     janela menor que ela, o conteúdo rola e os botões ficam à vista. Abaixo de
+     600 px ela sobe de baixo, na largura da tela, com os botões empilhados em
+     44 px e o principal em cima.
+
+     As partes (`-origem`, `-corpo`, `-tom`, `-texto`, `-titulo`, `-mensagem`,
+     `-acoes`) não dependem da caixa `.tuff-dialogo`: o shell as usa dentro da
+     janela de diálogo dele, que tem a própria moldura. */
+  .tuff-dialogo-veu {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: color-mix(in srgb, var(--ds-bg) 72%, transparent);
+  }
+  .tuff-dialogo {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1001;
+    display: flex;
+    flex-direction: column;
+    width: 420px;
+    max-width: calc(100% - 24px);
+    max-height: calc(100% - 12px);
+    margin: 0 auto;
+    overflow: hidden;
+    font-family: var(--ds-font);
+    background: var(--ds-bg2);
+    border: 1px solid var(--ds-border);
+    border-top: 0;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    animation: tuff-dialogo-desce var(--ds-dur) var(--ds-ease-out);
+  }
+  @keyframes tuff-dialogo-desce {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* Quem pergunta, em cima: o ícone e o nome. Só o shell a preenche, com o app
+     de onde veio o pedido. */
+  .tuff-dialogo-origem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 20px 0;
+    font-size: 11px;
+    color: var(--ds-text-dim);
+  }
+  .tuff-dialogo-origem-ico {
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 28%;
+    background: var(--ds-bg3);
+    color: var(--ds-text-mid);
+    object-fit: cover;
+  }
+  .tuff-dialogo-origem-ico .tuff-ico { width: 10px; height: 10px; }
+
+  .tuff-dialogo-corpo {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    flex: 0 1 auto;
+    min-height: 0;
+    padding: 18px 20px 16px;
+    overflow-y: auto;
+  }
+  .tuff-dialogo-origem + .tuff-dialogo-corpo { padding-top: 10px; }
+
+  .tuff-dialogo-tom {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+  }
+  .tuff-dialogo-tom--erro,
+  .tuff-dialogo-tom--perigo { background: var(--ds-danger-bg); color: var(--ds-danger); }
+
+  .tuff-dialogo-texto { display: flex; flex: 1; flex-direction: column; gap: 8px; min-width: 0; }
+  .tuff-dialogo-titulo {
+    margin: 0;
+    font-size: var(--tuff-size-xl);
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--ds-text-mid);
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+  .tuff-dialogo-mensagem {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--ds-text);
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
+  /* O texto de um diálogo de um campo é o rótulo dele, menor e acima do campo. */
+  label.tuff-dialogo-mensagem { font-size: 12px; color: var(--ds-text-dim); }
+
+  .tuff-dialogo-acoes {
+    display: flex;
+    flex: none;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: var(--ds-bg);
+    border-top: 1px solid var(--ds-border);
+  }
+  .tuff-dialogo-acoes:empty { display: none; }
+  /* O botão que destrói, cheio: o contorno vermelho do `.tuff-btn--perigo` marca
+     o botão que leva a esta pergunta, e aqui ele é a resposta. */
+  .tuff-dialogo-acoes .tuff-btn--perigo {
+    background: var(--ds-danger-solid);
+    border-color: var(--ds-danger-solid);
+    color: #fff;
+  }
+  .tuff-dialogo-acoes .tuff-btn--perigo:hover:not(:disabled) {
+    background: var(--ds-danger-solid-h);
+    border-color: var(--ds-danger-solid-h);
+  }
+
+  @media (width < 600px) {
+    .tuff-dialogo {
+      top: auto;
+      bottom: 0;
+      width: auto;
+      max-width: none;
+      max-height: 90%;
+      border-top: 1px solid var(--ds-border);
+      border-bottom: 0;
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.5);
+      animation-name: tuff-dialogo-sobe;
+    }
+    .tuff-dialogo-corpo { flex-direction: column; gap: 12px; padding: 16px 20px 8px; }
+    .tuff-dialogo-texto { align-self: stretch; }
+    .tuff-dialogo-mensagem { font-size: 14px; }
+    .tuff-dialogo-acoes { flex-direction: column-reverse; align-items: stretch; padding: 8px 16px 20px; background: none; border-top: 0; }
+    .tuff-dialogo-acoes .tuff-btn { min-height: 44px; font-size: 14px; }
+  }
+  @keyframes tuff-dialogo-sobe {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { .tuff-dialogo { animation: none; } }
 }
