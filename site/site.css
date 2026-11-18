@@ -90,7 +90,9 @@ body { overflow: hidden; }
   font-size: 26px;
   line-height: 1.2;
 }
-.site-artigo h2 {
+/* O fio e o corpo do título de seção são da folha de leitura. Dentro de uma amostra viva o `h2` é
+   de uma peça do Tuff, como o título de um diálogo, e fica com o desenho dela. */
+.site-artigo h2:not(:where(.site-vivo-amostra *)) {
   margin: var(--ds-gap-2xl) 0 var(--ds-gap-lg);
   padding-top: var(--ds-gap-lg);
   border-top: 1px solid var(--ds-border);

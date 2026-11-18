@@ -193,6 +193,44 @@ test('um diálogo cai no do navegador, com a resposta dele', { skip: pular }, as
   assert.deepEqual(pagina.excecoes, []);
 });
 
+test('o diálogo do Tuff abre dentro da página, com o conteúdo do app, e a resposta volta à galeria', { skip: pular }, async () => {
+  pagina.limparRegistros();
+  const esperar = async (expressao, oQue) => {
+    const fim = Date.now() + 10000;
+    while (!(await pagina.avaliar(expressao))) {
+      if (Date.now() > fim) assert.fail(`esperei 10000ms e ${oQue} não aconteceu`);
+      await new Promise((r) => setTimeout(r, 50));
+    }
+  };
+  await clicar('tuff-dialogo-formato');
+  await esperar(`!!document.querySelector('.tuff-dialogo select.tuff-select')`, 'o diálogo abrir com a lista de formatos');
+  // O foco abre no controle que o app pôs no diálogo, e o resto da página fica fora do teclado.
+  const aberto = await pagina.avaliar(`JSON.stringify({
+    titulo: document.querySelector('.tuff-dialogo-titulo').textContent,
+    focoNoFormato: document.activeElement === document.querySelector('.tuff-dialogo select'),
+    galeriaBloqueada: !!document.getElementById('tuff-dialogo-formato').closest('[inert]'),
+  })`).then(JSON.parse);
+  assert.deepEqual(aberto, { titulo: 'Exportar em que formato?', focoNoFormato: true, galeriaBloqueada: true });
+  await pagina.avaliar(`(() => {
+    const formato = document.querySelector('.tuff-dialogo select');
+    formato.value = 'Markdown';
+    [...document.querySelectorAll('.tuff-dialogo-acoes .tuff-btn')].find((b) => b.textContent === 'Exportar').click();
+    return true;
+  })()`);
+  assert.equal(await texto('dialogo-do-app'), 'exportar, em Markdown');
+  assert.equal(await pagina.avaliar(`document.querySelectorAll('.tuff-dialogo, .tuff-dialogo-veu, [inert]').length`), 0);
+
+  // O Esc é uma resposta: `abrir` resolve `null`, e a galeria diz isso.
+  await pagina.avaliar(`(document.getElementById('dialogo-do-app').textContent = '', true)`);
+  await clicar('tuff-dialogo-destroi');
+  await esperar(`!!document.querySelector('.tuff-dialogo')`, 'o diálogo abrir');
+  assert.equal(await pagina.avaliar(`document.activeElement.textContent`), 'Continuar escrevendo');
+  await pagina.enviar('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  await pagina.enviar('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+  assert.match(await texto('dialogo-do-app'), /abrir devolveu null/);
+  assert.deepEqual(pagina.excecoes, []);
+});
+
 test('um aviso fora do ambiente vai ao console, e a permissão responde null', { skip: pular }, async () => {
   pagina.limparRegistros();
   await clicar('toast');
