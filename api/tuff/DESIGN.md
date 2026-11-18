@@ -6,7 +6,7 @@ uma tela nova, para quem revisa uma, e para o anti-slop, que lê este arquivo co
 (R-37) antes de filtrar. Um vssh-app recebe o mesmo arquivo pelo vssh-sdk, em `api/tuff/DESIGN.md`.
 
 O desenho de cada tela está nas pranchetas do protótipo do VSSH-359, que são a referência do
-rework. Uma regra daqui que o código ainda não segue tem card próprio no VSSH-356.
+rework. Uma regra daqui que o código ainda não segue tem card próprio no VSSH-356 ou no VSSH-615.
 
 ## A leitura
 
@@ -132,7 +132,9 @@ cheia, desenhada num quadro de 48 × 48 para a grade e reduzida a 20 px na lista
 A forma é a folha com selo: a folha clara, o glifo do tipo na cor dele na metade de cima, e a
 extensão num selo colorido no canto de baixo, sem cobrir o glifo. Na lista, onde a extensão não se
 lê, o selo some e o glifo volta ao meio da folha. Ela foi escolhida porque o meio da folha e o selo são dois lugares que um
-app pode preencher com o que é dele.
+app pode preencher com o que é dele. A extensão no selo é parte do desenho do ícone e fica fora da
+escala de letra: na grade ela sai com cerca de 8 px, e o nome do arquivo, embaixo, traz a extensão
+na letra da interface.
 
 Cada tipo tem um matiz e um glifo, e o glifo carrega o tipo junto com a cor, para quem não distingue
 os matizes. Os matizes têm a mesma luminosidade (OKLCH 0,62, croma 0,13), então nenhum grita mais
@@ -296,8 +298,11 @@ VSSH-378, VSSH-381):
 
 ## Geometria e densidade
 
-- O raio é de 4 px em controle e de 6 px em painel. Pílula só para o estado e para a legenda da
-  imagem do dia na área de trabalho.
+- O raio é de 4 px em controle e de 6 px em painel, e o que flutua sobre a área de trabalho (o
+  menu, o painel da barra, o aviso) é painel. O token de 8 px (`--ds-radius-xl`) fica no contrato
+  para os apps, e o shell não o usa. Pílula só para o estado e para a legenda da imagem do dia na
+  área de trabalho. O dia de hoje no calendário da central é um círculo na cor de destaque: é o
+  lugar onde a pessoa está no mês.
 - A densidade é a de uma ferramenta: controle com 26 px de altura sob ponteiro fino, e 44 px de
   alvo sob ponteiro grosso (`--ds-alvo`). Quem decide é o ponteiro, e não a largura.
 - O espaçamento segue a escala de 2, 4, 8, 12, 20 e 32 px (`--ds-gap-*`).
@@ -344,7 +349,9 @@ texto o mostra. A pergunta do modo claro volta com o cliente Android.
 ## Decisões de produto que este arquivo guarda
 
 - Sem vidro: `--ds-blur` vale `none`.
-- Sombra só no que flutua: janela, menu, diálogo.
+- Sombra só no que flutua. O menu, o painel da barra (a central, o som, a bandeja, o encaixe) e o
+  aviso usam a mesma, a do `--ds-shadow-lg`. A janela e o diálogo têm a deles. A barra de tarefas
+  não flutua, e se separa da área de trabalho pelo fio.
 - Menu de contexto, aviso e seletor de arquivo são do desktop, e o app os pede pela ponte. Um
   painel que pertence ao app, como o compartilhar de uma nota, a confirmação presa a um botão e o
   nome editado no lugar onde aparece, mora na janela dele, num balão junto do que a pessoa clicou.
