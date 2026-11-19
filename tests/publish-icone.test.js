@@ -166,7 +166,7 @@ test('um repositório que não guarda o ladrilho vira aviso, e o app fica public
   t.after(() => { semRota = null; });
   const r = await publicar();
   assert.equal(r.code, 0, r.saida);
-  assert.match(r.saida, /ladrilho não guardado: O repositório respondeu 404 ao ladrilho de exemplo@1\.0\.0/);
+  assert.match(r.saida, /ladrilho não guardado: http:\/\/127\.0\.0\.1:\d+ respondeu 404 ao ladrilho de exemplo@1\.0\.0/);
   assert.match(r.saida, /exemplo@1\.0\.0 publicado/);
 });
 

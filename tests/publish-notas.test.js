@@ -111,6 +111,8 @@ function publicar(args, env = {}) {
 }
 
 const decodificar = (b64) => Buffer.from(b64, 'base64').toString('utf8');
+/** O POST do pacote: antes dele o publish pergunta ao repositório o que o app já tem. */
+const doPacote = () => recebidos.find((p) => p.url === '/v1/publish/app');
 
 test('--notes viaja em base64 no X-Vssh-Notes, com as quebras de linha intactas', seNaoTem, async () => {
   const r = await publicar(['--notes', '## 1.0.0\n\n- primeira versão\n- com acento: versão']);
@@ -129,11 +131,11 @@ test('--notes-file lê o arquivo; VSSH_RELEASE_NOTES é o caminho do CI', seNaoT
     let r = await publicar(['--notes-file', posix(arquivo)]);
     assert.equal(r.code, 0, r.saida);
     // O `$(cat …)` do bash tira as quebras de linha do FIM, e só elas; as do meio ficam.
-    assert.equal(decodificar(recebidos[0].headers['x-vssh-notes']), 'do arquivo\n\n- item');
+    assert.equal(decodificar(doPacote().headers['x-vssh-notes']), 'do arquivo\n\n- item');
 
     r = await publicar([], { VSSH_RELEASE_NOTES: 'do ambiente' });
     assert.equal(r.code, 0, r.saida);
-    assert.equal(decodificar(recebidos[0].headers['x-vssh-notes']), 'do ambiente');
+    assert.equal(decodificar(doPacote().headers['x-vssh-notes']), 'do ambiente');
   } finally {
     fs.rmSync(arquivo, { force: true });
   }
@@ -142,7 +144,7 @@ test('--notes-file lê o arquivo; VSSH_RELEASE_NOTES é o caminho do CI', seNaoT
 test('sem notas o header não vai, e o Worker não recebe um base64 de nada', seNaoTem, async () => {
   const r = await publicar([]);
   assert.equal(r.code, 0, r.saida);
-  assert.ok(!('x-vssh-notes' in recebidos[0].headers), 'X-Vssh-Notes foi sem notas');
+  assert.ok(!('x-vssh-notes' in doPacote().headers), 'X-Vssh-Notes foi sem notas');
 });
 
 test('o Worker dizendo que não conferiu o schema vira aviso de quem publica', seNaoTem, async () => {
@@ -150,10 +152,10 @@ test('o Worker dizendo que não conferiu o schema vira aviso de quem publica', s
   try {
     const r = await publicar([]);
     assert.equal(r.code, 0, r.saida);
-    assert.match(r.saida, /Worker não conferiu o schema/);
+    assert.match(r.saida, /repositório não conferiu o schema/);
   } finally {
     respostaDoWorker = { ok: true, schemaConferido: true };
   }
   const r = await publicar([]);
-  assert.doesNotMatch(r.saida, /Worker não conferiu o schema/);
+  assert.doesNotMatch(r.saida, /repositório não conferiu o schema/);
 });
