@@ -16,9 +16,21 @@
 //
 // Cada camada entra por `<image>` com data URI. Os ids de dentro de uma camada não pintam a outra,
 // e um script de dentro dela não roda, porque o shell desenha o resultado num `<img>`.
+//
+// ─── As duas saídas ───────────────────────────────────────────────────────────
+//
+// O ícone (`comporIcone`) é o quadrado de 64 com as quatro camadas. O ladrilho (`comporLadrilho`)
+// leva só as duas do app: o fundo cobre um retângulo de qualquer proporção, até a borda, e o glifo
+// fica inteiro no centro, sem máscara e sem fio. O canto do ladrilho é de quem o desenha, a Loja.
 
 export const LADO = 64;
 export const RAIO = 14;
+
+/** O fundo que é uma cor, `#rrggbb`. */
+export interface FundoDeCor { cor: string }
+
+/** As duas saídas do compositor: o ícone de 64 e o ladrilho de qualquer proporção. */
+export type FormaDoIcone = 'icone' | 'ladrilho';
 
 export interface CamadasDeIcone {
   /** O caminho do glifo, relativo à raiz do pacote. */
@@ -89,10 +101,44 @@ const ACABAMENTO =
  * O SVG montado, de 64 × 64. `fundo` é uma camada lida do pacote, `{ cor }`, ou `null` para o fundo
  * da família.
  */
-export function comporIcone(glifo: Camada, fundo: Camada | { cor: string } | null = null): string {
+export function comporIcone(glifo: Camada, fundo: Camada | FundoDeCor | null = null): string {
   const base = !fundo ? FUNDO_DA_FAMILIA
     : 'cor' in fundo ? `<rect width="${LADO}" height="${LADO}" fill="${COR.test(fundo.cor) ? fundo.cor : '#15171c'}"/>`
     : imagem(fundo);
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${LADO} ${LADO}" width="${LADO}" height="${LADO}">` +
     `<defs>${DEFS}</defs><g clip-path="url(#vssh-mascara)">${base}${imagem(glifo)}</g>${ACABAMENTO}</svg>`;
+}
+
+/**
+ * O fundo de um ladrilho que é um arquivo, cobrindo o retângulo inteiro (`slice`). Num arquivo SVG o
+ * `preserveAspectRatio` do `<image>` não vale: quem decide é a raiz do próprio SVG, e o fragmento
+ * `svgView` do endereço a troca sem mexer no arquivo do app.
+ */
+function fundoQueCobre(c: Camada): string {
+  const cobre = 'preserveAspectRatio(xMidYMid slice)';
+  const href = `data:${c.mime};base64,${c.dados}${c.mime === 'image/svg+xml' ? `#svgView(${cobre})` : ''}`;
+  return `<image href="${href}" width="100%" height="100%" preserveAspectRatio="xMidYMid slice"/>`;
+}
+
+/**
+ * O ladrilho de um app: um SVG sem `viewBox` e sem tamanho próprio, que toma a caixa que o
+ * `<img>` lhe der. O fundo (uma camada lida do pacote, `{ cor }`, ou `null` para o da família)
+ * cobre a caixa inteira, e o glifo fica inteiro e centrado, na medida do lado menor.
+ *
+ * Quem o desenha dá largura e altura ao `<img>`: sem as duas, o navegador usa 300 × 150.
+ */
+export function comporLadrilho(glifo: Camada, fundo: Camada | FundoDeCor | null = null): string {
+  const base = !fundo
+    ? '<defs><radialGradient id="vssh-luz" cx="0.3" cy="0.2" r="0.85"><stop offset="0" stop-color="#2a2e38"/>' +
+      '<stop offset="1" stop-color="#15171c" stop-opacity="0"/></radialGradient></defs>' +
+      '<rect width="100%" height="100%" fill="#15171c"/><rect width="100%" height="100%" fill="url(#vssh-luz)"/>'
+    : 'cor' in fundo ? `<rect width="100%" height="100%" fill="${COR.test(fundo.cor) ? fundo.cor : '#15171c'}"/>`
+    : fundoQueCobre(fundo);
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">' + base +
+    `<image href="data:${glifo.mime};base64,${glifo.dados}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"/></svg>`;
+}
+
+/** A saída pedida: o ícone de 64 ou o ladrilho. */
+export function compor(forma: FormaDoIcone, glifo: Camada, fundo: Camada | FundoDeCor | null = null): string {
+  return forma === 'ladrilho' ? comporLadrilho(glifo, fundo) : comporIcone(glifo, fundo);
 }

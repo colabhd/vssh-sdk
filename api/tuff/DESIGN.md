@@ -189,6 +189,12 @@ sistema que deixa todos com a mesma forma, em todo tamanho e em toda superfície
 | máscara | do sistema | o quadrado de raio 14 no quadro de 64, 22% do lado |
 | acabamento | do sistema | um fio de 1 px por dentro da borda, branco a 16% em cima e preto a 30% embaixo |
 
+O compositor tem uma segunda saída, o ladrilho, para a Loja. Ele leva só as duas camadas do app: o
+fundo cobre um retângulo de qualquer proporção, até a borda, e o glifo fica inteiro no centro, na
+medida do lado menor. A máscara e o acabamento ficam de fora, e o canto do ladrilho é de quem o
+desenha. Um app que só tem o ícone pronto entra inteiro sobre o fundo da família. A rota do ícone o
+serve com `?forma=ladrilho`, e o `<img>` que o mostra tem largura e altura dadas pelo CSS.
+
 O quadro é de 64 × 64. O glifo mora na área viva de 46 × 46, centrada, e cada forma tem a keyline
 dela, porque um círculo e um quadrado da mesma largura não parecem do mesmo tamanho: o círculo pede
 Ø 46, o quadrado 40 × 40, e a forma deitada ou em pé 46 × 36. Um disco cheio fica abaixo da keyline,

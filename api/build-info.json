@@ -26,7 +26,7 @@
       "sha256": "802402efad47701fd6b50d90404fd04aae3b477820a720224ddd8ed3fa148269"
     },
     "api/icone/composicao-de-icone.ts": {
-      "sha256": "26235f106c705a38b15b8c3b64aef29149e86029b408aca5998f6f2c7d282c5e"
+      "sha256": "4a463b52399f7e5c2a07ba3773995dcb0cd9e90118e4d399a9f8858843d9b713"
     },
     "api/icone/package.json": {
       "sha256": "5a065fe7d8eab2a582f428e11c2ea63aaf70607a54f69cfd5c711b5c53d91b32"
@@ -38,7 +38,7 @@
       "sha256": "0bf07c92217fe6ef27c9653a262e2476ae97bcb40a519f31c574652e974ef593"
     },
     "api/tuff/DESIGN.md": {
-      "sha256": "1a53048a6102d38ac0acd2cdd379dc69a474d057e89dde5b8ef23ffae7952feb"
+      "sha256": "e20c5d6e2343cb15b584848bb4035e39a038a81de9927650f859a70718b278cf"
     },
     "api/tuff/contrato.json": {
       "sha256": "3a2f4bdad5f6c7598adf5e825565e3fb077e1cf0581cd541e3b0c8320be15496"
