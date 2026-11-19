@@ -38,8 +38,8 @@ quem escreve e para o CI ([o ambiente de desenvolvimento](docs/guias/ambiente-de
 
 O que sai do seu app: a dependência `vssh-app-toolkit` do `package.json` (e o lock que a fixava),
 o `vendor/py` com o `pip install` do tarball, e o `installCommand` que os instalava, se não
-sobrar dependência sua. O que entra: `version: "5.0.0"` e `minShellVersion: "5.0.0"` no
-manifesto, e `healthcheckPath: "/saude"` se o backend adotar o portão do runtime. Num backend
+sobrar dependência sua. O que entra: `version: "5.0.0"` no manifesto, e
+`healthcheckPath: "/saude"` se o backend adotar o portão do runtime. Num backend
 Node escrito em ESM, `import 'vssh'` não consulta `NODE_PATH`; o caminho é
 `createRequire(import.meta.url)('vssh')`.
 
@@ -286,6 +286,23 @@ Nada muda para um app que não o usa. Para quem já guarda dados:
 - No Node, o driver é o `node:sqlite`, do Node 22.5 em diante. O VSSH-Runtime do servidor traz
   um Node que o tem, e um app que dependia de um pacote npm de SQLite pode deixá-lo.
 - A página continua sem falar com o banco: ela fala com o backend.
+
+## A `ponte` no lugar do `minShellVersion`
+
+O VSSH deixa de ter versão nominal, e o `minShellVersion` sai com ela. No lugar, o publish lê os
+nomes do SDK web que a janela do seu app chama e os carimba no manifesto do pacote, em `ponte`. O
+portal confere essa lista contra o SDK que ele serve, e a recusa nomeia o que falta.
+
+O que muda para quem já publica:
+
+- Tire o `minShellVersion` do manifesto. O publish avisa enquanto ele estiver lá, e continua
+  publicando.
+- Leia a anotação "ponte" do run. Ela diz quantos nomes o publish leu. Se a sua janela chega ao
+  SDK por um acessor próprio, a leitura acha poucos: declare os que faltam em `ponte.exige`.
+- Um nome que a janela confere antes de chamar, e dispensa, vai em `ponte.opcional`.
+
+[A ponte](docs/guias/publicar.md#a-ponte-o-que-a-janela-chama) tem a forma do campo e as regras
+da leitura.
 
 ## O Tuff: o que muda e o que fica
 

@@ -87,10 +87,46 @@ o app não as declara.
 | `vssh-app-toolkit` no `package.json`, no `installCommand` ou num `requirements` | avisa, nomeando a versão, e publica: as libs de backend são o runtime `vssh` do servidor, e a troca está no [`MIGRATION.md`](../../MIGRATION.md) |
 | `requiredPackages` com nome fora de `^[a-z0-9][a-z0-9+.-]*$` | recusa: o valor chega a um gerenciador de pacotes, e um metacaractere ali seria injeção |
 | `cpuQuota: "2"` | recusa: `"2"` é 2%, e `"100%"` é um núcleo |
+| um nome em `ponte.exige` ou `ponte.opcional` que o SDK web não tem | recusa, nomeando-o |
+| um nome `vssh.<espaço>.<nome>` lido no frontend que o SDK web não tem | avisa, com o arquivo e a linha, e publica |
+| `minShellVersion` | avisa que o campo está de saída, e publica |
 
 No GitHub Actions os avisos sobem como anotações (`::warning::`), para o resumo do run e a aba de
 anotações do PR, porque um aviso numa linha entre mil de log passou meses despercebido em
 repositórios que publicavam com validação mínima achando que validavam.
+
+## A ponte: o que a janela chama
+
+A compatibilidade de um app com o ambiente é a lista dos nomes do SDK web que a janela dele chama:
+`vssh.salas.entrar`, `vssh.arquivos.urlFor`. O publish monta essa lista e a carimba no manifesto do
+pacote, em `ponte`:
+
+```json
+"ponte": {
+  "exige": ["app.titulo", "arquivos.urlFor", "salas.entrar"],
+  "opcional": ["desempenho.mandarMedida"]
+}
+```
+
+Ele lê os arquivos de página do pacote (js, ts, html e parentes), fora a pasta do backend,
+`node_modules` e os testes, e junta os nomes da forma `vssh.<espaço>.<nome>` que existem em
+[`api/superficie.json`](../../api/superficie.json), a lista de tudo que o SDK web oferece. O que
+ele acha entra em `exige`.
+
+No manifesto de origem o campo é opcional, e serve a dois casos:
+
+- `ponte.exige` soma à leitura o que ela não acha. Uma janela que chega ao SDK por um acessor
+  próprio (`espaco('janela')?.minimizar?.()`) ou que monta o nome em tempo de execução declara ali
+  os nomes que usa.
+- `ponte.opcional` tira um nome da exigência. A janela confere se ele existe antes de chamar, e
+  funciona sem ele.
+
+O publish anota no run quantos nomes leu e quantos o manifesto declarou. Uma janela que termina
+com a lista vazia ganha um aviso: ou ela não chama a ponte, ou a chama por um caminho que a leitura
+não vê.
+
+O portal confere `exige` antes de instalar, contra o SDK que ele serve, e a recusa nomeia o que
+falta. Um pacote publicado sem o carimbo não é conferido.
 
 ## Instalar no servidor
 
@@ -113,15 +149,10 @@ atualização. O `--force` reinstala de qualquer forma, e encerra com `SIGTERM` 
 app em execução, de qualquer usuário, conferindo pelo `environ` que o processo é mesmo deste app.
 Cada pessoa sobe a versão nova na próxima abertura.
 
-O `minShellVersion` do manifesto é conferido pelo portal, que sabe a versão do shell que serve, e
-não pelo `vssh-app-install`, que roda offline. Quando a instalação parte da aba Repositório, o
-portal lê o campo do catálogo do repositório e recusa antes de mandar o comando ao servidor, com o
-motivo; um Worker anterior ao campo não responde, e aí não há recusa ("não conferido" é diferente
-de "está tudo bem"). Uma instalação feita à mão no servidor não passa por essa conferência.
-O campo só aceita números (`5.0.0`, e nunca `5.0.0-rc0`): o rótulo de pré-lançamento é do shell,
-e um shell `5.0.0-rc0` conta como `5.0.0` na conferência, então um app escrito para o SDK 5
-declara `5.0.0` e instala no candidato. Os templates deste repositório já declaram isso, porque
-o `_sdk/vssh.js` que eles carregam só existe a partir do shell 5.
+O `minShellVersion` do manifesto está de saída, e [a ponte](#a-ponte-o-que-a-janela-chama) entra
+no lugar dele. Enquanto o campo existir, o portal o compara com a versão do shell que serve quando
+a instalação parte da aba Repositório, e recusa com o motivo. Os templates deste repositório não o
+declaram.
 
 Pela aba Repositório do portal, o admin vê, por servidor, o que está disponível no repositório e o
 que está instalado, sem rodar os scripts, e instala ou atualiza com um botão; o botão de atualizar

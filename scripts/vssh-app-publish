@@ -231,12 +231,13 @@ if be is not None:
               f'{len(razao) if isinstance(razao, str) else type(razao).__name__}')
         sys.exit(0)
 
-# `minShellVersion` é conferido pelo PORTAL na instalação — ele sabe a versão do shell que serve.
-# Aqui só a forma, e nomeando o valor: um `"^4.0"` ou um `"v4"` copiado de outro ecossistema passaria
-# como string qualquer e só falharia no servidor de outra pessoa.
+# `minShellVersion` está de saída: o VSSH deixa de ter versão nominal, e a compatibilidade de um
+# app passa a ser a `ponte` dele (a seção 2e). A forma continua conferida, nomeando o valor,
+# enquanto o schema tiver o campo, e quem ainda o declara ganha um aviso no run.
 msv = m.get('minShellVersion')
 if msv is not None and (not isinstance(msv, str) or not re.match(r'^[0-9]+(\.[0-9]+){0,2}$', msv)):
     print(f'ERROR=minShellVersion_invalida:{msv!r}'); sys.exit(0)
+if msv is not None: print(f'MINSHELL={msv}')
 
 # `opens.proprios` são os tipos de arquivo que o app cria, e o ambiente desenha o selo de cada um
 # com o texto em branco sobre a cor declarada. O schema confere a forma do hex e não alcança o
@@ -371,14 +372,14 @@ print("CAMADAS=" + ('1' if isinstance(m.get('icone'), dict) else ''))
 PYEOF
 )"
 
-APP_ID="" VERSION="" ICON="" ERR="" WARN="" DEVELOPER="" AJUDA="" CAMADAS=""
+APP_ID="" VERSION="" ICON="" ERR="" WARN="" DEVELOPER="" AJUDA="" CAMADAS="" MINSHELL=""
 TRAVESSOES=()
 INFO="${INFO//$'\r'/}"   # robustez: python em Windows emite \r\n; header do curl não pode ter \r
 while IFS='=' read -r k v; do
   case "${k}" in
     ERROR) ERR="${v}";; ID) APP_ID="${v}";; VERSION) VERSION="${v}";; ICON) ICON="${v}";; WARN) WARN="${v}";;
     DEVELOPER) DEVELOPER="${v}";; AJUDA) AJUDA="${v}";; TRAVESSAO) TRAVESSOES+=("${v}");;
-    CAMADAS) CAMADAS="${v}";;
+    CAMADAS) CAMADAS="${v}";; MINSHELL) MINSHELL="${v}";;
   esac
 done <<< "${INFO}"
 [ -z "${WARN}" ] || anotar warning "validação parcial" "${WARN}"
@@ -387,6 +388,8 @@ for campo in "${TRAVESSOES[@]}"; do
   anotar warning "travessão no manifesto" \
     "${campo} tem travessão. A ficha do app mostra esse texto; troque por vírgula, ponto, dois-pontos ou parênteses."
 done
+[ -z "${MINSHELL}" ] || anotar warning "minShellVersion" \
+  "O manifesto declara minShellVersion ${MINSHELL}, um campo de saída. A compatibilidade do app passa a ser a ponte dele, que este publish lê do frontend. Tire o campo do manifesto."
 
 # ── 2b. O app ainda cita o vssh-app-toolkit? ──────────────────────────────────
 #
@@ -601,6 +604,126 @@ elif [ -n "${CAMADAS}" ]; then
         echo "Ícone montado das camadas em ${ICON}"
       fi ;;
   esac
+fi
+
+# ── 2e. A ponte que a janela usa ──────────────────────────────────────────────
+#
+# A compatibilidade de um app com o ambiente é a lista dos nomes do SDK web que a janela dele
+# chama (`vssh.salas.entrar`, `vssh.arquivos.urlFor`). O publish lê os arquivos da janela, junta os
+# nomes da forma `vssh.<espaço>.<nome>` que a superfície do SDK tem (`api/superficie.json`, gerado
+# pelo sistema), soma `ponte.exige` do manifesto, tira `ponte.opcional`, e carimba as duas listas
+# no manifesto do pacote. O portal confere `exige` antes de instalar.
+#
+# Os arquivos da janela são os de página (js, ts, html e parentes) que vão no pacote, fora a pasta
+# do backend (a primeira pasta do `backend.entrypoint`), `node_modules` e os testes. O backend
+# importa o runtime `vssh`, que tem espaços de mesmo nome (`vssh.gpu`), e lê-lo misturaria os dois.
+#
+# Um nome declarado que a superfície não tem recusa a publicação: o autor o escreveu de propósito.
+# Um nome só lido que a superfície não tem vira um aviso com o arquivo e a linha, porque a leitura
+# não separa uma chamada de um comentário que cita uma peça que ainda não existe.
+#
+# Sem `api/superficie.json` no checkout, a ponte não é lida e o pacote sai sem o carimbo, com uma
+# anotação. O portal trata o pacote sem `ponte` como não conferido.
+SUPERFICIE="$(cd "$(dirname "$0")/.." && pwd)/api/superficie.json"
+PONTE_INFO="$(VSSH_PKG="${PKG}" VSSH_MANIFEST_PATH="${MANIFEST}" VSSH_SUPERFICIE_PATH="${SUPERFICIE}" python3 <<'PYEOF'
+import json, os, re, subprocess, sys
+sys.stdout.reconfigure(encoding='utf-8')
+sys.stderr.reconfigure(encoding='utf-8')
+pkg = os.environ['VSSH_PKG']
+p = os.environ['VSSH_MANIFEST_PATH']
+caminho = os.environ.get('VSSH_SUPERFICIE_PATH') or ''
+if not os.path.isfile(caminho):
+    print('SEM_SUPERFICIE=1'); sys.exit(0)
+espacos = json.load(open(caminho, encoding='utf-8')).get('espacos') or {}
+m = json.load(open(p, encoding='utf-8'))
+
+def existe(nome):
+    espaco, _, membro = nome.partition('.')
+    return membro in (espacos.get(espaco) or {})
+
+ponte = m.get('ponte') if isinstance(m.get('ponte'), dict) else {}
+declarados = {k: [n for n in (ponte.get(k) or []) if isinstance(n, str)] for k in ('exige', 'opcional')}
+desconhecidos = sorted({n for k in declarados for n in declarados[k] if not existe(n)})
+if desconhecidos:
+    print('ERROR=' + ', '.join(desconhecidos)); sys.exit(0)
+
+backend = m.get('backend') if isinstance(m.get('backend'), dict) else {}
+entrada = backend.get('entrypoint') if isinstance(backend.get('entrypoint'), str) else ''
+FORA = {'.git', 'node_modules', 'tests', 'test', 'data', '__pycache__'}
+if '/' in entrada: FORA.add(entrada.split('/')[0])
+PAGINA = ('.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.html', '.xhtml', '.vue', '.svelte')
+
+def do_pacote():
+    # Num repositório git o pacote leva o que o `git add -A` da seção 3 pega: o rastreado e o que
+    # o `.gitignore` não exclui. Fora dele, a árvore inteira.
+    try:
+        saida = subprocess.run(['git', '-C', pkg, 'ls-files', '-z', '--cached', '--others', '--exclude-standard'],
+                               capture_output=True, check=True).stdout
+        return [n for n in saida.decode('utf-8', 'replace').split('\0') if n]
+    except Exception:
+        return [os.path.relpath(os.path.join(raiz, f), pkg).replace(os.sep, '/')
+                for raiz, _, nomes in os.walk(pkg) for f in nomes]
+
+CHAMADA = re.compile(r'\bvssh\s*\??\.\s*([a-z]+)\s*\??\.\s*([A-Za-z_]\w*)')
+lidos, estranhos = set(), {}
+for n in sorted(do_pacote()):
+    partes = n.split('/')
+    if not n.endswith(PAGINA) or n == entrada or set(partes[:-1]) & FORA: continue
+    try: texto = open(os.path.join(pkg, n), encoding='utf-8', errors='replace').read()
+    except OSError: continue
+    if 'vssh' not in texto: continue
+    # O texto inteiro, e não linha a linha: uma chamada quebrada em linhas (`vssh` numa, `.salas`
+    # na seguinte) é a mesma chamada.
+    for achado in CHAMADA.finditer(texto):
+        espaco, membro = achado.groups()
+        if espaco not in espacos: continue
+        if membro in espacos[espaco]: lidos.add(f'{espaco}.{membro}')
+        else: estranhos.setdefault(f'{espaco}.{membro}', f"{n}:{texto.count(chr(10), 0, achado.start()) + 1}")
+
+opcional = sorted(set(declarados['opcional']))
+exige = sorted((lidos | set(declarados['exige'])) - set(opcional))
+m['ponte'] = {'exige': exige, 'opcional': opcional}
+json.dump(m, open(p, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+
+for nome, onde in sorted(estranhos.items()): print(f'ESTRANHO={nome} ({onde})')
+print(f'LIDOS={len(lidos)}')
+print(f"DECLARADOS={len(set(declarados['exige']) | set(declarados['opcional']))}")
+print(f'EXIGE={len(exige)}')
+print(f'OPCIONAL={len(opcional)}')
+# Um motor ou um serviço não tem janela, e a lista vazia dele não diz nada.
+tem_janela = m.get('type') != 'engine' and m.get('kind') != 'service'
+if tem_janela and not exige and not opcional: print('VAZIA=1')
+PYEOF
+)"
+
+PONTE_ERRO="" SEM_SUPERFICIE="" PONTE_LIDOS=0 PONTE_DECLARADOS=0 PONTE_EXIGE=0 PONTE_OPCIONAL=0 PONTE_VAZIA=""
+PONTE_ESTRANHOS=()
+PONTE_INFO="${PONTE_INFO//$'\r'/}"
+while IFS='=' read -r k v; do
+  case "${k}" in
+    ERROR) PONTE_ERRO="${v}";; SEM_SUPERFICIE) SEM_SUPERFICIE=1;; ESTRANHO) PONTE_ESTRANHOS+=("${v}");;
+    LIDOS) PONTE_LIDOS="${v}";; DECLARADOS) PONTE_DECLARADOS="${v}";; EXIGE) PONTE_EXIGE="${v}";;
+    OPCIONAL) PONTE_OPCIONAL="${v}";; VAZIA) PONTE_VAZIA=1;;
+  esac
+done <<< "${PONTE_INFO}"
+if [ -n "${PONTE_ERRO}" ]; then
+  anotar error "ponte" \
+    "O manifesto declara em ponte um nome que o SDK web não tem: ${PONTE_ERRO}. Os nomes que existem estão em api/superficie.json do vssh-sdk."
+  echo "ERRO: ponte com nome desconhecido (${PONTE_ERRO})." >&2
+  exit 1
+fi
+if [ -n "${SEM_SUPERFICIE}" ]; then
+  anotar notice "ponte não lida" \
+    "api/superficie.json não está neste checkout do vssh-sdk. ${APP_ID}@${VERSION} publica sem a ponte carimbada, e o portal não a confere."
+else
+  for estranho in "${PONTE_ESTRANHOS[@]}"; do
+    anotar warning "ponte" \
+      "A leitura achou vssh.${estranho}, e o SDK web não tem esse nome. Uma chamada a ele falha na janela; um comentário ou um texto que o cita não pede nada."
+  done
+  anotar notice "ponte de ${APP_ID}" \
+    "${PONTE_LIDOS} nomes lidos do frontend e ${PONTE_DECLARADOS} declarados no manifesto. O pacote exige ${PONTE_EXIGE} e dispensa ${PONTE_OPCIONAL}."
+  [ -z "${PONTE_VAZIA}" ] || anotar warning "ponte vazia" \
+    "Nenhum nome do SDK web foi achado em ${APP_ID}. Ou a janela não chama a ponte, ou a chama por um caminho que a leitura não vê (um acessor do próprio app): nesse caso, declare os nomes em ponte.exige no manifesto."
 fi
 
 # ── 3. Empacota (só o que está versionado, quando é repo git) ──────────────────
