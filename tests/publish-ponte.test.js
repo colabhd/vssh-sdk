@@ -56,13 +56,14 @@ const MANIFESTO = {
  * Publica um app com o manifesto e os arquivos dados (`{ caminho: conteúdo }`). Devolve o código, a
  * saída, e o manifesto que chegou ao repositório: o do cabeçalho e o de dentro do pacote.
  */
-function publicar({ manifesto = MANIFESTO, arquivos = {} } = {}) {
+function publicar({ manifesto = MANIFESTO, arquivos = {}, git = false } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vssh-app-'));
   fs.writeFileSync(path.join(dir, 'vssh-app.json'), JSON.stringify(manifesto, null, 2));
   for (const [caminho, conteudo] of Object.entries({ 'backend/servidor.js': '', ...arquivos })) {
     fs.mkdirSync(path.dirname(path.join(dir, caminho)), { recursive: true });
     fs.writeFileSync(path.join(dir, caminho), conteudo);
   }
+  if (git) execFileSync('git', ['init', '-q'], { cwd: dir });
   recebidos.length = 0;
   return new Promise((resolve) => {
     const p = spawn('bash', [posix(SCRIPT), posix(dir)], {
@@ -78,7 +79,8 @@ function publicar({ manifesto = MANIFESTO, arquivos = {} } = {}) {
       fs.rmSync(dir, { recursive: true, force: true });
       const post = recebidos.find((r) => r.method === 'POST' && r.url === '/v1/publish/app');
       const doCabecalho = post ? JSON.parse(Buffer.from(post.headers['x-vssh-manifest'], 'base64').toString('utf8')) : null;
-      const doPacote = post ? JSON.parse(execFileSync('tar', ['-xzO', './vssh-app.json'], { input: post.corpo }).toString('utf8')) : null;
+      // O `git archive` grava os caminhos sem o `./` que o `tar` de uma pasta comum põe.
+      const doPacote = post ? JSON.parse(execFileSync('tar', ['-xzO', git ? 'vssh-app.json' : './vssh-app.json'], { input: post.corpo }).toString('utf8')) : null;
       resolve({ code, saida, doCabecalho, doPacote });
     });
   });
@@ -131,6 +133,21 @@ test('um nome só lido que o SDK não tem vira aviso com o arquivo e a linha, e 
   assert.equal(r.code, 0, r.saida);
   assert.deepEqual(r.doPacote.ponte, { exige: ['app.titulo'], opcional: [] });
   assert.match(r.saida, /vssh\.salas\.comentarios \(frontend\/modelo\.js:1\)/);
+});
+
+// Num repositório git o pacote leva o rastreado e o que o `.gitignore` não exclui, e a leitura
+// segue o pacote: um arquivo que não viaja não põe nome na ponte.
+test('num repositório git, o arquivo que o .gitignore exclui fica fora da leitura', seNaoTem, async () => {
+  const r = await publicar({
+    git: true,
+    arquivos: {
+      '.gitignore': 'rascunho/\n',
+      'frontend/janela.js': "vssh.app.titulo('x');",
+      'rascunho/velho.js': "vssh.dialogos.confirmar('não viaja');",
+    },
+  });
+  assert.equal(r.code, 0, r.saida);
+  assert.deepEqual(r.doPacote.ponte, { exige: ['app.titulo'], opcional: [] });
 });
 
 test('uma janela sem nome nenhum ganha o aviso da ponte vazia, e um serviço não', seNaoTem, async () => {
