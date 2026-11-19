@@ -3,6 +3,8 @@
 // o pacote não traz sai montado pelo compositor do portal, viaja no pacote e vai ao repositório
 // como o ícone da versão; uma camada que falta recusa a publicação antes de qualquer POST; um
 // `icon` que o app traz fica como ele é; e um glifo fora da grade vira aviso, com a caixa medida.
+// O ladrilho da Loja sai das mesmas camadas e vai ao repositório depois do ícone, fora do pacote; um
+// repositório que não o guarda e um app sem camadas viram aviso, e a publicação segue.
 //
 // O compositor é o de `api/icone/`, e o schema com o campo `icone` é o de `api/`, os dois gerados
 // pelo canal do sistema. Sem eles, ou sem bash, curl, python3, tar ou um Node que importe
@@ -37,6 +39,8 @@ const seNaoTemChrome = { skip: seNaoTem.skip || (caminhoDoNavegador() ? false : 
 /** @type {http.Server} */ let worker;
 let repoApi;
 const recebidos = [];
+/** Os endereços que o Worker de mentira recusa com 404, como um Worker anterior à rota. */
+let semRota = null;
 
 before(async () => {
   if (seNaoTem.skip) return;
@@ -45,6 +49,11 @@ before(async () => {
     req.on('data', (c) => pedacos.push(c));
     req.on('end', () => {
       recebidos.push({ method: req.method, url: req.url, headers: req.headers, corpo: Buffer.concat(pedacos) });
+      if (semRota && semRota.test(req.url)) {
+        res.writeHead(404, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Rota não encontrada' }));
+        return;
+      }
       res.writeHead(201, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ ok: true, schemaConferido: true }));
     });
@@ -106,7 +115,7 @@ function doPacote(nome) {
 test('o icon que o pacote não traz sai montado das camadas, no pacote e no repositório', seNaoTem, async () => {
   const r = await publicar();
   assert.equal(r.code, 0, r.saida);
-  assert.deepEqual(posts(), ['/v1/publish/app', '/v1/publish/app/exemplo/1.0.0/icon']);
+  assert.deepEqual(posts(), ['/v1/publish/app', '/v1/publish/app/exemplo/1.0.0/icon', '/v1/publish/app/exemplo/1.0.0/ladrilho']);
   const icone = recebidos.find((p) => p.url.endsWith('/icon')).corpo.toString('utf8');
   assert.ok(icone.includes(`data:image/svg+xml;base64,${Buffer.from(GLIFO).toString('base64')}`), 'o glifo não está no ícone montado');
   assert.ok(icone.includes('fill="#15171c"'), 'o ícone montado não tem o fundo da família');
@@ -133,4 +142,43 @@ test('um glifo fora da área viva vira aviso, com a caixa medida, e a publicaç�
   const r = await publicar({ arquivos: { 'icone/glifo.svg': grande } });
   assert.equal(r.code, 0, r.saida);
   assert.match(r.saida, /ícone fora da grade: o glifo vai de 2\.0,2\.0 a 62\.0,62\.0/);
+});
+
+test('o ladrilho sai das camadas do app e vai ao repositório, fora do pacote', seNaoTem, async () => {
+  const r = await publicar({ manifesto: { ...MANIFESTO, icone: { glifo: 'icone/glifo.svg', fundo: '#123456' } } });
+  assert.equal(r.code, 0, r.saida);
+  const pedido = recebidos.find((p) => p.url === '/v1/publish/app/exemplo/1.0.0/ladrilho');
+  assert.ok(pedido, `o ladrilho não foi ao repositório: ${posts().join(' ')}`);
+  assert.equal(pedido.headers['x-vssh-content-type'], 'image/svg+xml');
+  assert.equal(pedido.headers.authorization, 'Bearer tok');
+  const ladrilho = pedido.corpo.toString('utf8');
+  assert.ok(ladrilho.includes(`data:image/svg+xml;base64,${Buffer.from(GLIFO).toString('base64')}`), 'o glifo não está no ladrilho');
+  assert.ok(ladrilho.includes('fill="#123456"'), 'o ladrilho não tem o fundo que o app declarou');
+  const icone = recebidos.find((p) => p.url.endsWith('/icon')).corpo.toString('utf8');
+  assert.notEqual(ladrilho, icone, 'o ladrilho que foi ao repositório é o ícone de 64');
+  const pacote = recebidos.find((p) => p.url === '/v1/publish/app').corpo;
+  const lista = execFileSync('tar', ['-tzf', '-'], { input: pacote, encoding: 'utf8' });
+  assert.ok(!/ladrilho/.test(lista), `o pacote leva o ladrilho: ${lista}`);
+});
+
+test('um repositório que não guarda o ladrilho vira aviso, e o app fica publicado', seNaoTem, async (t) => {
+  semRota = /\/ladrilho$/;
+  t.after(() => { semRota = null; });
+  const r = await publicar();
+  assert.equal(r.code, 0, r.saida);
+  assert.match(r.saida, /ladrilho não guardado: O repositório respondeu 404 ao ladrilho de exemplo@1\.0\.0/);
+  assert.match(r.saida, /exemplo@1\.0\.0 publicado/);
+});
+
+test('um app com janela sem icone é publicado com aviso, e um motor não é avisado', seNaoTem, async () => {
+  const pronto = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="#4f8cff"/></svg>';
+  const { icone: _camadas, ...semCamadas } = MANIFESTO;
+  const app = await publicar({ manifesto: semCamadas, arquivos: { 'icon.svg': pronto } });
+  assert.equal(app.code, 0, app.saida);
+  assert.match(app.saida, /app sem ícone em camadas: O vssh-app\.json não declara icone/);
+  assert.deepEqual(posts(), ['/v1/publish/app', '/v1/publish/app/exemplo/1.0.0/icon']);
+
+  const motor = await publicar({ manifesto: { ...semCamadas, type: 'engine' }, arquivos: { 'icon.svg': pronto } });
+  assert.equal(motor.code, 0, motor.saida);
+  assert.doesNotMatch(motor.saida, /app sem ícone em camadas/);
 });

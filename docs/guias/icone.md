@@ -45,6 +45,29 @@ estar no repositório: quando o pacote não o traz, o `vssh-app-publish` o gera 
 compositor, e o manda também ao repositório, de onde a Loja mostra o ícone de um app que ainda não
 está instalado. Um app que declara só `icon` aparece como o arquivo é, sem montagem.
 
+## O ladrilho da Loja
+
+A Loja desenha cada app num ladrilho, um retângulo que muda de proporção conforme a largura da
+janela. O ambiente o monta das duas camadas do app, sem a máscara e sem o acabamento: o fundo vai
+até a borda do retângulo, e o glifo fica inteiro no centro, na medida do lado menor. O canto é a
+Loja que arredonda.
+
+| fundo declarado | no ladrilho |
+|---|---|
+| nenhum | o da família, com a luz do alto à esquerda |
+| uma cor `#rrggbb` | a cor, no retângulo inteiro |
+| um arquivo | o arquivo cobrindo o retângulo, centrado; o que passa da proporção é cortado |
+
+Um fundo em arquivo aparece cortado nas laterais ou em cima e embaixo, então o que importa nele
+mora no centro. O glifo nunca é cortado.
+
+O `vssh-app-publish` monta o ladrilho com o mesmo compositor e o manda ao repositório depois do
+pacote, para a Loja de uma estação que ainda não tem o app. Ele não entra no pacote: de um app
+instalado o portal monta o ladrilho das camadas.
+
+Um app com janela que declara só `icon` é publicado com um aviso. O arquivo dele já traz o fundo e
+os cantos, e a Loja o mostra pequeno, sobre o fundo da família.
+
 ## A grade
 
 O quadro é de 64 × 64. O glifo mora na área viva de 46 × 46, centrada (de 9 a 55 nos dois eixos),
@@ -97,19 +120,23 @@ puser dois glifos inline numa mesma página, como a galeria de um design, precis
 ## Conferir antes de publicar
 
 ```bash
-node scripts/montar-icone.mjs ~/meu-app --saida /tmp/meu-app.svg
+node scripts/montar-icone.mjs ~/meu-app --saida /tmp/meu-app.svg --ladrilho /tmp/meu-app-ladrilho.svg
 ```
 
-O script monta o ícone com o compositor do portal, escreve o SVG em `--saida` e, quando há um
-Chrome na máquina, mede o glifo. A saída é uma linha por fato:
+O script monta o ícone com o compositor do portal, escreve o SVG em `--saida` e o ladrilho em
+`--ladrilho`, e mede o glifo quando há um Chrome na máquina. O ladrilho não tem tamanho próprio:
+para vê-lo, ponha o arquivo num `<img>` com largura e altura. A saída é uma linha por fato:
 
 | linha | o que diz |
 |---|---|
-| `MONTADO=<arquivo>` | onde o SVG montado foi escrito |
+| `MONTADO=<arquivo>` | onde o ícone montado foi escrito |
+| `LADRILHO=<arquivo>` | onde o ladrilho foi escrito |
+| `SEM_LADRILHO=<motivo>` | o compositor deste checkout não monta o ladrilho |
 | `CAIXA=<x0 y0 x1 y1>` | a caixa do glifo no quadro de 64 |
 | `FORA_DA_GRADE=<motivo>` | o glifo passa da área viva ou foge do centro |
 | `NAO_MEDIDO=<motivo>` | não havia Chrome para medir |
 | `ERRO=<motivo>` | uma camada não está no pacote, ou o manifesto não declara `icone` |
 
 O `vssh-app-publish` roda o mesmo script antes de empacotar. Uma camada que falta recusa a
-publicação; um glifo fora da grade vira aviso no resumo do run, com a caixa medida.
+publicação; um glifo fora da grade vira aviso no resumo do run, com a caixa medida. Um repositório
+que não guarda o ladrilho também vira aviso, e o app fica publicado.

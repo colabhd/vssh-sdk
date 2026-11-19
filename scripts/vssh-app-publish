@@ -6,7 +6,8 @@
 # Lê VSSH_REPO_API e VSSH_REPO_PUBLISH_TOKEN do ambiente (ou das flags). Valida o vssh-app.json
 # contra `api/vssh-app.schema.json` deste repositório, empacota, confere o sha256 e faz
 # POST /v1/publish/app (e o ícone, se houver). Com `icone` no manifesto, monta o ícone em camadas
-# (`montar-icone.mjs`) e o põe no lugar do `icon` que o pacote não traz. Com `contributes.ajuda` no
+# (`montar-icone.mjs`) e o põe no lugar do `icon` que o pacote não traz, e monta o ladrilho da Loja,
+# que vai ao repositório depois do pacote. Com `contributes.ajuda` no
 # manifesto, compila a pasta de ajuda (`compilar-ajuda.mjs`, com o Node), recusa a que não
 # compila, escreve o nível no resumo do run e manda o `ajuda.json` ao repositório depois do pacote.
 # Roda no CI do repositório do app, pelo `_publish-app-reusable.yml`, e na máquina de quem
@@ -369,17 +370,18 @@ print(f"ID={app_id}")
 print(f"VERSION={version}")
 print("ICON=" + (m.get('icon') or ''))
 print("CAMADAS=" + ('1' if isinstance(m.get('icone'), dict) else ''))
+print("TIPO=" + (m.get('type') if m.get('type') in ('app', 'engine') else 'app'))
 PYEOF
 )"
 
-APP_ID="" VERSION="" ICON="" ERR="" WARN="" DEVELOPER="" AJUDA="" CAMADAS="" MINSHELL=""
+APP_ID="" VERSION="" ICON="" ERR="" WARN="" DEVELOPER="" AJUDA="" CAMADAS="" MINSHELL="" TIPO="app"
 TRAVESSOES=()
 INFO="${INFO//$'\r'/}"   # robustez: python em Windows emite \r\n; header do curl não pode ter \r
 while IFS='=' read -r k v; do
   case "${k}" in
     ERROR) ERR="${v}";; ID) APP_ID="${v}";; VERSION) VERSION="${v}";; ICON) ICON="${v}";; WARN) WARN="${v}";;
     DEVELOPER) DEVELOPER="${v}";; AJUDA) AJUDA="${v}";; TRAVESSAO) TRAVESSOES+=("${v}");;
-    CAMADAS) CAMADAS="${v}";; MINSHELL) MINSHELL="${v}";;
+    CAMADAS) CAMADAS="${v}";; MINSHELL) MINSHELL="${v}";; TIPO) TIPO="${v}";;
   esac
 done <<< "${INFO}"
 [ -z "${WARN}" ] || anotar warning "validação parcial" "${WARN}"
@@ -577,13 +579,25 @@ fi
 # camadas lê o `icon`. Sem `icon` no manifesto, o montado vai só ao Worker. Uma camada que não está
 # no pacote recusa a publicação. O glifo é medido num Chrome, quando há um, e um glifo fora da área
 # viva vira aviso no resumo do run, com a caixa medida.
+#
+# Das mesmas camadas sai o ladrilho, o SVG que a Loja desenha numa caixa de qualquer proporção: o
+# fundo até a borda e o glifo inteiro no centro. Ele não entra no pacote, porque o portal o monta
+# de um app instalado; vai ao repositório (seção 5), para a Loja de uma estação que ainda não tem o
+# app. Um app com janela que não declara `icone` é publicado com um aviso: o ícone pronto dele já
+# traz o fundo e o canto, e a Loja só consegue mostrá-lo pequeno, sobre o fundo da família.
 ICONE_MONTADO=""
+LADRILHO_MONTADO=""
+if [ -z "${CAMADAS}" ] && [ "${TIPO}" = "app" ]; then
+  anotar warning "app sem ícone em camadas" \
+    "O vssh-app.json não declara icone (o glifo e o fundo). A Loja monta o ladrilho de um app com as camadas dele, e sem elas mostra o ícone pronto, pequeno, sobre o fundo da família. O guia é docs/guias/icone.md do vssh-sdk."
+fi
 if [ -n "${CAMADAS}" ] && ! command -v node >/dev/null 2>&1; then
   anotar warning "ícone não montado" \
     "O vssh-app.json declara icone, e este runner não tem node 22.18 ou mais novo. O portal monta as camadas; a Loja fica sem o ícone de antes da instalação."
 elif [ -n "${CAMADAS}" ]; then
   set +e
-  SAIDA_DO_ICONE="$(node "$(cd "$(dirname "$0")" && pwd)/montar-icone.mjs" "${PKG}" --saida "${WORKDIR}/icon-montado.svg")"
+  SAIDA_DO_ICONE="$(node "$(cd "$(dirname "$0")" && pwd)/montar-icone.mjs" "${PKG}" \
+    --saida "${WORKDIR}/icon-montado.svg" --ladrilho "${WORKDIR}/ladrilho.svg")"
   CODIGO_DO_ICONE=$?
   set -e
   while IFS='=' read -r k v; do
@@ -592,6 +606,8 @@ elif [ -n "${CAMADAS}" ]; then
       SEM_COMPOSITOR) anotar warning "ícone não montado" "${v}. O portal monta as camadas; a Loja fica sem o ícone de antes da instalação." ;;
       FORA_DA_GRADE)  anotar warning "ícone fora da grade" "${v}. A grade está em docs/guias/icone.md do vssh-sdk." ;;
       MONTADO)        ICONE_MONTADO="${v}" ;;
+      LADRILHO)       LADRILHO_MONTADO="${v}" ;;
+      SEM_LADRILHO)   anotar warning "ladrilho não montado" "${v}. A Loja mostra o ícone do app sobre o fundo da família até a estação o instalar." ;;
     esac
   done <<< "${SAIDA_DO_ICONE//$'\r'/}"
   [ "${CODIGO_DO_ICONE}" -ne 1 ] || exit 1
@@ -828,5 +844,23 @@ if [ -n "${ICON_PATH}" ] && [ -f "${ICON_PATH}" ]; then
     -H "X-Vssh-Content-Type: ${CT}" \
     --data-binary "@${ICON_PATH}"
   echo
+fi
+
+# ── 5b. O ladrilho da Loja ────────────────────────────────────────────────────
+#
+# O SVG montado das camadas na seção 2d. O app já está publicado: um repositório que não guarda o
+# ladrilho (um Worker anterior à rota, um erro de rede) vira aviso, e a Loja mostra o ícone.
+if [ -n "${LADRILHO_MONTADO}" ] && [ -f "${LADRILHO_MONTADO}" ]; then
+  CODIGO_DO_LADRILHO="$(curl -sS -o "${WORKDIR}/ladrilho-resposta" -w '%{http_code}' -X POST \
+    "${REPO_API}/v1/publish/app/${APP_ID}/${VERSION}/ladrilho" \
+    -H "Authorization: Bearer ${TOKEN}" \
+    -H "X-Vssh-Content-Type: image/svg+xml" \
+    --data-binary "@${LADRILHO_MONTADO}" || true)"
+  if [ "${CODIGO_DO_LADRILHO}" = 201 ]; then
+    echo "Ladrilho da Loja publicado"
+  else
+    anotar warning "ladrilho não guardado" \
+      "O repositório respondeu ${CODIGO_DO_LADRILHO:-000} ao ladrilho de ${APP_ID}@${VERSION}: $(head -c 300 "${WORKDIR}/ladrilho-resposta" 2>/dev/null || true). O app foi publicado, e a Loja mostra o ícone dele."
+  fi
 fi
 echo "✅ ${APP_ID}@${VERSION} publicado."
