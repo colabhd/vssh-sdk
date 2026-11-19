@@ -1,0 +1,19 @@
+name: Ensaio do reusable (temporário)
+
+# Roda o reusable desta branch uma vez, contra um endereço onde nada escuta: confere que o workflow
+# monta sem a variável VSSH_SITIOS, que o job `enviar` é pulado e que o job `publish` chega ao passo
+# de publicar. Sai da branch antes do merge.
+
+on:
+  push:
+    branches: [feat/publish-interna-e-sitios]
+
+jobs:
+  ensaio:
+    uses: ./.github/workflows/_publish-app-reusable.yml
+    with:
+      app_dir: templates/hello-vssh-app
+      repo_api: http://127.0.0.1:9
+      tools_ref: feat/publish-interna-e-sitios
+    secrets:
+      publish_token: ensaio
