@@ -393,6 +393,12 @@ texto o mostra. A pergunta do modo claro volta com o cliente Android.
   formato, e pede ao shell o que o ambiente faz por ele, como a senha que vai ao cofre.
 - A aba é encaixada: a ativa tem a cor da barra de baixo e se liga a ela, e as outras ficam soltas
   sobre o cabeçalho, separadas por um fio (VSSH-360).
+- A página Descobrir da Loja sobe a ENERGY 2 (VSSH-667): o título do destaque tem 30 px (24 na
+  forma compacta) e fica ao lado de um mosaico de ladrilhos dos apps. É a única página do ambiente
+  em que a pessoa vem olhar o que existe, e não trabalhar num documento dela. A cor continua vindo
+  dos ladrilhos dos apps e do botão primário, sem degradê, brilho ou selo. A ficha de um app, Meus
+  apps, as categorias e a busca ficam em ENERGY 1, e o ritmo e o movimento da janela inteira
+  continuam em 1.
 - A área de trabalho tem quatro fundos, e a pessoa escolhe um nas boas-vindas do primeiro uso ou
   em Configurações (VSSH-383): estratos (as camadas da pedra, separadas por um fio, com um grão do
   destaque que engrossa para baixo), curvas de nível (linhas finas de mapa gravadas, com a mestra a
