@@ -339,6 +339,28 @@ o ponto na cor de destaque continua sendo o que fica. As durações saem do `--t
 movimento reduzido e o ajuste "Animações e sombras" desligado deixam o ícone no estado final, sem
 movimento.
 
+## O orçamento do quadro
+
+O aparelho de referência é um Celeron dual-core, e a Aferição mede nele quantas unidades de cada
+coisa cabem num quadro de 60 Hz. A tabela mora em `src/utils/custos-da-referencia.json`, e um app a
+recebe em `api/afericao/custos.json`. Uma tela do shell gasta no máximo metade do que cabe em cada
+cena. A outra metade é do conteúdo da pessoa e do app que roda na janela.
+
+Na versão 3 das cenas:
+
+| o que a tela faz | cabem na referência | o teto de uma tela |
+|---|---|---|
+| sombras que mudam de lugar num quadro | 20 | 10 |
+| peças animadas por `transform` e `opacity` | 40 | 20 |
+| peças com a medida animada (largura, altura, posição) | 112 | 56 |
+| linhas de lista refeitas num quadro | 256 | 128 |
+| elementos à vista enquanto algo se mexe | 2.560 | 1.280 |
+| superfícies de vidro | 24 | nenhuma, porque o ambiente não tem vidro |
+
+As contas não se somam entre as cenas: o custo de uma unidade não é linear, e uma soma enganaria.
+Cada cena se confere sozinha, contando no shell de pé o que se desenha e se anima durante o gesto.
+Parado, o ambiente não trabalha: sem gesto, o navegador não recalcula estilo nem layout.
+
 ## Escuro
 
 O ambiente é escuro por padrão e só escuro, por decisão (VSSH-358). Ele emoldura terminal, editor

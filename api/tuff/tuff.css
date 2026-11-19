@@ -58,6 +58,9 @@
      • divisas e âncoras: `.tuff-acoes` gruda no fim do painel
      • `option`: estilizada também, senão sai branca sob controle escuro
      • largura: a tela cabe em 360 px sem rolagem horizontal
+     • orçamento: uma tela gasta até metade do que cabe na referência em cada
+       cena de custo (sombra em movimento, peça animada, medida animada, linha
+       de lista refeita); a tabela está em `DESIGN.md`, "O orçamento do quadro"
 
    A direção (paleta, destaque, tipografia, movimento) e o motivo de cada
    escolha estão em `DESIGN.md`, ao lado deste arquivo.
