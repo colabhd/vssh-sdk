@@ -27,7 +27,8 @@ três primeiros movimentos:
    `git archive`: `node_modules/` e `vendor/` commitados entram no tarball, e o que o `.gitignore`
    ignora fica de fora, sem lista de padrões para manter. Fora de um repositório git, um `tar` que
    exclui só `.git`, `data`, `__pycache__` e `*.pyc`;
-3. calcula o `sha256`, faz `POST /v1/publish/app` e manda o ícone junto, se houver.
+3. calcula o `sha256`, faz `POST /v1/publish/app` e manda em seguida o ícone, se houver, e o
+   [ladrilho da Loja](icone.md#o-ladrilho-da-loja), montado das camadas de `icone`.
 
 O Worker confere o manifesto contra o mesmo schema uma segunda vez, e guarda de cada versão quem
 a publicou (o nome que o admin deu ao token) e quando. Os dois aparecem na ficha do app na loja.

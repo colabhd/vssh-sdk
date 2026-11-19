@@ -3,17 +3,23 @@
 // portal executa, e mede o glifo na grade. O `vssh-app-publish` o chama antes de empacotar; quem
 // desenha o ícone o roda na própria máquina para ver o resultado e a medida sem publicar nada.
 //
-//   node scripts/montar-icone.mjs <diretório do app> [--saida <icon.svg>]
+//   node scripts/montar-icone.mjs <diretório do app> [--saida <icon.svg>] [--ladrilho <ladrilho.svg>]
+//
+// O ícone é o quadrado de 64 com a máscara e o acabamento. O ladrilho é o que a Loja desenha: as
+// mesmas duas camadas do app num SVG sem tamanho próprio, com o fundo até a borda de uma caixa de
+// qualquer proporção e o glifo inteiro no centro.
 //
 // A saída são linhas chave=valor, uma por fato, que o bash do publish lê:
 //
-//   MONTADO=<arquivo>          o SVG montado, quando `--saida` foi dado
+//   MONTADO=<arquivo>          o ícone montado, quando `--saida` foi dado
+//   LADRILHO=<arquivo>         o ladrilho montado, quando `--ladrilho` foi dado
+//   SEM_LADRILHO=<motivo>      o compositor deste checkout não monta o ladrilho
 //   CAIXA=<x0 y0 x1 y1>        a caixa do glifo no quadro de 64, medida num Chrome
 //   FORA_DA_GRADE=<motivo>     o glifo passa da área viva de 46 × 46 ou foge do centro
 //   NAO_MEDIDO=<motivo>        não havia Chrome para medir
 //   ERRO=<motivo>              o manifesto não declara `icone`, ou uma camada não existe no pacote
 //
-// Com algum ERRO o código de saída é 1 e o `--saida` não é escrito. Sem o compositor no checkout
+// Com algum ERRO o código de saída é 1 e nenhum dos dois arquivos é escrito. Sem o compositor no checkout
 // (`api/icone/`, que o canal do sistema gera), ou com um Node que não o importa, o código é 3, com
 // uma linha SEM_COMPOSITOR.
 //
@@ -62,8 +68,11 @@ async function medir(glifo) {
 
 async function principal() {
   const args = process.argv.slice(2);
-  const pasta = args.find((a) => !a.startsWith('--') && args[args.indexOf(a) - 1] !== '--saida');
-  const saida = args.includes('--saida') ? args[args.indexOf('--saida') + 1] : null;
+  const COM_VALOR = ['--saida', '--ladrilho'];
+  const pasta = args.find((a, i) => !a.startsWith('--') && !COM_VALOR.includes(args[i - 1]));
+  const valor = (nome) => (args.includes(nome) ? args[args.indexOf(nome) + 1] : null);
+  const saida = valor('--saida');
+  const ladrilho = valor('--ladrilho');
   if (!pasta) { linha('ERRO', 'informe o diretório do app'); return 1; }
 
   if (!existsSync(COMPOSITOR)) { linha('SEM_COMPOSITOR', 'api/icone/ não existe neste checkout'); return 3; }
@@ -71,7 +80,7 @@ async function principal() {
     linha('SEM_COMPOSITOR', `o Node ${process.version} não importa TypeScript, e o compositor pede o 22.18 ou mais novo`);
     return 3;
   }
-  const { lerCamadas, comporIcone, mimeDoIcone } = await import(pathToFileURL(COMPOSITOR).href);
+  const { lerCamadas, comporIcone, comporLadrilho, mimeDoIcone } = await import(pathToFileURL(COMPOSITOR).href);
 
   let manifesto;
   try { manifesto = JSON.parse(readFileSync(join(pasta, 'vssh-app.json'), 'utf8')); } catch (e) {
@@ -96,6 +105,12 @@ async function principal() {
   if (saida) {
     writeFileSync(saida, comporIcone(glifo, fundo));
     linha('MONTADO', saida);
+  }
+  if (ladrilho && typeof comporLadrilho !== 'function') {
+    linha('SEM_LADRILHO', 'o compositor de api/icone/ deste checkout é anterior ao ladrilho');
+  } else if (ladrilho) {
+    writeFileSync(ladrilho, comporLadrilho(glifo, fundo));
+    linha('LADRILHO', ladrilho);
   }
 
   let caixa = null;
