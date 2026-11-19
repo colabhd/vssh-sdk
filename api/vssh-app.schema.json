@@ -37,6 +37,12 @@
       "pattern": "^[0-9A-Za-z][0-9A-Za-z.\\-+_]*$",
       "description": "Semver. O install é idempotente por versão, então bump a cada release."
     },
+    "internalVersion": {
+      "type": "integer",
+      "minimum": 20000101000000,
+      "maximum": 99991231235959,
+      "description": "A versão interna: o instante da publicação em UTC, como o inteiro `AAAAMMDDhhmmss`. O `vssh-app-publish` a carimba no manifesto do pacote, uma vez por publicação, e manda o mesmo número a todos os repositórios. O autor não a escreve, e o publish recusa o manifesto de origem que a declara. Cada repositório recusa uma interna que não seja maior que a mais alta que ele guarda do app."
+    },
     "type": {
       "enum": [
         "app",

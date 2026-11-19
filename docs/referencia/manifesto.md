@@ -24,6 +24,7 @@ do campo na mensagem. Obrigatórios: `id`, `version`, `backend`.
 | [`name`](#name) | `string` | não |
 | [`traducoes`](#traducoes) | `object` | não |
 | [`version`](#version) | `string` | sim |
+| [`internalVersion`](#internalversion) | `integer` | não |
 | [`type`](#type) | um dos valores listados | não |
 | [`kind`](#kind) | um dos valores listados | não |
 | [`escopo`](#escopo) | um dos valores listados | não |
@@ -88,6 +89,16 @@ Traduções opcionais por código de idioma (`en`, `es`, `pt-BR`) para `name` e 
 `string`, obrigatório.
 
 Semver. O install é idempotente por versão, então bump a cada release.
+
+## `internalVersion`
+
+`integer`, opcional, mínimo 20000101000000, máximo 99991231235959.
+
+A versão interna: o instante da publicação em UTC, como o inteiro `AAAAMMDDhhmmss`. O
+`vssh-app-publish` a carimba no manifesto do pacote, uma vez por publicação, e manda o mesmo número
+a todos os repositórios. O autor não a escreve, e o publish recusa o manifesto de origem que a
+declara. Cada repositório recusa uma interna que não seja maior que a mais alta que ele guarda do
+app.
 
 ## `type`
 
