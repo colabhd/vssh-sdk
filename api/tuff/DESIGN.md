@@ -319,8 +319,10 @@ VSSH-378, VSSH-381):
 ## Movimento
 
 Transição só onde ela diz o que mudou: o hover e o pressionar (80 ms), abrir e fechar uma gaveta
-ou um painel (150 ms). Nenhuma entrada animada, nenhum elemento que se mexe sozinho. Com
-`prefers-reduced-motion`, as transições caem e a barra indeterminada fica parada.
+ou um painel (150 ms). Nenhuma entrada animada, nenhum elemento que se mexe sozinho. O que a pessoa
+arrasta sobe: o botão de uma janela levado a outro lugar da barra ganha escala e a sombra do que
+flutua, no tempo do hover, sem mola. Com `prefers-reduced-motion`, as transições caem e a barra
+indeterminada fica parada.
 
 Os ícones de traço têm cinco movimentos, cada um preso a um gesto ou a um estado que mudou, e todos
 no `tuff.css` como classes da peça `.tuff-ico`:
