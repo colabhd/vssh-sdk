@@ -6,8 +6,8 @@
 //
 // O portal responde esse caminho em `/<serverId>/proxy/app/<id>/_sdk/vssh.js`, e o relay do
 // cliente de desktop o responde na origem do app. Nenhum app carrega uma cópia, e é isso que
-// mantém o SDK na versão do shell que o serve: `vssh.app.capacidades().shellVersion` é a versão
-// dos dois lados.
+// mantém o SDK igual ao shell que o serve: `vssh.app.capacidades().shellVersion` é o build dos
+// dois lados.
 //
 // O arquivo servido é a junção de três partes, montada no boot do portal (`src/utils/sdk-web.ts`):
 // este runtime, escrito à mão; a superfície gerada de `js/app/abi.js`, que entra no lugar do
@@ -402,7 +402,7 @@
     ola: () => ponte.chamar('app.ola', { type: 'vssh-ola' }, 5000),
     // O bilhete com que uma plataforma aberta como hiperlink reconhece a pessoa: `{ bilhete, expira }`, um JWT RS256 de 60 s que o portal assina para a origem da plataforma. O backend dela o confere pela chave em `/.well-known/jwks.json` do portal (`typ` `vssh-bilhete+jwt`, `aud` na origem dela, o `jti` guardado até o `exp`) e abre a sessão própria. Antes de emitir, o portal confere a política da aplicação da plataforma no Authentik. Só a janela de um hiperlink recebe o bilhete; um vssh-app roda na estação, como a pessoa.
     identidade: () => ponte.chamar('app.identidade', { type: 'identity' }, 5000),
-    // O ambiente em que o app está: o cliente que serve o shell (`host`: `navegador`, `cliente-de-desktop` ou `chromeos`; `none` fora do ambiente), a versão do shell e a lista de verbos e eventos desta tabela. Com a lista, o app decide sozinho se o shell em que caiu tem o que ele precisa.
+    // O ambiente em que o app está: o cliente que serve o shell (`host`: `navegador`, `cliente-de-desktop` ou `chromeos`; `none` fora do ambiente), o build do shell (`shellVersion`, um hash que identifica o que a aba baixou e que um relato de erro cita; ele não se compara) e a lista de verbos e eventos desta tabela. Com a lista, o app decide sozinho se o shell em que caiu tem o que ele precisa.
     capacidades: () => ponte.chamar('app.capacidades', { type: 'capabilities' }, 5000),
     // O idioma ativo do ambiente (`pt-BR`, `en` ou `es`). Também chega no aperto de mão (`ola`) e pelo evento `idioma` quando a pessoa troca nas Configurações.
     idioma: () => ponte.chamar('app.idioma', { type: 'language' }, 5000),
