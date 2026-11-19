@@ -71,6 +71,64 @@ export VSSH_REPO_PUBLISH_TOKEN="vsshp_..."
 bash scripts/vssh-app-publish ~/meu-app --version 1.2.3 --notes-file notas-1.2.3.md
 ```
 
+## As duas versões: a exibida e a interna
+
+Um app tem duas versões. A exibida é o `version` do manifesto: o texto que a pessoa lê na Loja, que
+você escolhe, e que pode se repetir entre duas publicações. A interna é o instante da publicação em
+UTC, como o inteiro `AAAAMMDDhhmmss`. O publish a tira do relógio, uma vez por publicação, e o
+repositório ordena as publicações por ela. Ela só cresce: um repositório recusa a publicação cuja
+interna não é maior que a mais alta que ele guarda do app.
+
+O manifesto que você escreve não declara a interna, e o publish recusa o que declara. Ela vai ao
+repositório no header `X-Vssh-Internal-Version` e, quando o schema já tem o campo, no
+`internalVersion` do manifesto que viaja no pacote.
+
+Publicar de novo o mesmo `version` deixa de sobrescrever: cada publicação é uma linha no
+repositório, com o pacote dela. O repositório guarda as três últimas publicações de um app, e três
+publicações seguidas do mesmo `version` ocupam as três vagas.
+
+## Mais de um repositório
+
+Publicar tem duas metades, e o script faz as duas quando o repositório é um só. Com mais de um (o
+da Cloudflare e o de cada sítio), elas rodam separadas, para todo repositório receber os mesmos
+bytes e a mesma interna:
+
+```bash
+bash scripts/vssh-app-publish ~/meu-app --empacotar ./lote --repo-api https://repo.franca.exemplo
+bash scripts/vssh-app-publish --enviar ./lote --repo-api https://repo.franca.exemplo --sitio franca
+bash scripts/vssh-app-publish --enviar ./lote --repo-api https://repo.sp.exemplo --sitio sp
+```
+
+`--empacotar` valida o app, monta o pacote com o ícone, a ajuda e o ladrilho, carimba a interna e
+deixa o lote na pasta. Ele lê o repositório, para a regra dos apps oficiais, e dispensa o token.
+`--enviar` manda o lote a um repositório, e antes do pacote confere a interna nele:
+
+| O que o repositório tem do app | O que o envio faz |
+|---|---|
+| nada, ou só internas menores | manda o pacote, e depois a ajuda, o ícone e o ladrilho |
+| a interna do lote | não manda o pacote de novo, e manda de novo a ajuda, o ícone e o ladrilho |
+| uma interna mais alta | recusa, com a mais alta na mensagem |
+| não respondeu | recusa, com o nome do repositório |
+
+Um repositório que falha não desfaz os outros. O envio dele sai com erro e diz o nome que
+`--sitio` deu, e rodar `--enviar` de novo com a mesma pasta completa a publicação nele, com a mesma
+interna. Quem precisa repetir a interna sem a pasta a passa por `--internal-version`.
+
+No CI, o reusable faz isso sozinho quando a organização do app tem a variável `VSSH_SITIOS`, uma
+lista em JSON com o nome, o endereço e o runner de cada repositório:
+
+```json
+[{"nome":"franca","api":"http://vssh-repo.franca.exemplo","runner":"colabhd-franca"},
+ {"nome":"sp","api":"http://vssh-repo.sp.exemplo","runner":"colabhd-sp"}]
+```
+
+O job `publish` empacota uma vez e guarda o lote como artefato do run, e um job `enviar` por
+repositório o manda, no runner daquele repositório. Um repositório fora do ar deixa o job dele
+vermelho, e reexecutar só os jobs que falharam manda o mesmo lote. O workflow do app não muda, e o
+token é o mesmo em todo repositório: quem administra o registra em cada um pelo hash. Com a lista,
+o `repo_api` do workflow do app deixa de receber; o repositório que deve continuar recebendo entra
+na lista.
+
 ## Por que `main`
 
 O `uses:` aponta para `main` porque o schema que o publish valida é gerado a partir do portal

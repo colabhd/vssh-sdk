@@ -1,7 +1,26 @@
 #!/usr/bin/env bash
-# vssh-app-publish: empacota um vssh-app e o publica no Worker do repositório.
+# vssh-app-publish: empacota um vssh-app e o publica num repositório de artefatos.
 # Uso: vssh-app-publish <diretorio|git-url> [--version X] [--repo-api URL] [--token TOKEN] [--icon PATH]
-#                        [--notes TEXTO | --notes-file ARQUIVO]
+#                        [--notes TEXTO | --notes-file ARQUIVO] [--internal-version AAAAMMDDhhmmss]
+#                        [--sitio NOME]
+#      vssh-app-publish <diretorio|git-url> --empacotar LOTE [as mesmas opções, sem o token]
+#      vssh-app-publish --enviar LOTE [--repo-api URL] [--token TOKEN] [--sitio NOME]
+#
+# Publicar tem duas metades. Empacotar valida o app, monta o pacote com o ícone, a ajuda e o
+# ladrilho, e carimba a versão interna. Enviar manda o que foi empacotado a um repositório. Sem
+# `--empacotar` nem `--enviar`, o script faz as duas, como quem publica num repositório só. Com
+# mais de um repositório (a Cloudflare e o de cada sítio), `--empacotar` roda uma vez e escreve o
+# lote numa pasta, e `--enviar` roda uma vez por repositório, com a mesma pasta: todos recebem os
+# mesmos bytes e a mesma interna.
+#
+# A versão interna é o instante da publicação em UTC, como o inteiro `AAAAMMDDhhmmss`. Ela ordena
+# as publicações de um app, e o `version` do manifesto é só o texto exibido. O script a tira do
+# relógio ao empacotar, ou a recebe por `--internal-version` (ou VSSH_INTERNAL_VERSION), que é como
+# uma publicação que falhou num repositório é completada com a mesma interna. Ela vai no header
+# `X-Vssh-Internal-Version` e no `internalVersion` do manifesto do pacote; o manifesto do autor não
+# a declara. Antes de mandar o pacote, enviar confere a interna no repositório: o que já tem esta
+# publicação não recebe o pacote de novo, e o que tem uma interna mais alta recusa a publicação.
+# `--sitio` (ou VSSH_SITIO) é o nome do repositório nas mensagens.
 #
 # Lê VSSH_REPO_API e VSSH_REPO_PUBLISH_TOKEN do ambiente (ou das flags). Valida o vssh-app.json
 # contra `api/vssh-app.schema.json` deste repositório, empacota, confere o sha256 e faz
@@ -23,10 +42,12 @@
 # o `tar` exclui só metadados e cache.
 set -euo pipefail
 
-SRC="" VERSION_OVERRIDE="" ICON_OVERRIDE=""
+SRC="" VERSION_OVERRIDE="" ICON_OVERRIDE="" EMPACOTAR="" ENVIAR=""
 REPO_API="${VSSH_REPO_API:-}"
 TOKEN="${VSSH_REPO_PUBLISH_TOKEN:-}"
 NOTES="${VSSH_RELEASE_NOTES:-}"
+INTERNA="${VSSH_INTERNAL_VERSION:-}"
+SITIO="${VSSH_SITIO:-}"
 while [ $# -gt 0 ]; do
   case "$1" in
     --version)    VERSION_OVERRIDE="$2"; shift 2 ;;
@@ -36,14 +57,24 @@ while [ $# -gt 0 ]; do
     --notes)      NOTES="$2"; shift 2 ;;
     --notes-file) [ -f "$2" ] || { echo "ERRO: --notes-file '$2' não existe." >&2; exit 1; }
                   NOTES="$(cat "$2")"; shift 2 ;;
+    --internal-version) INTERNA="$2"; shift 2 ;;
+    --sitio)      SITIO="$2"; shift 2 ;;
+    --empacotar)  EMPACOTAR="$2"; shift 2 ;;
+    --enviar)     ENVIAR="$2"; shift 2 ;;
     -h|--help)  grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)          [ -z "${SRC}" ] && SRC="$1" || { echo "Argumento inesperado: $1" >&2; exit 1; }; shift ;;
   esac
 done
 
-[ -n "${SRC}" ]      || { echo "ERRO: informe <diretorio|git-url>." >&2; exit 1; }
+[ -z "${EMPACOTAR}" ] || [ -z "${ENVIAR}" ] || { echo "ERRO: --empacotar e --enviar são metades diferentes; use uma por vez." >&2; exit 1; }
+[ -n "${ENVIAR}" ] || [ -n "${SRC}" ] || { echo "ERRO: informe <diretorio|git-url>." >&2; exit 1; }
+[ -z "${ENVIAR}" ] || [ -z "${SRC}" ] || { echo "ERRO: --enviar manda um lote já empacotado, sem <diretorio|git-url>." >&2; exit 1; }
 [ -n "${REPO_API}" ] || { echo "ERRO: VSSH_REPO_API (ou --repo-api) não definido." >&2; exit 1; }
-[ -n "${TOKEN}" ]    || { echo "ERRO: VSSH_REPO_PUBLISH_TOKEN (ou --token) não definido." >&2; exit 1; }
+# Empacotar lê o repositório (a regra dos apps oficiais) e não escreve nele: dispensa o token.
+[ -n "${EMPACOTAR}" ] || [ -n "${TOKEN}" ] || { echo "ERRO: VSSH_REPO_PUBLISH_TOKEN (ou --token) não definido." >&2; exit 1; }
+REPO_API="${REPO_API%/}"
+# O repositório nas mensagens: o nome que quem chama deu, ou o endereço.
+ONDE="${SITIO:-${REPO_API}}"
 
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "${WORKDIR}"' EXIT
@@ -65,6 +96,184 @@ anotar() {   # anotar <warning|notice> <título> <mensagem...>
     printf '%s: %s\n' "${titulo}" "$*" >&2
   fi
 }
+
+# ── Enviar um lote a um repositório ────────────────────────────────────────────
+#
+# A segunda metade de publicar: manda a um repositório o que `--empacotar` deixou na pasta do lote.
+# Roda uma vez por repositório, com a mesma pasta.
+#
+# Antes do pacote, a conferência da interna, pelo manifesto que o repositório serve do app:
+#
+#   o app não existe lá, ou a interna do lote é maior que todas     manda o pacote
+#   o repositório já tem a interna do lote                          não manda o pacote de novo, e
+#                                                                   completa a ajuda, o ícone e o
+#                                                                   ladrilho, que podem ter faltado
+#   o repositório tem uma interna mais alta                         recusa, com a mais alta
+#   o repositório não respondeu                                     recusa, com o nome dele
+#
+# Um repositório anterior à versão interna não a diz no manifesto: ele recebe o pacote como sempre
+# recebeu, e ignora o header.
+#
+# A ajuda, as figuras e o ladrilho vão depois do pacote, e uma recusa deles é aviso: o app já foi
+# publicado. Um repositório que conhece a interna diz `internalVersion` na resposta do pacote, e
+# as rotas seguintes levam o `?i=<interna>`, que nomeia esta publicação entre as do mesmo `version`.
+enviar_lote() {
+  local lote="$1" k v f
+  { [ -f "${lote}/lote.txt" ] && [ -f "${lote}/app.tar.gz" ] && [ -f "${lote}/manifesto.json" ]; } \
+    || { echo "ERRO: '${lote}' não é um lote do vssh-app-publish --empacotar." >&2; return 1; }
+  local APP_ID="" VERSION="" INTERNA="" SHA256="" BUILT_AT="" BUILD_ID="" REF="" AJUDA_NIVEL=0 ICONE="" ICONE_TIPO=""
+  local FIGURAS=()
+  while IFS='=' read -r k v; do
+    v="${v//$'\r'/}"
+    case "${k}" in
+      APP_ID) APP_ID="${v}";; VERSION) VERSION="${v}";; INTERNA) INTERNA="${v}";; SHA256) SHA256="${v}";;
+      BUILT_AT) BUILT_AT="${v}";; BUILD_ID) BUILD_ID="${v}";; REF) REF="${v}";; AJUDA_NIVEL) AJUDA_NIVEL="${v}";;
+      ICONE) ICONE="${v}";; ICONE_TIPO) ICONE_TIPO="${v}";; FIGURA) FIGURAS+=("${v}");;
+    esac
+  done < "${lote}/lote.txt"
+  { [[ "${APP_ID}" =~ ^[a-z0-9-]+$ ]] && [[ "${INTERNA}" =~ ^[0-9]{14}$ ]] && [ -n "${VERSION}" ]; } \
+    || { echo "ERRO: o lote.txt de '${lote}' não diz o app, a versão e a interna." >&2; return 1; }
+  [ "$(sha256sum "${lote}/app.tar.gz" | cut -d' ' -f1)" = "${SHA256}" ] \
+    || { echo "ERRO: o pacote de '${lote}' não tem o sha256 que o lote.txt diz." >&2; return 1; }
+
+  # A conferência da interna.
+  local codigo estado="" mais_alta=""
+  codigo="$(curl -sS -o "${WORKDIR}/publicado.json" -w '%{http_code}' "${REPO_API}/v1/apps/${APP_ID}/manifest.json" 2>"${WORKDIR}/publicado.erro" || true)"
+  case "${codigo}" in
+    404) estado=novo ;;
+    2??)
+      while IFS='=' read -r k v; do
+        case "${k}" in ESTADO) estado="${v//$'\r'/}";; MAIS_ALTA) mais_alta="${v//$'\r'/}";; esac
+      done <<< "$(VSSH_PUBLICADO="${WORKDIR}/publicado.json" VSSH_INTERNA="${INTERNA}" python3 -c '
+import json, os
+try: d = json.load(open(os.environ["VSSH_PUBLICADO"], encoding="utf-8"))
+except Exception: d = {}
+d = d if isinstance(d, dict) else {}
+vs = [d.get("latest")] + (d.get("history") or [])
+internas = [v["internalVersion"] for v in vs if isinstance(v, dict) and isinstance(v.get("internalVersion"), int)]
+n = int(os.environ["VSSH_INTERNA"])
+print("ESTADO=" + ("tem" if n in internas else "adiante" if internas and max(internas) > n else "novo"))
+print("MAIS_ALTA=" + (str(max(internas)) if internas else ""))')"
+      ;;
+    *)
+      echo "ERRO: o repositório ${ONDE} não respondeu à conferência de ${APP_ID} (HTTP ${codigo:-000}): $(head -c 300 "${WORKDIR}/publicado.erro" 2>/dev/null || true)" >&2
+      echo "      Nada foi mandado a ele. Para completar esta publicação nele: vssh-app-publish --enviar <lote>, com a interna ${INTERNA}." >&2
+      return 1 ;;
+  esac
+  if [ "${estado}" = adiante ]; then
+    echo "ERRO: o repositório ${ONDE} tem ${APP_ID} numa versão interna mais alta (${mais_alta}) que a desta publicação (${INTERNA})." >&2
+    echo "      Uma interna só cresce. Publique de novo, com a interna do relógio de agora." >&2
+    return 1
+  fi
+
+  local seletor=""
+  if [ "${estado}" = tem ]; then
+    echo "${ONDE} já tem ${APP_ID} na interna ${INTERNA}: o pacote não vai de novo."
+    seletor="?i=${INTERNA}"
+  else
+    echo "Publicando app ${APP_ID}@${VERSION}, interna ${INTERNA}, em ${ONDE} (${SHA256})"
+    # As notas vão em base64 num header, como o manifesto: um header não carrega quebra de linha, e
+    # markdown é feito delas.
+    local notas=()
+    [ ! -s "${lote}/notas.md" ] || notas=(-H "X-Vssh-Notes: $(base64 < "${lote}/notas.md" | tr -d '\n')")
+    codigo="$(curl -sS -o "${WORKDIR}/pacote-resposta" -w '%{http_code}' -X POST "${REPO_API}/v1/publish/app" \
+      -H "Authorization: Bearer ${TOKEN}" \
+      -H "Content-Type: application/gzip" \
+      -H "X-Vssh-App-Id: ${APP_ID}" \
+      -H "X-Vssh-Version: ${VERSION}" \
+      -H "X-Vssh-Internal-Version: ${INTERNA}" \
+      -H "X-Vssh-Build-Id: ${BUILD_ID}" \
+      -H "X-Vssh-Ref: ${REF}" \
+      -H "X-Vssh-Built-At: ${BUILT_AT}" \
+      -H "X-Vssh-Sha256: ${SHA256}" \
+      -H "X-Vssh-Manifest: $(base64 < "${lote}/manifesto.json" | tr -d '\n')" \
+      "${notas[@]}" \
+      --data-binary "@${lote}/app.tar.gz" 2>"${WORKDIR}/pacote.erro" || true)"
+    local resposta
+    resposta="$(cat "${WORKDIR}/pacote-resposta" 2>/dev/null || true)"
+    if [ "${codigo}" != 201 ]; then
+      echo "ERRO: o repositório ${ONDE} respondeu ${codigo:-000} ao pacote de ${APP_ID}@${VERSION}: ${resposta:-$(head -c 300 "${WORKDIR}/pacote.erro" 2>/dev/null || true)}" >&2
+      return 1
+    fi
+    echo "${resposta}"
+    # O repositório confere o manifesto contra o schema uma segunda vez, e diz quando não conseguiu
+    # ler o schema. É a mesma situação do checkout sem `api/`: publicou, e alguém precisa saber que
+    # foi sem o gate de lá.
+    case "${resposta}" in
+      *'"schemaConferido": false'*|*'"schemaConferido":false'*)
+        anotar warning "repositório não conferiu o schema" \
+          "${ONDE} publicou ${APP_ID}@${VERSION} sem conseguir ler o schema do manifesto; valeu só a validação deste script." ;;
+    esac
+    case "${resposta}" in *'"internalVersion"'*) seletor="?i=${INTERNA}" ;; esac
+  fi
+  local da_versao="${REPO_API}/v1/publish/app/${APP_ID}/${VERSION}"
+
+  # A ajuda da versão. O repositório a guarda ao lado do pacote, e o portal a lê de lá. Uma recusa
+  # aqui é aviso: o pacote já foi publicado, e o portal compila a ajuda do disco da estação.
+  if [ -s "${lote}/ajuda.json" ]; then
+    echo "Publicando a ajuda (nível ${AJUDA_NIVEL})"
+    codigo="$(curl -sS -o "${WORKDIR}/ajuda-resposta" -w '%{http_code}' -X POST \
+      "${da_versao}/ajuda${seletor}" \
+      -H "Authorization: Bearer ${TOKEN}" \
+      -H "Content-Type: application/json" \
+      -H "X-Vssh-Sha256: $(sha256sum "${lote}/ajuda.json" | cut -d' ' -f1)" \
+      --data-binary "@${lote}/ajuda.json" || true)"
+    if [ "${codigo}" = 201 ]; then
+      cat "${WORKDIR}/ajuda-resposta"; echo
+      # As figuras vão depois do pacote da ajuda, porque o repositório só as aceita de uma versão
+      # que já tem ajuda. Uma recusada é aviso, e o passo dela aparece sem a figura.
+      for f in "${FIGURAS[@]}"; do
+        codigo="$(curl -sS -o "${WORKDIR}/figura-resposta" -w '%{http_code}' -X POST \
+          "${da_versao}/ajuda/${f}${seletor}" \
+          -H "Authorization: Bearer ${TOKEN}" \
+          -H "Content-Type: image/png" \
+          -H "X-Vssh-Sha256: $(sha256sum "${lote}/figuras/${f}" | cut -d' ' -f1)" \
+          --data-binary "@${lote}/figuras/${f}" || true)"
+        [ "${codigo}" = 201 ] || anotar warning "figura não guardada" \
+          "${ONDE} respondeu ${codigo:-000} à figura ${f}: $(head -c 300 "${WORKDIR}/figura-resposta" 2>/dev/null || true)."
+      done
+      [ "${#FIGURAS[@]}" -eq 0 ] || echo "Figuras da ajuda: ${#FIGURAS[@]}"
+    else
+      anotar warning "ajuda não guardada" \
+        "${ONDE} respondeu ${codigo:-000} à ajuda de ${APP_ID}@${VERSION}: $(head -c 400 "${WORKDIR}/ajuda-resposta" 2>/dev/null || true). O app foi publicado, e o portal compila a ajuda do disco da estação."
+    fi
+  fi
+
+  # O ícone da versão.
+  if [ -n "${ICONE}" ] && [ -f "${lote}/${ICONE}" ]; then
+    echo "Publicando ícone (${ICONE_TIPO})"
+    curl -fsS -X POST "${da_versao}/icon${seletor}" \
+      -H "Authorization: Bearer ${TOKEN}" \
+      -H "X-Vssh-Content-Type: ${ICONE_TIPO}" \
+      --data-binary "@${lote}/${ICONE}"
+    echo
+  fi
+
+  # O ladrilho da Loja, o SVG montado das camadas. Um repositório que não o guarda (um anterior à
+  # rota, um erro de rede) vira aviso, e a Loja mostra o ícone.
+  if [ -f "${lote}/ladrilho.svg" ]; then
+    codigo="$(curl -sS -o "${WORKDIR}/ladrilho-resposta" -w '%{http_code}' -X POST \
+      "${da_versao}/ladrilho${seletor}" \
+      -H "Authorization: Bearer ${TOKEN}" \
+      -H "X-Vssh-Content-Type: image/svg+xml" \
+      --data-binary "@${lote}/ladrilho.svg" || true)"
+    if [ "${codigo}" = 201 ]; then
+      echo "Ladrilho da Loja publicado"
+    else
+      anotar warning "ladrilho não guardado" \
+        "${ONDE} respondeu ${codigo:-000} ao ladrilho de ${APP_ID}@${VERSION}: $(head -c 300 "${WORKDIR}/ladrilho-resposta" 2>/dev/null || true). O app foi publicado, e a Loja mostra o ícone dele."
+    fi
+  fi
+  if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+    echo "\`${APP_ID}@${VERSION}\`, interna \`${INTERNA}\`, em ${ONDE}: $([ "${estado}" = tem ] && echo 'já estava publicado' || echo 'publicado')." >> "${GITHUB_STEP_SUMMARY}"
+  fi
+  echo "✅ ${APP_ID}@${VERSION} publicado em ${ONDE}."
+}
+
+if [ -n "${ENVIAR}" ]; then
+  enviar_lote "${ENVIAR}"
+  exit $?
+fi
 
 # ── 1. Materializa a fonte ─────────────────────────────────────────────────────
 case "${SRC}" in
@@ -98,6 +307,10 @@ m = json.load(open(p, encoding='utf-8'))
 app_id = m.get('id', '')
 if not re.match(r'^[a-z0-9-]+$', app_id or ''):
     print('ERROR=id_invalido'); sys.exit(0)
+# A versão interna é do pacote, e quem a escreve é este script, uma vez por publicação. Um manifesto
+# de origem que a declara publicaria toda vez com a mesma, e o repositório recusaria a segunda.
+if 'internalVersion' in m:
+    print('ERROR=internalVersion_no_manifesto_de_origem: tire o campo, o publish o carimba'); sys.exit(0)
 override = os.environ.get('VSSH_VERSION_OVERRIDE') or ''
 if override:
     m['version'] = override
@@ -742,10 +955,45 @@ else
     "Nenhum nome do SDK web foi achado em ${APP_ID}. Ou a janela não chama a ponte, ou a chama por um caminho que a leitura não vê (um acessor do próprio app): nesse caso, declare os nomes em ponte.exige no manifesto."
 fi
 
-# ── 3. Empacota (só o que está versionado, quando é repo git) ──────────────────
-TARBALL="${WORKDIR}/app.tar.gz"
-# `--version` reescreveu o vssh-app.json no PKG acima; para o `git archive` levar essa versão (e
-# quaisquer node_modules/vendor NÃO rastreados no clone raso) o commitamos numa árvore efêmera.
+# ── 3. A versão interna ───────────────────────────────────────────────────────
+#
+# O instante desta publicação em UTC, como o inteiro `AAAAMMDDhhmmss`. O relógio a dá uma vez, aqui,
+# e todo repositório que recebe o lote recebe o mesmo número. Quem completa uma publicação que
+# falhou num repositório passa a interna dela por `--internal-version`.
+[ -n "${INTERNA}" ] || INTERNA="$(date -u +%Y%m%d%H%M%S)"
+[[ "${INTERNA}" =~ ^[0-9]{14}$ ]] || { echo "ERRO: a versão interna é o instante da publicação em UTC, com 14 algarismos (AAAAMMDDhhmmss); veio '${INTERNA}'." >&2; exit 1; }
+
+# O manifesto do pacote leva a interna em `internalVersion`, e é dele que a estação a lê depois de
+# instalar. O schema do manifesto é fechado: um repositório recusa o campo que o schema não declara,
+# então o carimbo só entra quando o schema deste checkout já o tem. O header a leva de todo jeito.
+CARIMBADO="$(VSSH_MANIFEST_PATH="${MANIFEST}" VSSH_SCHEMA_PATH="${SCHEMA}" VSSH_INTERNA="${INTERNA}" python3 <<'PYEOF'
+import json, os
+try:
+    declara = 'internalVersion' in json.load(open(os.environ['VSSH_SCHEMA_PATH'], encoding='utf-8')).get('properties', {})
+except Exception:
+    declara = False
+if declara:
+    p = os.environ['VSSH_MANIFEST_PATH']
+    m = json.load(open(p, encoding='utf-8'))
+    m['internalVersion'] = int(os.environ['VSSH_INTERNA'])
+    json.dump(m, open(p, 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+print('1' if declara else '')
+PYEOF
+)"
+CARIMBADO="${CARIMBADO//$'\r'/}"
+
+# ── 3b. Empacota (só o que está versionado, quando é repo git) ─────────────────
+#
+# O lote é a pasta com tudo o que um repositório recebe: o pacote, o manifesto dele, as notas, a
+# ajuda com as figuras, o ícone e o ladrilho, e `lote.txt`, que diz o app, a versão, a interna e o
+# sha256 do pacote. `--empacotar` a deixa onde foi pedida, para `--enviar` mandar a cada repositório.
+LOTE="${EMPACOTAR:-${WORKDIR}/lote}"
+mkdir -p "${LOTE}"
+[ -z "$(ls -A "${LOTE}")" ] || { echo "ERRO: a pasta do lote ('${LOTE}') não está vazia." >&2; exit 1; }
+TARBALL="${LOTE}/app.tar.gz"
+# `--version` e a interna reescreveram o vssh-app.json no PKG acima; para o `git archive` levar
+# esse manifesto (e quaisquer node_modules/vendor NÃO rastreados no clone raso) o commitamos numa
+# árvore efêmera.
 if git -C "${PKG}" rev-parse --git-dir >/dev/null 2>&1; then
   git -C "${PKG}" add -A
   # commit efêmero só para snapshotar a árvore de trabalho (inclui vendorizados rastreados +
@@ -760,107 +1008,59 @@ else
     -C "${PKG}" .
 fi
 SHA256="$(sha256sum "${TARBALL}" | cut -d' ' -f1)"
-MANIFEST_B64="$(base64 < "${MANIFEST}" | tr -d '\n')"
-BUILT_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-echo "Publicando app ${APP_ID}@${VERSION} (${SHA256}, $(stat -c%s "${TARBALL}" 2>/dev/null || wc -c < "${TARBALL}") bytes)"
+cp "${MANIFEST}" "${LOTE}/manifesto.json"
+[ -z "${NOTES}" ] || printf '%s' "${NOTES}" > "${LOTE}/notas.md"
 
-# As notas vão em base64 num header, como o manifesto: um header não carrega quebra de linha, e
-# markdown é feito delas.
-NOTES_ARGS=()
-if [ -n "${NOTES}" ]; then
-  NOTES_ARGS=(-H "X-Vssh-Notes: $(printf '%s' "${NOTES}" | base64 | tr -d '\n')")
-fi
-
-# ── 4. POST do tarball ─────────────────────────────────────────────────────────
-RESPOSTA="$(curl -fsS -X POST "${REPO_API}/v1/publish/app" \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -H "Content-Type: application/gzip" \
-  -H "X-Vssh-App-Id: ${APP_ID}" \
-  -H "X-Vssh-Version: ${VERSION}" \
-  -H "X-Vssh-Build-Id: ${GITHUB_SHA:-${VERSION}}" \
-  -H "X-Vssh-Ref: ${GITHUB_REF_NAME:-}" \
-  -H "X-Vssh-Built-At: ${BUILT_AT}" \
-  -H "X-Vssh-Sha256: ${SHA256}" \
-  -H "X-Vssh-Manifest: ${MANIFEST_B64}" \
-  "${NOTES_ARGS[@]}" \
-  --data-binary "@${TARBALL}")"
-echo "${RESPOSTA}"
-# O Worker confere o manifesto contra o schema uma segunda vez, e diz quando não conseguiu ler o
-# schema. É a mesma situação do checkout sem `api/`: publicou, e alguém precisa saber que foi
-# sem o gate de lá.
-case "${RESPOSTA}" in
-  *'"schemaConferido": false'*|*'"schemaConferido":false'*)
-    anotar warning "Worker não conferiu o schema" \
-      "O repositório publicou ${APP_ID}@${VERSION} sem conseguir ler o schema do manifesto; valeu só a validação deste script." ;;
-esac
-
-# ── 4b. A ajuda da versão ──────────────────────────────────────────────────────
-#
-# O repositório guarda a ajuda ao lado do pacote, pela versão, e o portal a lê de lá. Ela vai
-# depois do pacote porque o repositório só aceita a ajuda de uma versão que já existe. Uma recusa
-# aqui é aviso: o pacote já foi publicado, e o portal compila a ajuda do disco da estação.
 if [ -s "${AJUDA_JSON}" ]; then
-  echo "Publicando a ajuda (nível ${AJUDA_NIVEL})"
-  CODIGO_HTTP="$(curl -sS -o "${WORKDIR}/ajuda-resposta" -w '%{http_code}' -X POST \
-    "${REPO_API}/v1/publish/app/${APP_ID}/${VERSION}/ajuda" \
-    -H "Authorization: Bearer ${TOKEN}" \
-    -H "Content-Type: application/json" \
-    -H "X-Vssh-Sha256: $(sha256sum "${AJUDA_JSON}" | cut -d' ' -f1)" \
-    --data-binary "@${AJUDA_JSON}" || true)"
-  if [ "${CODIGO_HTTP}" = 201 ]; then
-    cat "${WORKDIR}/ajuda-resposta"; echo
-    # As figuras vão depois do pacote da ajuda, porque o repositório só as aceita de uma versão
-    # que já tem ajuda. Uma recusada é aviso, e o passo dela aparece sem a figura.
-    for f in "${FIGURAS[@]}"; do
-      CODIGO_DA_FIGURA="$(curl -sS -o "${WORKDIR}/figura-resposta" -w '%{http_code}' -X POST \
-        "${REPO_API}/v1/publish/app/${APP_ID}/${VERSION}/ajuda/${f}" \
-        -H "Authorization: Bearer ${TOKEN}" \
-        -H "Content-Type: image/png" \
-        -H "X-Vssh-Sha256: $(sha256sum "${PALCO}/${f}" | cut -d' ' -f1)" \
-        --data-binary "@${PALCO}/${f}" || true)"
-      [ "${CODIGO_DA_FIGURA}" = 201 ] || anotar warning "figura não guardada" \
-        "O repositório respondeu ${CODIGO_DA_FIGURA:-000} à figura ${f}: $(head -c 300 "${WORKDIR}/figura-resposta" 2>/dev/null || true)."
-    done
-    [ "${#FIGURAS[@]}" -eq 0 ] || echo "Figuras da ajuda: ${#FIGURAS[@]}"
-  else
-    anotar warning "ajuda não guardada" \
-      "O repositório respondeu ${CODIGO_HTTP:-000} à ajuda de ${APP_ID}@${VERSION}: $(head -c 400 "${WORKDIR}/ajuda-resposta" 2>/dev/null || true). O app foi publicado, e o portal compila a ajuda do disco da estação."
-  fi
+  cp "${AJUDA_JSON}" "${LOTE}/ajuda.json"
+  mkdir -p "${LOTE}/figuras"
+  for f in "${FIGURAS[@]}"; do cp "${PALCO}/${f}" "${LOTE}/figuras/${f}"; done
 fi
 
-# ── 5. Ícone (opcional) ────────────────────────────────────────────────────────
+# O ícone que vai ao repositório como o da versão: o de `--icon`, o que o pacote traz, ou o montado
+# das camadas.
 ICON_PATH=""
 [ -n "${ICON_OVERRIDE}" ] && ICON_PATH="${ICON_OVERRIDE}"
 [ -z "${ICON_PATH}" ] && [ -n "${ICON}" ] && [ -f "${PKG}/${ICON}" ] && ICON_PATH="${PKG}/${ICON}"
 [ -z "${ICON_PATH}" ] && [ -n "${ICONE_MONTADO}" ] && ICON_PATH="${ICONE_MONTADO}"
+ICONE_DO_LOTE="" ICONE_TIPO=""
 if [ -n "${ICON_PATH}" ] && [ -f "${ICON_PATH}" ]; then
   case "${ICON_PATH,,}" in
-    *.png) CT=image/png ;; *.svg) CT=image/svg+xml ;; *.ico) CT=image/x-icon ;;
-    *.jpg|*.jpeg) CT=image/jpeg ;; *) CT=application/octet-stream ;;
+    *.png) ICONE_TIPO=image/png; ICONE_DO_LOTE=icone.png ;;
+    *.svg) ICONE_TIPO=image/svg+xml; ICONE_DO_LOTE=icone.svg ;;
+    *.ico) ICONE_TIPO=image/x-icon; ICONE_DO_LOTE=icone.ico ;;
+    *.jpg|*.jpeg) ICONE_TIPO=image/jpeg; ICONE_DO_LOTE=icone.jpg ;;
+    *) ICONE_TIPO=application/octet-stream; ICONE_DO_LOTE=icone.bin ;;
   esac
-  echo "Publicando ícone (${CT})"
-  curl -fsS -X POST "${REPO_API}/v1/publish/app/${APP_ID}/${VERSION}/icon" \
-    -H "Authorization: Bearer ${TOKEN}" \
-    -H "X-Vssh-Content-Type: ${CT}" \
-    --data-binary "@${ICON_PATH}"
-  echo
+  cp "${ICON_PATH}" "${LOTE}/${ICONE_DO_LOTE}"
+fi
+if [ -n "${LADRILHO_MONTADO}" ] && [ -f "${LADRILHO_MONTADO}" ]; then cp "${LADRILHO_MONTADO}" "${LOTE}/ladrilho.svg"; fi
+
+{
+  echo "APP_ID=${APP_ID}"
+  echo "VERSION=${VERSION}"
+  echo "INTERNA=${INTERNA}"
+  echo "SHA256=${SHA256}"
+  echo "BUILT_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  echo "BUILD_ID=${GITHUB_SHA:-${VERSION}}"
+  echo "REF=${GITHUB_REF_NAME:-}"
+  echo "AJUDA_NIVEL=${AJUDA_NIVEL}"
+  echo "ICONE=${ICONE_DO_LOTE}"
+  echo "ICONE_TIPO=${ICONE_TIPO}"
+  for f in "${FIGURAS[@]}"; do echo "FIGURA=${f}"; done
+} > "${LOTE}/lote.txt"
+
+echo "Empacotado ${APP_ID}@${VERSION}, interna ${INTERNA} (${SHA256}, $(stat -c%s "${TARBALL}" 2>/dev/null || wc -c < "${TARBALL}") bytes)"
+[ -n "${CARIMBADO}" ] || anotar notice "interna fora do manifesto" \
+  "O schema deste checkout ainda não declara internalVersion, e o manifesto do pacote saiu sem a interna. Ela vai ao repositório no header."
+if [ -n "${GITHUB_OUTPUT:-}" ]; then
+  { echo "app_id=${APP_ID}"; echo "version=${VERSION}"; echo "internal_version=${INTERNA}"; } >> "${GITHUB_OUTPUT}"
 fi
 
-# ── 5b. O ladrilho da Loja ────────────────────────────────────────────────────
-#
-# O SVG montado das camadas na seção 2d. O app já está publicado: um repositório que não guarda o
-# ladrilho (um Worker anterior à rota, um erro de rede) vira aviso, e a Loja mostra o ícone.
-if [ -n "${LADRILHO_MONTADO}" ] && [ -f "${LADRILHO_MONTADO}" ]; then
-  CODIGO_DO_LADRILHO="$(curl -sS -o "${WORKDIR}/ladrilho-resposta" -w '%{http_code}' -X POST \
-    "${REPO_API}/v1/publish/app/${APP_ID}/${VERSION}/ladrilho" \
-    -H "Authorization: Bearer ${TOKEN}" \
-    -H "X-Vssh-Content-Type: image/svg+xml" \
-    --data-binary "@${LADRILHO_MONTADO}" || true)"
-  if [ "${CODIGO_DO_LADRILHO}" = 201 ]; then
-    echo "Ladrilho da Loja publicado"
-  else
-    anotar warning "ladrilho não guardado" \
-      "O repositório respondeu ${CODIGO_DO_LADRILHO:-000} ao ladrilho de ${APP_ID}@${VERSION}: $(head -c 300 "${WORKDIR}/ladrilho-resposta" 2>/dev/null || true). O app foi publicado, e a Loja mostra o ícone dele."
-  fi
+if [ -n "${EMPACOTAR}" ]; then
+  echo "O lote está em ${LOTE}. Mande-o a cada repositório com: vssh-app-publish --enviar ${LOTE} --repo-api <endereço>"
+  exit 0
 fi
-echo "✅ ${APP_ID}@${VERSION} publicado."
+
+# ── 4. Envia ao repositório ────────────────────────────────────────────────────
+enviar_lote "${LOTE}"

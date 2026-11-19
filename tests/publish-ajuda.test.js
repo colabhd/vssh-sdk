@@ -143,7 +143,7 @@ test('o repositório recusando a ajuda é aviso: o pacote já foi publicado', se
   try {
     const r = await publicar();
     assert.equal(r.code, 0, r.saida);
-    assert.match(r.saida, /ajuda não guardada: O repositório respondeu 404/);
+    assert.match(r.saida, /ajuda não guardada: http:\/\/127\.0\.0\.1:\d+ respondeu 404/);
   } finally {
     resposta = {};
   }
