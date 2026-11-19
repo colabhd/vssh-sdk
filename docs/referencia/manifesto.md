@@ -33,6 +33,7 @@ do campo na mensagem. Obrigatórios: `id`, `version`, `backend`.
 | [`usa`](#usa) | `array` de `string` | não |
 | [`capacidades`](#capacidades) | `object` | não |
 | [`minShellVersion`](#minshellversion) | `string` | não |
+| [`ponte`](#ponte) | `object` | não |
 | [`contributes`](#contributes) | `object` | não |
 | [`requiredPackages`](#requiredpackages) | `array` de `string` | não |
 | [`motores`](#motores) | `array` de `object` | não |
@@ -206,6 +207,31 @@ Quem declara está dizendo 'eu uso uma coisa que não existia antes' — a mesma
 npm, pelo mesmo motivo. NÃO substitui o `vssh.capabilities()`: um é gate de instalação, o outro é
 decisão de runtime. Quem confere é o portal, que sabe a versão do shell que serve; o
 `vssh-app-install` roda offline no servidor e não tem como saber.
+
+## `ponte`
+
+`object`, opcional, sem campo além dos listados.
+
+Os nomes do SDK web que a janela deste app chama, na forma `<espaço>.<nome>` (`salas.entrar`,
+`arquivos.urlFor`). O `vssh-app-publish` lê o frontend do app, junta os nomes que acha e carimba as
+duas listas no manifesto do pacote; no manifesto de origem o campo é opcional, e o autor o usa para
+o que a leitura não acha e para o que o app dispensa. A lista de nomes que existem é a superfície do
+SDK web (`api/superficie.json` no vssh-sdk).
+
+### `ponte.exige`
+
+`array` de `string`, opcional.
+
+Os nomes sem os quais a janela não funciona. No manifesto de origem, os que a leitura do frontend
+não acha: um nome montado em tempo de execução, ou alcançado por um acessor do próprio app. No
+manifesto do pacote, a leitura mais estes, menos os de `opcional`.
+
+### `ponte.opcional`
+
+`array` de `string`, opcional.
+
+Os nomes que a janela chama e dispensa: ela confere se o nome existe antes de chamar, e funciona sem
+ele. Um nome daqui sai de `exige`.
 
 ## `contributes`
 

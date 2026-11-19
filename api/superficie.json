@@ -1,0 +1,171 @@
+{
+  "descricao": "Todo nome que um vssh-app alcança em window.vssh.<espaço>, por espaço, com o tipo: verbo (da tabela da ponte), funcao (do runtime do SDK web) ou constante. Gerado por scripts/superficie-do-sdk.js; a lista só cresce.",
+  "espacos": {
+    "ajuda": {
+      "abrir": "verbo",
+      "achou": "verbo",
+      "ao": "funcao",
+      "feito": "verbo",
+      "isto": "verbo",
+      "ouvindo": "verbo",
+      "tecla": "verbo"
+    },
+    "aparelho": {
+      "ao": "funcao",
+      "perfil": "verbo"
+    },
+    "aparencia": {
+      "aoMudar": "funcao",
+      "tokens": "funcao"
+    },
+    "app": {
+      "ao": "funcao",
+      "capacidades": "verbo",
+      "identidade": "verbo",
+      "idioma": "verbo",
+      "lembrarRota": "verbo",
+      "ola": "verbo",
+      "relatarErro": "verbo",
+      "titulo": "verbo"
+    },
+    "apps": {
+      "ao": "funcao",
+      "listar": "verbo",
+      "pedir": "verbo"
+    },
+    "arquivos": {
+      "MIME": "constante",
+      "abrir": "verbo",
+      "abrirCom": "verbo",
+      "abrirLink": "verbo",
+      "abrirPasta": "verbo",
+      "acompanhar": "funcao",
+      "ao": "funcao",
+      "aoSoltarArquivos": "funcao",
+      "apagar": "verbo",
+      "areaDeTransferencia": "verbo",
+      "arrastar": "verbo",
+      "arrastarArquivos": "funcao",
+      "concedidos": "funcao",
+      "consultar": "verbo",
+      "copiar": "verbo",
+      "copiarImagem": "funcao",
+      "copiarParaAreaDeTransferencia": "verbo",
+      "criarPasta": "verbo",
+      "escolherArquivo": "verbo",
+      "escolherArquivos": "verbo",
+      "escolherDestino": "verbo",
+      "escolherPasta": "verbo",
+      "escrever": "verbo",
+      "escreverBytes": "verbo",
+      "esquecerRecentes": "verbo",
+      "existe": "verbo",
+      "handlesConcedidos": "funcao",
+      "imagemCopiada": "funcao",
+      "lembrarRecente": "verbo",
+      "ler": "verbo",
+      "lerBytes": "verbo",
+      "listar": "verbo",
+      "pararDeVigiar": "verbo",
+      "permissoes": "verbo",
+      "recentes": "verbo",
+      "renomear": "verbo",
+      "terminarArraste": "verbo",
+      "urlFor": "funcao",
+      "vigiar": "verbo"
+    },
+    "avisos": {
+      "ao": "funcao",
+      "atividade": "verbo",
+      "avisar": "verbo",
+      "bandeja": "verbo",
+      "encerrarAtividade": "verbo",
+      "notificar": "verbo",
+      "tirarDaBandeja": "verbo"
+    },
+    "configuracoes": {
+      "abrir": "verbo",
+      "ao": "funcao",
+      "ligada": "verbo",
+      "ligar": "verbo"
+    },
+    "desempenho": {
+      "ao": "funcao",
+      "cenas": "funcao",
+      "mandarMedida": "verbo",
+      "medir": "funcao",
+      "registrar": "verbo",
+      "rodarCenas": "funcao"
+    },
+    "dialogos": {
+      "ao": "funcao",
+      "confirmar": "verbo",
+      "erro": "verbo",
+      "escolher": "verbo",
+      "menuDeContexto": "verbo",
+      "menuDoEvento": "funcao",
+      "mostrar": "verbo",
+      "perguntar": "verbo",
+      "senha": "verbo"
+    },
+    "gpu": {
+      "ao": "funcao",
+      "estado": "verbo"
+    },
+    "impressao": {
+      "ao": "funcao",
+      "imprimir": "verbo"
+    },
+    "janela": {
+      "abas": "verbo",
+      "abrir": "verbo",
+      "alternarMaximizado": "verbo",
+      "ao": "funcao",
+      "arrastar": "verbo",
+      "arrastarPara": "verbo",
+      "fechar": "verbo",
+      "focar": "verbo",
+      "maximizar": "verbo",
+      "menuDoCabecalho": "verbo",
+      "minimizar": "verbo",
+      "perguntarAoFechar": "verbo",
+      "restaurar": "verbo",
+      "terminarArraste": "verbo"
+    },
+    "midia": {
+      "agora": "verbo",
+      "ao": "funcao",
+      "audio": "verbo",
+      "ganho": "funcao",
+      "mudo": "funcao",
+      "transporte": "verbo"
+    },
+    "pessoas": {
+      "ao": "funcao",
+      "buscar": "verbo",
+      "daConta": "verbo",
+      "eu": "verbo"
+    },
+    "salas": {
+      "ao": "funcao",
+      "apagar": "verbo",
+      "avisar": "verbo",
+      "bilhete": "verbo",
+      "criar": "verbo",
+      "darAcesso": "verbo",
+      "darAcessoAoGrupo": "verbo",
+      "entrar": "funcao",
+      "ler": "verbo",
+      "listar": "verbo",
+      "renomear": "verbo",
+      "tirarAcesso": "verbo",
+      "tirarAcessoDoGrupo": "verbo"
+    },
+    "segredos": {
+      "ao": "funcao",
+      "apagar": "verbo",
+      "listar": "verbo",
+      "pedir": "verbo"
+    }
+  }
+}

@@ -31,6 +31,9 @@
     "api/icone/package.json": {
       "sha256": "5a065fe7d8eab2a582f428e11c2ea63aaf70607a54f69cfd5c711b5c53d91b32"
     },
+    "api/superficie.json": {
+      "sha256": "4e8a220954a07a40a0a9afcd9f9c309f80c0411254171d3d929e6af861638627"
+    },
     "api/tauri.js": {
       "sha256": "0bf07c92217fe6ef27c9653a262e2476ae97bcb40a519f31c574652e974ef593"
     },
@@ -83,7 +86,7 @@
       "sha256": "43e440ec551e92f28376acdecdf1b285362a85f5b4afddfb028fef2213929862"
     },
     "api/vssh-app.schema.json": {
-      "sha256": "ff2371e27443dc73057848512235c1ca82d9091097f781a4e86d18b2fa3a8e90"
+      "sha256": "291e899eb6ae18a88148d02c073c53aa2535c0b06427625612aad22dc6d5a97d"
     },
     "api/vssh.d.ts": {
       "sha256": "1e93d398c1273b94bf6e66180919437d928119095f5991393ecfc5e04d28d432"
@@ -140,7 +143,7 @@
       "sha256": "c8fd408df22c5bd6905108720bd27db3b5cb26a53f152ffbcb8957f41da66682"
     },
     "docs/referencia/manifesto.md": {
-      "sha256": "c883d0883896b55339889cf7195bd3ab55f3b11fbc004064b8731ebc493640e3"
+      "sha256": "d59564a940a22b1a2c60d5c6d44b4b9783e715a05b3c7f1a35da4fa5711d75b9"
     },
     "docs/referencia/midia.md": {
       "sha256": "97c1bd04f2b70355c93d668872c2547395b4450df48bb5352ea99a1183d3f6d9"
