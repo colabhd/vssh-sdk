@@ -674,7 +674,7 @@
   vssh.desempenho = {
     // Manda o resultado de uma bancada do app, como o "Medir este aparelho" dele, ao portal, junto da descrição deste aparelho e da classe de cada experiência que o shell tem. O shell pergunta antes, num diálogo com o nome do app, e a resposta é `{ mandado: true }`, ou `{ mandado: false }` quando a pessoa não quis. A medida é um objeto de até 2000 campos, com nomes de letras, números e `_`, oito níveis no máximo e o corpo inteiro abaixo de 96 KB; o portal a guarda sem quem mandou.
     mandarMedida: (medida) => ponte.chamar('desempenho.mandarMedida', { type: 'desempenho', op: 'mandar', medida: medida }, 600000),
-    // Registra uma vez de uma medida que o manifesto declara em `desempenho.medidas`: o tempo em ms, ou a fração de 0 a 1 numa medida de unidade `razao`. O shell junta as vezes com o campo do ambiente e as manda ao portal a cada minuto, com a classe do aparelho e sem quem usa; o portal aceita só o nome que o manifesto instalado declara. Um nome que o manifesto não declara, ou um valor fora da unidade, fica no console do shell. `vssh.desempenho.medir(nome)` devolve a função que encerra a medida e a registra. Os nomes que começam por `_` são da plataforma: o SDK registra sozinho, de todo app, `_tecla` e `_clique` (do gesto ao quadro seguinte pintado), `_tarefa` (cada tarefa de 50 ms ou mais na thread do app) e `_tarefa-<origem>` (o mesmo quadro longo com a origem do script mais longo dele: `quadro`, `relogio`, `evento`, `promessa`, `carga`, ou `desenho` quando o quadro é quase todo layout e pintura) e `_tarefa-escondida` (a tarefa longa que começou com a aba escondida).
+    // Registra uma vez de uma medida que o manifesto declara em `desempenho.medidas`: o tempo em ms, ou a fração de 0 a 1 numa medida de unidade `razao`. O shell junta as vezes com o campo do ambiente e as manda ao portal a cada minuto, com a classe do aparelho e sem quem usa; o portal aceita só o nome que o manifesto instalado declara. Um nome que o manifesto não declara, ou um valor fora da unidade, fica no console do shell. `vssh.desempenho.medir(nome)` devolve a função que encerra a medida e a registra. Os nomes que começam por `_` são da plataforma: o SDK registra sozinho, de todo app, `_tecla` e `_clique` (do gesto ao quadro seguinte pintado), `_tarefa` (cada tarefa de 50 ms ou mais do próprio app, sem as do shell e dos outros apps na mesma thread) e `_tarefa-<origem>` (o mesmo quadro longo com a origem do script mais longo dele: `quadro`, `relogio`, `evento`, `promessa`, `carga`, ou `desenho` quando o quadro é quase todo layout e pintura) e `_tarefa-escondida` (a tarefa longa que começou com a aba escondida).
     registrar: (nome, valor) => ponte.disparar('desempenho.registrar', { type: 'desempenho', op: 'registrar', nome: nome, valor: valor }),
     // Este espaço não declara eventos: qualquer nome aqui é recusado.
     ao: (evento, cb) => ponte.escutar('desempenho', evento, cb),
@@ -1246,7 +1246,9 @@
   //   _tecla   do instante em que o navegador criou o keydown ao quadro seguinte pintado: a espera
   //            atrás de uma tarefa longa entra na conta, como a pessoa a sente
   //   _clique  o mesmo, do pointerdown
-  //   _tarefa  cada tarefa de 50 ms ou mais na thread do app, pelo Long Tasks
+  //   _tarefa  cada tarefa de 50 ms ou mais do app, pelo Long Tasks: só as de `name` `self`. O
+  //            Chrome entrega a entrada a todo documento da mesma thread, e num quadro da mesma
+  //            origem do shell a tarefa do shell e a de cada outro app aberto chegariam como desta
   //   _tarefa-<origem>  o mesmo quadro longo, pelo Long Animation Frames, com a origem dele: o
   //            script mais longo do quadro diz de onde ele veio (`origemDoQuadroLongo`)
   //   _tarefa-escondida  a tarefa longa que começou com a aba escondida, também contada em
@@ -1257,8 +1259,8 @@
   // termina em desenho chega só ao documento de cima, e o que não desenha (um temporizador, uma
   // mensagem, uma promessa) chega só ao do app. O SDK registra os que vê aqui, e o campo do shell
   // registra os outros pela URL do script (`CampoDoAparelho`); cada quadro conta uma vez. Na origem
-  // própria do cliente de desktop todos chegam aqui. O Long Tasks chega ao quadro nos dois casos, e
-  // por isso a `_tarefa` continua dele.
+  // própria do cliente de desktop todos chegam aqui. A entrada `self` do Long Tasks chega ao quadro
+  // nos dois casos, e por isso a `_tarefa` continua dele.
   //
   // Nada roda parado: cada medida começa num gesto da pessoa ou numa tarefa que o navegador já
   // relatou.
@@ -1282,6 +1284,7 @@
     if (tipos.includes('longtask')) {
       new Observador((lista) => {
         for (const t of lista.getEntries()) {
+          if (t.name !== 'self') continue;
           mandar('_tarefa', t.duration);
           if (escondidaDesde !== null && t.startTime >= escondidaDesde) mandar('_tarefa-escondida', t.duration);
         }
