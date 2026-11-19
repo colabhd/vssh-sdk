@@ -57,7 +57,6 @@
       }
     ]
   },
-  "minShellVersion": "5.0.0",
   "instalacao": ["sistema", "pessoa"],
   "backend": {
     "runtime": "node",

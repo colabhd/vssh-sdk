@@ -106,7 +106,8 @@ pode esperar um `fetch`; o menu de contexto abre no clique direito e não pode.
 | `secrets` | as credenciais que o app recebe como variáveis de ambiente. Só nome, descrição e `required`; o valor nunca vem do manifesto, e o gate de publicação recusa `value` ali |
 | `provides` | as capacidades que o app oferece a outros, em `nome/vN`. Declarar não é provar: o ambiente não verifica, e quem não puder atender falha por dentro, onde sabe dizer por quê |
 | `instalacao` | onde o app se instala: `sistema` (em `/opt/vssh-apps`, por um admin, para todo o servidor) e `pessoa` (na HOME de quem o instala pela Loja, só para essa pessoa). Sem o campo, vale `["sistema"]`. Declarar `pessoa` diz que o app roda da HOME: o `installCommand` não precisa de root e nada no app procura o próprio código em `/opt/vssh-apps`. Um app com `motores` só se instala no sistema. Ver [Publicar](../guias/publicar.md#instalar-só-para-quem-pede) |
-| `minShellVersion` | a versão mínima do shell. O padrão é não declarar; quem declara está dizendo "uso algo que não existia antes". Quem confere é o portal, na instalação. Não substitui `vssh.app.capacidades()`, que decide em runtime |
+| `ponte` | os nomes do SDK web que a janela chama, na forma `<espaço>.<nome>`. O publish lê o frontend e carimba `exige` e `opcional` no pacote; no manifesto de origem, `exige` declara o que a leitura não acha, e `opcional` o que a janela dispensa. Ver [A ponte](../guias/publicar.md#a-ponte-o-que-a-janela-chama) |
+| `minShellVersion` | a versão mínima do shell. Está de saída: a `ponte` entra no lugar, e o publish avisa quem ainda o declara |
 
 ## Campo desconhecido é recusado
 

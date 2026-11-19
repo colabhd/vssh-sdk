@@ -31,7 +31,6 @@
       "audio/x-ms-wma", "audio/x-matroska"
     ]
   },
-  "minShellVersion": "5.0.0",
   "backend": {
     "runtime": "python3",
     "transport": "socket",
