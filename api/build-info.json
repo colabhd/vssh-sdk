@@ -35,7 +35,7 @@
       "sha256": "0bf07c92217fe6ef27c9653a262e2476ae97bcb40a519f31c574652e974ef593"
     },
     "api/tuff/DESIGN.md": {
-      "sha256": "9ab705bdce9ac5b414912fb9ad3d092eddd01d9c97028355f5373307213acb25"
+      "sha256": "1a53048a6102d38ac0acd2cdd379dc69a474d057e89dde5b8ef23ffae7952feb"
     },
     "api/tuff/contrato.json": {
       "sha256": "3a2f4bdad5f6c7598adf5e825565e3fb077e1cf0581cd541e3b0c8320be15496"
@@ -71,7 +71,7 @@
       "sha256": "5c9db020edc138f1683e56d4251cd47b8ee5e3b971cd79938ec82cfcfa123182"
     },
     "api/tuff/tuff.css": {
-      "sha256": "e88d5ad5ad83309084b821062bb84b45de62efabd8a5fc7c657ae90b14301175"
+      "sha256": "afe27dbea013c6e94e0e60ab4a5b7ea4621abaa61f60ae552dd2418bcacd5dc8"
     },
     "api/tuff/tuff.js": {
       "sha256": "1cba8f9ccc266111b3dea7c7564f3b70f13ab085d63388882a68a58c6c71b522"

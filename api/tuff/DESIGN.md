@@ -304,7 +304,9 @@ VSSH-378, VSSH-381):
   área de trabalho. O dia de hoje no calendário da central é um círculo na cor de destaque: é o
   lugar onde a pessoa está no mês.
 - A densidade é a de uma ferramenta: controle com 26 px de altura sob ponteiro fino, e 44 px de
-  alvo sob ponteiro grosso (`--ds-alvo`). Quem decide é o ponteiro, e não a largura.
+  alvo sob ponteiro grosso (`--ds-alvo`). Quem decide é o ponteiro, e não a largura. A alça de
+  largura entre duas colunas de uma tabela é a exceção: sob ponteiro grosso ela tem a altura do
+  cabeçalho e 23 px de largura, porque mais larga cobriria o botão de ordenar das colunas vizinhas.
 - O espaçamento segue a escala de 2, 4, 8, 12, 20 e 32 px (`--ds-gap-*`).
 - A tela cabe em 360 px sem rolagem horizontal. Abaixo de 600 px a forma é compacta, de 600 a 839
   é média, e de 840 em diante é ampla, as classes de janela do Android (VSSH-368).

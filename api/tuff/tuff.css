@@ -1018,7 +1018,9 @@
   table.tuff-tabela .tuff-tabela-alca { left: -5px; }
   table.tuff-tabela--larguras { table-layout: fixed; }
   table.tuff-tabela--larguras > * > tr > td { overflow: hidden; text-overflow: ellipsis; }
-  /* Sob o dedo, o alvo cresce para os lados; a linha continua no meio do vão. */
+  /* Sob o dedo, o alvo cresce para os lados, até 23 px, e a linha continua no meio do vão. Ele
+     para aí, abaixo dos 44 px dos outros alvos: mais largo, cobriria o cabeçalho das duas colunas
+     vizinhas, que é o botão de ordenar. A altura é a do cabeçalho. */
   @media (pointer: coarse) {
     .tuff-tabela-alca { left: calc(var(--ds-gap-md) / -2 - 11px); width: 23px; }
     .tuff-tabela-alca::after { left: 11px; }
