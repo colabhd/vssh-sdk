@@ -498,12 +498,8 @@ do cluster). Sem o campo, o motor desce em todo servidor.
 
 `array` de `string`, opcional, cada item um de `"sistema"`, `"pessoa"`.
 
-Onde o app se instala. `sistema` é `/opt/vssh-apps/<id>`, pelas mãos de um administrador, para todas
-as pessoas do servidor. `pessoa` é `~/.local/share/vssh-apps/<id>` de quem instala pela Loja sem ser
-administrador, só para essa pessoa. Sem o campo, vale `["sistema"]`. Declarar `pessoa` é dizer que o
-app roda da HOME: o `installCommand` dele não precisa de root, e nada nele procura o próprio código
-em `/opt/vssh-apps`. Um app com `motores` só se instala no sistema, declare o que declarar, porque o
-motor mora numa pasta de root.
+Sem efeito: todo app se instala em `/opt/vssh-apps/<id>`, pelas mãos de um administrador, para todas
+as pessoas da estação. O campo continua aceito para um manifesto que o declara não ser recusado.
 
 ## `resources`
 
