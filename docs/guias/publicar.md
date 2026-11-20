@@ -1,9 +1,8 @@
 # Publicar
 
-Ao terminar este guia o seu app está no repositório de artefatos, com versão, e um admin o instala
-ou atualiza em qualquer servidor por `id`, pela aba Repositório do portal ou por uma linha de
-comando. O caminho tem três passos: validar e empacotar, enviar ao repositório, instalar no
-servidor.
+Ao terminar este guia o seu app está no repositório de artefatos, com versão, e a administração o
+instala num sítio pela Loja de apps, ou numa estação por uma linha de comando. O caminho tem três
+passos: validar e empacotar, enviar ao repositório, instalar.
 
 ## O repositório
 
@@ -12,7 +11,8 @@ A leitura é pública (manifesto JSON e download, com `sha256` verificável); a 
 por token. Ele retém as três últimas versões de cada app.
 
 O token de publicação é do Worker, escopado ao seu app (`app:<id>`), e nunca uma credencial do
-GitHub. Um admin o gera na aba Repositório, em Tokens, do portal, e ele é mostrado uma vez. Guarde
+GitHub. Um admin o gera no painel admin do portal, em Apps, na página do app (ou em "Novo app",
+para um app que ainda não foi publicado), e ele é mostrado uma vez. Guarde
 como secret `VSSH_REPO_PUBLISH_TOKEN` no repositório do app.
 
 ## Empacotar e enviar
@@ -209,37 +209,19 @@ app em execução, de qualquer usuário, conferindo pelo `environ` que o process
 Cada pessoa sobe a versão nova na próxima abertura.
 
 O `minShellVersion` do manifesto está de saída, e [a ponte](#a-ponte-o-que-a-janela-chama) entra
-no lugar dele. Enquanto o campo existir, o portal o compara com a versão do shell que serve quando
-a instalação parte da aba Repositório, e recusa com o motivo. Os templates deste repositório não o
-declaram.
+no lugar dele. Enquanto o campo existir, o portal o compara com a versão do shell que serve antes
+de instalar, e recusa com o motivo. Os templates deste repositório não o declaram.
 
-Pela aba Repositório do portal, o admin vê, por servidor, o que está disponível no repositório e o
-que está instalado, sem rodar os scripts, e instala ou atualiza com um botão; o botão de atualizar
-só reinstala quando a versão do repositório difere da instalada. Se o servidor não tem o
-`vssh-app-install`, a mesma aba o instala sob demanda.
+No ambiente, a administração instala pela Loja de apps. Numa estação de um sítio, o app entra em
+todas as estações dele, e numa estação que entrar no sítio depois. Daí em diante cada estação leva
+o app sozinha à publicação mais nova do repositório do sítio: o seguidor da estação
+(`vssh-seguir-apps`) confere o índice a cada cinco minutos e instala o que mudou, sem botão de
+atualizar. "Voltar à anterior", na Loja da administração, faz o sítio descer à publicação de antes,
+e as estações dele descem junto. Cada pessoa põe o app no menu dela com "Instalar", sem baixar
+nada.
 
 Não há `.desktop` nem menu XDG: o app aparece por `GET /api/apps` (cache de até 60 s no portal, 30
 s no cliente), na `category` que o manifesto declarou, sem reiniciar a sessão de ninguém.
-
-## Instalar só para quem pede
-
-Quem não é admin instala pela Loja, na própria HOME, o app que declara `pessoa` em `instalacao`:
-
-```json
-{ "instalacao": ["sistema", "pessoa"] }
-```
-
-O app vai para `~/.local/share/vssh-apps/<id>/`, e só essa pessoa o vê. Quem instala é o agente do
-sistema, como ela, na sequência do `vssh-app-install` sem os passos de root: baixa o pacote,
-confere o `sha256` e os `requiredPackages`, roda o `installCommand` com `VSSH_APP_REBUILD=1` dentro
-do pacote e troca a pasta. Um `installCommand` que precisa de root falha ali, e a versão anterior
-fica no lugar; por isso o campo é declarado por quem escreve o app, e a Loja só oferece o botão
-quando ele está lá. Um app com `motores` nunca se instala assim, porque o motor mora numa pasta de
-root. Um app que declara só `["pessoa"]` o `vssh-app-install` recusa em `/opt`.
-
-O app instalado assim sobe pelo mesmo `vssh-app-run`, com o mesmo setup por usuário, e os dados
-dele ficam em `VSSH_APP_DATA_DIR`, como os de um app do servidor. Remover pela Loja apaga a pasta
-do app e deixa os dados.
 
 ## Uma armadilha do `--force`
 
