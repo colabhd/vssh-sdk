@@ -1,5 +1,6 @@
 'use strict';
-// As notas de versão chegam ao Worker, e o aviso de schema não conferido chega a quem publica.
+// As notas de versão e a coleção de quem publica chegam ao Worker, e o aviso de schema não conferido
+// chega a quem publica.
 //
 // Medido rodando o `vssh-app-publish` INTEIRO contra um Worker de mentira: um servidor HTTP que
 // guarda os headers do `POST /v1/publish/app` e responde o que o caso pede. É a única bancada
@@ -89,8 +90,8 @@ function app() {
  * Assíncrono de propósito: o Worker de mentira vive neste mesmo processo, e um `spawnSync`
  * seguraria o event loop enquanto o `curl` do script espera a resposta que só o event loop daria.
  */
-function publicar(args, env = {}) {
-  const dir = app();
+function publicar(args, env = {}, { fonte = null } = {}) {
+  const dir = fonte || app();
   const py = dirDoPython();
   recebidos.length = 0;
   return new Promise((resolve) => {
@@ -104,7 +105,7 @@ function publicar(args, env = {}) {
     p.on('close', (code) => {
       clearTimeout(relogio);
       fs.rmSync(py, { recursive: true, force: true });
-      fs.rmSync(dir, { recursive: true, force: true });
+      if (!fonte) fs.rmSync(dir, { recursive: true, force: true });
       resolve({ code, saida });
     });
   });
@@ -159,3 +160,60 @@ test('o Worker dizendo que não conferiu o schema vira aviso de quem publica', s
   const r = await publicar([]);
   assert.doesNotMatch(r.saida, /repositório não conferiu o schema/);
 });
+
+// ─── A coleção de quem publica ────────────────────────────────────────────────
+
+const CRAFT = { id: 'crafting-apps', nome: 'Crafting Apps', quem: 'ArtCraft', resumo: 'Escrever e calcular.' };
+
+test('o colecao.json da pasta do app vai no X-Vssh-Colecao, só com o que o repositório guarda', seNaoTem, async () => {
+  const dir = app();
+  fs.writeFileSync(path.join(dir, 'colecao.json'), JSON.stringify({ ...CRAFT, nome: '  Crafting Apps ', extra: 1 }));
+  try {
+    const r = await publicar([], {}, { fonte: dir });
+    assert.equal(r.code, 0, r.saida);
+    assert.deepEqual(JSON.parse(decodificar(doPacote().headers['x-vssh-colecao'])), CRAFT);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('numa suíte, o colecao.json da raiz do repositório vale para o app que ele lista, e não para o que ele não lista', seNaoTem, async () => {
+  const raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'vssh-suite-'));
+  const git = (...a) => execFileSync('git', ['-C', raiz, ...a], { stdio: 'ignore' });
+  try {
+    for (const id of ['x', 'y']) {
+      fs.mkdirSync(path.join(raiz, id));
+      fs.writeFileSync(path.join(raiz, id, 'vssh-app.json'), JSON.stringify({ id, version: '1.0.0', backend: { runtime: 'node', entrypoint: 'b.js' } }));
+      fs.writeFileSync(path.join(raiz, id, 'b.js'), '');
+    }
+    fs.writeFileSync(path.join(raiz, 'colecao.json'), JSON.stringify({ ...CRAFT, apps: ['x'] }));
+    git('init', '-q');
+    git('add', '-A');
+    git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'suite');
+
+    let r = await publicar([], {}, { fonte: path.join(raiz, 'x') });
+    assert.equal(r.code, 0, r.saida);
+    assert.equal(JSON.parse(decodificar(doPacote().headers['x-vssh-colecao'])).id, 'crafting-apps');
+
+    r = await publicar([], {}, { fonte: path.join(raiz, 'y') });
+    assert.equal(r.code, 0, r.saida);
+    assert.ok(!('x-vssh-colecao' in doPacote().headers), 'o app que a coleção não lista foi com ela');
+    assert.match(r.saida, /não lista y/);
+  } finally {
+    fs.rmSync(raiz, { recursive: true, force: true });
+  }
+});
+
+test('um colecao.json fora da forma para a publicação antes de mandar o pacote', seNaoTem, async () => {
+  const dir = app();
+  fs.writeFileSync(path.join(dir, 'colecao.json'), JSON.stringify({ id: 'Crafting Apps', nome: 'x' }));
+  try {
+    const r = await publicar([], {}, { fonte: dir });
+    assert.notEqual(r.code, 0);
+    assert.match(r.saida, /`id` é minúsculo/);
+    assert.equal(doPacote(), undefined, 'o pacote foi mandado com a coleção errada');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+

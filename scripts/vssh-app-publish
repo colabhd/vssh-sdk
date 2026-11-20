@@ -176,6 +176,8 @@ print("MAIS_ALTA=" + (str(max(internas)) if internas else ""))')"
     # markdown é feito delas.
     local notas=()
     [ ! -s "${lote}/notas.md" ] || notas=(-H "X-Vssh-Notes: $(base64 < "${lote}/notas.md" | tr -d '\n')")
+    # A coleção vai do mesmo jeito, no header da publicação, e o repositório a guarda com a versão.
+    [ ! -s "${lote}/colecao.json" ] || notas+=(-H "X-Vssh-Colecao: $(base64 < "${lote}/colecao.json" | tr -d '\n')")
     codigo="$(curl -sS -o "${WORKDIR}/pacote-resposta" -w '%{http_code}' -X POST "${REPO_API}/v1/publish/app" \
       -H "Authorization: Bearer ${TOKEN}" \
       -H "Content-Type: application/gzip" \
@@ -1010,6 +1012,50 @@ fi
 SHA256="$(sha256sum "${TARBALL}" | cut -d' ' -f1)"
 cp "${MANIFEST}" "${LOTE}/manifesto.json"
 [ -z "${NOTES}" ] || printf '%s' "${NOTES}" > "${LOTE}/notas.md"
+
+# A coleção de quem publica: o `colecao.json` da pasta do app ou, numa suíte com vários apps, o da
+# raiz do repositório dela. Ele diz o id, o nome, de quem é e o resumo da coleção, e `apps`, quando
+# vem, os apps que entram nela. O repositório guarda a coleção com a versão, e a coleção de um app
+# é a que a versão atual dele declara: um app despublicado sai dela sozinho.
+COLECAO_DA_FONTE=""
+for c in "${SRC}/colecao.json" "$(git -C "${SRC}" rev-parse --show-toplevel 2>/dev/null || true)/colecao.json" "${PKG}/colecao.json"; do
+  if [ -f "${c}" ]; then COLECAO_DA_FONTE="${c}"; break; fi
+done
+if [ -n "${COLECAO_DA_FONTE}" ]; then
+  VSSH_COLECAO="${COLECAO_DA_FONTE}" VSSH_APP_ID="${APP_ID}" VSSH_COLECAO_SAIDA="${LOTE}/colecao.json" \
+    PYTHONIOENCODING=utf-8 python3 - <<'PYEOF' || exit 1
+import json, os, re, sys
+caminho, app = os.environ['VSSH_COLECAO'], os.environ['VSSH_APP_ID']
+try:
+    with open(caminho, encoding='utf-8') as f:
+        c = json.load(f)
+except Exception as e:
+    sys.exit(f"ERRO: {caminho} não é JSON: {e}")
+def texto(chave, maximo, obrigatorio=False):
+    v = c.get(chave)
+    if v is None and not obrigatorio:
+        return None
+    if not isinstance(v, str) or not v.strip() or len(v) > maximo:
+        sys.exit(f"ERRO: em {caminho}, `{chave}` é um texto de até {maximo} caracteres.")
+    return v.strip()
+if not isinstance(c, dict) or not isinstance(c.get('id'), str) or not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,63}', c['id']):
+    sys.exit(f"ERRO: em {caminho}, `id` é minúsculo, com algarismos e hífen, até 64 caracteres.")
+saida = {'id': c['id'], 'nome': texto('nome', 80, True)}
+for chave, maximo in (('quem', 80), ('resumo', 400)):
+    v = texto(chave, maximo)
+    if v is not None:
+        saida[chave] = v
+apps = c.get('apps')
+if apps is not None and (not isinstance(apps, list) or not all(isinstance(a, str) for a in apps)):
+    sys.exit(f"ERRO: em {caminho}, `apps` é uma lista de ids.")
+if apps is not None and app not in apps:
+    print(f"A coleção '{c['id']}' não lista {app}: o app vai sem coleção.")
+    sys.exit(0)
+with open(os.environ['VSSH_COLECAO_SAIDA'], 'w', encoding='utf-8') as f:
+    json.dump(saida, f, ensure_ascii=False, separators=(',', ':'))
+print(f"Coleção: {saida['nome']} ({saida['id']}).")
+PYEOF
+fi
 
 if [ -s "${AJUDA_JSON}" ]; then
   cp "${AJUDA_JSON}" "${LOTE}/ajuda.json"

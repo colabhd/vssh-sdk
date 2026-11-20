@@ -71,6 +71,32 @@ export VSSH_REPO_PUBLISH_TOKEN="vsshp_..."
 bash scripts/vssh-app-publish ~/meu-app --version 1.2.3 --notes-file notas-1.2.3.md
 ```
 
+### A coleção de uma suíte
+
+Um repositório que publica vários apps declara a coleção deles num `colecao.json`, e a coleção
+aparece em Descobrir, na Loja, sem ninguém cadastrá-la no portal:
+
+```json
+{
+  "id": "crafting-apps",
+  "nome": "Crafting Apps",
+  "quem": "ArtCraft",
+  "resumo": "Escrever, calcular e editar PDFs.",
+  "apps": ["wordcraft", "sheetcraft", "pdfcraft"]
+}
+```
+
+O `vssh-app-publish` procura o arquivo na pasta do app e, numa suíte com um app por pasta, na raiz
+do repositório. Ele vai junto de cada versão, e o repositório de artefatos guarda a coleção com
+ela. Um app entra na coleção que a versão atual dele declara. Com `apps`, o arquivo vale só para
+os apps que lista, e os outros publicam sem coleção. O nome, o `quem` e o resumo que a Loja mostra
+são os da publicação mais nova entre os apps da coleção. Um app despublicado sai dela sozinho.
+
+O `id` é minúsculo, com algarismos e hífen. O `nome` e o `quem` vão até 80 caracteres, e o
+`resumo` até 400. Um arquivo fora dessa forma para a publicação antes do pacote. Uma coleção que a
+administração cadastrou no portal com o mesmo `id` vale no lugar desta, e o destaque de Descobrir
+é escolha da administração.
+
 ## As duas versões: a exibida e a interna
 
 Um app tem duas versões. A exibida é o `version` do manifesto: o texto que a pessoa lê na Loja, que
