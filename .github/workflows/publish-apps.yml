@@ -17,9 +17,9 @@ name: Publish apps
 #
 # ── A VERSÃO É DERIVADA DO HISTÓRICO ──────────────────────────────────────────
 #
-# O Worker faz ON CONFLICT(kind,name,channel,version) DO UPDATE, e o vssh-app-install compara a
-# versão instalada com a resolvida: com o mesmo número, o conteúdo novo sobrescreve o antigo no
-# repositório e o servidor pula a atualização por "já está nessa versão". Publica, e não chega.
+# O repositório guarda duas publicações do mesmo `version` como duas linhas, separadas pela versão
+# interna. O vssh-app-install compara o `version` instalado com o resolvido: com o mesmo número, o
+# servidor pula a atualização por "já está nessa versão". Publica, e não chega.
 #
 # Por isso o PATCH é o número de commits que tocaram aquele app: monotônico, semver de verdade, e
 # sem passo manual. `major.minor` continua no manifesto, sob controle humano; é lá que se declara
