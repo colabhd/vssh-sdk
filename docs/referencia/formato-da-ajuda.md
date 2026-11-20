@@ -120,4 +120,4 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 58 q
 `{{g:<termo>}}` cita um termo do glossário do app ou um destes: aba, ambiente, aplicativo, área de
 trabalho, área de transferência, arquivo, arrastar, barra de tarefas, clique direito, clique duplo,
 encaixar, endereço, estação, janela, Lixeira, Não perturbe, notificação, pasta, portal, seu
-computador, tela cheia, toque duplo, toque longo.
+computador, sítio, tela cheia, toque duplo, toque longo.
