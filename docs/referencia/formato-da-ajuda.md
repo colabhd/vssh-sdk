@@ -52,7 +52,7 @@ existe quando o manifesto declara o campo dela.
 
 ## Os tópicos do ambiente
 
-Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 58 que existem:
+Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 59 que existem:
 
 | id | título |
 |---|---|
@@ -114,6 +114,7 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 58 q
 | `um-app-quer-usar-outro` | Quando um aplicativo quer usar outro |
 | `ver-em-lista` | Ver o tamanho e a data dos arquivos, e mudar a ordem |
 | `versao-nova` | Versão nova publicada |
+| `vssh-no-terminal` | Pedir ao ambiente de dentro do Terminal |
 
 ## Os termos do glossário do ambiente
 

@@ -739,7 +739,8 @@
           "terminal": {
             "caminhos": [
               "dir"
-            ]
+            ],
+            "ajuda": "Abre o seletor de arquivo e escreve o caminho escolhido."
           },
           "fio": {
             "type": "pick",
@@ -779,7 +780,8 @@
           "terminal": {
             "caminhos": [
               "dir"
-            ]
+            ],
+            "ajuda": "Abre o seletor para marcar vários arquivos e escreve um caminho por linha."
           },
           "fio": {
             "type": "pick",
@@ -813,7 +815,8 @@
           "terminal": {
             "caminhos": [
               "dir"
-            ]
+            ],
+            "ajuda": "Abre o seletor de salvar como e escreve o caminho onde gravar."
           },
           "fio": {
             "type": "pick",
@@ -853,7 +856,8 @@
           "terminal": {
             "caminhos": [
               "dir"
-            ]
+            ],
+            "ajuda": "Abre o seletor de pasta e escreve a pasta escolhida."
           },
           "fio": {
             "type": "pick",
@@ -982,7 +986,8 @@
           "terminal": {
             "caminhos": [
               "path"
-            ]
+            ],
+            "ajuda": "Abre o arquivo na janela que o tipo dele pede, como o clique duplo em Arquivos."
           },
           "hiperlink": {
             "caminhos": [
@@ -1012,7 +1017,8 @@
           "terminal": {
             "caminhos": [
               "path"
-            ]
+            ],
+            "ajuda": "Abre a pasta em Arquivos."
           },
           "hiperlink": {
             "caminhos": [
@@ -1036,7 +1042,8 @@
           "terminal": {
             "caminhos": [
               "path"
-            ]
+            ],
+            "ajuda": "Mostra os aplicativos que abrem o arquivo, abre no escolhido e escreve o nome dele."
           },
           "hiperlink": {
             "caminhos": [
@@ -1058,7 +1065,9 @@
           "descricao": "Mostra ao usuário os aplicativos que abrem o arquivo, a mesma lista do menu de contexto do gerenciador, e abre no escolhido. Responde com o nome do aplicativo, ou `null` se o usuário cancelou. Sem X11 a lista tem só vssh-apps."
         },
         "abrirLink": {
-          "terminal": true,
+          "terminal": {
+            "ajuda": "Abre o link no navegador do ambiente, que alcança o localhost da estação."
+          },
           "fio": {
             "type": "open-url"
           },
@@ -1428,7 +1437,9 @@
           "descricao": "A mesma caixa de `mostrar`, com o tom de erro."
         },
         "confirmar": {
-          "terminal": true,
+          "terminal": {
+            "ajuda": "Pergunta numa caixa, e sai com 0 quando a pessoa confirma e com 1 quando cancela."
+          },
           "fio": {
             "type": "dialog",
             "variant": "confirm"
@@ -1490,7 +1501,9 @@
           "descricao": "Uma pergunta com de duas a quatro respostas, uma por botão, na ordem dada. A resposta é o `id` da escolhida, ou `null` quando a pessoa fechou a caixa sem escolher. É a pergunta de \"Salvar\", \"Não salvar\" e \"Cancelar\", em que fechar a caixa não pode valer como nenhuma das duas primeiras."
         },
         "perguntar": {
-          "terminal": true,
+          "terminal": {
+            "ajuda": "Pede uma linha de texto numa caixa e escreve o que a pessoa digitou."
+          },
           "fio": {
             "type": "dialog",
             "variant": "prompt"
@@ -1519,7 +1532,9 @@
           "descricao": "Um campo de texto de uma linha. A resposta é o que a pessoa escreveu, ou `null` quando ela cancelou."
         },
         "senha": {
-          "terminal": true,
+          "terminal": {
+            "ajuda": "Pede uma senha numa caixa, com o texto escondido, e escreve o valor."
+          },
           "fio": {
             "type": "dialog",
             "variant": "password"
@@ -2138,7 +2153,8 @@
           "terminal": {
             "caminhos": [
               "path"
-            ]
+            ],
+            "ajuda": "Abre a tela de impressão do ambiente para o arquivo."
           },
           "hiperlink": {
             "caminhos": [

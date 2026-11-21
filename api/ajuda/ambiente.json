@@ -231,6 +231,10 @@
     {
       "id": "versao-nova",
       "titulo": "Versão nova publicada"
+    },
+    {
+      "id": "vssh-no-terminal",
+      "titulo": "Pedir ao ambiente de dentro do Terminal"
     }
   ],
   "termos": [
