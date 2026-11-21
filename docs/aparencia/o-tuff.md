@@ -140,9 +140,20 @@ Tuff promete a um app são os nomes, e a lista deles viaja com as folhas, em
 Um nome dessas listas continua valendo. O desenho de uma peça pode mudar de uma versão do ambiente
 para outra, e o que mudou de propósito sai no [MIGRATION.md](../../MIGRATION.md#o-tuff-o-que-muda-e-o-que-fica).
 
-Um nome que precisa sair entra em `de_saida`, com a lista dele e o que usar no lugar (`use`), e
-continua atendido enquanto os apps trocam. Um app que usa um nome de `de_saida` troca pelo `use`
-na versão seguinte dele.
+Um nome que precisa sair entra em `de_saida`, com a lista dele, o que usar no lugar (`use`) e o dia
+em que entrou (`desde`, no formato `AAAA-MM-DD`). O Tuff do ambiente continua atendendo o nome por
+90 dias a partir do `desde`, e só depois disso o tira das folhas.
+
+O `vssh-app-publish` procura cada nome de `de_saida` nos arquivos de página e de folha do pacote:
+
+| quando | o que o publish faz |
+|---|---|
+| nos 90 dias | publica, com um aviso no run: o arquivo, a linha, o nome, o dia em que ele sai e o `use` |
+| depois deles | recusa a publicação, com a mesma lista, porque o ambiente não atende mais o nome |
+
+A procura é por texto e pega também um comentário que cita o nome. Um ícone conta pelo `#ico-<nome>`
+e pelo nome entre aspas numa chamada a `TuffIcones`. Para ver o que um Tuff que ainda não saiu diz
+do seu app, aponte `VSSH_SDK_TUFF` para a pasta dele.
 
 O que o contrato deixa de fora: o desenho de cada peça, os seletores internos de uma folha, e
 qualquer nome que não esteja na lista. Um app que escreve CSS contra a estrutura de dentro de uma
