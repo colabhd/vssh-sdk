@@ -269,6 +269,31 @@
             }
           }
         },
+        "comandos": {
+          "type": "array",
+          "maxItems": 16,
+          "description": "Os comandos que o app põe no terminal da pessoa. Cada um roda um arquivo do pacote com o runtime do backend.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["nome", "roda", "descricao"],
+            "properties": {
+              "nome": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$", "description": "O nome que a pessoa digita. Não começa com `vssh`." },
+              "roda": { "type": "string", "description": "O arquivo do pacote, relativo à raiz, que o comando executa." },
+              "descricao": { "type": "string", "description": "Uma linha para `vssh comandos` e para a Ajuda." },
+              "backend": { "type": "boolean", "description": "O comando conversa com o backend do app, e o sobe quando ele está parado. Sem o campo, o comando roda sozinho." },
+              "menu": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["titulo"],
+                "description": "O comando é um programa de terminal, e abre pelo menu iniciar numa aba do Terminal.",
+                "properties": {
+                  "titulo": { "type": "string", "description": "O nome da entrada no menu iniciar." }
+                }
+              }
+            }
+          }
+        },
         "ajuda": {
           "type": "object",
           "additionalProperties": false,

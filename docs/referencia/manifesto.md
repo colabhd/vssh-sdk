@@ -391,6 +391,50 @@ verdade sobre o mesmo fato — que envelhece sozinha a cada release da extensão
 Uma frase dizendo para que o app precisa dela, mostrada a quem for decidir. Sem isto o convite diz
 só o nome da extensão, e quem nunca ouviu falar dela não tem como responder.
 
+### `contributes.comandos`
+
+`array` de `object`, opcional, itens no máximo 16.
+
+Os comandos que o app põe no terminal da pessoa. Cada um roda um arquivo do pacote com o runtime do
+backend.
+
+#### `contributes.comandos[].nome`
+
+`string`, obrigatório.
+
+O nome que a pessoa digita. Não começa com `vssh`.
+
+#### `contributes.comandos[].roda`
+
+`string`, obrigatório.
+
+O arquivo do pacote, relativo à raiz, que o comando executa.
+
+#### `contributes.comandos[].descricao`
+
+`string`, obrigatório.
+
+Uma linha para `vssh comandos` e para a Ajuda.
+
+#### `contributes.comandos[].backend`
+
+`boolean`, opcional.
+
+O comando conversa com o backend do app, e o sobe quando ele está parado. Sem o campo, o comando
+roda sozinho.
+
+#### `contributes.comandos[].menu`
+
+`object`, opcional, sem campo além dos listados.
+
+O comando é um programa de terminal, e abre pelo menu iniciar numa aba do Terminal.
+
+##### `contributes.comandos[].menu.titulo`
+
+`string`, obrigatório.
+
+O nome da entrada no menu iniciar.
+
 ### `contributes.ajuda`
 
 `object`, opcional, sem campo além dos listados.
