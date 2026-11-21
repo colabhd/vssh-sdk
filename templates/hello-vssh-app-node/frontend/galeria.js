@@ -414,6 +414,20 @@ function montarGaleria() {
     } catch (e) { falhar('out', e); }
   });
 
+  // ── O comando no Terminal ────────────────────────────────────────────────────
+  //
+  // O nome do comando é o id do app (`contributes.comandos`), e o `api/ping` o devolve: os dois
+  // templates têm ids diferentes, e um nome escrito aqui serviria a um só. A saída é a que o
+  // comando escreve no Terminal, com a mesma resposta do mesmo backend (`bin/hello.py`,
+  // `bin/hello.mjs`).
+  $('comando').addEventListener('click', async () => {
+    escrever('comando-saida', 'chamando...');
+    try {
+      const { appId, time } = await (await fetch('api/ping')).json();
+      escrever('comando-saida', `$ ${appId}\n${appId} respondeu às ${time}`);
+    } catch (e) { falhar('comando-saida', e); }
+  });
+
   // ── SSE, e a difusão que faz a peça das duas janelas funcionar ───────────────
 
   $('sub').addEventListener('click', (e) => {

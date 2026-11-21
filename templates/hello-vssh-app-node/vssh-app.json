@@ -44,6 +44,9 @@
   "handles": "editor",
   "contributes": {
     "ajuda": { "pasta": "ajuda", "inicio": "comecar" },
+    "comandos": [
+      { "nome": "hello-world-node", "roda": "bin/hello.mjs", "backend": true, "descricao": "Pergunta a hora ao backend deste app e a escreve." }
+    ],
     "settings": "configuracoes.js",
     "settingsOptIn": true,
     "contextMenu": [

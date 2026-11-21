@@ -44,6 +44,9 @@
   "handles": "editor",
   "contributes": {
     "ajuda": { "pasta": "ajuda", "inicio": "comecar" },
+    "comandos": [
+      { "nome": "hello-world", "roda": "bin/hello.py", "backend": true, "descricao": "Pergunta a hora ao backend deste app e a escreve." }
+    ],
     "settings": "configuracoes.js",
     "settingsOptIn": true,
     "contextMenu": [

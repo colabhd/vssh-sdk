@@ -122,6 +122,14 @@ test('os manifestos declaram as mesmas capacidades', () => {
   assert.equal(b.backend?.healthcheckPath, a.backend?.healthcheckPath);
   assert.equal(b.backend?.aoFechar, a.backend?.aoFechar);
   assert.equal(b.backend?.transport, a.backend?.transport);
+  // O comando no Terminal: o mesmo nos dois, com o nome do próprio app, para os dois templates
+  // instalados na mesma estação não disputarem um nome.
+  const semNomeERoda = (m) => (m.contributes?.comandos || []).map(({ nome, roda, ...resto }) => resto);
+  assert.deepEqual(semNomeERoda(b), semNomeERoda(a), 'o comando no terminal difere entre os templates');
+  for (const [m, dir] of [[a, NODE], [b, PY]]) {
+    assert.deepEqual(m.contributes.comandos.map((c) => c.nome), [m.id], `o comando de ${m.id} não tem o nome do app`);
+    assert.ok(fs.existsSync(path.join(dir, m.contributes.comandos[0].roda)), `o arquivo do comando de ${m.id} não está no template`);
+  }
 
   // `ffmpeg` é do benchmark e vale para os dois. As libs de backend são o runtime que o servidor
   // já tem, então nenhum dos dois pede gerenciador de pacotes nem tem `installCommand`.

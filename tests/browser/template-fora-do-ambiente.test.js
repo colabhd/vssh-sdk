@@ -174,6 +174,11 @@ test('o SDK carrega fora do ambiente, sem exceção, e se declara fora', { skip:
   assert.deepEqual(pagina.console.filter((c) => c.tipo === 'error'), [], 'houve erro no console');
 });
 
+test('a peça do comando mostra a linha do Terminal com o nome do app, e o que o comando responde', { skip: pular }, async () => {
+  await clicar('comando');
+  assert.match(await texto('comando-saida'), /^\$ hello-world-node\nhello-world-node respondeu às \d{4}-\d\d-\d\dT[\d:.]+Z$/);
+});
+
 test('um seletor responde null, e a galeria diz isso em vez de seguir', { skip: pular }, async () => {
   pagina.limparRegistros();
   await clicar('pick-file');
