@@ -143,10 +143,11 @@ parar();
 ```
 
 Pega edição por SSH, `git pull`, upload pelo gerenciador de arquivos: qualquer mudança que não
-passou pelo app. Cancele quando parar de precisar, porque cada vigia segura um processo vivo no
-servidor e há teto por usuário. Fechar a janela cancela tudo. Isso não está no polyfill de
-propósito: a File System Access API não tem watch, e pendurar uma extensão nossa num handle daria
-a ela cara de padrão.
+passou pelo app. O vigia é de uma pasta, sem as subpastas, e `caminho` é a pasta que mudou; um
+arquivo pedido vigia a pasta dele. Quem mostra uma árvore vigia cada pasta que mostra. Uma janela
+vigia até 16 pastas, e a 17ª é recusada: cancele a que deixou de servir. Fechar a janela cancela
+tudo. Isso não está no polyfill de propósito: a File System Access API não tem watch, e pendurar
+uma extensão nossa num handle daria a ela cara de padrão.
 
 ## Abrir no visualizador do ambiente
 
