@@ -2,7 +2,9 @@
 // A ponte de um app pelo `vssh-app-publish` inteiro, contra um Worker de mentira: o publish lê os
 // nomes do SDK web que a janela chama, soma o que o manifesto declara, e o manifesto que chega ao
 // repositório leva as duas listas. Um nome declarado que o SDK não tem recusa a publicação antes de
-// qualquer POST; um nome só lido que o SDK não tem vira um aviso, e o pacote sai.
+// qualquer POST; um nome só lido que o SDK não tem vira um aviso, e o pacote sai. A mesma leitura
+// procura os nomes do Tuff de saída (`de_saida` do contrato), num contrato de mentira apontado por
+// `VSSH_SDK_TUFF`.
 //
 // A lista dos nomes que existem é `api/superficie.json`, que o canal do sistema gera. Sem ela, ou
 // sem bash, curl ou python3, os testes se pulam dizendo o que falta.
@@ -56,7 +58,7 @@ const MANIFESTO = {
  * Publica um app com o manifesto e os arquivos dados (`{ caminho: conteúdo }`). Devolve o código, a
  * saída, e o manifesto que chegou ao repositório: o do cabeçalho e o de dentro do pacote.
  */
-function publicar({ manifesto = MANIFESTO, arquivos = {}, git = false } = {}) {
+function publicar({ manifesto = MANIFESTO, arquivos = {}, git = false, env = {} } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vssh-app-'));
   fs.writeFileSync(path.join(dir, 'vssh-app.json'), JSON.stringify(manifesto, null, 2));
   for (const [caminho, conteudo] of Object.entries({ 'backend/servidor.js': '', ...arquivos })) {
@@ -68,7 +70,7 @@ function publicar({ manifesto = MANIFESTO, arquivos = {}, git = false } = {}) {
   return new Promise((resolve) => {
     const p = spawn('bash', [posix(SCRIPT), posix(dir)], {
       // Fora do Actions o `anotar` escreve `título: mensagem`, e é essa forma que os casos leem.
-      env: { ...process.env, VSSH_REPO_API: repoApi, VSSH_REPO_PUBLISH_TOKEN: 'tok', GITHUB_ACTIONS: '' },
+      env: { ...process.env, VSSH_REPO_API: repoApi, VSSH_REPO_PUBLISH_TOKEN: 'tok', GITHUB_ACTIONS: '', ...env },
     });
     let saida = '';
     p.stdout.on('data', (c) => { saida += c; });
@@ -170,4 +172,68 @@ test('o minShellVersion continua aceito, com um aviso que o diz de saída e mand
   assert.equal(r.code, 0, r.saida);
   assert.match(r.saida, /minShellVersion: .*5\.0\.0, um campo de saída.*Tire o campo/);
   assert.equal(r.doPacote.minShellVersion, '5.0.0', 'o publish tirou o campo por conta própria');
+});
+
+// ─── Os nomes do Tuff de saída ───────────────────────────────────────────────
+//
+// Um nome em `de_saida` convive com o substituto por 90 dias a partir do `desde`. Dentro do prazo o
+// publish avisa com o arquivo, a linha e o `use`; depois dele, recusa antes de qualquer POST.
+
+/** Um Tuff de mentira com só o contrato, e o `de_saida` dado. */
+function tuffComSaida(deSaida) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vssh-tuff-'));
+  fs.writeFileSync(path.join(dir, 'contrato.json'), JSON.stringify({ de_saida: deSaida }));
+  return dir;
+}
+const diasAtras = (n) => new Date(Date.now() - n * 86_400_000).toISOString().slice(0, 10);
+const diasDepois = (desde, n) => new Date(Date.parse(desde) + n * 86_400_000).toISOString().slice(0, 10);
+
+test('dentro dos 90 dias, cada nome de saída achado vira aviso com o arquivo, a linha e o substituto', seNaoTem, async () => {
+  const desde = diasAtras(10);
+  const tuff = tuffComSaida([
+    { lista: 'classes', nome: 'tuff-velho', use: 'tuff-novo', desde },
+    { lista: 'tokens', nome: '--tuff-cor-velha', use: '--tuff-cor', desde },
+    { lista: 'funcoes', nome: 'TuffDialogo.antigo', use: 'TuffDialogo.abrir', desde },
+    { lista: 'icones', nome: 'lixo', use: 'trash', desde },
+    { lista: 'atributos', nome: 'data-tuff-sem-uso', use: 'data-tuff-outro', desde },
+  ]);
+  try {
+    const r = await publicar({
+      env: { VSSH_SDK_TUFF: tuff },
+      arquivos: {
+        'frontend/index.html': '<div class="tuff-velho--grande"></div>\n<div class="caixa tuff-velho"><svg><use href="#ico-lixo"></use></svg></div>',
+        'frontend/estilo.css': '.caixa {\n  color: var(--tuff-cor-velha);\n  border-color: var(--tuff-cor-velha-2);\n}',
+        'frontend/janela.js': "vssh.app.titulo('x');\nTuffDialogo?.antigo({});\nTuffIcones.svg('lixo');",
+        // O backend e os testes não vão para a janela.
+        'backend/servidor.js': "const c = 'tuff-velho';",
+        'tests/janela.test.js': "document.body.className = 'tuff-velho';",
+      },
+    });
+    assert.equal(r.code, 0, r.saida);
+    const fim = diasDepois(desde, 90);
+    assert.match(r.saida, new RegExp(`frontend/index\\.html:2: tuff-velho \\(classes\\) sai do Tuff em ${fim}\\. Use tuff-novo no lugar\\.`));
+    assert.match(r.saida, /frontend\/estilo\.css:2: --tuff-cor-velha \(tokens\) sai do Tuff/);
+    assert.match(r.saida, /frontend\/janela\.js:2: TuffDialogo\.antigo \(funcoes\)/);
+    assert.match(r.saida, /frontend\/index\.html:2, frontend\/janela\.js:3: lixo \(icones\)/);
+    assert.doesNotMatch(r.saida, /data-tuff-sem-uso/, 'um nome que o app não usa não vira aviso');
+    assert.doesNotMatch(r.saida, /servidor\.js|janela\.test\.js/, 'o backend ou os testes entraram na leitura');
+  } finally {
+    fs.rmSync(tuff, { recursive: true, force: true });
+  }
+});
+
+test('passados os 90 dias, um nome de saída que o app ainda usa recusa a publicação antes de qualquer POST', seNaoTem, async () => {
+  const desde = diasAtras(91);
+  const tuff = tuffComSaida([{ lista: 'classes', nome: 'tuff-velho', use: 'tuff-novo', desde }]);
+  try {
+    const r = await publicar({
+      env: { VSSH_SDK_TUFF: tuff },
+      arquivos: { 'frontend/index.html': '<script>vssh.app.titulo("x")</script><div class="tuff-velho"></div>' },
+    });
+    assert.equal(r.code, 1, r.saida);
+    assert.equal(recebidos.length, 0, 'um pedido saiu para o repositório');
+    assert.match(r.saida, new RegExp(`tuff-velho \\(classes\\) saiu do Tuff em ${diasDepois(desde, 90)}.*Troque por tuff-novo`));
+  } finally {
+    fs.rmSync(tuff, { recursive: true, force: true });
+  }
 });

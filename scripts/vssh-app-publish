@@ -979,6 +979,96 @@ else
     "Nenhum nome do SDK web foi achado em ${APP_ID}. Ou a janela não chama a ponte, ou a chama por um caminho que a leitura não vê (um acessor do próprio app): nesse caso, declare os nomes em ponte.exige no manifesto."
 fi
 
+# ── 2f. Os nomes do Tuff que vão sair ─────────────────────────────────────────
+#
+# Um nome que o Tuff vai tirar entra em `de_saida` do contrato (`api/tuff/contrato.json`), com a
+# lista dele, o que usar no lugar (`use`) e o dia em que entrou (`desde`). As duas formas convivem
+# por 90 dias a partir do `desde`, e depois disso o nome pode sumir do Tuff do ambiente. O publish
+# procura cada nome nos arquivos de página e de folha que vão no pacote: dentro do prazo, o achado
+# vira um aviso com o arquivo, a linha e o substituto; depois dele, recusa a publicação, porque o
+# app sairia usando um nome que o Tuff do ambiente já não atende.
+#
+# A procura é por texto, como a da ponte, e por isso pega também um comentário que cita o nome. Uma
+# entrada sem `desde` válido só avisa. `VSSH_SDK_TUFF` aponta outra cópia do Tuff, como no palco.
+CONTRATO_DO_TUFF="${VSSH_SDK_TUFF:-$(cd "$(dirname "$0")/.." && pwd)/api/tuff}/contrato.json"
+SAIDA_INFO="$(VSSH_PKG="${PKG}" VSSH_MANIFEST_PATH="${MANIFEST}" VSSH_CONTRATO="${CONTRATO_DO_TUFF}" python3 <<'PYEOF'
+import datetime, json, os, re, subprocess, sys
+sys.stdout.reconfigure(encoding='utf-8')
+pkg = os.environ['VSSH_PKG']
+try:
+    de_saida = json.load(open(os.environ['VSSH_CONTRATO'], encoding='utf-8')).get('de_saida') or []
+except (OSError, ValueError):
+    sys.exit(0)
+de_saida = [s for s in de_saida if isinstance(s, dict) and isinstance(s.get('nome'), str) and s.get('nome')]
+if not de_saida:
+    sys.exit(0)
+PRAZO_DIAS = 90
+hoje = datetime.datetime.now(datetime.timezone.utc).date()
+
+m = json.load(open(os.environ['VSSH_MANIFEST_PATH'], encoding='utf-8'))
+backend = m.get('backend') if isinstance(m.get('backend'), dict) else {}
+entrada = backend.get('entrypoint') if isinstance(backend.get('entrypoint'), str) else ''
+FORA = {'.git', 'node_modules', 'tests', 'test', 'data', '__pycache__'}
+if '/' in entrada: FORA.add(entrada.split('/')[0])
+LIDOS = ('.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.html', '.xhtml', '.vue', '.svelte', '.css', '.scss', '.less')
+
+try:
+    saida = subprocess.run(['git', '-C', pkg, 'ls-files', '-z', '--cached', '--others', '--exclude-standard'],
+                           capture_output=True, check=True).stdout
+    nomes = [n for n in saida.decode('utf-8', 'replace').split('\0') if n]
+except Exception:
+    nomes = [os.path.relpath(os.path.join(raiz, f), pkg).replace(os.sep, '/')
+             for raiz, _, fs in os.walk(pkg) for f in fs]
+textos = {}
+for n in sorted(nomes):
+    if not n.endswith(LIDOS) or n == entrada or set(n.split('/')[:-1]) & FORA: continue
+    try: textos[n] = open(os.path.join(pkg, n), encoding='utf-8', errors='replace').read()
+    except OSError: pass
+
+def padroes(lista, nome):
+    inteiro = lambda s: r'(?<![\w-])' + re.escape(s) + r'(?![\w-])'
+    if lista == 'funcoes':
+        objeto, _, membro = nome.partition('.')
+        return [r'\b' + re.escape(objeto) + r'\s*\??\.\s*' + re.escape(membro) + r'\b']
+    if lista == 'icones':
+        return [inteiro('ico-' + nome), r'\bTuffIcones\s*\??\.\s*\w+\(\s*[\'"]' + re.escape(nome) + r'[\'"]']
+    return [inteiro(nome)]
+
+for s in de_saida:
+    lista, nome = str(s.get('lista') or ''), s['nome']
+    achados = []
+    for arquivo, texto in textos.items():
+        for p in padroes(lista, nome):
+            for a in re.finditer(p, texto):
+                achados.append(f"{arquivo}:{texto.count(chr(10), 0, a.start()) + 1}")
+    if not achados: continue
+    achados = sorted(set(achados), key=lambda x: (x.rsplit(':', 1)[0], int(x.rsplit(':', 1)[1])))
+    locais = ', '.join(achados[:5]) + (f' e mais {len(achados) - 5}' if len(achados) > 5 else '')
+    try:
+        fim = datetime.date.fromisoformat(str(s.get('desde'))) + datetime.timedelta(days=PRAZO_DIAS)
+    except ValueError:
+        fim = None
+    estado = 'SEM_DATA' if fim is None else ('VENCIDO' if hoje >= fim else 'AVISO')
+    print('\t'.join([estado, lista, nome, str(s.get('use') or ''), fim.isoformat() if fim else '', locais]))
+PYEOF
+)"
+SAIDA_VENCIDA=""
+while IFS=$'\t' read -r estado lista nome use fim locais; do
+  case "${estado}" in
+    AVISO)    anotar warning "nome do Tuff de saída" \
+                "${locais}: ${nome} (${lista}) sai do Tuff em ${fim}. Use ${use} no lugar." ;;
+    SEM_DATA) anotar warning "nome do Tuff de saída" \
+                "${locais}: ${nome} (${lista}) vai sair do Tuff. Use ${use} no lugar." ;;
+    VENCIDO)  anotar error "nome do Tuff de saída" \
+                "${locais}: ${nome} (${lista}) saiu do Tuff em ${fim}, e o ambiente não o atende mais. Troque por ${use} e publique de novo."
+              SAIDA_VENCIDA="${SAIDA_VENCIDA:+${SAIDA_VENCIDA}, }${nome}" ;;
+  esac
+done <<< "${SAIDA_INFO//$'\r'/}"
+if [ -n "${SAIDA_VENCIDA}" ]; then
+  echo "ERRO: o app usa nomes que já saíram do Tuff (${SAIDA_VENCIDA})." >&2
+  exit 1
+fi
+
 # ── 3. A versão interna ───────────────────────────────────────────────────────
 #
 # O instante desta publicação em UTC, como o inteiro `AAAAMMDDhhmmss`. O relógio a dá uma vez, aqui,
