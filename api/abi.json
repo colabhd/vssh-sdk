@@ -3,6 +3,7 @@
   "espacos": {
     "app": {
       "hiperlink": true,
+      "terminal": "O título, a rota e o idioma são de uma janela de app, e um comando roda sem janela.",
       "descricao": "Quem o app é e em que ambiente ele está: as capacidades do shell, os verbos disponíveis, o título que a janela mostra e a rota que a sessão restaura.",
       "verbos": {
         "ola": {
@@ -183,6 +184,7 @@
     },
     "janela": {
       "hiperlink": true,
+      "terminal": "Um comando não tem janela própria para abrir, mover ou fechar.",
       "descricao": "A janela do app: controlada em runtime pelo app que a ocupa, e declarada no manifesto para quem a abre.",
       "verbos": {
         "abrir": {
@@ -442,6 +444,7 @@
     },
     "arquivos": {
       "hiperlink": true,
+      "terminal": "O shell já lê, escreve e vigia o disco como a pessoa, e o arraste, a área de transferência e os recentes são gestos de uma janela de app.",
       "descricao": "Ler e escrever com o consentimento do usuário, escolher, vigiar, abrir, abrir com, arrastar, e a área de transferência de arquivos.",
       "verbos": {
         "listar": {
@@ -733,6 +736,11 @@
           "descricao": "Encerra uma assinatura de `vigiar`. A janela vigia até 16 pastas, e encerrar a que deixou de servir é o que mantém as outras cabendo."
         },
         "escolherArquivo": {
+          "terminal": {
+            "caminhos": [
+              "dir"
+            ]
+          },
           "fio": {
             "type": "pick",
             "variant": "open"
@@ -768,6 +776,11 @@
           "descricao": "Abre o seletor de arquivo do sistema e responde com o caminho escolhido, ou `null` se o usuário cancelou. O `filtro` é uma lista de grupos no estilo do Qt: `Imagens (*.png *.jpg);;Tudo (*)`. Escolher é consentir: o caminho passa a estar concedido a este app, e a concessão sobrevive à janela e à sessão."
         },
         "escolherArquivos": {
+          "terminal": {
+            "caminhos": [
+              "dir"
+            ]
+          },
           "fio": {
             "type": "pick",
             "variant": "openMany"
@@ -797,6 +810,11 @@
           "descricao": "O seletor de `escolherArquivo`, em que a pessoa marca um ou mais arquivos da mesma pasta (Ctrl e Shift com o clique), e a resposta é a lista dos caminhos escolhidos, ou `null` se ela cancelou. Cada caminho passa a estar concedido a este app. É o seletor de quem anexa vários arquivos de uma vez."
         },
         "escolherDestino": {
+          "terminal": {
+            "caminhos": [
+              "dir"
+            ]
+          },
           "fio": {
             "type": "pick",
             "variant": "save"
@@ -832,6 +850,11 @@
           "descricao": "Abre o seletor de \"salvar como\", com `nome` sugerido, e responde com o caminho onde gravar, ou `null` se o usuário cancelou. O caminho escolhido fica concedido a este app."
         },
         "escolherPasta": {
+          "terminal": {
+            "caminhos": [
+              "dir"
+            ]
+          },
           "fio": {
             "type": "pick",
             "variant": "directory"
@@ -956,6 +979,11 @@
           "descricao": "Põe caminhos na área de transferência de arquivos, como se o usuário os tivesse copiado no gerenciador, e responde com quantos entraram. Sempre copiar: recortar moveria um arquivo do usuário na próxima colagem a partir de uma mensagem de iframe, e fica com o gerenciador, onde a pessoa vê o que faz."
         },
         "abrir": {
+          "terminal": {
+            "caminhos": [
+              "path"
+            ]
+          },
           "hiperlink": {
             "caminhos": [
               "path"
@@ -981,6 +1009,11 @@
           "descricao": "Abre um arquivo no visualizador do ambiente que a extensão pede: PDF, vídeo, editor de texto, planilha. O app manda o caminho e não precisa saber em que servidor está. `pagina` abre um PDF nela, no Navegador do ambiente ou no app que abre PDF, que a recebe no evento `abertura`."
         },
         "abrirPasta": {
+          "terminal": {
+            "caminhos": [
+              "path"
+            ]
+          },
           "hiperlink": {
             "caminhos": [
               "path"
@@ -1000,6 +1033,11 @@
           "descricao": "Abre uma pasta no gerenciador de arquivos."
         },
         "abrirCom": {
+          "terminal": {
+            "caminhos": [
+              "path"
+            ]
+          },
           "hiperlink": {
             "caminhos": [
               "path"
@@ -1020,6 +1058,7 @@
           "descricao": "Mostra ao usuário os aplicativos que abrem o arquivo, a mesma lista do menu de contexto do gerenciador, e abre no escolhido. Responde com o nome do aplicativo, ou `null` se o usuário cancelou. Sem X11 a lista tem só vssh-apps."
         },
         "abrirLink": {
+          "terminal": true,
           "fio": {
             "type": "open-url"
           },
@@ -1120,6 +1159,7 @@
     },
     "avisos": {
       "hiperlink": true,
+      "terminal": "Um comando avisa pelos arquivos do runtime (`vssh.avisos`), que chegam ao ambiente com ou sem alguém olhando a sessão.",
       "descricao": "Notificação, aviso efêmero, atividade em curso e bandeja, para um app com janela aberta.",
       "verbos": {
         "notificar": {
@@ -1341,6 +1381,7 @@
     },
     "dialogos": {
       "hiperlink": true,
+      "terminal": "Uma mensagem, um erro e a escolha numa lista cabem no próprio terminal, e o menu de contexto responde a um gesto dentro do quadro de um app.",
       "descricao": "Os diálogos do sistema e o menu de contexto, desenhados pelo shell com os dados que o app manda.",
       "verbos": {
         "mostrar": {
@@ -1387,6 +1428,7 @@
           "descricao": "A mesma caixa de `mostrar`, com o tom de erro."
         },
         "confirmar": {
+          "terminal": true,
           "fio": {
             "type": "dialog",
             "variant": "confirm"
@@ -1448,6 +1490,7 @@
           "descricao": "Uma pergunta com de duas a quatro respostas, uma por botão, na ordem dada. A resposta é o `id` da escolhida, ou `null` quando a pessoa fechou a caixa sem escolher. É a pergunta de \"Salvar\", \"Não salvar\" e \"Cancelar\", em que fechar a caixa não pode valer como nenhuma das duas primeiras."
         },
         "perguntar": {
+          "terminal": true,
           "fio": {
             "type": "dialog",
             "variant": "prompt"
@@ -1476,6 +1519,7 @@
           "descricao": "Um campo de texto de uma linha. A resposta é o que a pessoa escreveu, ou `null` quando ela cancelou."
         },
         "senha": {
+          "terminal": true,
           "fio": {
             "type": "dialog",
             "variant": "password"
@@ -1545,6 +1589,7 @@
     },
     "segredos": {
       "hiperlink": "O cofre de um app vai para o ambiente do processo dele na estação, e um hiperlink não tem processo lá.",
+      "terminal": "O cofre é de um app e chega ao processo dele no start, e um shell não é o processo de um app.",
       "descricao": "O cofre: o app pede uma credencial pelo nome, o shell mostra o campo e grava, e o valor nunca passa pelo app. A pessoa confere, troca e apaga o que guardou no Chaveiro, a janela do ambiente que lista as credenciais de todo app.",
       "verbos": {
         "listar": {
@@ -1606,6 +1651,7 @@
     },
     "salas": {
       "hiperlink": "O provedor das salas abre o WebSocket na origem do portal, e um hiperlink tem backend próprio.",
+      "terminal": "Uma sala é de um documento aberto na janela de um app.",
       "descricao": "As salas de edição: várias pessoas no mesmo documento Yjs, com o portal de relé. Toda sala é de um app, e daqui o app só alcança as dele. Quem conecta o documento é `vssh.salas.entrar(id, { Y, awarenessProtocol })`, o provedor do SDK, que pede um `bilhete` a cada conexão; os verbos abaixo são a lista, a criação, quem entra, os avisos e o bilhete.",
       "verbos": {
         "listar": {
@@ -1840,6 +1886,7 @@
     },
     "apps": {
       "hiperlink": true,
+      "terminal": "Um app só pede a capacidade que o manifesto dele declara em `usa`, e um shell não tem manifesto.",
       "descricao": "Um app usando outro. Quem oferece declara a capacidade em `provides` e o prefixo das rotas dela em `capacidades`; quem usa a declara em `requires`, quando não funciona sem ela, ou em `usa`, quando funciona. O shell faz o pedido como a mesma pessoa, depois de ela permitir, e o backend que responde recebe `X-Vssh-Chamador` com o id de quem chamou.",
       "verbos": {
         "listar": {
@@ -1890,6 +1937,7 @@
     },
     "pessoas": {
       "hiperlink": true,
+      "terminal": "A lista das pessoas serve para compartilhar uma sala, e um comando não abre sala.",
       "descricao": "As pessoas do ambiente, para compartilhar uma sala. Cada pessoa é `{ usuario, nome, login, iniciais }`, e o `usuario` é o que os verbos de `vssh.salas` recebem. O e-mail de ninguém sai daqui.",
       "verbos": {
         "eu": {
@@ -1939,6 +1987,7 @@
     },
     "configuracoes": {
       "hiperlink": "A seção de um app em Configurações roda o script dele na origem do shell.",
+      "terminal": "Uma seção de Configurações vem do manifesto de um app, e um shell não tem manifesto.",
       "descricao": "A seção que o app traz a Configurações do ambiente (`contributes.settings`). Um app que a declara opcional (`contributes.settingsOptIn`) a liga e desliga daqui, de dentro dele; a escolha é por usuário e acompanha a pessoa.",
       "verbos": {
         "ligada": {
@@ -1982,6 +2031,7 @@
     },
     "midia": {
       "hiperlink": true,
+      "terminal": "O áudio e os controles de mídia são de uma janela que toca alguma coisa.",
       "descricao": "O que o app está tocando, o transporte que ele sabe fazer e o volume que o usuário deixou para ele.",
       "verbos": {
         "audio": {
@@ -2081,9 +2131,15 @@
     },
     "impressao": {
       "hiperlink": true,
+      "terminal": true,
       "descricao": "Imprimir pela tela do sistema: o app pede, e quem escolhe a impressora e confirma é o usuário.",
       "verbos": {
         "imprimir": {
+          "terminal": {
+            "caminhos": [
+              "path"
+            ]
+          },
           "hiperlink": {
             "caminhos": [
               "path"
@@ -2114,6 +2170,7 @@
     },
     "ajuda": {
       "hiperlink": true,
+      "terminal": "A Ajuda de um app aponta os controles da janela dele.",
       "descricao": "A ajuda do app na Ajuda do ambiente. O app abre um tópico dele; o resto o SDK faz sozinho dentro do quadro: acha o controle que um passo aponta, avisa quando a pessoa faz o gesto do Passo a passo, e diz o que é o controle clicado no modo \"O que é isto?\". Quem desenha o holofote é o shell, sobre o retângulo que o quadro devolve.",
       "verbos": {
         "abrir": {
@@ -2320,6 +2377,7 @@
     },
     "aparelho": {
       "hiperlink": true,
+      "terminal": "O aparelho é o de quem olha, e um comando roda na estação.",
       "descricao": "O aparelho em que a pessoa usa o ambiente, na língua das classes da Aferição: o que ele faz bem em cada experiência, contra um computador de referência, e a memória que o app pode usar nele. O app escolhe o que fazer por isso, sem medir o aparelho sozinho.",
       "verbos": {
         "perfil": {
@@ -2349,6 +2407,7 @@
     },
     "desempenho": {
       "hiperlink": "A medida vai com a descrição do aparelho, e só um vssh-app a manda.",
+      "terminal": "A medida vai com a descrição do aparelho, e só um vssh-app a manda.",
       "descricao": "O que o app mede no aparelho de quem usa, entregue à equipe que cuida do VSSH, para a página Desempenho do painel admin. As medidas do dia a dia (`registrar`) vão com o campo do ambiente, contadas por classe do aparelho; o resultado de uma bancada (`mandarMedida`) só sai com a confirmação da pessoa, num diálogo que o shell abre.",
       "verbos": {
         "mandarMedida": {
@@ -2392,6 +2451,7 @@
     },
     "gpu": {
       "hiperlink": "A GPU é da estação, e um hiperlink não roda nela.",
+      "terminal": "A GPU que um app recebe vem do manifesto dele, e o shell já enxerga a da estação.",
       "descricao": "O recurso que o sistema arbitra ao subir o app. O manifesto declara o que o app precisa em `recursos.gpu.modo`; quem decide, com o que o servidor tem, é o `vssh-app-run`, e o app pergunta o que recebeu sem conhecer `CUDA_VISIBLE_DEVICES` nem o inventário do servidor.",
       "verbos": {
         "estado": {
