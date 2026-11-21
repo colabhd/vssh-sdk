@@ -320,6 +320,30 @@ Nenhum nome está de saída, e nenhuma mudança de desenho está anunciada.
 e [As figuras de um app com dois Tuffs](docs/guias/figuras-com-dois-tuffs.md) mostra como ver o
 seu app com um Tuff que ainda não saiu.
 
+## A origem própria de um app
+
+A administração liga um app numa origem própria pelo painel admin, e a partir daí a janela dele na
+web abre em `<rótulo>.vssh.app`: uma origem por pessoa, por estação e por app, com o app na raiz do
+endereço, como no cliente de desktop. Um app que funciona no cliente de desktop funciona na origem
+própria sem mudança, e a bancada do cliente é a mesma forma de hospedagem. Um navegador que recusa
+o cookie da origem nova volta à origem do portal sozinho, e o app abre como antes.
+
+O que deixa de funcionar, e o caminho de cada um:
+
+| uso | na origem própria | o caminho |
+|---|---|---|
+| `localStorage`, `sessionStorage`, IndexedDB, Cache Storage | começam vazios; o que o app gravou na origem do portal fica lá, e não migra | uma preferência deste navegador (volume, a última aba) recomeça, como numa troca de navegador. O que precisa durar mora no backend do app, em `$VSSH_APP_DATA_DIR` ou no [`vssh.banco`](#o-banco-do-app-vsshbanco) |
+| `BroadcastChannel` com outro app | não atravessa | [`vssh.apps.pedir`](docs/guias/chamar-outro-app.md), com uma capacidade declarada nos dois manifestos |
+| `BroadcastChannel` entre janelas do mesmo app | continua valendo | nada a mudar |
+| `fetch('/api/…')` do portal | responde 401: a credencial da origem do app não abre a API do portal | o backend do app, ou o verbo da ponte que faz o que a chamada fazia |
+| `window.parent.document`, `window.top.location` | lançam `SecurityError` | a ponte (`vssh.janela`, `vssh.app`) |
+| um endereço montado com `/<servidor>/proxy/app/<id>/` | não existe | um caminho relativo, que resolve nas três hospedagens |
+| `vssh.arquivos.urlFor` | continua valendo: o endereço é `/_sdk/fs/read`, e o portal o lê como antes | nada a mudar |
+| os cookies que o backend grava | ficam na origem do app, com `Path=/` | nada a mudar |
+
+O `vssh-app-publish` não procura esses usos no frontend: lidos como texto, eles casam com
+comentário e com código que nunca roda. A conferência é abrir o app no cliente de desktop.
+
 ## O que vai mudar, e quando
 
 O [`emulador/`](emulador/) chega para desenvolver e testar um app sem servidor VSSH por perto, e
