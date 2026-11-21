@@ -32,6 +32,7 @@ o Python do Windows não tem `AF_UNIX`, e é de lá que os testes sobem o app.
 """
 
 import hmac
+import http.client
 import http.server
 import json
 import os
@@ -45,7 +46,7 @@ from . import app as _app
 
 __all__ = [
     'Pedido', 'escutar', 'endereco_do_ambiente', 'limpar_socket_orfao', 'ErroDeEndereco',
-    'registrar', 'criar_log',
+    'registrar', 'criar_log', 'pedir',
 ]
 
 SEM_ENDERECO = 'SEM_ENDERECO'
@@ -135,6 +136,46 @@ def endereco_do_ambiente(env=None):
             SERVIDOR_ANTIGO)
     raise ErroDeEndereco(
         'VSSH_APP_SOCKET não definido (ou use --tcp host:porta na bancada).', SEM_ENDERECO)
+
+
+class _ConexaoDoSocket(http.client.HTTPConnection):
+    def __init__(self, caminho, prazo):
+        super().__init__('localhost', timeout=prazo)
+        self._caminho = caminho
+
+    def connect(self):
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.settimeout(self.timeout)
+        self.sock.connect(self._caminho)
+
+
+def pedir(rota, metodo='GET', corpo=None, cabecalhos=None, env=None, prazo=30):
+    """Um pedido ao backend do próprio app, no socket do lifecycle e com o token dele.
+
+    É por aqui que um comando do app (`contributes.comandos`) conversa com o backend: o
+    `vssh-app-comando` põe `VSSH_APP_SOCKET` e `VSSH_APP_TOKEN` no ambiente do comando, como o
+    `vssh-app-run` põe no do backend. Um `dict` ou uma `list` em `corpo` vai como JSON, com os
+    separadores compactos dos dois runtimes; `bytes` e `str` vão como vieram. Devolve
+    `(status, cabecalhos, bytes)`, com os nomes dos cabeçalhos em minúsculas.
+    """
+    env = os.environ if env is None else env
+    caminho = endereco_do_ambiente(env)
+    h = {k: v for k, v in (cabecalhos or {}).items()}
+    token = env.get('VSSH_APP_TOKEN', '')
+    if token:
+        h['X-Vssh-App-Token'] = token
+    if isinstance(corpo, (dict, list)):
+        corpo = json.dumps(corpo, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
+        h.setdefault('Content-Type', 'application/json')
+    elif isinstance(corpo, str):
+        corpo = corpo.encode('utf-8')
+    conexao = _ConexaoDoSocket(caminho, prazo)
+    try:
+        conexao.request(metodo, rota, body=corpo, headers=h)
+        r = conexao.getresponse()
+        return r.status, {k.lower(): v for k, v in r.getheaders()}, r.read()
+    finally:
+        conexao.close()
 
 
 def limpar_socket_orfao(caminho):

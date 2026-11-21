@@ -28,6 +28,7 @@
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+const http = require('node:http');
 const net = require('node:net');
 const path = require('node:path');
 const app = require('./app.js');
@@ -226,8 +227,42 @@ function portao(atender, opcoes = {}) {
   };
 }
 
+/**
+ * Um pedido ao backend do próprio app, no socket do lifecycle e com o token dele. É por aqui que um
+ * comando do app (`contributes.comandos`) conversa com o backend: o `vssh-app-comando` põe
+ * `VSSH_APP_SOCKET` e `VSSH_APP_TOKEN` no ambiente do comando, como o `vssh-app-run` põe no do
+ * backend. Um objeto ou um array em `corpo` vai como JSON, com os separadores compactos dos dois
+ * runtimes; um Buffer ou uma string vão como vieram. Resolve `{ status, cabecalhos, corpo }`, com o
+ * corpo num Buffer.
+ */
+function pedir(rota, { metodo = 'GET', corpo, cabecalhos = {}, env = process.env, prazoMs = 30000 } = {}) {
+  return new Promise((resolve, reject) => {
+    let caminho;
+    try { caminho = enderecoDoAmbiente(env); } catch (e) { reject(e); return; }
+    const h = { ...cabecalhos };
+    if (env.VSSH_APP_TOKEN) h['X-Vssh-App-Token'] = env.VSSH_APP_TOKEN;
+    let dados = corpo;
+    if (dados !== undefined && dados !== null && !Buffer.isBuffer(dados) && typeof dados === 'object') {
+      dados = Buffer.from(JSON.stringify(dados));
+      if (!Object.keys(h).some((k) => k.toLowerCase() === 'content-type')) h['Content-Type'] = 'application/json';
+    } else if (typeof dados === 'string') {
+      dados = Buffer.from(dados);
+    }
+    if (dados) h['Content-Length'] = String(dados.length);
+    const req = http.request({ socketPath: caminho, path: rota, method: metodo, headers: h, timeout: prazoMs }, (res) => {
+      const partes = [];
+      res.on('data', (p) => partes.push(p));
+      res.on('end', () => resolve({ status: res.statusCode, cabecalhos: res.headers, corpo: Buffer.concat(partes) }));
+      res.on('error', reject);
+    });
+    req.on('timeout', () => req.destroy(new Error(`o backend não respondeu em ${prazoMs} ms`)));
+    req.on('error', reject);
+    req.end(dados || undefined);
+  });
+}
+
 module.exports = {
   escutar, portao, responderJson, registrar, criarLog,
-  enderecoDoAmbiente, limparSocketOrfao,
+  enderecoDoAmbiente, limparSocketOrfao, pedir,
   SEM_ENDERECO, SERVIDOR_ANTIGO, JA_ESCUTANDO,
 };
