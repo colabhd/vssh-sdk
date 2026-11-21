@@ -246,16 +246,16 @@ declare namespace vssh {
      */
     function copiar(origem: string, destino: string, politica?: 'fail' | 'overwrite'): Promise<unknown>;
     /**
-     * Assina as mudanças sob um caminho, venham de onde vierem: outro editor, um upload pelo
-     * gerenciador de arquivos. A resposta confirma a assinatura; cada mudança chega depois pelo
-     * evento `arquivoMudou`, com o `vigia` que o app escolheu. Quem segura a conexão com o servidor
-     * é o shell, e ela morre com a janela.
+     * Assina as mudanças numa pasta, venham de onde vierem: outro editor, o terminal, um upload
+     * pelo gerenciador de arquivos. Um arquivo pedido vigia a pasta dele, e as subpastas ficam de
+     * fora: quem mostra uma árvore vigia cada pasta que mostra. A resposta confirma a assinatura;
+     * cada mudança chega depois pelo evento `arquivoMudou`, com o `vigia` que o app escolheu e a
+     * pasta que mudou. Uma janela vigia até 16 pastas, e as assinaturas morrem com ela.
      */
     function vigiar(caminho: string, vigia: string): Promise<unknown>;
     /**
-     * Encerra uma assinatura de `vigiar`. Cada assinatura segura um vigia vivo no servidor do
-     * usuário, com teto por usuário, e encerrar a que deixou de servir é o que mantém as outras
-     * cabendo.
+     * Encerra uma assinatura de `vigiar`. A janela vigia até 16 pastas, e encerrar a que deixou de
+     * servir é o que mantém as outras cabendo.
      */
     function pararDeVigiar(vigia: string): Promise<unknown>;
     /**

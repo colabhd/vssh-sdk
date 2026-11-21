@@ -472,9 +472,9 @@
     renomear: (origem, destino, politica) => ponte.chamar('arquivos.renomear', { type: 'fs', op: 'rename', from: origem, to: destino, policy: politica }, 5000),
     // Copia. Origem e destino precisam estar concedidos, e um destino que já existe segue a política de `renomear`.
     copiar: (origem, destino, politica) => ponte.chamar('arquivos.copiar', { type: 'fs', op: 'copy', from: origem, to: destino, policy: politica }, 5000),
-    // Assina as mudanças sob um caminho, venham de onde vierem: outro editor, um upload pelo gerenciador de arquivos. A resposta confirma a assinatura; cada mudança chega depois pelo evento `arquivoMudou`, com o `vigia` que o app escolheu. Quem segura a conexão com o servidor é o shell, e ela morre com a janela.
+    // Assina as mudanças numa pasta, venham de onde vierem: outro editor, o terminal, um upload pelo gerenciador de arquivos. Um arquivo pedido vigia a pasta dele, e as subpastas ficam de fora: quem mostra uma árvore vigia cada pasta que mostra. A resposta confirma a assinatura; cada mudança chega depois pelo evento `arquivoMudou`, com o `vigia` que o app escolheu e a pasta que mudou. Uma janela vigia até 16 pastas, e as assinaturas morrem com ela.
     vigiar: (caminho, vigia) => ponte.chamar('arquivos.vigiar', { type: 'fs', op: 'watch', path: caminho, watchId: vigia }, 5000),
-    // Encerra uma assinatura de `vigiar`. Cada assinatura segura um vigia vivo no servidor do usuário, com teto por usuário, e encerrar a que deixou de servir é o que mantém as outras cabendo.
+    // Encerra uma assinatura de `vigiar`. A janela vigia até 16 pastas, e encerrar a que deixou de servir é o que mantém as outras cabendo.
     pararDeVigiar: (vigia) => ponte.chamar('arquivos.pararDeVigiar', { type: 'fs', op: 'unwatch', watchId: vigia }, 5000),
     // Abre o seletor de arquivo do sistema e responde com o caminho escolhido, ou `null` se o usuário cancelou. O `filtro` é uma lista de grupos no estilo do Qt: `Imagens (*.png *.jpg);;Tudo (*)`. Escolher é consentir: o caminho passa a estar concedido a este app, e a concessão sobrevive à janela e à sessão.
     escolherArquivo: (titulo, filtro, pasta, nome) => ponte.chamar('arquivos.escolherArquivo', { type: 'pick', variant: 'open', title: titulo, filter: filtro, dir: pasta, name: nome }, 600000),

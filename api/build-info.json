@@ -2,7 +2,7 @@
   "shellVersion": "5.0.0-rc0",
   "artifacts": {
     "api/abi.json": {
-      "sha256": "9b79f571482b449bc643d8ec290ee2f73bc5b590d6d694d5ca185266f9393b52"
+      "sha256": "af2a8629293b48dce88bda7070e98789411cc59864316ad29ec92d7d8e362bad"
     },
     "api/afericao/ancora.json": {
       "sha256": "b1ad85acb8a1bc75ae2022539be87ab960d8290ea5a56166068d7d0c64b56b3e"
@@ -89,10 +89,10 @@
       "sha256": "ebba7c95da02b360a3fe478c79c011da04c77a94535b4a7121792fdc17d627e9"
     },
     "api/vssh.d.ts": {
-      "sha256": "3203c566b5ee88031d99774b7a1bf4b3d20f2a41dc66531f314105bbaedc4389"
+      "sha256": "dc762e184a7e0c1f888f2d3eff0f3c36061733f5d63d03859a19ebed4c18f3c3"
     },
     "api/vssh.js": {
-      "sha256": "2ea6b1c40beb97f6744e840cbc7e0fd4a93927b4cb09e80c0b14834d0cf93412"
+      "sha256": "7d1d862d4d1cf557f7a88cffaec57e087fda8e190780f7366486502fe722ccdc"
     },
     "docs/referencia/README.md": {
       "sha256": "9be7161a70a9328ad5aed0b5f168c1b3dab0a9a33082ff0d69bec8b892c3806e"
@@ -113,7 +113,7 @@
       "sha256": "56838875e7cd1a8f692baec73fc5485aa7468735c05e95d98b57a52832d1fbec"
     },
     "docs/referencia/arquivos.md": {
-      "sha256": "0c762db3ef0a0496c9b3ccf73bc847cdf68208876abb54a2c31b8eefdb01c88b"
+      "sha256": "a68007548646d25a65652318406073ca8aff33f91352dfee907368c512d59a5d"
     },
     "docs/referencia/avisos.md": {
       "sha256": "6b8835ecd4510fac63a90491858d16b5657ca832d77f6e32e2421c3d6d922e4f"
