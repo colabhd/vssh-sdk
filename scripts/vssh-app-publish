@@ -447,6 +447,28 @@ if be is not None:
               f'{len(razao) if isinstance(razao, str) else type(razao).__name__}')
         sys.exit(0)
 
+# `contributes.comandos` põe comandos no terminal de quem instala o app (o `comandos-dos-apps.md` do
+# vssh-sso). O schema confere o padrão do nome; aqui fica o que ele não alcança: o prefixo `vssh`,
+# que é dos comandos do sistema, o nome repetido no mesmo app, e o arquivo de `roda`, que tem de
+# estar no pacote. Os comandos dos outros apps e os da estação o publish não conhece, e quem resolve
+# essas colisões é o agente da estação.
+comandos = (m.get('contributes') or {}).get('comandos')
+if isinstance(comandos, list):
+    raiz = os.path.realpath(os.path.dirname(p))
+    vistos = set()
+    for c in comandos:
+        if not isinstance(c, dict):
+            continue
+        nome, roda = c.get('nome'), c.get('roda')
+        if isinstance(nome, str) and nome.startswith('vssh'):
+            print(f'ERROR=comando_com_prefixo_do_sistema:{nome!r}; os nomes que começam com vssh são do sistema'); sys.exit(0)
+        if nome in vistos:
+            print(f'ERROR=comando_duplicado:{nome!r}'); sys.exit(0)
+        vistos.add(nome)
+        alvo = os.path.realpath(os.path.join(raiz, roda)) if isinstance(roda, str) else ''
+        if not isinstance(roda, str) or not alvo.startswith(raiz + os.sep) or not os.path.isfile(alvo):
+            print(f'ERROR=comando_sem_arquivo:{nome!r}:{roda!r}; o arquivo de roda tem de estar no pacote'); sys.exit(0)
+
 # `minShellVersion` está de saída: o VSSH deixa de ter versão nominal, e a compatibilidade de um
 # app passa a ser a `ponte` dele (a seção 2e). A forma continua conferida, nomeando o valor,
 # enquanto o schema tiver o campo, e quem ainda o declara ganha um aviso no run.
