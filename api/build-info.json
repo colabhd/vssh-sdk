@@ -2,7 +2,7 @@
   "shellVersion": "5.0.0-rc0",
   "artifacts": {
     "api/abi.json": {
-      "sha256": "41df48373b24e40f8f398c92ff36dbd2a24e7abc809c2bce6b2aa7b80792af2e"
+      "sha256": "82c7a96e49e03e6b23e59f07f9b9c33d0b917670bd1a0f0f132ea4faf73685ef"
     },
     "api/afericao/ancora.json": {
       "sha256": "b1ad85acb8a1bc75ae2022539be87ab960d8290ea5a56166068d7d0c64b56b3e"

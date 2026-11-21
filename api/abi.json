@@ -1168,10 +1168,35 @@
     },
     "avisos": {
       "hiperlink": true,
-      "terminal": "Um comando avisa pelos arquivos do runtime (`vssh.avisos`), que chegam ao ambiente com ou sem alguém olhando a sessão.",
+      "terminal": "O aviso que some sozinho e o ícone da bandeja são de uma janela ou de um app de pé; um comando registra no sino com `vssh avisos notificar`.",
       "descricao": "Notificação, aviso efêmero, atividade em curso e bandeja, para um app com janela aberta.",
       "verbos": {
         "notificar": {
+          "terminal": {
+            "local": true,
+            "campos": [
+              {
+                "nome": "mensagem",
+                "tipo": "string"
+              },
+              {
+                "nome": "titulo",
+                "tipo": "string",
+                "opcional": true
+              },
+              {
+                "nome": "nivel",
+                "tipo": "'info' | 'success' | 'warning' | 'error'",
+                "opcional": true
+              },
+              {
+                "nome": "chave",
+                "tipo": "string",
+                "opcional": true
+              }
+            ],
+            "ajuda": "Registra um aviso no sino, com ou sem alguém olhando o Terminal."
+          },
           "fio": {
             "type": "notify"
           },
@@ -1268,6 +1293,36 @@
           "descricao": "A frase que se lê e se esquece (\"copiado\", \"salvo\"): some sozinha depois de `duracao` milissegundos (4000 por padrão) e não entra no histórico. A mesma `chave` reescreve o aviso que está na tela e recomeça o relógio dele."
         },
         "atividade": {
+          "terminal": {
+            "local": true,
+            "campos": [
+              {
+                "nome": "chave",
+                "tipo": "string"
+              },
+              {
+                "nome": "titulo",
+                "tipo": "string",
+                "opcional": true
+              },
+              {
+                "nome": "texto",
+                "tipo": "string",
+                "opcional": true
+              },
+              {
+                "nome": "feito",
+                "tipo": "number",
+                "opcional": true
+              },
+              {
+                "nome": "total",
+                "tipo": "number",
+                "opcional": true
+              }
+            ],
+            "ajuda": "Mostra no sino o que está em curso, com a barra de feito e total; repita a cada passo, ou ela some em um minuto."
+          },
           "fio": {
             "type": "live"
           },
@@ -1288,6 +1343,31 @@
           "descricao": "Uma condição que é verdade agora, na bandeja e no painel de atividades: um progresso, algo tocando. `item` leva `titulo`, `texto`, `formato` (`simples`, `progresso` ou `midia`), `progresso` (`{ feito, total }` ou `{ indeterminado: true }`) e `acoes`; a mesma `chave` atualiza no lugar, então relatar progresso não empilha linhas. O clique numa ação volta pelo evento `acaoDeAtividade`. A resposta é a chave completa, `app:<id>:<chave>`, que é a que o ambiente usa. Sem `item`, o mesmo fio encerra a atividade, como `encerrarAtividade`."
         },
         "encerrarAtividade": {
+          "terminal": {
+            "local": true,
+            "campos": [
+              {
+                "nome": "chave",
+                "tipo": "string"
+              },
+              {
+                "nome": "titulo",
+                "tipo": "string",
+                "opcional": true
+              },
+              {
+                "nome": "texto",
+                "tipo": "string",
+                "opcional": true
+              },
+              {
+                "nome": "nivel",
+                "tipo": "'info' | 'success' | 'warning' | 'error'",
+                "opcional": true
+              }
+            ],
+            "ajuda": "Tira a atividade do sino, e com um título ou um texto deixa um aviso do fim."
+          },
           "fio": {
             "type": "live",
             "item": null
