@@ -60,17 +60,23 @@ lista os verbos e eventos do shell em que o app caiu, e é com ela que o app dec
 
 No portal, o backend é servido por caminho relativo na origem dele, e o iframe da janela não tem
 `sandbox`: shell e apps dividem uma origem, e dois apps conversam por `BroadcastChannel` sem nada
-no meio. No cliente de desktop cada app mora numa porta própria, que é outra origem, e o canal e o
-`localStorage` de um app ficam só dele. A ponte com o shell é `postMessage` nas duas hospedagens,
-com a origem conferida nos dois lados, e é ela que o seu app usa para falar com o ambiente. Uma
-plataforma aberta como hiperlink mora no domínio dela, e fala a ponte depois do aperto de mão (ver
-[o guia](../guias/uma-plataforma-como-hiperlink.md)).
+no meio. A administração pode ligar um app numa origem própria, `<rótulo>.vssh.app`, uma por
+pessoa, por estação e por app, e aí a janela dele na web abre lá. No cliente de desktop cada app
+mora numa porta própria, que também é outra origem. Nas duas origens próprias o app fica na raiz
+do endereço, e o `BroadcastChannel`, o `localStorage` e o IndexedDB de um app ficam só dele: duas
+janelas do mesmo app dividem a origem, e duas de apps diferentes não. A ponte com o shell é
+`postMessage` nas três hospedagens, com a origem conferida nos dois lados, e é ela que o seu app
+usa para falar com o ambiente. Uma plataforma aberta como hiperlink mora no domínio dela, e fala a
+ponte depois do aperto de mão (ver [o guia](../guias/uma-plataforma-como-hiperlink.md)).
 
-O limite é a metade que importa: na web, a mesma origem é o que torna o isolamento entre apps
-fraco. Outro app da mesma sessão escuta os seus canais. Não mande por `BroadcastChannel` o que você
-não mandaria por um mural, e não conte com ele para falar com outro app, porque no cliente de
-desktop ele não atravessa. O modelo é "um admin instalou, portanto é confiável", e a fronteira de
-segurança é a instalação, como root, num servidor compartilhado.
+O limite é a metade que importa: na origem do portal, a mesma origem é o que torna o isolamento
+entre apps fraco. Outro app da mesma sessão escuta os seus canais e lê o seu `localStorage`. Não
+mande por `BroadcastChannel` o que você não mandaria por um mural, e não conte com ele para falar
+com outro app, porque numa origem própria ele não atravessa: o caminho é
+[`vssh.apps.pedir`](../guias/chamar-outro-app.md). O modelo é "um admin instalou, portanto é
+confiável", e a fronteira de segurança é a instalação, como root, num servidor compartilhado. O
+que muda quando um app instalado passa a morar numa origem própria está no
+[MIGRATION.md](../../MIGRATION.md#a-origem-própria-de-um-app).
 
 ## O que o sistema não garante
 
