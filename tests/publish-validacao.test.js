@@ -55,14 +55,21 @@ function validador() {
   return linhas.slice(inicio + 1, fim).join('\n');
 }
 
-/** Roda o validador sobre um manifesto e devolve a saída (`ID=…` ou `ERROR=…`). */
-function validar(manifesto) {
+/**
+ * Roda o validador sobre um manifesto e devolve a saída (`ID=…` ou `ERROR=…`). `arquivos` são os
+ * do pacote, ao lado do manifesto, para o que o validador confere no disco.
+ */
+function validar(manifesto, arquivos = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vssh-pub-'));
   try {
     const py = path.join(dir, 'valida.py');
     const mf = path.join(dir, 'vssh-app.json');
     fs.writeFileSync(py, validador());
     fs.writeFileSync(mf, JSON.stringify(manifesto));
+    for (const [rel, corpo] of Object.entries(arquivos)) {
+      fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+      fs.writeFileSync(path.join(dir, rel), corpo);
+    }
     return execFileSync(PY, [py], {
       encoding: 'utf8',
       env: { ...process.env, VSSH_MANIFEST_PATH: mf, VSSH_SCHEMA_PATH: SCHEMA, VSSH_VERSION_OVERRIDE: '' },
@@ -534,6 +541,30 @@ test('o schema é a fonte da verdade, e conhece o campo novo', seNaoTem, () => {
   assert.match('chromium | google-chrome-stable', re, 'o schema não conhece alternativas');
   assert.doesNotMatch('chromium || rm -rf /', re);
   assert.doesNotMatch('chromium |', re);
+});
+
+// ── contributes.comandos — os comandos do app no terminal ────────────────────
+
+const COMANDO = { nome: 'hora', roda: 'bin/hora.py', descricao: 'Pergunta a hora ao backend.', backend: true };
+
+test('comandos aceita o comando cujo arquivo está no pacote, com e sem menu', seNaoTem, () => {
+  const arquivos = { 'bin/hora.py': 'print(1)\n', 'bin/tela.py': 'print(2)\n' };
+  assert.match(validar({ ...BASE, contributes: { comandos: [COMANDO,
+    { nome: 'hora-tela', roda: 'bin/tela.py', descricao: 'A hora em tela cheia.', menu: { titulo: 'Hora no terminal' } }] } }, arquivos), /^ID=x$/m);
+});
+
+test('comandos recusa o prefixo do sistema, o nome repetido e o arquivo que o pacote não tem', seNaoTem, () => {
+  const arquivos = { 'bin/hora.py': 'print(1)\n' };
+  assert.match(validar({ ...BASE, contributes: { comandos: [{ ...COMANDO, nome: 'vssh-hora' }] } }, arquivos),
+    /^ERROR=comando_com_prefixo_do_sistema:'vssh-hora'/m);
+  assert.match(validar({ ...BASE, contributes: { comandos: [COMANDO, { ...COMANDO }] } }, arquivos),
+    /^ERROR=comando_duplicado:'hora'/m);
+  assert.match(validar({ ...BASE, contributes: { comandos: [{ ...COMANDO, roda: 'bin/sumido.py' }] } }, arquivos),
+    /^ERROR=comando_sem_arquivo:'hora':'bin\/sumido\.py'/m);
+  assert.match(validar({ ...BASE, contributes: { comandos: [{ ...COMANDO, roda: '../fora.py' }] } }, arquivos),
+    /^ERROR=comando_sem_arquivo:'hora':'\.\.\/fora\.py'/m);
+  // O padrão do nome é do schema, que o validador aplica.
+  assert.match(validar({ ...BASE, contributes: { comandos: [{ ...COMANDO, nome: 'Hora' }] } }, arquivos), /^ERROR=/m);
 });
 
 // ── contributes.browserExtension — o par app+extensão ───────────────────────
