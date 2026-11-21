@@ -163,6 +163,11 @@ jobs:
           # cifrões, e qualquer um deles dentro do script viraria sintaxe.
           VSSH_RELEASE_NOTES: ${{ inputs.notes }}
         run: |
+          # Sem a lista, o app vai a um repositório só. Depois da virada (VSSH-670) as estações leem
+          # o repositório do sítio delas, e uma publicação só na Cloudflare não chega a ninguém: o
+          # aviso diz isso no run, porque a variável da organização some sem erro quando a
+          # visibilidade dela não inclui este repositório.
+          echo "::warning::A variável VSSH_SITIOS da organização não chegou a este repositório: o app vai só a ${VSSH_REPO_API}."
           ARGS=()
           [ -n "${{ inputs.version }}" ] && ARGS+=(--version "${{ inputs.version }}")
           bash _tools/scripts/vssh-app-publish "app/${{ inputs.app_dir }}" "${ARGS[@]}"
