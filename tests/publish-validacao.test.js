@@ -446,13 +446,31 @@ test('todo objeto do schema fecha a porta', seNaoTem, () => {
   assert.deepEqual(abertos, [], `objeto(s) aceitando campo desconhecido: ${abertos.join(', ')}`);
 });
 
+/**
+ * Os arquivos de um pacote de verdade, relativos à pasta dele, para o validador achar no disco o que
+ * o manifesto aponta (o `roda` de um comando). O manifesto fica de fora, porque `validar` o escreve.
+ */
+function pacoteDe(dir) {
+  const arquivos = {};
+  (function anda(rel) {
+    for (const e of fs.readdirSync(path.join(dir, rel), { withFileTypes: true })) {
+      if (e.name.startsWith('.') || ['node_modules', '__pycache__'].includes(e.name)) continue;
+      const r = path.join(rel, e.name);
+      if (e.isDirectory()) anda(r);
+      else if (e.isFile() && r !== 'vssh-app.json') arquivos[r] = fs.readFileSync(path.join(dir, r));
+    }
+  })('');
+  return arquivos;
+}
+
 test('os manifestos que existem de verdade continuam publicáveis', seNaoTem, () => {
   // Apertar um gate é barato de escrever e caro de errar: um campo legítimo esquecido no schema
   // transformaria esta rede em "nenhum app publica". Os templates são o que qualquer pessoa copia
-  // para começar — se eles não passam, ninguém passa.
+  // para começar, e se eles não passam, ninguém passa. Cada um vai com os arquivos da pasta dele,
+  // como vai ao `vssh-app-publish`.
   for (const t of ['hello-vssh-app', 'hello-vssh-app-node']) {
-    const mf = path.join(ROOT, 'templates', t, 'vssh-app.json');
-    const saida = validar(JSON.parse(fs.readFileSync(mf, 'utf8')));
+    const dir = path.join(ROOT, 'templates', t);
+    const saida = validar(JSON.parse(fs.readFileSync(path.join(dir, 'vssh-app.json'), 'utf8')), pacoteDe(dir));
     assert.match(saida, /^ID=/m, `o template ${t} deixou de publicar: ${saida}`);
   }
 
@@ -462,7 +480,7 @@ test('os manifestos que existem de verdade continuam publicáveis', seNaoTem, ()
   for (const dir of fs.readdirSync(path.join(ROOT, 'examples'))) {
     const mf = path.join(ROOT, 'examples', dir, 'vssh-app.json');
     if (!fs.existsSync(mf)) continue;
-    const saida = validar(JSON.parse(fs.readFileSync(mf, 'utf8')));
+    const saida = validar(JSON.parse(fs.readFileSync(mf, 'utf8')), pacoteDe(path.join(ROOT, 'examples', dir)));
     assert.match(saida, /^ID=/m, `o exemplo ${dir} deixou de publicar: ${saida}`);
   }
 });
