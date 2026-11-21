@@ -123,6 +123,7 @@
       "ao": "funcao",
       "arrastar": "verbo",
       "arrastarPara": "verbo",
+      "estado": "verbo",
       "fechar": "verbo",
       "focar": "verbo",
       "maximizar": "verbo",

@@ -123,6 +123,12 @@ declare namespace vssh {
      */
     function fechar(): void;
     /**
+     * Como a janela está agora: `maximizada`, e `encaixe` com a zona da tela que ela ocupa (`left`,
+     * `top-right`, ...) ou `null`. É para quem desenha a própria barra de título e mostra o botão
+     * de restaurar no lugar do de maximizar; as mudanças seguintes chegam pelo evento `estado`.
+     */
+    function estado(): Promise<unknown>;
+    /**
      * Com `ligado`, fechar a janela pelo botão, pelo menu ou pela barra de tarefas não fecha: o
      * shell manda `fechamentoPedido` ao app, que pergunta o que precisar e chama `fechar()` quando
      * for o caso. É para quem tem o que perder, como um documento que nunca foi salvo, e se desliga
@@ -189,6 +195,11 @@ declare namespace vssh {
        * continua aberta até o app chamar `fechar()`.
        */
       fechamentoPedido: Record<string, never>;
+      /**
+       * A janela foi maximizada, restaurada ou encaixada numa zona da tela, por qualquer caminho: o
+       * botão, o duplo-clique, o menu do cabeçalho, a barra de tarefas ou o arraste até a borda.
+       */
+      estado: { maximizada: boolean; encaixe: string | null };
     }
     /** Assina um evento deste espaço e devolve a função que cancela a assinatura. */
     function ao<E extends keyof Eventos>(evento: E, cb: (dados: Eventos[E]) => void): () => void;

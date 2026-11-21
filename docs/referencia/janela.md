@@ -16,6 +16,7 @@ abre.
 | [`vssh.janela.restaurar()`](#restaurar) | não |
 | [`vssh.janela.focar()`](#focar) | não |
 | [`vssh.janela.fechar()`](#fechar) | não |
+| [`vssh.janela.estado()`](#estado) | sim, em até 5 s |
 | [`vssh.janela.perguntarAoFechar(ligado)`](#perguntaraofechar) | não |
 | [`vssh.janela.arrastar(x, y, telaX, telaY)`](#arrastar) | não |
 | [`vssh.janela.arrastarPara(telaX, telaY)`](#arrastarpara) | não |
@@ -103,6 +104,20 @@ Fecha a janela pelo mesmo caminho do botão de fechar, sem passar por `perguntar
 Não responde: um disparo, sem retorno.
 Num hiperlink: vale.
 No fio: `type: "window", op: "close"`.
+
+Sem argumentos.
+
+### `estado`
+
+`vssh.janela.estado()`
+
+Como a janela está agora: `maximizada`, e `encaixe` com a zona da tela que ela ocupa (`left`,
+`top-right`, ...) ou `null`. É para quem desenha a própria barra de título e mostra o botão de
+restaurar no lugar do de maximizar; as mudanças seguintes chegam pelo evento `estado`.
+
+Responde: uma promessa, com prazo de 5 s (ritmo `rapido`, a resposta não depende de uma pessoa).
+Num hiperlink: vale.
+No fio: `type: "window", op: "state"`.
 
 Sem argumentos.
 
@@ -290,3 +305,18 @@ O `cb` recebe um objeto vazio.
 
 Num hiperlink: chega.
 No fio: `type: "close-requested"`.
+
+### `estado`
+
+`vssh.janela.ao('estado', cb)`
+
+A janela foi maximizada, restaurada ou encaixada numa zona da tela, por qualquer caminho: o botão, o
+duplo-clique, o menu do cabeçalho, a barra de tarefas ou o arraste até a borda.
+
+| campo | tipo | opcional | no fio |
+|---|---|---|---|
+| `maximizada` | `boolean` | não | `maximizada` |
+| `encaixe` | `string \| null` | não | `encaixe` |
+
+Num hiperlink: chega.
+No fio: `type: "window-state"`.

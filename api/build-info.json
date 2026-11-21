@@ -2,7 +2,7 @@
   "shellVersion": "5.0.0-rc0",
   "artifacts": {
     "api/abi.json": {
-      "sha256": "82c7a96e49e03e6b23e59f07f9b9c33d0b917670bd1a0f0f132ea4faf73685ef"
+      "sha256": "fdf6f115b5da8a767bb948a7fe35e5ee3d9fcef28eb4c76e77082750e0cc3519"
     },
     "api/afericao/ancora.json": {
       "sha256": "b1ad85acb8a1bc75ae2022539be87ab960d8290ea5a56166068d7d0c64b56b3e"
@@ -32,7 +32,7 @@
       "sha256": "5a065fe7d8eab2a582f428e11c2ea63aaf70607a54f69cfd5c711b5c53d91b32"
     },
     "api/superficie.json": {
-      "sha256": "4e8a220954a07a40a0a9afcd9f9c309f80c0411254171d3d929e6af861638627"
+      "sha256": "46c433c52c5fa19ea5e5c276544618430fe53e0295682998dfbd46c12224ba1a"
     },
     "api/tauri.js": {
       "sha256": "0bf07c92217fe6ef27c9653a262e2476ae97bcb40a519f31c574652e974ef593"
@@ -89,13 +89,13 @@
       "sha256": "1dd08994ed8280e757044d86c353ed23def354feaa05d96eef3fe5d4fd3e5022"
     },
     "api/vssh.d.ts": {
-      "sha256": "dc762e184a7e0c1f888f2d3eff0f3c36061733f5d63d03859a19ebed4c18f3c3"
+      "sha256": "7ec88f5256324f367709584b729ce819f4e7acebea515d0a8108c14f214387aa"
     },
     "api/vssh.js": {
-      "sha256": "7d1d862d4d1cf557f7a88cffaec57e087fda8e190780f7366486502fe722ccdc"
+      "sha256": "110d2291b0cf7a27eb904b414bd994b0c45711893bf968faea37e9f8fe08d7f9"
     },
     "docs/referencia/README.md": {
-      "sha256": "9be7161a70a9328ad5aed0b5f168c1b3dab0a9a33082ff0d69bec8b892c3806e"
+      "sha256": "0ac8a120c087f1eb1995a12650b3f0e72f6ada24fc090868c1c3a722262f8bb9"
     },
     "docs/referencia/ajuda.md": {
       "sha256": "f4e1ee1a4b08d1fa4e4432e98cb4417da03a21a4b6e14103257641755c551517"
@@ -140,7 +140,7 @@
       "sha256": "8ea19b483dc6942605385d284fb3c5164e443f503385f44708b7dcb53d7c3c11"
     },
     "docs/referencia/janela.md": {
-      "sha256": "c8fd408df22c5bd6905108720bd27db3b5cb26a53f152ffbcb8957f41da66682"
+      "sha256": "0efb25322947bb431cce0971cecde89d83ae760c7b3a05fab9b03307451e5cd4"
     },
     "docs/referencia/manifesto.md": {
       "sha256": "40aad47536378db8290b5fc8e50404cc6406ce7802ae93e05c989ff4d0df5fe0"

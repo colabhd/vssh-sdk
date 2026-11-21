@@ -336,6 +336,8 @@
     novaAba: ['new-tab', {}],
     // A pessoa pediu para fechar a janela de um app que ligou `perguntarAoFechar`. A janela continua aberta até o app chamar `fechar()`.
     fechamentoPedido: ['close-requested', {}],
+    // A janela foi maximizada, restaurada ou encaixada numa zona da tela, por qualquer caminho: o botão, o duplo-clique, o menu do cabeçalho, a barra de tarefas ou o arraste até a borda.
+    estado: ['window-state', { maximizada: 'maximizada', encaixe: 'encaixe' }],
   };
   EVENTOS.arquivos = {
     // A lista completa do que este app pode tocar. Chega no load da janela e a cada mudança (uma escolha num seletor, uma revogação no menu da janela), e substitui a anterior: o shell é a fonte, e uma revogação lá apaga aqui.
@@ -430,6 +432,8 @@
     focar: () => ponte.disparar('janela.focar', { type: 'window', op: 'focus' }),
     // Fecha a janela pelo mesmo caminho do botão de fechar, sem passar por `perguntarAoFechar`. Quando ela é a última do app, o backend segue o que `backend.aoFechar` declara no manifesto.
     fechar: () => ponte.disparar('janela.fechar', { type: 'window', op: 'close' }),
+    // Como a janela está agora: `maximizada`, e `encaixe` com a zona da tela que ela ocupa (`left`, `top-right`, ...) ou `null`. É para quem desenha a própria barra de título e mostra o botão de restaurar no lugar do de maximizar; as mudanças seguintes chegam pelo evento `estado`.
+    estado: () => ponte.chamar('janela.estado', { type: 'window', op: 'state' }, 5000),
     // Com `ligado`, fechar a janela pelo botão, pelo menu ou pela barra de tarefas não fecha: o shell manda `fechamentoPedido` ao app, que pergunta o que precisar e chama `fechar()` quando for o caso. É para quem tem o que perder, como um documento que nunca foi salvo, e se desliga quando deixa de ter. Um app que não responde ao pedido não prende a janela: a pessoa que tenta fechar de novo, alguns segundos depois, recebe do shell a escolha de fechar mesmo assim.
     perguntarAoFechar: (ligado) => ponte.disparar('janela.perguntarAoFechar', { type: 'window', op: 'ask-before-close', on: ligado }),
     // Começa a arrastar a janela a partir de um ponto do documento do app, para quem declarou `cabecalho: "app"` e desenha a própria barra de título. `x` e `y` dizem onde no quadro do app a pessoa o agarrou (`clientX`, `clientY`); `telaX` e `telaY` fixam a referência de tela para o resto do gesto (`screenX`, `screenY`). O app captura o ponteiro e conta o gesto inteiro: este começo, cada ponto por `arrastarPara`, e o fim por `terminarArraste`. Uma janela maximizada ignora o pedido, como ignora o cabeçalho padrão.
@@ -444,7 +448,7 @@
     menuDoCabecalho: (x, y) => ponte.disparar('janela.menuDoCabecalho', { type: 'window', op: 'head-menu', x: x, y: y }),
     // A lista de abas de um app com `richChrome`, que o shell desenha na barra de título. O app a manda inteira a cada mudança; o shell responde aos cliques pelos eventos `ativarAba`, `fecharAba` e `novaAba`. Só texto atravessa: o shell monta cada aba com o `title` que recebeu. Uma aba com `sessionName` volta na sessão seguinte pelo evento `restaurarAbas`. Sem `richChrome` no manifesto, o shell ignora a lista.
     abas: (abas, abaAtiva) => ponte.disparar('janela.abas', { type: 'tabs', tabs: abas, activeTabId: abaAtiva }),
-    // Assina um evento deste espaço (restaurarAbas, ativarAba, fecharAba, novaAba, fechamentoPedido) e devolve a função que cancela.
+    // Assina um evento deste espaço (restaurarAbas, ativarAba, fecharAba, novaAba, fechamentoPedido, estado) e devolve a função que cancela.
     ao: (evento, cb) => ponte.escutar('janela', evento, cb),
   };
 

@@ -267,6 +267,16 @@
           "responde": false,
           "descricao": "Fecha a janela pelo mesmo caminho do botão de fechar, sem passar por `perguntarAoFechar`. Quando ela é a última do app, o backend segue o que `backend.aoFechar` declara no manifesto."
         },
+        "estado": {
+          "fio": {
+            "type": "window",
+            "op": "state"
+          },
+          "campos": [],
+          "responde": true,
+          "ritmo": "rapido",
+          "descricao": "Como a janela está agora: `maximizada`, e `encaixe` com a zona da tela que ela ocupa (`left`, `top-right`, ...) ou `null`. É para quem desenha a própria barra de título e mostra o botão de restaurar no lugar do de maximizar; as mudanças seguintes chegam pelo evento `estado`."
+        },
         "perguntarAoFechar": {
           "fio": {
             "type": "window",
@@ -439,6 +449,22 @@
           "fio": "close-requested",
           "campos": [],
           "descricao": "A pessoa pediu para fechar a janela de um app que ligou `perguntarAoFechar`. A janela continua aberta até o app chamar `fechar()`."
+        },
+        "estado": {
+          "fio": "window-state",
+          "campos": [
+            {
+              "nome": "maximizada",
+              "fio": "maximizada",
+              "tipo": "boolean"
+            },
+            {
+              "nome": "encaixe",
+              "fio": "encaixe",
+              "tipo": "string | null"
+            }
+          ],
+          "descricao": "A janela foi maximizada, restaurada ou encaixada numa zona da tela, por qualquer caminho: o botão, o duplo-clique, o menu do cabeçalho, a barra de tarefas ou o arraste até a borda."
         }
       }
     },
