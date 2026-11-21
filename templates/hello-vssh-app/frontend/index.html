@@ -224,6 +224,17 @@
     </section>
 
     <section class="tuff-painel">
+      <h2>Comando</h2>
+      <p class="tuff-sec-desc">
+        O manifesto põe um comando no Terminal de quem instala o app, com o nome do app
+        (<code>contributes.comandos</code>). Ele pergunta a hora a este backend pelo
+        <code>servidor.pedir</code> do runtime, e liga o backend antes quando ele está parado.
+      </p>
+      <div class="tuff-acoes"><button class="tuff-btn" id="comando">mostrar o comando</button></div>
+      <pre class="saida" id="comando-saida"></pre>
+    </section>
+
+    <section class="tuff-painel">
       <h2>SSE</h2>
       <p class="tuff-sec-desc">
         Eventos empurrados pelo backend, com os cabeçalhos que sobrevivem ao proxy e ao CDN. Se
