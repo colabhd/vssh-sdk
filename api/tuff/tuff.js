@@ -10,6 +10,7 @@
 //     TuffArquivo.svg(tipo, opcoes)       desenha o ícone de um arquivo, de um tipo que um app cria,
 //                                         de uma pasta ou da lixeira
 //     TuffAbas.ligar(tira, opcoes)        a tira de abas: o clique, o teclado e a aba ativa
+//     TuffGuias.ligar(tira, aoEscolher)   as guias de uma ficha: o clique, as setas e a guia atual
 //     TuffTrilha.desenhar(nav, partes, op) o caminho, recolhendo o meio quando não cabe
 //     TuffMenus.ligar(barra, opcoes)      a barra de menus: os rótulos abrem o menu do ambiente
 //     TuffTabela.marcar(cab, chave, cresc) a coluna ordenada da tabela, em `aria-sort`
@@ -346,7 +347,7 @@
 // ─── O ícone de arquivo ──────────────────────────────────────────────────────────────────────────
 //
 //     TuffArquivo.svg(tipo, { ext, glifo, cheia })   devolve o <svg> como texto
-//     TuffArquivo.svg('app', { cor, icone, selo, previa })   o tipo que um app cria, com o ícone dele
+//     TuffArquivo.svg('app', { cor, icone, material, selo, previa })   o tipo que um app cria
 //
 // Um arquivo é conteúdo da pessoa, e o ícone dele tem cor: a folha clara, o glifo do tipo na cor
 // dele no meio, e a extensão num selo colorido no canto (o `DESIGN.md`, "Ícones de arquivo"). Os
@@ -369,6 +370,12 @@
   const NS = 'xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"';
   const FOLHA = '#dedede';
   const DOBRA = '#a4a4a4';
+  const CAMINHO_DA_FOLHA = 'M12.5 4H29l9 9v28.5a2.5 2.5 0 0 1-2.5 2.5h-23a2.5 2.5 0 0 1-2.5-2.5v-35A2.5 2.5 0 0 1 12.5 4Z';
+  const CAMINHO_DA_DOBRA = 'M29 4v6.5a2.5 2.5 0 0 0 2.5 2.5H38Z';
+  const SILHUETA = `${CAMINHO_DA_FOLHA} ${CAMINHO_DA_DOBRA}`;
+  // O fundo da família dos ícones de app (`src/utils/composicao-de-icone.ts`), sob o material
+  // enquanto ele não chega ou quando não chega.
+  const MATERIAL_DA_FAMILIA = '#15171c';
 
   // O traço escreve a cor em `style`, e não no atributo, porque o atributo não lê `var()`, e a
   // gravura da pasta é um token.
@@ -463,15 +470,25 @@
       `font-size="8.2" font-weight="700" text-anchor="middle">${texto}</text></g>`;
   }
 
-  // O tipo que um app cria (`opens.proprios` no manifesto): a mesma folha, o ícone do app no lugar
-  // do glifo, num quadrado de 38% do quadro, e o selo na cor do app com o texto curto dele. Sem
-  // texto não há selo, e o ícone identifica o arquivo sozinho. O ícone é uma URL da mesma origem;
-  // num `data:` o navegador não a carrega, e fica a folha com o selo. Com `previa`, a miniatura que
-  // o arquivo guarda ocupa o quadro no lugar da folha, e o selo fica por cima dela; quem desenha
-  // escuta o `error` da `<image>` e volta à folha.
-  function doApp({ cor, icone, selo: texto, previa } = {}) {
+  // O tipo que um app cria (`opens.proprios` no manifesto), em três formas. Com `material`, o
+  // ladrilho do app (`/icon?forma=ladrilho`: o fundo dele cobrindo a caixa e o glifo no centro)
+  // preenche a silhueta da folha, e a folha é feita do material do app. A dobra clareia o material,
+  // e um fio claro contorna a folha, porque o material da família é quase o `--ds-bg` de Arquivos e
+  // da área de trabalho. O recorte é `clip-path: path() view-box`, sem `<clipPath>`: quem desenha
+  // clona o `<svg>`, e um id repetido no documento aponta para a primeira cópia, que pode estar numa
+  // aba escondida, e aí nenhuma cópia se desenha. Sob o ladrilho fica o fundo da família, que é a
+  // folha enquanto a imagem não chega.
+  //
+  // Com `icone` e sem `material`, a folha clara de sempre, com o ícone num quadrado de 38% do quadro:
+  // é o tipo que traz um ícone próprio no manifesto. Nas duas, o selo leva a cor do app e o texto
+  // curto dele, e sem texto não há selo. O ícone e o material são URLs da mesma origem; num `data:` o
+  // navegador não os carrega. Com `previa`, a miniatura que o arquivo guarda ocupa o quadro no lugar
+  // da folha, e o selo fica por cima dela; quem desenha escuta o `error` da `<image>` e volta à
+  // folha.
+  function doApp({ cor, icone, material, selo: texto, previa } = {}) {
     const c = /^#[0-9a-f]{6}$/i.test(String(cor || '')) ? cor : TIPOS.outro.selo;
     const href = /^\/[^\s"<>]*$/.test(String(icone || '')) ? icone.replace(/&/g, '&amp;') : '';
+    const pano = /^\/[^\s"<>]*$/.test(String(material || '')) ? material.replace(/&/g, '&amp;') : '';
     const foto = /^\/[^\s"<>]*$/.test(String(previa || '')) ? previa.replace(/&/g, '&amp;') : '';
     const t = /^[A-Z0-9]{1,5}$/.test(String(texto || '')) ? texto : '';
     if (foto) {
@@ -480,9 +497,19 @@
         (t ? selo(t, c) : '') +
         '</svg>';
     }
+    if (pano) {
+      return `<svg class="tuff-arquivo tuff-arquivo--app" ${NS}>` +
+        `<path d="${SILHUETA}" fill="${MATERIAL_DA_FAMILIA}"/>` +
+        `<image class="tuff-arquivo-material" href="${pano}" x="10" y="4" width="28" height="50" ` +
+        `style="clip-path: path('${SILHUETA}') view-box"/>` +
+        `<path d="${CAMINHO_DA_DOBRA}" fill="#ffffff" fill-opacity=".2"/>` +
+        `<path d="${CAMINHO_DA_FOLHA}" fill="none" stroke="#ffffff" stroke-opacity=".24" stroke-width=".8"/>` +
+        (t ? selo(t, c) : '') +
+        '</svg>';
+    }
     return `<svg class="tuff-arquivo" ${NS}>` +
-      `<path d="M12.5 4H29l9 9v28.5a2.5 2.5 0 0 1-2.5 2.5h-23a2.5 2.5 0 0 1-2.5-2.5v-35A2.5 2.5 0 0 1 12.5 4Z" fill="${FOLHA}"/>` +
-      `<path d="M29 4v6.5a2.5 2.5 0 0 0 2.5 2.5H38Z" fill="${DOBRA}"/>` +
+      `<path d="${CAMINHO_DA_FOLHA}" fill="${FOLHA}"/>` +
+      `<path d="${CAMINHO_DA_DOBRA}" fill="${DOBRA}"/>` +
       (href ? `<image href="${href}" x="14.9" y="17.3" width="18.2" height="18.2" preserveAspectRatio="xMidYMid meet"/>` : '') +
       (t ? selo(t, c) : '') +
       '</svg>';
@@ -495,14 +522,21 @@
     const t = TIPOS[tipo] || TIPOS.outro;
     const ext = String(opcoes.ext || '').toUpperCase();
     return `<svg class="tuff-arquivo" ${NS}>` +
-      `<path d="M12.5 4H29l9 9v28.5a2.5 2.5 0 0 1-2.5 2.5h-23a2.5 2.5 0 0 1-2.5-2.5v-35A2.5 2.5 0 0 1 12.5 4Z" fill="${FOLHA}"/>` +
-      `<path d="M29 4v6.5a2.5 2.5 0 0 0 2.5 2.5H38Z" fill="${DOBRA}"/>` +
+      `<path d="${CAMINHO_DA_FOLHA}" fill="${FOLHA}"/>` +
+      `<path d="${CAMINHO_DA_DOBRA}" fill="${DOBRA}"/>` +
       (t.glifo === 'zip'
         ? GLIFOS.zip(t.tinta)
         : `<g class="tuff-arquivo-glifo" transform="translate(24 21.5) scale(.82) translate(-24 -28)">${GLIFOS[t.glifo](t.tinta)}</g>`) +
       (ext && ext.length <= 4 ? selo(ext, t.selo) : '') +
       '</svg>';
   }
+
+  // O material que não chegou (o portal fora, o app removido) sai do desenho, e a folha fica no
+  // fundo da família: o Chrome pintaria o ícone de imagem quebrada dentro dela. O `error` de uma
+  // imagem não sobe, e por isso o ouvinte é de captura, um só para o documento inteiro.
+  document.addEventListener('error', (e) => {
+    if (e.target?.classList?.contains('tuff-arquivo-material')) e.target.remove();
+  }, true);
 
   window.TuffArquivo = { svg, TIPOS: Object.keys(TIPOS), GRAVURAS: Object.keys(GRAVURAS) };
 })();
@@ -734,6 +768,51 @@
   }
 
   window.TuffAbas = { aba, escolher, titular, sujo, ligar, lista };
+})();
+
+// ─── As guias ────────────────────────────────────────────────────────────────────────────────────
+//
+//     TuffGuias.ligar(tira, aoEscolher)   o clique e o teclado de uma `.tuff-guias`
+//     TuffGuias.escolher(tira, guia)      marca a guia como atual, sem avisar
+//
+// A guia atual é a única no Tab (`tabindex="0"`); as setas andam entre as guias e já as escolhem,
+// e Home e End vão às pontas, como no padrão de abas do WAI-ARIA. Quem desenha o painel é quem
+// chamou: `aoEscolher(guia)` recebe o botão, e o `data-guia` dele diz qual página é.
+
+(function () {
+  const guiasDe = (tira) => [...tira.querySelectorAll('.tuff-guia')];
+
+  function escolher(tira, guia) {
+    for (const g of guiasDe(tira)) {
+      const atual = g === guia;
+      g.setAttribute('aria-selected', String(atual));
+      g.tabIndex = atual ? 0 : -1;
+    }
+  }
+
+  function ligar(tira, aoEscolher) {
+    const atual = guiasDe(tira).find((g) => g.getAttribute('aria-selected') === 'true') || guiasDe(tira)[0];
+    if (atual) escolher(tira, atual);
+    const ir = (guia) => {
+      if (!guia || guia.getAttribute('aria-selected') === 'true') return;
+      escolher(tira, guia);
+      aoEscolher?.(guia);
+    };
+    tira.addEventListener('click', (e) => ir(e.target.closest('.tuff-guia')));
+    tira.addEventListener('keydown', (e) => {
+      const guias = guiasDe(tira);
+      const i = guias.indexOf(document.activeElement);
+      if (i < 0) return;
+      const alvo = { ArrowRight: guias[(i + 1) % guias.length], ArrowLeft: guias[(i - 1 + guias.length) % guias.length],
+        Home: guias[0], End: guias[guias.length - 1] }[e.key];
+      if (!alvo) return;
+      e.preventDefault();
+      alvo.focus();
+      ir(alvo);
+    });
+  }
+
+  window.TuffGuias = { ligar, escolher };
 })();
 
 // ─── A trilha, a barra de menus e a moldura ──────────────────────────────────────────────────────

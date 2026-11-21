@@ -108,10 +108,11 @@
   --tuff-bg-hover:     rgba(255,255,255,0.06);
 
   /* Bordas. O contorno de campo é mais claro que o fio porque o campo se acha por ele: o degrau
-     de fundo entre o campo e a peça fica em 1,30:1, e o contorno passa de 3:1 (3,21 sobre
-     `--tuff-bg2`), o mínimo de um componente de interface. */
+     de fundo entre o campo e a peça fica em 1,30:1, e o contorno passa de 3:1 nas três
+     superfícies onde um campo mora (3,79 sobre `--tuff-bg`, 3,50 sobre `--tuff-bg2` e 3,12 sobre
+     `--tuff-bg3`), o mínimo de um componente de interface. */
   --tuff-border:       #454545;
-  --tuff-border-input: #707070;
+  --tuff-border-input: #767676;
   --tuff-border-dark:  #1a1a1a;
   --tuff-border-focus: var(--tuff-accent);
 

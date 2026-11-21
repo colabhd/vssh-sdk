@@ -430,6 +430,29 @@ registrando a estação… feito</pre>
 
     <section class="tuff-painel">
       <div class="tuff-sec">
+        <div class="tuff-sec-titulo">Guias e ficha</div>
+        <div class="tuff-sec-desc">As páginas de uma ficha, presas ao painel, e os atributos de um item numa grade de rótulo e valor. As setas andam entre as guias; só a atual está no Tab.</div>
+      </div>
+      <div>
+        <div class="tuff-guias" role="tablist" aria-label="Propriedades de relatorio.pdf" id="guias-exemplo">
+          <button class="tuff-guia" type="button" role="tab" aria-selected="true" data-guia="geral">Geral</button>
+          <button class="tuff-guia" type="button" role="tab" aria-selected="false" data-guia="permissoes">Permissões</button>
+        </div>
+        <div class="tuff-guias-painel tuff-ficha" role="tabpanel" id="guias-painel">
+          <div class="tuff-ficha-grade">
+            <label class="tuff-ficha-rotulo" for="ficha-nome">Nome:</label>
+            <div class="tuff-ficha-valor"><input class="tuff-campo" id="ficha-nome" value="relatorio.pdf"></div>
+            <hr class="tuff-ficha-fio">
+            <span class="tuff-ficha-rotulo">Tipo de arquivo:</span><span class="tuff-ficha-valor">Documento PDF</span>
+            <span class="tuff-ficha-rotulo">Tamanho:</span><span class="tuff-ficha-valor">2,40 MB (2.519.104 bytes)</span>
+            <span class="tuff-ficha-rotulo">Local:</span><span class="tuff-ficha-valor">/home/ana/Documentos</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tuff-painel">
+      <div class="tuff-sec">
         <div class="tuff-sec-titulo">Trilha</div>
         <div class="tuff-sec-desc">O caminho até o lugar atual, de <code>TuffTrilha.desenhar</code>. Quando não cabe, as partes do meio recolhem num "…" e a pasta atual continua inteira. O "…" e os rótulos da barra de menus abrem o menu do ambiente, que fora dele não existe.</div>
       </div>
@@ -1087,6 +1110,7 @@ registrando a estação… feito</pre>
     montarNavegacao();
     desenharNomes();
     montarAbas();
+    TuffGuias.ligar(document.getElementById('guias-exemplo'), () => {});
     montarTrilhaEMenus();
     montarTabelas();
     TuffAlca.ligar(document.getElementById('alca-exemplo'), {

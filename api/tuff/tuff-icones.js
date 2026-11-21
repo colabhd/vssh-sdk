@@ -294,6 +294,10 @@
     '<symbol id="ico-calendar" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3.4" width="12" height="10.6" rx="1"/><path d="M2 6.6h12M5.4 1.9v3M10.6 1.9v3"/></symbol>',
   'link':
     '<symbol id="ico-link" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.7 9.3a2.9 2.9 0 0 0 4.1 0l1.9-1.9a2.9 2.9 0 1 0-4.1-4.1l-1 1"/><path d="M9.3 6.7a2.9 2.9 0 0 0-4.1 0L3.3 8.6a2.9 2.9 0 1 0 4.1 4.1l1-1"/></symbol>',
+  // A seta curva no canto de um atalho: um arquivo do VSSH que aponta para outro lugar. O link
+  // simbólico, que é do sistema de arquivos, fica com o elo.
+  'atalho':
+    '<symbol id="ico-atalho" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5V10a4 4 0 0 1 4-4h4"/><path d="M9.5 3.5L12 6l-2.5 2.5"/></symbol>',
   'share':
     '<symbol id="ico-share" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11.8" cy="3.6" r="1.9"/><circle cx="4.2" cy="8" r="1.9"/><circle cx="11.8" cy="12.4" r="1.9"/><path d="M5.9 7.05l4.2-2.5M5.9 8.95l4.2 2.5"/></symbol>',
   'save':

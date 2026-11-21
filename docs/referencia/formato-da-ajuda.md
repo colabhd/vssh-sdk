@@ -52,7 +52,7 @@ existe quando o manifesto declara o campo dela.
 
 ## Os tópicos do ambiente
 
-Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 59 que existem:
+Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 60 que existem:
 
 | id | título |
 |---|---|
@@ -104,6 +104,7 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 59 q
 | `placa-de-video` | A placa de vídeo da estação |
 | `portal-nao-responde` | O portal não está respondendo |
 | `praticar` | Praticar os gestos |
+| `propriedades` | Ver e mudar as propriedades de um arquivo ou de um atalho |
 | `renomear` | Mudar o nome de um arquivo |
 | `rodar-um-script` | Rodar um script e ver o resultado |
 | `sessao-expirou` | Sua sessão expirou |

@@ -56,7 +56,7 @@ chamaria de cópia de produto (R-30).
 | sobre a peça | `--ds-bg3` | `#2b2b2b` |
 | campo | `--ds-bg-input` | `#353535` |
 | fio | `--ds-border` | `#454545` |
-| contorno de campo | `--ds-border-input` | `#707070` |
+| contorno de campo | `--ds-border-input` | `#767676` |
 | texto | `--ds-text` | `#d8d8d8` |
 | texto forte | `--ds-text-mid` | `#ededed` |
 | texto apagado | `--ds-text-dim` | `#a0a0a0` |
@@ -66,8 +66,9 @@ Contraste medido (WCAG):
 - texto: 12,08 sobre a página e 8,61 sobre o campo;
 - texto apagado: 6,59 sobre a página, 6,08 sobre a peça, 5,41 sobre o terceiro degrau e 4,69
   sobre o campo;
-- o contorno de campo: 3,21 sobre a peça. O campo se acha pelo contorno, e não só pelo degrau de
-  fundo, que fica em 1,30.
+- o contorno de campo: 3,79 sobre a página, 3,50 sobre a peça e 3,12 sobre o terceiro degrau,
+  onde a janela de propriedades e as fichas põem campos. O campo se acha pelo contorno, e não só
+  pelo degrau de fundo, que fica em 1,30.
 
 ### A cor de destaque
 
@@ -159,10 +160,13 @@ cores. As pastas da pessoa (Documentos, Downloads, Música, Imagens, Vídeos) le
 na frente, um tom abaixo dela.
 
 Um app declara no manifesto (`opens.proprios`) os tipos de arquivo que ele cria: a extensão, o nome,
-a cor e, se quiser, um ícone e um selo de até cinco letras (VSSH-380). O ícone ocupa o meio da folha
-e o selo leva a cor do app, como `capitulo-3.prelo` com o ícone do Prelo. Sem ícone do tipo entra o
-do app, e sem selo o ícone identifica o arquivo sozinho. O branco do selo passa de 4,5:1 sobre a
-cor, e a instalação recusa a cor que não passa. Um tipo que guarda miniatura dentro do arquivo
+a cor e, se quiser, um ícone e um selo de até cinco letras (VSSH-380). A folha de um tipo desses é
+feita do material do ícone do app: o fundo dele, o preto da família quando o app não declara outro,
+com o glifo no meio, abaixo da dobra, como `capitulo-3.prelo` com o P do Prelo. A dobra clareia o
+material, e um fio branco a 24% contorna a folha, porque o preto da família fica rente ao fundo de
+Arquivos e da área de trabalho. Um tipo com ícone próprio fica com a folha clara e o ícone dele no
+meio. O selo leva a cor do app, e sem selo o glifo identifica o arquivo sozinho. O branco do selo
+passa de 4,5:1 sobre a cor, e a instalação recusa a cor que não passa. Um tipo que guarda miniatura dentro do arquivo
 (`previa`) a mostra no lugar da folha, com o selo por cima, na grade de Arquivos e na área de
 trabalho. A lista, que desenha o ícone a 16 px, fica com a folha, e o arquivo sem miniatura também.
 A extensão que o ambiente já desenha (imagem, vídeo, áudio, PDF, documento de escritório,

@@ -1154,6 +1154,99 @@
   }
   .tuff-secao:focus-visible { outline: 2px solid var(--ds-border-focus); outline-offset: -2px; }
 
+  /* ── Guias ──────────────────────────────────────────────────────────────────
+     As páginas de uma ficha, presas ao painel que mostram: a guia atual tem o fundo do painel e
+     cobre o fio de cima na largura dela, como as abas de uma folha de propriedades. Elas são outra
+     peça que as seções (`.tuff-secoes`), que têm endereço, e que o segmentado (`.tuff-seg`), que
+     troca um modo da mesma página.
+
+     A tira é `role="tablist"` com um `.tuff-guia` (`role="tab"`) por página, e o painel é o
+     `.tuff-guias-painel` (`role="tabpanel"`). A atual é a de `aria-selected="true"`, e é o atributo
+     que pinta. `TuffGuias.ligar` cuida do clique, das setas, do Home e do End, e deixa só a atual
+     no Tab, como pede o padrão de abas. O painel fica em `--ds-bg2`, o degrau sobre o qual o
+     contorno de campo passa de 3:1. */
+  .tuff-guias {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+  .tuff-guia {
+    min-height: max(28px, var(--ds-alvo));
+    margin-bottom: -1px;
+    padding: 0 var(--ds-gap-lg);
+    font: var(--tuff-weight-n) var(--tuff-size-sm) var(--ds-font);
+    color: var(--ds-text-dim);
+    background: transparent;
+    border: 1px solid transparent;
+    border-bottom: 0;
+    border-radius: var(--ds-radius-sm) var(--ds-radius-sm) 0 0;
+    cursor: pointer;
+  }
+  .tuff-guia:hover { color: var(--ds-text); background: var(--ds-bg-hover); }
+  .tuff-guia[aria-selected="true"] {
+    color: var(--ds-text-mid);
+    background: var(--ds-bg2);
+    border-color: var(--ds-border);
+  }
+  .tuff-guia:focus-visible { outline: 2px solid var(--ds-border-focus); outline-offset: -2px; }
+  .tuff-guias-painel {
+    padding: var(--ds-gap-lg);
+    background: var(--ds-bg2);
+    border: 1px solid var(--ds-border);
+    border-radius: 0 var(--ds-radius-sm) var(--ds-radius-sm) var(--ds-radius-sm);
+  }
+
+  /* ── Ficha ──────────────────────────────────────────────────────────────────
+     Os atributos de um item, um por linha: o rótulo numa coluna e o valor (ou o campo que o muda)
+     na outra, alinhados de cima a baixo, e um fio entre os grupos. É a forma de uma folha de
+     propriedades, e cabe a qualquer app que mostre e edite um item. A `.tuff-kv` é a irmã só de
+     leitura, sem campos e sem grupos.
+
+     `.tuff-ficha-rotulo` e `.tuff-ficha-valor` se alternam; `.tuff-ficha-fio` separa grupos, e
+     `.tuff-ficha-inteiro` ocupa as duas colunas (uma lista, uma fila de botões). A largura dos
+     rótulos é `--tuff-ficha-rotulo`, para a página que tem rótulos mais longos. Abaixo de 360 px
+     de largura da ficha, o rótulo sobe para cima do valor.
+
+     Toda linha tem pelo menos a altura de um campo (`--ds-alvo`), tenha ela um campo ou só
+     texto: o ritmo da ficha é o mesmo de cima a baixo, como numa folha de propriedades, e uma
+     linha de texto não fica espremida entre duas de campo. O fio entre os grupos tem a folga de
+     um degrau de cada lado. */
+  .tuff-ficha {
+    container-type: inline-size;
+  }
+  .tuff-ficha-grade {
+    display: grid;
+    grid-template-columns: var(--tuff-ficha-rotulo, 8.5rem) minmax(0, 1fr);
+    column-gap: var(--ds-gap-lg);
+    row-gap: var(--ds-gap-sm);
+    align-items: center;
+    font-size: var(--tuff-size-sm);
+    line-height: 1.4;
+  }
+  .tuff-ficha-rotulo,
+  .tuff-ficha-valor {
+    display: flex;
+    align-items: center;
+    min-height: var(--ds-alvo);
+  }
+  .tuff-ficha-rotulo { color: var(--ds-text); }
+  .tuff-ficha-valor { min-width: 0; overflow-wrap: anywhere; color: var(--ds-text); }
+  .tuff-ficha-inteiro { grid-column: 1 / -1; min-width: 0; }
+  .tuff-ficha-fio {
+    grid-column: 1 / -1;
+    height: 1px;
+    margin: var(--ds-gap-md) 0;
+    background: var(--ds-border);
+    border: 0;
+  }
+  @container (max-width: 360px) {
+    .tuff-ficha-grade { grid-template-columns: minmax(0, 1fr); row-gap: 2px; }
+    .tuff-ficha-rotulo { min-height: 0; }
+    .tuff-ficha-valor + .tuff-ficha-rotulo { margin-top: var(--ds-gap-sm); }
+  }
+
   /* ── Trilha ─────────────────────────────────────────────────────────────────
      O caminho até onde a pessoa está, com cada lugar acima dele clicável. A
      última parte é o nome do lugar atual, e quem a desenha (`TuffTrilha`)

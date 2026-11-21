@@ -647,7 +647,7 @@
         "proprios": {
           "type": "array",
           "maxItems": 32,
-          "description": "Os tipos de arquivo que o app cria, desenhados com a marca dele: a folha do ícone de arquivo leva o ícone do app no meio e o selo na cor dele, e a coluna Tipo do gerenciador de arquivos mostra o nome. Cada extensão daqui também entra em `extensions`. Uma extensão que o ambiente já desenha (imagem, vídeo, áudio, comprimido, código, texto, documento de escritório e PDF) continua com o ícone do ambiente. Com dois apps declarando a mesma extensão, vale a do app que abre o tipo no duplo-clique.",
+          "description": "Os tipos de arquivo que o app cria, desenhados com a marca dele: a folha do ícone de arquivo é feita do material do ícone do app (o fundo dele, com o glifo no meio), o selo leva a cor dele, e a coluna Tipo do gerenciador de arquivos mostra o nome. Cada extensão daqui também entra em `extensions`. Uma extensão que o ambiente já desenha (imagem, vídeo, áudio, comprimido, código, texto, documento de escritório e PDF) continua com o ícone do ambiente. Com dois apps declarando a mesma extensão, vale a do app que abre o tipo no duplo-clique.",
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -676,7 +676,7 @@
               "icone": {
                 "type": "string",
                 "pattern": "^[A-Za-z0-9][A-Za-z0-9/._-]*\\.(svg|png|jpe?g)$",
-                "description": "O ícone que vai no meio da folha, como caminho relativo à raiz do pacote. Sem ele, vai o `icon` do app."
+                "description": "Um ícone próprio do tipo, como caminho relativo à raiz do pacote. Com ele, o arquivo é a folha clara do ambiente com este ícone no meio; sem ele, a folha é feita do material do ícone do app."
               },
               "selo": {
                 "type": "string",

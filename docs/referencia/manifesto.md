@@ -1001,11 +1001,12 @@ para tipo com destino próprio no ambiente (código, texto, comprimido, HTML).
 
 `array` de `object`, opcional, itens no máximo 32.
 
-Os tipos de arquivo que o app cria, desenhados com a marca dele: a folha do ícone de arquivo leva o
-ícone do app no meio e o selo na cor dele, e a coluna Tipo do gerenciador de arquivos mostra o nome.
-Cada extensão daqui também entra em `extensions`. Uma extensão que o ambiente já desenha (imagem,
-vídeo, áudio, comprimido, código, texto, documento de escritório e PDF) continua com o ícone do
-ambiente. Com dois apps declarando a mesma extensão, vale a do app que abre o tipo no duplo-clique.
+Os tipos de arquivo que o app cria, desenhados com a marca dele: a folha do ícone de arquivo é feita
+do material do ícone do app (o fundo dele, com o glifo no meio), o selo leva a cor dele, e a coluna
+Tipo do gerenciador de arquivos mostra o nome. Cada extensão daqui também entra em `extensions`. Uma
+extensão que o ambiente já desenha (imagem, vídeo, áudio, comprimido, código, texto, documento de
+escritório e PDF) continua com o ícone do ambiente. Com dois apps declarando a mesma extensão, vale
+a do app que abre o tipo no duplo-clique.
 
 #### `opens.proprios[].extensao`
 
@@ -1030,8 +1031,8 @@ a cor em que o branco fica abaixo de 4,5:1.
 
 `string`, opcional.
 
-O ícone que vai no meio da folha, como caminho relativo à raiz do pacote. Sem ele, vai o `icon` do
-app.
+Um ícone próprio do tipo, como caminho relativo à raiz do pacote. Com ele, o arquivo é a folha clara
+do ambiente com este ícone no meio; sem ele, a folha é feita do material do ícone do app.
 
 #### `opens.proprios[].selo`
 

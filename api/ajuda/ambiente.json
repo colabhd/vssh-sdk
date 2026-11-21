@@ -193,6 +193,10 @@
       "titulo": "Praticar os gestos"
     },
     {
+      "id": "propriedades",
+      "titulo": "Ver e mudar as propriedades de um arquivo ou de um atalho"
+    },
+    {
       "id": "renomear",
       "titulo": "Mudar o nome de um arquivo"
     },
