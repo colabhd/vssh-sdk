@@ -141,6 +141,10 @@
       "titulo": "Mandar um trabalho pesado para a fila"
     },
     {
+      "id": "modelos-no-terminal",
+      "titulo": "Usar o Claude Code e o Codex com os modelos da instituição"
+    },
+    {
       "id": "mouse-e-teclado",
       "titulo": "Clicar, tocar e arrastar"
     },

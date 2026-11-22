@@ -52,7 +52,7 @@ existe quando o manifesto declara o campo dela.
 
 ## Os tópicos do ambiente
 
-Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 60 que existem:
+Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 61 que existem:
 
 | id | título |
 |---|---|
@@ -91,6 +91,7 @@ Um tópico de app liga a um do ambiente por `{{t:ambiente/<id>|texto}}`. Os 60 q
 | `log-de-um-aplicativo` | As mensagens de um aplicativo (o log) |
 | `loja-de-apps` | Instalar um aplicativo pela Loja de apps |
 | `mandar-para-a-fila` | Mandar um trabalho pesado para a fila |
+| `modelos-no-terminal` | Usar o Claude Code e o Codex com os modelos da instituição |
 | `mouse-e-teclado` | Clicar, tocar e arrastar |
 | `navegador` | O Navegador do ambiente |
 | `no-celular` | No celular |
