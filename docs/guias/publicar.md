@@ -155,6 +155,11 @@ token é o mesmo em todo repositório: quem administra o registra em cada um pel
 o `repo_api` do workflow do app deixa de receber; o repositório que deve continuar recebendo entra
 na lista.
 
+Um app da organização colabhd publica nos sítios dela mesmo sem a variável: o reusable traz a lista
+da colabhd escrita no passo `Sítios`, e a usa quando o chamador é da colabhd e a variável não chega.
+A variável, quando chega, continua valendo no lugar dela. Fora da colabhd a lista escrita não vale,
+porque os runners de Franca e de SP só existem para os repositórios de lá.
+
 ## Por que `main`
 
 O `uses:` aponta para `main` porque o schema que o publish valida é gerado a partir do portal
