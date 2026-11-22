@@ -183,6 +183,14 @@
 
   // O chevron para baixo, e os quatro `bar-*`: a posição da barra de tarefas, desenhada como uma
   // barra em vez de uma seta, que é o que faz o controle segmentado se explicar sem rótulo.
+  'certificado':
+    '<symbol id="ico-certificado" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="6" r="3.25"/><path d="M5.9 8.6 5 13.75l3-1.5 3 1.5-.9-5.15"/></symbol>',
+  'cookie':
+    '<symbol id="ico-cookie" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.25 8.5A5.25 5.25 0 1 1 7.5 2.75a2 2 0 0 0 2.5 2.5 2 2 0 0 0 3.25 3.25z"/><circle cx="5.75" cy="7" r=".6" fill="currentColor"/><circle cx="8.5" cy="10.5" r=".6" fill="currentColor"/><circle cx="5.5" cy="10.25" r=".6" fill="currentColor"/></symbol>',
+  'extensao':
+    '<symbol id="ico-extensao" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.75 4.75h2.5v-.5a1.5 1.5 0 0 1 3 0v.5h3v3h.5a1.5 1.5 0 0 1 0 3h-.5v2.5h-8.5v-2.5h.5a1.5 1.5 0 0 0 0-3h-.5z"/></symbol>',
+  'historico':
+    '<symbol id="ico-historico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.75 8a5.25 5.25 0 1 0 1.55-3.7"/><path d="M2.75 2.75v2.5h2.5"/><path d="M8 5.25V8l2 1.5"/></symbol>',
   'chevron-down':
     '<symbol id="ico-chevron-down" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6L8 10.5 12.5 6"/></symbol>',
   'clock':

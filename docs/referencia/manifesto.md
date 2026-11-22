@@ -435,6 +435,33 @@ O comando é um programa de terminal, e abre pelo menu iniciar numa aba do Termi
 
 O nome da entrada no menu iniciar.
 
+### `contributes.mcp`
+
+`object`, opcional, sem campo além dos listados.
+
+O servidor MCP do app, por stdio: as ferramentas que um agente (o Claude Code ou o Codex no
+Terminal, ou o agente que outro app abre) chama como a pessoa. O nome do servidor é o id do app. Ele
+sobe por `vssh-app-comando <app> --mcp`, com as regras de um comando, e `vssh mcp adicionar <app>` o
+registra no agente da pessoa.
+
+#### `contributes.mcp.roda`
+
+`string`, obrigatório.
+
+O arquivo do pacote, relativo à raiz, que fala o MCP por stdio.
+
+#### `contributes.mcp.descricao`
+
+`string`, obrigatório.
+
+Uma linha para `vssh mcp` e para o pedido de permissão: o que as ferramentas alcançam.
+
+#### `contributes.mcp.backend`
+
+`boolean`, opcional.
+
+O servidor conversa com o backend do app, e o sobe quando ele está parado.
+
 ### `contributes.ajuda`
 
 `object`, opcional, sem campo além dos listados.
