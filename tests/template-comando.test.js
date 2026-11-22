@@ -1,6 +1,6 @@
 'use strict';
 
-// O comando de cada template no terminal, executado: o backend de verdade num socket unix, com o
+// O comando de cada template no terminal, e o servidor MCP dele, executados: o backend de verdade num socket unix, com o
 // token, e o comando (`bin/hello.py`, `bin/hello.mjs`) com o mesmo `VSSH_APP_SOCKET` e o mesmo
 // `VSSH_APP_TOKEN`, que é o ambiente que o `vssh-app-comando` da estação monta. O que se mede é o
 // que a pessoa lê no terminal: a hora que o backend respondeu, o JSON compacto do `--json`, o
@@ -31,8 +31,10 @@ const pular = process.platform === 'win32' ? 'o socket do app pede AF_UNIX'
     : !temPedir ? 'o runtime `vssh` deste checkout ainda não tem `servidor.pedir`' : false;
 
 const TEMPLATES = {
-  python: { backend: ['python3', 'templates/hello-vssh-app/backend/main.py'], comando: ['python3', 'templates/hello-vssh-app/bin/hello.py'], id: 'hello-world' },
-  node: { backend: [process.execPath, 'templates/hello-vssh-app-node/backend/server.js'], comando: [process.execPath, 'templates/hello-vssh-app-node/bin/hello.mjs'], id: 'hello-world-node' },
+  python: { backend: ['python3', 'templates/hello-vssh-app/backend/main.py'], comando: ['python3', 'templates/hello-vssh-app/bin/hello.py'],
+    mcp: ['python3', 'templates/hello-vssh-app/bin/mcp.py'], id: 'hello-world' },
+  node: { backend: [process.execPath, 'templates/hello-vssh-app-node/backend/server.js'], comando: [process.execPath, 'templates/hello-vssh-app-node/bin/hello.mjs'],
+    mcp: [process.execPath, 'templates/hello-vssh-app-node/bin/mcp.mjs'], id: 'hello-world-node' },
 };
 
 function ambiente(t, socket, dados) {
@@ -95,5 +97,32 @@ for (const [runtime, t] of Object.entries(TEMPLATES)) {
       assert.equal(sem.status, 3);
       assert.match(sem.stderr, /^O backend não respondeu: /);
     } finally { fs.rmSync(raiz, { recursive: true, force: true }); }
+  });
+}
+
+for (const [runtime, t] of Object.entries(TEMPLATES)) {
+  test(`o servidor MCP do template ${runtime} responde o initialize, lista a hora e a pergunta ao backend, e cala nas notificações`, { skip: pular }, async (ctx) => {
+    const raiz = fs.mkdtempSync(path.join(os.tmpdir(), 'vssh-mcp-'));
+    const dados = path.join(raiz, 'dados');
+    fs.mkdirSync(dados);
+    const socket = path.join(raiz, 'app.sock');
+    const backend = await subir(t, socket, dados);
+    ctx.after(() => { backend.kill(); fs.rmSync(raiz, { recursive: true, force: true }); });
+
+    const entrada = [
+      { jsonrpc: '2.0', id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'bancada', version: '1' } } },
+      { jsonrpc: '2.0', method: 'notifications/initialized' },
+      { jsonrpc: '2.0', id: 2, method: 'tools/list' },
+      { jsonrpc: '2.0', id: 3, method: 'tools/call', params: { name: 'hora', arguments: {} } },
+      { jsonrpc: '2.0', id: 4, method: 'resources/list' },
+    ].map((m) => JSON.stringify(m)).join('\n') + '\n';
+    const r = spawnSync(t.mcp[0], [path.join(RAIZ, t.mcp[1])], { encoding: 'utf8', env: ambiente(t, socket, dados), input: entrada, timeout: 30_000 });
+    assert.equal(r.status, 0, r.stderr);
+    const respostas = r.stdout.trim().split('\n').map((l) => JSON.parse(l));
+    assert.deepEqual(respostas.map((m) => m.id), [1, 2, 3, 4], 'a notificação recebeu resposta, ou um pedido ficou sem');
+    assert.equal(respostas[0].result.serverInfo.name, t.id);
+    assert.deepEqual(respostas[1].result.tools.map((f) => f.name), ['hora']);
+    assert.match(respostas[2].result.content[0].text, new RegExp(`^${t.id} respondeu às \\d{4}-`));
+    assert.equal(respostas[3].error.code, -32601);
   });
 }
