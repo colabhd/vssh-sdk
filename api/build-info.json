@@ -86,7 +86,7 @@
       "sha256": "43e440ec551e92f28376acdecdf1b285362a85f5b4afddfb028fef2213929862"
     },
     "api/vssh-app.schema.json": {
-      "sha256": "1dd08994ed8280e757044d86c353ed23def354feaa05d96eef3fe5d4fd3e5022"
+      "sha256": "e32be37f4d10cc691e87cd79bad5e28f5384cc4bacb5c51363cf1948103f94bc"
     },
     "api/vssh.d.ts": {
       "sha256": "7ec88f5256324f367709584b729ce819f4e7acebea515d0a8108c14f214387aa"
@@ -143,7 +143,7 @@
       "sha256": "0efb25322947bb431cce0971cecde89d83ae760c7b3a05fab9b03307451e5cd4"
     },
     "docs/referencia/manifesto.md": {
-      "sha256": "40aad47536378db8290b5fc8e50404cc6406ce7802ae93e05c989ff4d0df5fe0"
+      "sha256": "30cda1884086b8eb170fa4a822b970825d63825db2cf0696dc670ff73566c540"
     },
     "docs/referencia/midia.md": {
       "sha256": "97c1bd04f2b70355c93d668872c2547395b4450df48bb5352ea99a1183d3f6d9"
@@ -185,7 +185,10 @@
       "sha256": "6643de6528771774c3bef5dbc4a08f30701a1d4db6db7951af565c24b8cded29"
     },
     "runtime/node/vssh/index.js": {
-      "sha256": "461fd76ff3ae38363bb519641da2c5c6708fcfad426842706848f90ed9447816"
+      "sha256": "7bd9b55db2d977e84ed2f39543b5f3384cdb36843b0d3d7c7e0c51784ef72190"
+    },
+    "runtime/node/vssh/llm.js": {
+      "sha256": "4bee19eb7cd9313a3f278d322e2382761c331d5f25c8015df80f05a7f2301947"
     },
     "runtime/node/vssh/metricas.js": {
       "sha256": "32fbd54a471aae69485e31f8f028cce91378eb40ee9122ab14e684c2becb72cf"
@@ -206,7 +209,7 @@
       "sha256": "4509b6e8b36401048ca6ace6606025cd3f96f3ed25f3aa91f26c1a84f2fd9421"
     },
     "runtime/python/vssh/__init__.py": {
-      "sha256": "ce629a5c051ba4b5027d251a51af09815cbfc95ac5c5d7fc1196f5f19b4e5e4b"
+      "sha256": "7619dd0120ec510762cb2ba3e7a59cefbd8fd91cfdd94f9ba1f06700f2908bec"
     },
     "runtime/python/vssh/app.py": {
       "sha256": "aff23ac21b1d02f7d9f53656d2fec3e0300b4400739d318ccdd843c31e3fd1aa"
@@ -231,6 +234,9 @@
     },
     "runtime/python/vssh/gpu.py": {
       "sha256": "cac9d2600fe1b505847c5ff0b080cf10436b301a9cafc910e011d654789cc076"
+    },
+    "runtime/python/vssh/llm.py": {
+      "sha256": "897bf58341195d3b1d6d9c7f629a5136721fa5d30a941aae411e28e7bfac3442"
     },
     "runtime/python/vssh/metricas.py": {
       "sha256": "50c27e0c0f3a207ea2411bba506b2702deba22be0c5a58e77f3d56da34b9631e"

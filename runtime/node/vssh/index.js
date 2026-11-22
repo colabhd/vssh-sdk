@@ -14,7 +14,7 @@
 //   import { createRequire } from 'node:module';
 //   const { servidor } = createRequire(import.meta.url)('vssh');
 //
-// Os doze módulos carregam sob demanda: quem só notifica não paga o servidor.
+// Os treze módulos carregam sob demanda: quem só notifica não paga o servidor.
 //
 //   servidor   o socket unix do app, o portão de token, o `/saude`, o log
 //   web        a SPA do app, com o SDK web e o Tuff injetados no `<head>`
@@ -28,6 +28,7 @@
 //   progresso  a linha de progresso de um trabalho longo: escrever e ler
 //   trabalhos  um trabalho longo na estação ou na fila, acompanhado igual
 //   metricas   o que o backend conta e quanto leva, e as exceções, no ambiente
+//   llm        os modelos da instituição pelo llm/v1 do portal: conversa, fluxo, embeddings
 
 const modulos = {
   servidor: './servidor.js',
@@ -42,6 +43,7 @@ const modulos = {
   progresso: './progresso.js',
   trabalhos: './trabalhos.js',
   metricas: './metricas.js',
+  llm: './llm.js',
 };
 
 for (const [nome, caminho] of Object.entries(modulos)) {

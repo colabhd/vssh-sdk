@@ -6,7 +6,7 @@ Um app de backend importa este pacote em vez de carregar uma cópia dele: o port
 metade instalada da analogia com o .NET Framework: o app declara o que precisa, e a máquina em que
 ele roda já tem o que ele importa.
 
-Doze módulos, cada um importado por si:
+Treze módulos, cada um importado por si:
 
     from vssh import servidor    # o socket unix do app, o portão de token, o `/saude`, o log
     from vssh import web         # a SPA do app, com o SDK web e o Tuff injetados no `<head>`
@@ -20,14 +20,15 @@ Doze módulos, cada um importado por si:
     from vssh import progresso   # a linha de progresso de um trabalho longo: escrever e ler
     from vssh import trabalhos   # um trabalho longo na estação ou na fila, acompanhado igual
     from vssh import metricas    # o que o backend conta e quanto leva, e as exceções, no ambiente
+    from vssh import llm         # os modelos da instituição pelo llm/v1 do portal
 
 Nenhum deles lê variável de ambiente além do contrato do vssh-app (`VSSH_APP_ID`,
 `VSSH_APP_SOCKET`, `VSSH_APP_TOKEN`, `VSSH_APP_DATA_DIR`, `HOME`, e, para quem declarou
-`recursos.fila`, `recursos.salas` ou `recursos.metricas`, `VSSH_PORTAL_URL` e `VSSH_PORTAL_TOKEN`),
+`recursos.fila`, `recursos.salas`, `recursos.metricas` ou `recursos.llm`, `VSSH_PORTAL_URL` e `VSSH_PORTAL_TOKEN`),
 e cada função que lê o ambiente aceita `env` para que uma bancada meça sem mexer no processo.
 
 Só biblioteca padrão. Um `pip install` por usuário é o tipo de dependência que falha em silêncio
 num servidor que ninguém provisionou para isso, e este pacote roda em todos.
 """
 
-__all__ = ['app', 'avisos', 'dados', 'eventos', 'fila', 'gpu', 'metricas', 'progresso', 'servidor', 'trabalhos', 'web']
+__all__ = ['app', 'avisos', 'dados', 'eventos', 'fila', 'gpu', 'llm', 'metricas', 'progresso', 'servidor', 'trabalhos', 'web']

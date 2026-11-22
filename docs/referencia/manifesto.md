@@ -661,6 +661,18 @@ língua, onde rodou), e nunca quem o causou: o portal recusa o que passa de 300 
 esta declaração o app não recebe o par, e `vssh.metricas.disponivel()` diz por quê; publicar sem o
 par não faz nada.
 
+### `recursos.llm`
+
+`boolean`, opcional, padrão `false`.
+
+Os modelos da instituição pelo contrato `llm/v1` (conversa com e sem fluxo, com ferramentas,
+embeddings e a lista de modelos, no formato da OpenAI), servido pelo portal a partir do gateway do
+sítio da estação. A janela do app chama `_sdk/llm/v1/…`, relativo à raiz dela, e o backend chama
+`vssh.llm`, que fala com o portal por `VSSH_PORTAL_URL` e `VSSH_PORTAL_TOKEN`. O app pede um nome
+por função (`conversa`, `rapido`, `embeddings`) ou um modelo do gateway pelo nome. A chave do
+gateway fica no portal, e nunca chega ao navegador nem à estação. Sem esta declaração, a janela e o
+backend do app recebem `sem_escopo`.
+
 ## `desempenho`
 
 `object`, opcional, sem campo além dos listados.
