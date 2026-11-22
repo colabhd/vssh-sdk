@@ -109,17 +109,21 @@ jobs:
       # A lista de sítios que vale para este run: a variável `VSSH_SITIOS` quando ela chega, a da
       # colabhd quando o chamador é da colabhd, e nenhuma nos outros casos. Os passos seguintes e o
       # job `enviar` leem a saída deste passo, e não a variável. O primeiro sítio é o que o job
-      # `publish` lê, e por isso é a Cloudflare, que todo runner alcança; Franca e SP só respondem
-      # pela rede do sítio.
+      # `publish` lê, e por isso é a Cloudflare, que todo runner alcança.
+      #
+      # Cada entrada casa o endereço com um runner que o alcança. O `colabhd-sp` só tem internet (a
+      # `runners-so-internet` do devops tira dele a 192.168.0.0/16), então SP e a Cloudflare vão
+      # pelo nome público, que aceita a publicação com token. Franca vai pelo VIP, do runner de
+      # Franca, que está na rede dele.
       - name: Sítios
         id: sitios
         env:
           VSSH_SITIOS: ${{ vars.VSSH_SITIOS }}
           DONO: ${{ github.repository_owner }}
           SITIOS_DA_COLABHD: >-
-            [{"nome":"cloudflare","api":"https://vssh-repo.colabh.org","runner":"colabhd-franca"},
+            [{"nome":"cloudflare","api":"https://vssh-repo.colabh.org","runner":"colabhd-sp"},
              {"nome":"franca","api":"http://192.168.10.108","runner":"colabhd-franca"},
-             {"nome":"sp","api":"http://192.168.21.225","runner":"colabhd-sp"}]
+             {"nome":"sp","api":"https://vssh-repo-sp.colabh.org","runner":"colabhd-sp"}]
         run: |
           lista="${VSSH_SITIOS}"
           if [ -z "${lista}" ] && [ "${DONO}" = "colabhd" ]; then
