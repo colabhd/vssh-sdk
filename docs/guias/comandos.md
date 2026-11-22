@@ -74,6 +74,30 @@ Um comando com `menu` ganha uma entrada no menu iniciar, com o `titulo` dele e o
 do app. O clique abre uma aba do Terminal que roda o programa no lugar do shell, e a aba termina
 quando ele sai. É o lugar de um programa de tela cheia, feito com `curses`, `textual` ou `ink`.
 
+## O servidor MCP
+
+Um app pode dar ferramentas aos agentes da pessoa: o Claude Code, o Codex e o Gemini CLI no
+Terminal, e o agente que outro app abre. O servidor é um programa que fala o MCP pela entrada e pela
+saída, e o manifesto o declara em `contributes.mcp`, um por app:
+
+```json
+"contributes": {
+  "mcp": { "roda": "bin/mcp.py", "backend": true, "descricao": "Pergunta a hora ao backend deste app." }
+}
+```
+
+A estação o sobe por `vssh-app-comando <app> --mcp`, com as regras de um comando: o interpretador do
+runtime, as mesmas variáveis e, com `"backend": true`, o socket e o token, com o backend ligado antes.
+A pessoa o põe no agente dela com `vssh mcp adicionar <app>`, que roda o `mcp add` do agente; o nome
+do servidor é o id do app. A `descricao` aparece no `vssh mcp` e no pedido de permissão, e diz o que
+as ferramentas alcançam. O publish recusa um `roda` que não está no pacote.
+
+O protocolo por stdio é uma linha JSON-RPC por mensagem, e o runtime não traz uma biblioteca para
+ele. Os dois templates o escrevem inteiro em `bin/mcp.py` e `bin/mcp.mjs`, com o `initialize`, o
+`tools/list` e o `tools/call` de uma ferramenta só, `hora`, que pergunta ao backend pelo
+`servidor.pedir`. Uma notificação (a mensagem sem `id`) não leva resposta. O agente usa as
+ferramentas como a pessoa e manda ao fornecedor dele o que elas leram.
+
 ## Testar fora do ambiente
 
 Fora da estação ninguém liga o backend nem monta o ambiente do comando, e a bancada faz as duas

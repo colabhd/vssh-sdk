@@ -469,6 +469,17 @@ if isinstance(comandos, list):
         if not isinstance(roda, str) or not alvo.startswith(raiz + os.sep) or not os.path.isfile(alvo):
             print(f'ERROR=comando_sem_arquivo:{nome!r}:{roda!r}; o arquivo de roda tem de estar no pacote'); sys.exit(0)
 
+# `contributes.mcp` é o servidor MCP do app (o `ferramentas-dos-apps.md` do vssh-sso), que a estação
+# sobe por `vssh-app-comando <app> --mcp`. O arquivo de `roda` tem de estar no pacote, como o de um
+# comando.
+mcp = (m.get('contributes') or {}).get('mcp')
+if isinstance(mcp, dict):
+    raiz = os.path.realpath(os.path.dirname(p))
+    roda = mcp.get('roda')
+    alvo = os.path.realpath(os.path.join(raiz, roda)) if isinstance(roda, str) else ''
+    if not isinstance(roda, str) or not alvo.startswith(raiz + os.sep) or not os.path.isfile(alvo):
+        print(f'ERROR=mcp_sem_arquivo:{roda!r}; o arquivo de roda do servidor MCP tem de estar no pacote'); sys.exit(0)
+
 # `minShellVersion` está de saída: o VSSH deixa de ter versão nominal, e a compatibilidade de um
 # app passa a ser a `ponte` dele (a seção 2e). A forma continua conferida, nomeando o valor,
 # enquanto o schema tiver o campo, e quem ainda o declara ganha um aviso no run.

@@ -47,6 +47,7 @@
     "comandos": [
       { "nome": "hello-world", "roda": "bin/hello.py", "backend": true, "descricao": "Pergunta a hora ao backend deste app e a escreve." }
     ],
+    "mcp": { "roda": "bin/mcp.py", "backend": true, "descricao": "Pergunta a hora ao backend deste app." },
     "settings": "configuracoes.js",
     "settingsOptIn": true,
     "contextMenu": [
