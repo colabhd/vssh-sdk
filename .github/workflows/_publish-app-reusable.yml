@@ -35,7 +35,13 @@ name: Publish App (reusable)
 #   `vssh-repo`).
 #
 #   Com a lista, o `repo_api` do chamador não recebe nada. O repositório da Cloudflare continua
-#   recebendo enquanto for uma entrada dela, com um runner da nuvem.
+#   recebendo enquanto for uma entrada dela.
+#
+#   Um chamador da organização colabhd sem a variável usa a lista que o passo `Sítios` traz
+#   escrita. A variável some sem erro quando a visibilidade dela não alcança o repositório (uma
+#   variável de "Private repositories" não chega a um repositório público), e cada app novo da
+#   casa caía na publicação de um repositório só. Fora da colabhd a lista escrita não vale: os
+#   runners dela não existem para outro dono, e o job `enviar` ficaria na fila esperando por eles.
 #
 # POR QUE `main`:
 #   O que o publish valida é o `api/vssh-app.schema.json`, e esse arquivo é gerado pelo sistema a
@@ -83,6 +89,8 @@ jobs:
   publish:
     name: Publish app no repositório de artefatos
     runs-on: ${{ inputs.runner }}
+    outputs:
+      sitios: ${{ steps.sitios.outputs.lista }}
     # Um publish leva poucos minutos, com o Chrome e o palco do app. O teto é para o que trava (um
     # Worker que não responde, um upload que para no meio), que sem ele seguraria o runner por seis
     # horas, e no scale set de uma organização o runner é de todos os repositórios dela.
@@ -97,6 +105,40 @@ jobs:
           command -v python3 >/dev/null && exit 0
           sudo apt-get update -qq || echo "::warning::uma fonte do apt não respondeu; a instalação segue com os índices das outras"
           sudo apt-get install -y -qq --no-install-recommends python3
+
+      # A lista de sítios que vale para este run: a variável `VSSH_SITIOS` quando ela chega, a da
+      # colabhd quando o chamador é da colabhd, e nenhuma nos outros casos. Os passos seguintes e o
+      # job `enviar` leem a saída deste passo, e não a variável. O primeiro sítio é o que o job
+      # `publish` lê, e por isso é a Cloudflare, que todo runner alcança; Franca e SP só respondem
+      # pela rede do sítio.
+      - name: Sítios
+        id: sitios
+        env:
+          VSSH_SITIOS: ${{ vars.VSSH_SITIOS }}
+          DONO: ${{ github.repository_owner }}
+          SITIOS_DA_COLABHD: >-
+            [{"nome":"cloudflare","api":"https://vssh-repo.colabh.org","runner":"colabhd-franca"},
+             {"nome":"franca","api":"http://192.168.10.108","runner":"colabhd-franca"},
+             {"nome":"sp","api":"http://192.168.21.225","runner":"colabhd-sp"}]
+        run: |
+          lista="${VSSH_SITIOS}"
+          if [ -z "${lista}" ] && [ "${DONO}" = "colabhd" ]; then
+            lista="${SITIOS_DA_COLABHD}"
+            echo "::notice::Sem a variável VSSH_SITIOS, o app vai aos sítios da colabhd que o reusable traz escritos."
+          fi
+          [ -z "${lista}" ] && exit 0
+          # Uma linha só, porque a saída de um passo é `nome=valor`; um JSON torto para aqui, com a
+          # mensagem do Python, em vez de virar uma matriz vazia no job `enviar`.
+          LISTA="${lista}" python3 -c '
+          import json, os
+          sitios = json.loads(os.environ["LISTA"])
+          assert isinstance(sitios, list) and sitios, "a lista de sítios está vazia"
+          for s in sitios:
+              faltam = [c for c in ("nome", "api", "runner") if not s.get(c)]
+              assert not faltam, "sítio %s sem %s" % (s.get("nome", s), " nem ".join(faltam))
+          print("lista=" + json.dumps(sitios, separators=(",", ":")))
+          print("primeiro=" + sitios[0]["api"])
+          ' >> "$GITHUB_OUTPUT"
 
       # O Node compila a pasta de ajuda do app (`contributes.ajuda`) com o compilador de `api/ajuda/`,
       # que é TypeScript apagável e pede o 22.18 ou mais novo. Os binários oficiais recentes do Node
@@ -155,7 +197,7 @@ jobs:
           # Repositório público: o github.token do chamador o enxerga sem PAT.
 
       - name: Publicar
-        if: ${{ vars.VSSH_SITIOS == '' }}
+        if: ${{ steps.sitios.outputs.lista == '' }}
         env:
           VSSH_REPO_API: ${{ inputs.repo_api }}
           VSSH_REPO_PUBLISH_TOKEN: ${{ secrets.publish_token }}
@@ -175,9 +217,9 @@ jobs:
       # Com a lista de sítios, este job só empacota: o lote vira artefato do run, e o job `enviar`
       # o manda a cada sítio. O token não entra aqui, porque empacotar não escreve no repositório.
       - name: Empacotar
-        if: ${{ vars.VSSH_SITIOS != '' }}
+        if: ${{ steps.sitios.outputs.lista != '' }}
         env:
-          VSSH_REPO_API: ${{ fromJSON(vars.VSSH_SITIOS || '[{}]')[0].api }}
+          VSSH_REPO_API: ${{ steps.sitios.outputs.primeiro }}
           VSSH_RELEASE_NOTES: ${{ inputs.notes }}
         run: |
           ARGS=()
@@ -185,7 +227,7 @@ jobs:
           bash _tools/scripts/vssh-app-publish "app/${{ inputs.app_dir }}" --empacotar "$RUNNER_TEMP/lote" "${ARGS[@]}"
 
       - name: Guardar o lote
-        if: ${{ vars.VSSH_SITIOS != '' }}
+        if: ${{ steps.sitios.outputs.lista != '' }}
         uses: actions/upload-artifact@v7
         with:
           name: lote-do-app
@@ -195,13 +237,13 @@ jobs:
 
   enviar:
     name: Enviar a ${{ matrix.sitio.nome }}
-    if: ${{ vars.VSSH_SITIOS != '' }}
+    if: ${{ needs.publish.outputs.sitios != '' }}
     needs: publish
     strategy:
       # Um sítio que falha não cancela o envio aos outros.
       fail-fast: false
       matrix:
-        sitio: ${{ fromJSON(vars.VSSH_SITIOS || '[{}]') }}
+        sitio: ${{ fromJSON(needs.publish.outputs.sitios || '[{}]') }}
     runs-on: ${{ matrix.sitio.runner }}
     # O envio é o pacote, a ajuda com as figuras, o ícone e o ladrilho. O teto é para o sítio que
     # aceita a conexão e não responde.
