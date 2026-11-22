@@ -2,14 +2,15 @@
 # vssh-motor-publish: publica um motor de um vssh-app e aponta o manifesto para ele.
 #
 # Uso: vssh-motor-publish <diretorio-do-app> --nome NOME --versao VERSAO --arquivo TARBALL
-#                         [--nome-no-repo NOME] [--confere CAMINHO] [--repo-api URL]
+#                         [--nome-no-repo NOME] [--confere CAMINHO] [--repo-api URL] [--sem-pino]
 #
 # Um motor é o que um app usa e que não cabe no pacote: o servidor web de um editor, um ambiente
 # Python com PyTorch, os pesos de um modelo. O servidor o baixa uma vez, na fase root do
 # `vssh-app-install`, a partir de `motores` no `vssh-app.json`; este script é o outro lado, e faz
 # três coisas, nesta ordem:
 #
-#   1. sobe o tarball direto ao R2, pela API S3 (multipart, sem teto de tamanho);
+#   1. sobe o tarball direto ao armazenamento do repositório, pela API S3 (multipart, sem teto de
+#      tamanho): o R2 da Cloudflare, ou o S3 de um sítio;
 #   2. registra o motor no vssh-repo (`POST /v1/publish/motor`), que confere que a chave existe e
 #      tem o tamanho declarado antes de gravar a linha;
 #   3. reescreve a entrada `NOME` em `motores` no manifesto do app, com a versão, a URL pública, o
@@ -17,7 +18,10 @@
 #
 # O terceiro passo é o que impede o artefato de ficar no ar com ninguém apontando para ele: quem
 # publica escreve o pino, no mesmo passo. Quem commita a mudança no manifesto é o chamador (a ação
-# `publicar-motor` deste repositório faz isso no CI).
+# `publicar-motor` deste repositório faz isso no CI). `--sem-pino` pula o terceiro passo, e é o que
+# o runner de um sítio usa: ele publica no repositório do sítio, pela rede de lá, o motor que
+# construiu ali, e a estação do sítio o confere pelo registro do sítio. O pino do manifesto é o do
+# motor publicado na Cloudflare, que serve a estação sem repositório de sítio.
 #
 # O tarball tem um diretório na raiz, que o servidor descarta ao extrair. `--confere` grava na
 # entrada um caminho que a extração precisa trazer (`bin/python`), e o servidor recusa o motor sem
@@ -31,14 +35,21 @@
 #
 #   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY   a conta e a chave do R2, escopada ao bucket
 #   R2_BUCKET                                                o bucket (padrão: vssh-repo-blobs)
+#   S3_ENDPOINT, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY      o S3 de um sítio no lugar do R2
+#   S3_BUCKET                                                o bucket dele (padrão: vssh-repo)
 #   VSSH_REPO_MOTOR_TOKEN                                    token de publicação, escopo motor:<nome no repo>
 #   VSSH_REPO_API                                            o vssh-repo (ou --repo-api)
 #
-# A subida usa o `aws` do PATH e, sem ele, o container `amazon/aws-cli`. Só biblioteca padrão do
-# Python para mexer no manifesto, como o `vssh-app-publish`.
+# Com `S3_ENDPOINT`, o blob vai ao S3 do sítio (o SeaweedFS, no endereço que o runner do sítio
+# alcança), e as variáveis do R2 não entram.
+#
+# A subida usa o `aws` do PATH; sem ele, o container `amazon/aws-cli`; sem docker, o `awscli` do
+# PyPI pelo `uvx`, com o `uv` baixado do release quando não está no PATH. O runner de um sítio não
+# tem `sudo` nem docker. Só biblioteca padrão do Python para mexer no manifesto, como o
+# `vssh-app-publish`.
 set -euo pipefail
 
-APP_DIR="" NOME="" VERSAO="" ARQUIVO="" NOME_NO_REPO="" CONFERE=""
+APP_DIR="" NOME="" VERSAO="" ARQUIVO="" NOME_NO_REPO="" CONFERE="" SEM_PINO=0
 REPO_API="${VSSH_REPO_API:-}"
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -48,6 +59,7 @@ while [ $# -gt 0 ]; do
     --nome-no-repo)  NOME_NO_REPO="$2"; shift 2 ;;
     --confere)       CONFERE="$2"; shift 2 ;;
     --repo-api)      REPO_API="$2"; shift 2 ;;
+    --sem-pino)      SEM_PINO=1; shift ;;
     -h|--help)       grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)               [ -z "${APP_DIR}" ] && APP_DIR="$1" || { echo "Argumento inesperado: $1" >&2; exit 1; }; shift ;;
   esac
@@ -65,10 +77,22 @@ if [ -n "${CONFERE}" ]; then
     || falta "--confere '${CONFERE}' precisa ser um caminho relativo, sem '..'."
 fi
 [ -n "${REPO_API}" ] || falta "VSSH_REPO_API (ou --repo-api) não definido."
-for v in R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY VSSH_REPO_MOTOR_TOKEN; do
+if [ -n "${S3_ENDPOINT:-}" ]; then
+  [[ "${S3_ENDPOINT}" =~ ^https?://[A-Za-z0-9.-]+(:[0-9]+)?/?$ ]] || falta "S3_ENDPOINT '${S3_ENDPOINT}' não é um endereço http(s)."
+  precisa=(S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY VSSH_REPO_MOTOR_TOKEN)
+else
+  precisa=(R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY VSSH_REPO_MOTOR_TOKEN)
+fi
+for v in "${precisa[@]}"; do
   [ -n "${!v:-}" ] || falta "a variável ${v} não está definida."
 done
-BUCKET="${R2_BUCKET:-vssh-repo-blobs}"
+if [ -n "${S3_ENDPOINT:-}" ]; then
+  ENDPOINT="${S3_ENDPOINT%/}" BUCKET="${S3_BUCKET:-vssh-repo}" ONDE="o S3 do sítio (${ENDPOINT})"
+  CHAVE_ID="${S3_ACCESS_KEY_ID}" SEGREDO="${S3_SECRET_ACCESS_KEY}" REGIAO="${S3_REGION:-us-east-1}"
+else
+  ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" BUCKET="${R2_BUCKET:-vssh-repo-blobs}" ONDE="o R2"
+  CHAVE_ID="${R2_ACCESS_KEY_ID}" SEGREDO="${R2_SECRET_ACCESS_KEY}" REGIAO=auto
+fi
 REPO_API="${REPO_API%/}"
 
 APP_ID="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("id",""))' "${MANIFESTO}")"
@@ -90,21 +114,30 @@ echo "    chave   : ${CHAVE}"
 #
 # A API S3, e não o REST da Cloudflare (o `wrangler`): ela aceita um token escopado a um bucket, e
 # faz multipart sozinha. O REST exige permissão de conta e tem teto perto de 300 MB por PUT, e um
-# motor de modelos passa de gigabytes.
-ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
-echo "==> subindo para o R2"
+# motor de modelos passa de gigabytes. O S3 de um sítio fala a mesma API.
+echo "==> subindo para ${ONDE}"
+export AWS_ACCESS_KEY_ID="${CHAVE_ID}" AWS_SECRET_ACCESS_KEY="${SEGREDO}" AWS_DEFAULT_REGION="${REGIAO}"
+export AWS_REQUEST_CHECKSUM_CALCULATION=when_required AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
 if command -v aws >/dev/null 2>&1; then
-  AWS_ACCESS_KEY_ID="${R2_ACCESS_KEY_ID}" AWS_SECRET_ACCESS_KEY="${R2_SECRET_ACCESS_KEY}" AWS_DEFAULT_REGION=auto \
-  AWS_REQUEST_CHECKSUM_CALCULATION=when_required AWS_RESPONSE_CHECKSUM_VALIDATION=when_required \
-    aws s3 cp "${ARQUIVO}" "s3://${BUCKET}/${CHAVE}" --endpoint-url "${ENDPOINT}" --content-type application/gzip
-else
-  command -v docker >/dev/null 2>&1 || falta "nem o 'aws' nem o 'docker' estão no PATH para subir ao R2."
+  aws s3 cp "${ARQUIVO}" "s3://${BUCKET}/${CHAVE}" --endpoint-url "${ENDPOINT}" --content-type application/gzip
+elif command -v docker >/dev/null 2>&1; then
   dir_tar="$(cd "$(dirname "${ARQUIVO}")" && pwd)"
   docker run --rm \
-    -e AWS_ACCESS_KEY_ID="${R2_ACCESS_KEY_ID}" -e AWS_SECRET_ACCESS_KEY="${R2_SECRET_ACCESS_KEY}" -e AWS_DEFAULT_REGION=auto \
-    -e AWS_REQUEST_CHECKSUM_CALCULATION=when_required -e AWS_RESPONSE_CHECKSUM_VALIDATION=when_required \
+    -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION \
+    -e AWS_REQUEST_CHECKSUM_CALCULATION -e AWS_RESPONSE_CHECKSUM_VALIDATION \
     -v "${dir_tar}:/dados" amazon/aws-cli:latest \
     s3 cp "/dados/$(basename "${ARQUIVO}")" "s3://${BUCKET}/${CHAVE}" --endpoint-url "${ENDPOINT}" --content-type application/gzip
+else
+  UVX="$(command -v uvx || true)"
+  if [ -z "${UVX}" ]; then
+    UV_VERSAO=0.12.19
+    dir_uv="$(mktemp -d)"
+    arq="uv-$(uname -m)-unknown-linux-gnu"
+    curl -fsSL "https://github.com/astral-sh/uv/releases/download/${UV_VERSAO}/${arq}.tar.gz" | tar -xz -C "${dir_uv}" \
+      || falta "nem o 'aws', nem o 'docker', nem o 'uv' para subir o blob, e o download do uv falhou."
+    UVX="${dir_uv}/${arq}/uvx"
+  fi
+  "${UVX}" --from 'awscli>=1.36,<2' aws s3 cp "${ARQUIVO}" "s3://${BUCKET}/${CHAVE}" --endpoint-url "${ENDPOINT}" --content-type application/gzip
 fi
 
 # ─── 2. o registro, pelo vssh-repo ──────────────────────────────────────────────
@@ -128,6 +161,11 @@ printf '%s\n' "${resposta}" | sed '$d'
 [ "${codigo}" = "201" ] || falta "o registro respondeu ${codigo}."
 
 # ─── 3. o pino, no manifesto ────────────────────────────────────────────────────
+if [ "${SEM_PINO}" -eq 1 ]; then
+  echo "==> ${NOME_NO_REPO} ${VERSAO} registrado em ${REPO_API}; o manifesto fica como estava (--sem-pino)"
+  exit 0
+fi
+
 #
 # A entrada é trocada no lugar, com a ordem das outras chaves e dos outros motores preservada, e o
 # arquivo volta com o recuo que tinha. Um motor que o manifesto ainda não declarava entra no fim.
