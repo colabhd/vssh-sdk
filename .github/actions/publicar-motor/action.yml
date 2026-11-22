@@ -1,7 +1,7 @@
 name: Publicar um motor de vssh-app
 description: >-
-  Sobe o tarball de um motor ao R2, registra no vssh-repo e aponta a entrada de `motores` do
-  vssh-app.json para ele, commitando a mudança. É o `scripts/vssh-motor-publish` deste repositório,
+  Sobe o tarball de um motor ao R2 (ou ao S3 de um sítio), registra no vssh-repo e aponta a entrada
+  de `motores` do vssh-app.json para ele, commitando a mudança. É o `scripts/vssh-motor-publish` deste repositório,
   chamado do CI do app depois do passo que constrói o tarball.
 
 # No CI de um app, no mesmo job que construiu o tarball:
@@ -22,6 +22,20 @@ description: >-
 #         r2_access_key_id: ${{ secrets.R2_ACCESS_KEY_ID }}
 #         r2_secret_access_key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
 #         motor_token: ${{ secrets.VSSH_REPO_MOTOR_TOKEN }}
+#
+# No runner de um sítio, o motor vai ao repositório do sítio pela rede de lá, sem pino:
+#
+#     - uses: colabhd/vssh-sdk/.github/actions/publicar-motor@main
+#       with:
+#         nome: runtime
+#         versao: 2026.09.24-1
+#         arquivo: runtime.tar.gz
+#         repo_api: http://vssh-repo.vssh-repo.svc.cluster.local
+#         s3_endpoint: http://seaweedfs-sp-s3.seaweedfs.svc.cluster.local:8333
+#         s3_access_key_id: ${{ secrets.VSSH_SP_S3_ACCESS_KEY_ID }}
+#         s3_secret_access_key: ${{ secrets.VSSH_SP_S3_SECRET_ACCESS_KEY }}
+#         motor_token: ${{ secrets.VSSH_REPO_MOTOR_TOKEN }}
+#         pino: 'false'
 #
 # Uma ação composta, e não um workflow reutilizável: o tarball de um motor tem gigabytes e nasce
 # no job do app, e um workflow reutilizável roda em outro job, onde ele não está. As credenciais
@@ -53,21 +67,44 @@ inputs:
     description: A base do vssh-repo
     required: true
   r2_account_id:
-    description: A conta Cloudflare do R2
-    required: true
+    description: A conta Cloudflare do R2 (fora o caso do s3_endpoint)
+    required: false
+    default: ''
   r2_bucket:
     description: O bucket de blobs do vssh-repo
     required: false
     default: vssh-repo-blobs
   r2_access_key_id:
     description: A chave S3 do R2, escopada ao bucket
-    required: true
+    required: false
+    default: ''
   r2_secret_access_key:
     description: O segredo da chave S3 do R2
-    required: true
+    required: false
+    default: ''
+  s3_endpoint:
+    description: O S3 de um sítio no lugar do R2 (ex. http://seaweedfs-sp-s3.seaweedfs.svc.cluster.local:8333)
+    required: false
+    default: ''
+  s3_bucket:
+    description: O bucket do repositório no S3 do sítio
+    required: false
+    default: vssh-repo
+  s3_access_key_id:
+    description: A chave do S3 do sítio, com escrita no bucket
+    required: false
+    default: ''
+  s3_secret_access_key:
+    description: O segredo da chave do S3 do sítio
+    required: false
+    default: ''
   motor_token:
     description: O token de publicação do vssh-repo, com escopo motor:<nome no repo>
     required: true
+  pino:
+    description: "'false' publica sem tocar no vssh-app.json: o runner de um sítio publica o motor que construiu ali, e o pino é o da Cloudflare"
+    required: false
+    default: 'true'
   commit:
     description: "'true' commita e empurra o vssh-app.json com o pino novo"
     required: false
@@ -84,6 +121,11 @@ runs:
         R2_BUCKET: ${{ inputs.r2_bucket }}
         R2_ACCESS_KEY_ID: ${{ inputs.r2_access_key_id }}
         R2_SECRET_ACCESS_KEY: ${{ inputs.r2_secret_access_key }}
+        S3_ENDPOINT: ${{ inputs.s3_endpoint }}
+        S3_BUCKET: ${{ inputs.s3_bucket }}
+        S3_ACCESS_KEY_ID: ${{ inputs.s3_access_key_id }}
+        S3_SECRET_ACCESS_KEY: ${{ inputs.s3_secret_access_key }}
+        PINO: ${{ inputs.pino }}
         VSSH_REPO_MOTOR_TOKEN: ${{ inputs.motor_token }}
         APP_DIR: ${{ inputs.app_dir }}
         NOME: ${{ inputs.nome }}
@@ -98,10 +140,11 @@ runs:
         args=("${APP_DIR}" --nome "${NOME}" --versao "${VERSAO}" --arquivo "${ARQUIVO}")
         [ -n "${CONFERE}" ] && args+=(--confere "${CONFERE}")
         [ -n "${NOME_NO_REPO}" ] && args+=(--nome-no-repo "${NOME_NO_REPO}")
+        [ "${PINO}" = "false" ] && args+=(--sem-pino)
         bash "${GITHUB_ACTION_PATH}/../../../scripts/vssh-motor-publish" "${args[@]}"
 
     - name: Commitar o pino no manifesto
-      if: inputs.commit == 'true'
+      if: inputs.commit == 'true' && inputs.pino != 'false'
       shell: bash
       env:
         APP_DIR: ${{ inputs.app_dir }}

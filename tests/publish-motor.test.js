@@ -124,6 +124,26 @@ test('um motor novo entra no fim, e o nome no repositório pode ser outro', pula
   } finally { await r.fechar(); }
 });
 
+test('no S3 de um sítio, sem as variáveis do R2, e com --sem-pino o manifesto fica como estava', pular, async () => {
+  const r = await repo();
+  try {
+    const b = bancada(APP);
+    const antes = fs.readFileSync(path.join(b.app, 'vssh-app.json'), 'utf8');
+    const s = await publicar(b, r.base, ['--nome', 'runtime', '--versao', '1.1', '--arquivo', b.tarball, '--sem-pino'], {
+      R2_ACCOUNT_ID: '', R2_ACCESS_KEY_ID: '', R2_SECRET_ACCESS_KEY: '',
+      S3_ENDPOINT: 'http://seaweedfs-sp-s3.seaweedfs.svc.cluster.local:8333', S3_ACCESS_KEY_ID: 'ci-de-sp', S3_SECRET_ACCESS_KEY: 'segredo',
+    });
+    assert.equal(s.code, 0, s.saida);
+    const chave = 'motor/escriba-runtime/1.1/motor.tar.gz';
+    assert.deepEqual(fs.readFileSync(path.join(b.bucket, 'vssh-repo', chave)), fs.readFileSync(b.tarball));
+    const args = fs.readFileSync(path.join(b.bucket, 'argumentos'), 'utf8').split('\n');
+    assert.equal(args[args.indexOf('--endpoint-url') + 1], 'http://seaweedfs-sp-s3.seaweedfs.svc.cluster.local:8333');
+    assert.equal(fs.readFileSync(path.join(b.bucket, 'chave'), 'utf8'), 'ci-de-sp');
+    assert.equal(r.registros[0].cabecalhos['x-vssh-r2-key'], chave);
+    assert.equal(fs.readFileSync(path.join(b.app, 'vssh-app.json'), 'utf8'), antes);
+  } finally { await r.fechar(); }
+});
+
 test('um registro recusado não toca no manifesto', pular, async () => {
   const r = await repo(409);
   try {
@@ -141,6 +161,7 @@ test('sem credencial, ou com um nome fora do padrão, nada sobe', pular, async (
   try {
     const casos = [
       [['--nome', 'runtime', '--versao', '1.1'], { R2_SECRET_ACCESS_KEY: '' }, /R2_SECRET_ACCESS_KEY não está definida/],
+      [['--nome', 'runtime', '--versao', '1.1'], { S3_ENDPOINT: 'http://s3.sitio:8333' }, /S3_ACCESS_KEY_ID não está definida/],
       [['--nome', 'Runtime', '--versao', '1.1'], {}, /--nome 'Runtime' fora do padrão/],
       [['--nome', 'runtime', '--versao', '1.1', '--confere', '../etc'], {}, /caminho relativo, sem '\.\.'/],
     ];

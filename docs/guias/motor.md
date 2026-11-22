@@ -88,3 +88,34 @@ R2_ACCOUNT_ID=… R2_ACCESS_KEY_ID=… R2_SECRET_ACCESS_KEY=… VSSH_REPO_MOTOR_
 
 Depois de publicar o motor, publique o app: é o pacote novo, com o manifesto novo, que faz o
 servidor baixar a versão nova.
+
+## Um motor construído em cada sítio
+
+Um motor de gigabytes que cada sítio constrói na rede dele não atravessa o enlace de internet do
+sítio. O runner do sítio constrói o tarball, sobe o blob ao S3 do sítio e registra o motor no
+repositório do sítio, pelo endereço de dentro, sem tocar no manifesto:
+
+```yaml
+  - uses: colabhd/vssh-sdk/.github/actions/publicar-motor@main
+    with:
+      nome: runtime
+      versao: 2026.09.24-1
+      arquivo: runtime.tar.gz
+      repo_api: http://vssh-repo.vssh-repo.svc.cluster.local
+      s3_endpoint: http://seaweedfs-sp-s3.seaweedfs.svc.cluster.local:8333
+      s3_access_key_id: ${{ secrets.VSSH_SP_S3_ACCESS_KEY_ID }}
+      s3_secret_access_key: ${{ secrets.VSSH_SP_S3_SECRET_ACCESS_KEY }}
+      motor_token: ${{ secrets.VSSH_REPO_MOTOR_TOKEN }}
+      pino: 'false'
+```
+
+Duas construções saem com bytes diferentes, e cada repositório guarda o sha256 da sua. A estação
+de um sítio baixa o motor do repositório do sítio e o confere pelo registro de lá; a estação sem
+repositório de sítio baixa da URL do manifesto e o confere pelo pino. O pino é o do motor
+publicado na Cloudflare, e por isso o job que publica lá vem depois dos sítios: um repositório de
+sítio que ainda não tem a versão a copia da Cloudflare no acompanhamento, e a cópia gasta o enlace
+que a construção no sítio existe para poupar. A versão que o sítio já tem fica, mesmo com outros
+bytes na Cloudflare.
+
+O runner de um sítio não tem `sudo` nem docker, e sem o `aws` no PATH o script o roda do PyPI
+pelo `uvx`.
