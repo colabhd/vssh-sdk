@@ -111,10 +111,11 @@ jobs:
       # job `enviar` leem a saída deste passo, e não a variável. O primeiro sítio é o que o job
       # `publish` lê, e por isso é a Cloudflare, que todo runner alcança.
       #
-      # Cada entrada casa o endereço com um runner que o alcança. O `colabhd-sp` só tem internet (a
-      # `runners-so-internet` do devops tira dele a 192.168.0.0/16), então SP e a Cloudflare vão
-      # pelo nome público, que aceita a publicação com token. Franca vai pelo VIP, do runner de
-      # Franca, que está na rede dele.
+      # Cada entrada casa o endereço com um runner que o alcança, e o pacote chega a cada sítio pela
+      # rede dele. Franca vai pelo VIP, do runner de Franca. SP vai pelo Service do repositório, do
+      # `colabhd-sp-repo`, o scale set de SP que alcança o pod do `vssh-repo` (o `colabhd-sp` só tem
+      # internet; ver `apps/arc/README.md` do devops). A Cloudflare vai do `colabhd-sp`, que é o
+      # runner da org para o job sem docker.
       - name: Sítios
         id: sitios
         env:
@@ -123,7 +124,7 @@ jobs:
           SITIOS_DA_COLABHD: >-
             [{"nome":"cloudflare","api":"https://vssh-repo.colabh.org","runner":"colabhd-sp"},
              {"nome":"franca","api":"http://192.168.10.108","runner":"colabhd-franca"},
-             {"nome":"sp","api":"https://vssh-repo-sp.colabh.org","runner":"colabhd-sp"}]
+             {"nome":"sp","api":"http://vssh-repo.vssh-repo.svc.cluster.local","runner":"colabhd-sp-repo"}]
         run: |
           lista="${VSSH_SITIOS}"
           if [ -z "${lista}" ] && [ "${DONO}" = "colabhd" ]; then
