@@ -41,7 +41,7 @@
       "sha256": "c82fc5d89775bbf676ba8d9e4d97724dc9e11c29b9bc8996e17df9a0315ccda1"
     },
     "api/tuff/contrato.json": {
-      "sha256": "0da90e5a2754115b0cb62b0d9fb8b15bad7b3b9a5fdd8700dc8633dee47de3e0"
+      "sha256": "3a63bfccddee89c687e393b44f9591225931d821ad6074ea451597bc8ecc0a3d"
     },
     "api/tuff/docs/componentes.html": {
       "sha256": "a5a9138dd6eb8af24ea41d3af829257c106177b0272d88895644a10b67d9b360"
@@ -71,10 +71,10 @@
       "sha256": "8752b7ae86030ac6b52441d8ec522b964126f325deb7a3ef46cb5f72d9136099"
     },
     "api/tuff/tuff-tokens.css": {
-      "sha256": "cdaf7dbc9f8831d88adc26bf69ff705f9cc266883eb00aaaf22fef375d561363"
+      "sha256": "cc0c7ae86684f105f4c7e8143d63bf75eee0dec6ba590e0e170bbbefb14a9fd5"
     },
     "api/tuff/tuff.css": {
-      "sha256": "5828e38b7fea9e4bfd8b95dca858ea4e3c17f2022d265cf1effb11dca272caf5"
+      "sha256": "ad88a09ef1ed3492998f38a3f9032ba31645c1b1315e552a4dc601d81490b3f5"
     },
     "api/tuff/tuff.js": {
       "sha256": "80718cf5138273fa82fbe091d16ce8902d3c2710ed33fbdcba2266975b7f8d26"

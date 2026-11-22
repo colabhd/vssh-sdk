@@ -335,10 +335,22 @@
   :root { --ds-alvo: 44px; }
 }
 
+/* A área segura do aparelho: o entalhe e a ilha do iPhone em cima (e do lado, com ele deitado) e o
+   indicador de início embaixo. A página só recebe as medidas com `viewport-fit=cover` no viewport,
+   e fora de um aparelho com recorte elas valem 0. Quem encosta numa borda da tela (uma barra, uma
+   folha que sobe de baixo, a janela inteira do celular) soma a medida daquela borda ao próprio
+   respiro. */
+:root {
+  --tuff-segura-topo: env(safe-area-inset-top, 0px);
+  --tuff-segura-direita: env(safe-area-inset-right, 0px);
+  --tuff-segura-baixo: env(safe-area-inset-bottom, 0px);
+  --tuff-segura-esquerda: env(safe-area-inset-left, 0px);
+}
+
 /* No celular, o dedo numa tela estreita, a letra pequena sobe um ponto: o corpo vai a 14 px e as
    notas a 12, lidos a um braço de distância. O tablet, largo, fica na escala da ferramenta, e os
    títulos não mudam. */
-@media (pointer: coarse) and (width < 600px) {
+@media (pointer: coarse) and ((width < 600px) or (height < 480px)) {
   :root {
     --tuff-size-xs: 12px;
     --tuff-size-sm: 13px;

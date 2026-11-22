@@ -737,6 +737,12 @@
     transition: background var(--ds-dur-fast) var(--ds-ease), color var(--ds-dur-fast) var(--ds-ease);
   }
   .tuff-seg-btn input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+  /* No celular estreito, o segmentado ocupa a largura e os segmentos a dividem: em 320 px, quatro
+     segmentos no tamanho do texto passam da borda. */
+  @container tuff-app (width < 400px) {
+    .tuff-seg { display: flex; max-width: 100%; box-sizing: border-box; }
+    .tuff-seg-btn { flex: 1 1 0; min-width: 0; padding: 0 6px; overflow: hidden; text-overflow: ellipsis; }
+  }
   .tuff-seg-btn:hover { color: var(--ds-text-mid); }
   .tuff-seg-btn:has(input:checked) {
     background: color-mix(in srgb, var(--ds-text-mid) 16%, var(--ds-bg-input));
@@ -1102,6 +1108,13 @@
   .tuff-barra-espaco { flex: 1; }
   /* Um fio em pé entre grupos de botões da barra. */
   .tuff-barra-divisa { flex: none; width: 1px; height: 18px; margin: 0 var(--ds-gap-sm); background: var(--ds-border); }
+  /* No celular estreito (abaixo de 400 px de janela), a busca de uma barra desce para uma linha
+     só dela, na largura inteira, e os botões ficam na de cima: entre eles, ela mostraria três
+     letras do que se digita. */
+  @container tuff-app (width < 400px) {
+    .tuff-barra:has(> .tuff-busca) { flex-wrap: wrap; row-gap: var(--ds-gap-sm); }
+    .tuff-barra > .tuff-busca { order: 1; flex: 1 0 100%; min-width: 0; }
+  }
 
   /* A barra que fica no topo enquanto o conteúdo rola por baixo. Ela só encosta
      nas bordas se o contêiner de rolagem não tiver padding; é por isso que
