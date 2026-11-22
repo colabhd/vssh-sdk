@@ -282,6 +282,8 @@
     '<symbol id="ico-eye-off" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 4.2A6.7 6.7 0 0 1 8 4c4.1 0 6.5 4 6.5 4a12.4 12.4 0 0 1-2.1 2.5M4.2 5.4A12.3 12.3 0 0 0 1.5 8s2.4 4 6.5 4c.8 0 1.6-.15 2.3-.4"/><path d="M2 2l12 12"/></symbol>',
   'chevron-up':
     '<symbol id="ico-chevron-up" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10L8 5.5l4.5 4.5"/></symbol>',
+  'estrela-cheia':
+    '<symbol id="ico-estrela-cheia" viewBox="0 0 16 16" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.2l1.8 3.75 4.05.58-2.93 2.9.7 4.15L8 11.62l-3.62 1.98.7-4.15L2.15 6.53l4.05-.58z"/></symbol>',
   'star':
     '<symbol id="ico-star" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.2l1.8 3.75 4.05.58-2.93 2.9.7 4.15L8 11.62l-3.62 1.98.7-4.15L2.15 6.53l4.05-.58z"/></symbol>',
   'check-circle':
