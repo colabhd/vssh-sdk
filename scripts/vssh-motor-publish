@@ -41,7 +41,10 @@
 #   VSSH_REPO_API                                            o vssh-repo (ou --repo-api)
 #
 # Com `S3_ENDPOINT`, o blob vai ao S3 do sítio (o SeaweedFS, no endereço que o runner do sítio
-# alcança), e as variáveis do R2 não entram.
+# alcança), e as variáveis do R2 não entram. Sem `S3_ACCESS_KEY_ID` e `S3_SECRET_ACCESS_KEY`, a
+# chave é a que o runner de motor do sítio traz no ambiente (`VSSH_SITIO_S3_ACCESS_KEY_ID` e
+# `VSSH_SITIO_S3_SECRET_ACCESS_KEY`, de um Secret do cluster), e o CI do app não guarda chave de
+# sítio nenhuma.
 #
 # A subida usa o `aws` do PATH; sem ele, o container `amazon/aws-cli`; sem docker, o `awscli` do
 # PyPI pelo `uvx`, com o `uv` baixado do release quando não está no PATH. O runner de um sítio não
@@ -77,6 +80,8 @@ if [ -n "${CONFERE}" ]; then
     || falta "--confere '${CONFERE}' precisa ser um caminho relativo, sem '..'."
 fi
 [ -n "${REPO_API}" ] || falta "VSSH_REPO_API (ou --repo-api) não definido."
+S3_ACCESS_KEY_ID="${S3_ACCESS_KEY_ID:-${VSSH_SITIO_S3_ACCESS_KEY_ID:-}}"
+S3_SECRET_ACCESS_KEY="${S3_SECRET_ACCESS_KEY:-${VSSH_SITIO_S3_SECRET_ACCESS_KEY:-}}"
 if [ -n "${S3_ENDPOINT:-}" ]; then
   [[ "${S3_ENDPOINT}" =~ ^https?://[A-Za-z0-9.-]+(:[0-9]+)?/?$ ]] || falta "S3_ENDPOINT '${S3_ENDPOINT}' não é um endereço http(s)."
   precisa=(S3_ACCESS_KEY_ID S3_SECRET_ACCESS_KEY VSSH_REPO_MOTOR_TOKEN)

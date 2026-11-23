@@ -144,6 +144,21 @@ test('no S3 de um sítio, sem as variáveis do R2, e com --sem-pino o manifesto 
   } finally { await r.fechar(); }
 });
 
+test('no runner de um sítio, a chave do S3 vem do ambiente do runner', pular, async () => {
+  const r = await repo();
+  try {
+    const b = bancada(APP);
+    const s = await publicar(b, r.base, ['--nome', 'runtime', '--versao', '1.1', '--arquivo', b.tarball, '--sem-pino'], {
+      R2_ACCOUNT_ID: '', R2_ACCESS_KEY_ID: '', R2_SECRET_ACCESS_KEY: '', S3_ACCESS_KEY_ID: '', S3_SECRET_ACCESS_KEY: '',
+      S3_ENDPOINT: 'http://seaweedfs-s3.seaweedfs.svc.cluster.local:8333',
+      VSSH_SITIO_S3_ACCESS_KEY_ID: 'do-runner', VSSH_SITIO_S3_SECRET_ACCESS_KEY: 'segredo-do-runner',
+    });
+    assert.equal(s.code, 0, s.saida);
+    assert.equal(fs.readFileSync(path.join(b.bucket, 'chave'), 'utf8'), 'do-runner');
+    assert.ok(fs.existsSync(path.join(b.bucket, 'vssh-repo', 'motor/escriba-runtime/1.1/motor.tar.gz')));
+  } finally { await r.fechar(); }
+});
+
 test('um registro recusado não toca no manifesto', pular, async () => {
   const r = await repo(409);
   try {

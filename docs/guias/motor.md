@@ -103,11 +103,13 @@ repositório do sítio, pelo endereço de dentro, sem tocar no manifesto:
       arquivo: runtime.tar.gz
       repo_api: http://vssh-repo.vssh-repo.svc.cluster.local
       s3_endpoint: http://seaweedfs-sp-s3.seaweedfs.svc.cluster.local:8333
-      s3_access_key_id: ${{ secrets.VSSH_SP_S3_ACCESS_KEY_ID }}
-      s3_secret_access_key: ${{ secrets.VSSH_SP_S3_SECRET_ACCESS_KEY }}
       motor_token: ${{ secrets.VSSH_REPO_MOTOR_TOKEN }}
       pino: 'false'
 ```
+
+A chave do S3 do sítio vem do runner de motor, que a traz no ambiente
+(`VSSH_SITIO_S3_ACCESS_KEY_ID` e `VSSH_SITIO_S3_SECRET_ACCESS_KEY`), e o repositório do app não
+guarda chave de sítio nenhuma. `s3_access_key_id` e `s3_secret_access_key` passam outra.
 
 Duas construções saem com bytes diferentes, e cada repositório guarda o sha256 da sua. A estação
 de um sítio baixa o motor do repositório do sítio e o confere pelo registro de lá; a estação sem
