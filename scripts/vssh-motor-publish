@@ -49,9 +49,10 @@
 # `VSSH_SITIO_S3_SECRET_ACCESS_KEY`, de um Secret do cluster), e o CI do app não guarda chave de
 # sítio nenhuma.
 #
-# A subida usa o `aws` do PATH; sem ele, o container `amazon/aws-cli`; sem docker, o `awscli` do
-# PyPI pelo `uvx`, com o `uv` baixado do release quando não está no PATH. O runner de um sítio não
-# tem `sudo` nem docker. Só biblioteca padrão do Python para mexer no manifesto, como o
+# A subida usa o `aws` do PATH; sem ele, o container `amazon/aws-cli`, quando o docker responde; sem
+# isso, o `awscli` do PyPI pelo `uvx`, com o `uv` baixado do release quando não está no PATH. A
+# imagem dos runners da casa traz o cliente do docker, e o runner de motor de um sítio não tem o
+# daemon: o cliente no PATH sozinho não basta. Só biblioteca padrão do Python para mexer no manifesto, como o
 # `vssh-app-publish`.
 set -euo pipefail
 
@@ -133,7 +134,7 @@ export AWS_ACCESS_KEY_ID="${CHAVE_ID}" AWS_SECRET_ACCESS_KEY="${SEGREDO}" AWS_DE
 export AWS_REQUEST_CHECKSUM_CALCULATION=when_required AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
 if command -v aws >/dev/null 2>&1; then
   aws s3 cp "${ARQUIVO}" "s3://${BUCKET}/${CHAVE}" --endpoint-url "${ENDPOINT}" --content-type application/gzip
-elif command -v docker >/dev/null 2>&1; then
+elif command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
   dir_tar="$(cd "$(dirname "${ARQUIVO}")" && pwd)"
   docker run --rm \
     -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY -e AWS_DEFAULT_REGION \

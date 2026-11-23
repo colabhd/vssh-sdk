@@ -175,6 +175,33 @@ test('o pino grava o nome público do repositório quando a publicação vai pel
   } finally { await r.fechar(); }
 });
 
+test('com o cliente do docker e sem o daemon, a subida vai pelo uvx', pular, async () => {
+  const r = await repo();
+  try {
+    const b = bancada(APP);
+    // Sem o aws: o PATH desta bancada tem só o docker sem daemon e o uvx, que faz o papel do aws.
+    fs.rmSync(path.join(b.bin, 'aws'));
+    fs.writeFileSync(path.join(b.bin, 'docker'), '#!/bin/bash\n[ "$1" = info ] && exit 1\necho "docker run não devia ser chamado" >&2; exit 9\n', { mode: 0o755 });
+    fs.writeFileSync(path.join(b.bin, 'uvx'), `#!/bin/bash
+# uvx --from <pacote> aws s3 cp <arquivo> s3://<bucket>/<chave> ...
+shift 2; shift
+printf '%s\\n' "$@" > "${b.bucket}/argumentos"
+destino="\${4#s3://}"
+mkdir -p "${b.bucket}/$(dirname "$destino")"
+cp "$3" "${b.bucket}/$destino"
+`, { mode: 0o755 });
+    const semAws = process.env.PATH.split(':').filter((d) => !fs.existsSync(path.join(d, 'aws'))).join(':');
+    const s = await publicar(b, r.base, ['--nome', 'runtime', '--versao', '1.1', '--arquivo', b.tarball, '--sem-pino'], {
+      PATH: `${b.bin}:${semAws}`,
+      R2_ACCOUNT_ID: '', R2_ACCESS_KEY_ID: '', R2_SECRET_ACCESS_KEY: '',
+      S3_ENDPOINT: 'http://seaweedfs-s3.seaweedfs.svc.cluster.local:8333', S3_ACCESS_KEY_ID: 'ci', S3_SECRET_ACCESS_KEY: 'segredo',
+    });
+    assert.equal(s.code, 0, s.saida);
+    assert.ok(fs.existsSync(path.join(b.bucket, 'vssh-repo', 'motor/escriba-runtime/1.1/motor.tar.gz')), s.saida);
+    assert.equal(r.registros.length, 1);
+  } finally { await r.fechar(); }
+});
+
 test('um registro recusado não toca no manifesto', pular, async () => {
   const r = await repo(409);
   try {
