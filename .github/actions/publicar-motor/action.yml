@@ -101,6 +101,10 @@ inputs:
   motor_token:
     description: O token de publicação do vssh-repo, com escopo motor:<nome no repo>
     required: true
+  base_do_pino:
+    description: "O endereço que o pino grava no vssh-app.json (o padrão é o repo_api): o nome público do repositório, quando o repo_api é o endereço de dentro de um sítio"
+    required: false
+    default: ''
   pino:
     description: "'false' publica sem tocar no vssh-app.json: o runner de um sítio publica o motor que construiu ali, e o pino é o da Cloudflare"
     required: false
@@ -126,6 +130,7 @@ runs:
         S3_ACCESS_KEY_ID: ${{ inputs.s3_access_key_id }}
         S3_SECRET_ACCESS_KEY: ${{ inputs.s3_secret_access_key }}
         PINO: ${{ inputs.pino }}
+        BASE_DO_PINO: ${{ inputs.base_do_pino }}
         VSSH_REPO_MOTOR_TOKEN: ${{ inputs.motor_token }}
         APP_DIR: ${{ inputs.app_dir }}
         NOME: ${{ inputs.nome }}
@@ -141,6 +146,7 @@ runs:
         [ -n "${CONFERE}" ] && args+=(--confere "${CONFERE}")
         [ -n "${NOME_NO_REPO}" ] && args+=(--nome-no-repo "${NOME_NO_REPO}")
         [ "${PINO}" = "false" ] && args+=(--sem-pino)
+        [ -n "${BASE_DO_PINO}" ] && args+=(--base-do-pino "${BASE_DO_PINO}")
         bash "${GITHUB_ACTION_PATH}/../../../scripts/vssh-motor-publish" "${args[@]}"
 
     - name: Commitar o pino no manifesto

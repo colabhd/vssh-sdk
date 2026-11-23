@@ -159,6 +159,22 @@ test('no runner de um sítio, a chave do S3 vem do ambiente do runner', pular, a
   } finally { await r.fechar(); }
 });
 
+test('o pino grava o nome público do repositório quando a publicação vai pelo endereço de dentro', pular, async () => {
+  const r = await repo();
+  try {
+    const b = bancada(APP);
+    const s = await publicar(b, r.base, ['--nome', 'runtime', '--versao', '1.1', '--arquivo', b.tarball,
+      '--base-do-pino', 'https://vssh-repo-franca.colabh.org/'], {
+      R2_ACCOUNT_ID: '', R2_ACCESS_KEY_ID: '', R2_SECRET_ACCESS_KEY: '',
+      S3_ENDPOINT: 'http://seaweedfs-s3.seaweedfs.svc.cluster.local:8333', S3_ACCESS_KEY_ID: 'ci', S3_SECRET_ACCESS_KEY: 'segredo',
+    });
+    assert.equal(s.code, 0, s.saida);
+    assert.equal(r.registros.length, 1, 'o registro vai ao repo_api');
+    const m = JSON.parse(fs.readFileSync(path.join(b.app, 'vssh-app.json'), 'utf8'));
+    assert.equal(m.motores[1].url, 'https://vssh-repo-franca.colabh.org/v1/motor/escriba-runtime/1.1');
+  } finally { await r.fechar(); }
+});
+
 test('um registro recusado não toca no manifesto', pular, async () => {
   const r = await repo(409);
   try {
