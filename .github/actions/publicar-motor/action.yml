@@ -91,7 +91,7 @@ inputs:
     required: false
     default: vssh-repo
   s3_access_key_id:
-    description: A chave do S3 do sítio, com escrita no bucket
+    description: A chave do S3 do sítio, com escrita no bucket; vazia, vale a que o runner de motor do sítio traz no ambiente
     required: false
     default: ''
   s3_secret_access_key:
