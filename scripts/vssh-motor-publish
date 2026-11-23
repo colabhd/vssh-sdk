@@ -3,6 +3,7 @@
 #
 # Uso: vssh-motor-publish <diretorio-do-app> --nome NOME --versao VERSAO --arquivo TARBALL
 #                         [--nome-no-repo NOME] [--confere CAMINHO] [--repo-api URL] [--sem-pino]
+#                         [--base-do-pino URL]
 #
 # Um motor é o que um app usa e que não cabe no pacote: o servidor web de um editor, um ambiente
 # Python com PyTorch, os pesos de um modelo. O servidor o baixa uma vez, na fase root do
@@ -20,8 +21,10 @@
 # publica escreve o pino, no mesmo passo. Quem commita a mudança no manifesto é o chamador (a ação
 # `publicar-motor` deste repositório faz isso no CI). `--sem-pino` pula o terceiro passo, e é o que
 # o runner de um sítio usa: ele publica no repositório do sítio, pela rede de lá, o motor que
-# construiu ali, e a estação do sítio o confere pelo registro do sítio. O pino do manifesto é o do
-# motor publicado na Cloudflare, que serve a estação sem repositório de sítio.
+# construiu ali, e a estação do sítio o confere pelo registro do sítio. `--base-do-pino` troca o
+# endereço que o pino grava (o padrão é o `--repo-api`): quem publica pelo endereço de dentro de um
+# sítio grava no pino o nome público do repositório. A estação troca o endereço do pino pelo do
+# repositório do sítio dela, e o caminho `/v1/motor/<nome>/<versão>` é o mesmo em todos.
 #
 # O tarball tem um diretório na raiz, que o servidor descarta ao extrair. `--confere` grava na
 # entrada um caminho que a extração precisa trazer (`bin/python`), e o servidor recusa o motor sem
@@ -52,7 +55,7 @@
 # `vssh-app-publish`.
 set -euo pipefail
 
-APP_DIR="" NOME="" VERSAO="" ARQUIVO="" NOME_NO_REPO="" CONFERE="" SEM_PINO=0
+APP_DIR="" NOME="" VERSAO="" ARQUIVO="" NOME_NO_REPO="" CONFERE="" SEM_PINO=0 BASE_DO_PINO=""
 REPO_API="${VSSH_REPO_API:-}"
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -63,6 +66,7 @@ while [ $# -gt 0 ]; do
     --confere)       CONFERE="$2"; shift 2 ;;
     --repo-api)      REPO_API="$2"; shift 2 ;;
     --sem-pino)      SEM_PINO=1; shift ;;
+    --base-do-pino)  BASE_DO_PINO="$2"; shift 2 ;;
     -h|--help)       grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)               [ -z "${APP_DIR}" ] && APP_DIR="$1" || { echo "Argumento inesperado: $1" >&2; exit 1; }; shift ;;
   esac
@@ -108,7 +112,11 @@ NOME_NO_REPO="${NOME_NO_REPO:-${APP_ID}-${NOME}}"
 SHA="$(sha256sum "${ARQUIVO}" | cut -d' ' -f1)"
 TAMANHO="$(stat -c%s "${ARQUIVO}" 2>/dev/null || stat -f%z "${ARQUIVO}")"
 CHAVE="motor/${NOME_NO_REPO}/${VERSAO}/motor.tar.gz"
-URL="${REPO_API}/v1/motor/${NOME_NO_REPO}/${VERSAO}"
+if [ -n "${BASE_DO_PINO}" ]; then
+  [[ "${BASE_DO_PINO}" =~ ^https?://[A-Za-z0-9.-]+(:[0-9]+)?/?$ ]] || falta "--base-do-pino '${BASE_DO_PINO}' não é um endereço http(s)."
+fi
+URL="${BASE_DO_PINO:-${REPO_API}}"
+URL="${URL%/}/v1/motor/${NOME_NO_REPO}/${VERSAO}"
 
 echo "==> motor '${NOME}' de ${APP_ID}, ${VERSAO}"
 echo "    arquivo : ${ARQUIVO} (${TAMANHO} bytes)"

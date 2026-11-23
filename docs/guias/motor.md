@@ -104,7 +104,7 @@ repositório do sítio, pelo endereço de dentro, sem tocar no manifesto:
       repo_api: http://vssh-repo.vssh-repo.svc.cluster.local
       s3_endpoint: http://seaweedfs-sp-s3.seaweedfs.svc.cluster.local:8333
       motor_token: ${{ secrets.VSSH_REPO_MOTOR_TOKEN }}
-      pino: 'false'
+      pino: 'false'   # ou base_do_pino: https://vssh-repo-sp.colabh.org, no sítio que grava o pino
 ```
 
 A chave do S3 do sítio vem do runner de motor, que a traz no ambiente
@@ -112,12 +112,12 @@ A chave do S3 do sítio vem do runner de motor, que a traz no ambiente
 guarda chave de sítio nenhuma. `s3_access_key_id` e `s3_secret_access_key` passam outra.
 
 Duas construções saem com bytes diferentes, e cada repositório guarda o sha256 da sua. A estação
-de um sítio baixa o motor do repositório do sítio e o confere pelo registro de lá; a estação sem
-repositório de sítio baixa da URL do manifesto e o confere pelo pino. O pino é o do motor
-publicado na Cloudflare, e por isso o job que publica lá vem depois dos sítios: um repositório de
-sítio que ainda não tem a versão a copia da Cloudflare no acompanhamento, e a cópia gasta o enlace
-que a construção no sítio existe para poupar. A versão que o sítio já tem fica, mesmo com outros
-bytes na Cloudflare.
+de um sítio baixa o motor do repositório do sítio e o confere pelo registro de lá. O pino do
+manifesto é o de um dos sítios, gravado com `base_do_pino` no nome público do repositório
+(`https://vssh-repo-franca.colabh.org`): o endereço de dentro só vale no cluster, e a estação troca
+o endereço do pino pelo do repositório do sítio dela. Um motor que só os sítios guardam não precisa
+da Cloudflare. A versão que um sítio já tem fica, mesmo que a Cloudflare tenha a mesma com outros
+bytes.
 
 O runner de um sítio não tem `sudo` nem docker, e sem o `aws` no PATH o script o roda do PyPI
 pelo `uvx`.
