@@ -76,9 +76,9 @@ quando ele sai. É o lugar de um programa de tela cheia, feito com `curses`, `te
 
 ## O servidor MCP
 
-Um app pode dar ferramentas aos agentes da pessoa: o Claude Code, o Codex e o Gemini CLI no
-Terminal, e o agente que outro app abre. O servidor é um programa que fala o MCP pela entrada e pela
-saída, e o manifesto o declara em `contributes.mcp`, um por app:
+Um app pode dar ferramentas aos agentes da pessoa: o Claude Code, o Codex, o Gemini CLI e o
+Antigravity no Terminal, e o agente que outro app abre. O servidor é um programa que fala o MCP pela
+entrada e pela saída, e o manifesto o declara em `contributes.mcp`, um por app:
 
 ```json
 "contributes": {
