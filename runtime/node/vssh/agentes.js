@@ -152,4 +152,15 @@ const encerrar = (id, opcoes) => _json('DELETE', `conversas/${encodeURIComponent
 /** Guarda (ou tira) a confirmação da pessoa para um agente que a pede, como o Antigravity. */
 const confirmar = (agente, aceito, opcoes) => _json('POST', `agentes/${encodeURIComponent(agente)}/confirmacao`, { aceito: !!aceito }, opcoes);
 
-module.exports = { listar, abrir, mensagem, cancelar, encerrar, confirmar, ErroDoAgente };
+/**
+ * O login de um agente sem o Terminal: `entrar` começa e resolve com `{ estado, url, codigo,
+ * pede_codigo, expira_em }`; `estadoDaEntrada` diz se a pessoa já entrou; `mandarCodigo` leva o
+ * código que a página deu, quando `pede_codigo`; `desistirDeEntrar` para o login.
+ */
+const _entrar = (agente) => `agentes/${encodeURIComponent(agente)}/entrar`;
+const entrar = (agente, opcoes) => _json('POST', _entrar(agente), {}, opcoes);
+const estadoDaEntrada = (agente, opcoes) => _json('GET', _entrar(agente), undefined, opcoes);
+const mandarCodigo = (agente, codigo, opcoes) => _json('POST', `${_entrar(agente)}/codigo`, { codigo }, opcoes);
+const desistirDeEntrar = (agente, opcoes) => _json('DELETE', _entrar(agente), undefined, opcoes);
+
+module.exports = { listar, abrir, mensagem, cancelar, encerrar, confirmar, entrar, estadoDaEntrada, mandarCodigo, desistirDeEntrar, ErroDoAgente };

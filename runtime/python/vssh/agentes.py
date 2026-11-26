@@ -170,3 +170,26 @@ def encerrar(id_, env=None):
 def confirmar(agente, aceito, env=None):
     """Guarda (ou tira) a confirmação da pessoa para um agente que a pede, como o Antigravity."""
     return _json('POST', f'agentes/{urllib.parse.quote(agente)}/confirmacao', {'aceito': bool(aceito)}, env)
+
+
+def _entrar(agente):
+    return f'agentes/{urllib.parse.quote(agente)}/entrar'
+
+
+def entrar(agente, env=None):
+    """Começa o login do agente sem o Terminal: `{estado, url, codigo, pede_codigo, expira_em}`."""
+    return _json('POST', _entrar(agente), {}, env)
+
+
+def estado_da_entrada(agente, env=None):
+    """O login em curso: `esperando`, `pronto`, `falhou` ou `nenhum`."""
+    return _json('GET', _entrar(agente), env=env)
+
+
+def mandar_codigo(agente, codigo, env=None):
+    """O código que a página de login deu, quando o login traz `pede_codigo`."""
+    return _json('POST', f'{_entrar(agente)}/codigo', {'codigo': codigo}, env)
+
+
+def desistir_de_entrar(agente, env=None):
+    return _json('DELETE', _entrar(agente), env=env)
