@@ -119,10 +119,13 @@ function abrir(pedido, opcoes) {
 /**
  * `POST conversas/<id>/mensagens`: um iterador assíncrono de `{ tipo, dados }` (`texto`,
  * `raciocinio`, `ferramenta`, `fim`, `erro`), até o fim do fluxo. Abortar o `signal` cancela a
- * resposta.
+ * resposta. `anexos` leva `[{ tipo: 'imagem' | 'audio', mime, dados }]`, com `dados` em base64 ou
+ * num Buffer.
  */
 async function* mensagem(id, texto, opcoes = {}) {
-  const res = await _pedir('POST', `conversas/${encodeURIComponent(id)}/mensagens`, { texto }, opcoes);
+  const anexos = (opcoes.anexos || []).map((a) => ({ ...a, dados: Buffer.isBuffer(a.dados) ? a.dados.toString('base64') : a.dados }));
+  const corpo = anexos.length ? { texto, anexos } : { texto };
+  const res = await _pedir('POST', `conversas/${encodeURIComponent(id)}/mensagens`, corpo, opcoes);
   if (res.statusCode < 200 || res.statusCode >= 300) throw _erro(res.statusCode, await _texto(res));
   res.setEncoding('utf8');
   let sobra = '';

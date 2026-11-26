@@ -19,6 +19,7 @@ Um erro do contrato chega como `ErroDoAgente`, com o `codigo` estável (`sem_con
 `sem_provedor`.
 """
 
+import base64
 import http.client
 import json
 import os
@@ -130,9 +131,16 @@ def abrir(pedido, env=None):
     return _json('POST', 'conversas', pedido, env)
 
 
-def mensagem(id_, texto, env=None):
-    """`POST conversas/<id>/mensagens`: um gerador de `(tipo, dados)` até o fim do fluxo."""
-    conexao, r = _abrir('POST', f'conversas/{urllib.parse.quote(id_)}/mensagens', {'texto': texto}, env)
+def mensagem(id_, texto, env=None, anexos=None):
+    """`POST conversas/<id>/mensagens`: um gerador de `(tipo, dados)` até o fim do fluxo.
+
+    `anexos` leva `[{'tipo': 'imagem' | 'audio', 'mime', 'dados'}]`, com `dados` em base64 ou em bytes.
+    """
+    corpo = {'texto': texto}
+    if anexos:
+        corpo['anexos'] = [dict(a, dados=base64.b64encode(a['dados']).decode('ascii') if isinstance(a.get('dados'), (bytes, bytearray)) else a.get('dados'))
+                           for a in anexos]
+    conexao, r = _abrir('POST', f'conversas/{urllib.parse.quote(id_)}/mensagens', corpo, env)
     try:
         if not 200 <= r.status < 300:
             raise _erro(r.status, r.read().decode('utf-8'))

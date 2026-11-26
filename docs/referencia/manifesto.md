@@ -439,10 +439,10 @@ O nome da entrada no menu iniciar.
 
 `object`, opcional, sem campo além dos listados.
 
-O servidor MCP do app, por stdio: as ferramentas que um agente (o Claude Code ou o Codex no
-Terminal, ou o agente que outro app abre) chama como a pessoa. O nome do servidor é o id do app. Ele
-sobe por `vssh-app-comando <app> --mcp`, com as regras de um comando, e `vssh mcp adicionar <app>` o
-registra no agente da pessoa.
+O servidor MCP do app, por stdio: as ferramentas que um agente (o Claude Code, o Codex, o Gemini CLI
+ou o Antigravity no Terminal, ou o agente que outro app abre) chama como a pessoa. O nome do
+servidor é o id do app. Ele sobe por `vssh-app-comando <app> --mcp`, com as regras de um comando, e
+`vssh mcp adicionar <app>` o registra no agente da pessoa.
 
 #### `contributes.mcp.roda`
 
