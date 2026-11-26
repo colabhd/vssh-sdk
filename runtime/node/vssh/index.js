@@ -28,7 +28,7 @@
 //   progresso  a linha de progresso de um trabalho longo: escrever e ler
 //   trabalhos  um trabalho longo na estação ou na fila, acompanhado igual
 //   metricas   o que o backend conta e quanto leva, e as exceções, no ambiente
-//   llm        os modelos da instituição pelo llm/v1 do portal: conversa, fluxo, embeddings
+//   llm        os modelos da instituição pelo llm/v1 do portal: as três APIs de conversa, a transcrição
 //   agentes    os agentes da pessoa pelo agentes/v1 da estação, com as ferramentas MCP do app
 
 const modulos = {
