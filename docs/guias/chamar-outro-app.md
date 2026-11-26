@@ -11,7 +11,7 @@ O par de referência é o Prelo, que cita da biblioteca, e o Zotero, que a ofere
 
 ## A capacidade
 
-Uma capacidade é um contrato com nome e versão, `nome/vN`: `bibliography/v1`, `llm/v1`. Quem oferece
+Uma capacidade é um contrato com nome e versão, `nome/vN`: `bibliography/v1`, `notes/v1`. Quem oferece
 a declara em `provides` e quem usa a declara em `requires`, sem que um cite o outro. O Prelo
 pede `bibliography/v1` e recebe o Zotero porque o Zotero está instalado. Outro app que oferecesse
 `bibliography/v1` atenderia o Prelo sem uma linha mudar nele.
@@ -81,11 +81,14 @@ mostrar(r.corpo.itens);
 O caminho é relativo ao prefixo que o outro app declarou, sem barra na frente, com a consulta
 junto. A resposta chega como `{ status, tipo, corpo }`, com `corpo` já lido quando ela é JSON e em
 texto nos outros casos. Para mandar dados, `opcoes` leva o método, o corpo e o tipo. Numa
-capacidade `llm/v1` com uma rota `completar`, seria:
+capacidade `bibliography/v1` com uma rota `importar`, seria:
 
 ```js
-const r = await vssh.apps.pedir('llm/v1', 'completar', { metodo: 'POST', corpo: { prompt, max: 200 } });
+const r = await vssh.apps.pedir('bibliography/v1', 'importar', { metodo: 'POST', corpo: { bibtex } });
 ```
+
+Os modelos da instituição não passam por aqui: quem os serve é o portal, e o app os pede em
+`recursos.llm` ([Os modelos da instituição](modelos-da-instituicao.md)).
 
 Um objeto em `corpo` vai como JSON. `tipo` dá o `Content-Type` de um corpo em texto.
 
